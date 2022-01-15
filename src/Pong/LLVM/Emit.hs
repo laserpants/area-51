@@ -9,18 +9,18 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Data.Char (isUpper)
 import Data.Foldable (foldlM, foldrM)
-import qualified Data.Map.Strict as Map
+import Data.List (sortOn)
 import Data.String (IsString, fromString)
+import Pong.LLVM hiding (void)
+import Pong.Lang
+import TextShow (TextShow, showt)
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
-import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
-import Pong.LLVM hiding (void)
-import Pong.Lang
 import qualified Pong.Util.Env as Env
-import TextShow (TextShow, showt)
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< unpack
@@ -101,7 +101,7 @@ buildProgram name Program {..} =
         case def of
           Data css -> do
             t1 <- typedef (llvmRep name) (Just (StructureType False [i8]))
-            concat <$$> forM (css `zip` [1 ..]) $ \(Constructor tycon fields, i) -> do
+            concat <$$> forM (sortOn consName css `zip` [1 ..]) $ \(Constructor tycon fields, i) -> do
               let ts = llvmType <$> fields
               td <-
                 typedef
@@ -181,7 +181,7 @@ emitBody =
       b <- expr2
       emitOp2Instr op a b
     BCase expr cs -- /
-     -> emitCase expr cs
+     -> emitCase expr (sortOn fst cs)
     BVar name -> do
       Env env <- ask
       case env !? name of

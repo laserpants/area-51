@@ -136,7 +136,6 @@ compileExpr =
         ELit lit -> pure (bLit lit)
         EIf e1 e2 e3 -> bIf <$> e1 <*> e2 <*> e3
         EOp2 op e1 e2 -> bOp2 op <$> e1 <*> e2
-        -- TODO: Sort clauses 
         ECase e1 cs -> bCase <$> e1 <*> traverse sequence cs
         EApp _ expr args -> do
           as <- sequence args

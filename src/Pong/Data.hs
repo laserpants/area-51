@@ -119,7 +119,10 @@ data Signature a =
     }
 
 data Constructor =
-  Constructor Name [Type]
+  Constructor
+    { consName :: Name 
+    , consFields :: [Type]
+    }
 
 data Definition a
   = Function (Signature a) -- ^ Function definition
