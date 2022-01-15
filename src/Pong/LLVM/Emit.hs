@@ -10,17 +10,17 @@ import Control.Monad.Writer
 import Data.Char (isUpper)
 import Data.Foldable (foldlM, foldrM)
 import Data.List (sortOn)
-import Data.String (IsString, fromString)
-import Pong.LLVM hiding (void)
-import Pong.Lang
-import TextShow (TextShow, showt)
 import qualified Data.Map.Strict as Map
+import Data.String (IsString, fromString)
 import qualified Data.Text as Text
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
+import Pong.LLVM hiding (void)
+import Pong.Lang
 import qualified Pong.Util.Env as Env
+import TextShow (TextShow, showt)
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< unpack
@@ -114,8 +114,9 @@ buildProgram name Program {..} =
                   (ptr t1)
                   (\args -> do
                      sz <- zext (ConstantOperand (sizeof td)) i64
-                     m <- call (functionSig "gc_malloc" charPtr [i64]) [(sz, [])]
-                     a <- bitcast m (ptr td) 
+                     m <-
+                       call (functionSig "gc_malloc" charPtr [i64]) [(sz, [])]
+                     a <- bitcast m (ptr td)
                      p0 <- gep a [int32 0, int32 0]
                      store p0 0 (int8 i)
                      forM_ (args `zip` [1 ..]) $ \(arg, j) -> do

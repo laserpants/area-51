@@ -120,7 +120,7 @@ data Signature a =
 
 data Constructor =
   Constructor
-    { consName :: Name 
+    { consName :: Name
     , consFields :: [Type]
     }
 

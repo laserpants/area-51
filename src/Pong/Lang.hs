@@ -22,30 +22,30 @@ module Pong.Lang
   , insertDefinition
   , emptyProgram
   , printProgram
-  , tUnit 
-  , tBool 
-  , tInt32 
-  , tInt64 
-  , tFloat 
-  , tDouble 
-  , tVar 
-  , tArr 
-  , tData 
-  , (.->) 
-  , var 
-  , lit 
-  , if_ 
-  , lam 
-  , let_ 
-  , app 
-  , op2 
-  , case_ 
-  , bVar 
-  , bLit 
-  , bIf 
-  , bCall 
-  , bOp2 
-  , bCase 
+  , tUnit
+  , tBool
+  , tInt32
+  , tInt64
+  , tFloat
+  , tDouble
+  , tVar
+  , tArr
+  , tData
+  , (.->)
+  , var
+  , lit
+  , if_
+  , lam
+  , let_
+  , app
+  , op2
+  , case_
+  , bVar
+  , bLit
+  , bIf
+  , bCall
+  , bOp2
+  , bCase
   ) where
 
 import Data.Map.Strict (Map)
