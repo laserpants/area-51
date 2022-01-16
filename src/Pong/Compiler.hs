@@ -183,7 +183,6 @@ compileProgram :: [(Name, Definition (Ast ()))] -> Program
 compileProgram ds = execCompiler comp env
   where
     env = Env.fromList (typeOf <$$> ds)
-    comp :: Compiler ()
     comp
       | null ls =
         forM_ rs $ \(name, def) -> do
@@ -194,9 +193,7 @@ compileProgram ds = execCompiler comp env
               Constant lit -> pure (Constant lit)
               Data clauses -> pure (Data clauses)
           modify (insertDefinition name newDef)
-      | otherwise -- /
-        -- TODO
-       = error (show ls)
+      | otherwise = error (show ls)
     -- /
     (ls, rs) =
       let typecheckDef ::
