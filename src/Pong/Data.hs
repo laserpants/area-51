@@ -286,6 +286,12 @@ deriving instance (Show a) => Show (Definition a)
 
 deriving instance (Eq a) => Eq (Definition a)
 
+deriving instance Functor Definition
+
+deriving instance Foldable Definition
+
+deriving instance Traversable Definition
+
 -- Program
 deriving instance Show Program
 

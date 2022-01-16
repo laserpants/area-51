@@ -19,6 +19,7 @@ module Pong.Lang
   , isTCon
   , arity
   , returnTypeOf
+  , funArgs
   , insertDefinition
   , emptyProgram
   , printProgram
@@ -184,6 +185,13 @@ unwindType =
 
 returnTypeOf :: (Typed t) => t -> Type
 returnTypeOf = last <<< unwindType <<< typeOf
+
+funArgs :: Definition a -> [(Type, Name)]
+funArgs =
+  \case
+    Function Signature {..} -> arguments
+    External Signature {..} -> arguments
+    _ -> []
 
 {-# INLINE foldType #-}
 foldType :: Type -> [Type] -> Type

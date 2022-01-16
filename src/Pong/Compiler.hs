@@ -9,6 +9,7 @@ import Control.Applicative ((<|>))
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Function ((&))
+import Debug.Trace
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust, fromMaybe, maybeToList)
 import qualified Data.Set as Set
