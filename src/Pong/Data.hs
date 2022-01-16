@@ -128,7 +128,7 @@ data Definition a
   = Function (Signature a) -- ^ Function definition
   | External (Signature ()) -- ^ External declaration
   | Constant Literal -- ^ Constant value
-  | Data [Constructor]
+  | Data [Constructor] -- ^ Data type definition
 
 data Program =
   Program

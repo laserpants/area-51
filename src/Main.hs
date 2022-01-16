@@ -67,7 +67,6 @@ testModule =
              (tInt32, bCall "f" [bLit (LInt32 5)])))
     ]
 
---
 testProgram :: [(Name, Definition (Ast ()))]
 testProgram =
   [ ("fact", Function (Signature [(tInt32, "n")] (tInt32, factExpr)))
