@@ -1,9 +1,8 @@
-{-# LANGUAGE TupleSections #-}
-
 module Main where
 
 import Control.Monad
 import Control.Monad.Reader
+import Control.Monad.State
 import Data.Bifunctor
 import Data.Either
 import Data.Function (on)
@@ -85,31 +84,8 @@ testProgram =
            (app () (var () "fact") [op2 OSubInt32 (var () "n") (lit (LInt32 1))]))
     mainExpr = app () (var () "fact") [lit (LInt32 5)]
 
-compileTestProgram :: [(Name, Definition (Ast ()))] -> Program
-compileTestProgram ds = execCompiler comp env
-  where
-    env = Env.fromList (typeOf <$$> ds)
-    --
-    comp :: Compiler ()
-    comp
-      | null ls =
-        forM_ rs $ \(name, def) ->
-          case def of
-            Function sig -> compileFunction name sig
-            _ -> pure ()
-      | otherwise -- /
-       = error (show ls)
-    -- /
-    (ls, rs) =
-      let typecheckDef ::
-               Definition (Ast ()) -> Definition (Either TypeError Expr)
-          typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
-          partitionDefs =
-            partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)
-       in partitionDefs (sequence <$$> second typecheckDef <$> ds)
-
 testModule3 :: LLVM.Module
-testModule3 = buildProgram "Main" (compileTestProgram testProgram)
+testModule3 = buildProgram "Main" (compileProgram testProgram)
 
 runTestModule3 :: IO ()
 runTestModule3 = Text.putStrLn (ppll testModule3)

@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -8,13 +9,15 @@ module Pong.Compiler where
 import Control.Applicative ((<|>))
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Bifunctor (bimap)
+import Data.Either (partitionEithers)
 import Data.Function ((&))
-import Debug.Trace
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust, fromMaybe, maybeToList)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
+import Debug.Trace
 import Pong.Lang
 import Pong.TypeChecker
 import qualified Pong.Util.Env as Env
@@ -111,12 +114,12 @@ uniqueName name = do
   put Program {count = succ count, ..}
   pure (name <> "_" <> showt count)
 
-compileFunction :: Name -> Signature Expr -> Compiler ()
+compileFunction :: Name -> Signature Expr -> Compiler (Definition Body)
 compileFunction name (Signature args (ty, body)) = do
   expr <- asks (runReader (preprocess body))
   let self = (foldType ty (args <#> fst), name)
   main <- local (insertArgs (self : args)) (compileExpr expr)
-  modify (insertDefinition name (Function (Signature args (ty, main))))
+  pure (Function (Signature args (ty, main)))
 
 compileExpr :: Expr -> Compiler Body
 compileExpr =
@@ -175,3 +178,30 @@ fillParams (Function (Signature arguments (ty, body)))
             , body = (returnTypeOf ty, newBody)
             }))
 fillParams def = pure def
+
+compileProgram :: [(Name, Definition (Ast ()))] -> Program
+compileProgram ds = execCompiler comp env
+  where
+    env = Env.fromList (typeOf <$$> ds)
+    comp :: Compiler ()
+    comp
+      | null ls =
+        forM_ rs $ \(name, def) -> do
+          newDef <-
+            case def of
+              Function sig -> fillParams =<< compileFunction name sig
+              External sig -> pure (External sig)
+              Constant lit -> pure (Constant lit)
+              Data clauses -> pure (Data clauses)
+          modify (insertDefinition name newDef)
+      | otherwise -- /
+        -- TODO
+       = error (show ls)
+    -- /
+    (ls, rs) =
+      let typecheckDef ::
+               Definition (Ast ()) -> Definition (Either TypeError Expr)
+          typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
+          partitionDefs =
+            partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)
+       in partitionDefs (sequence <$$> second typecheckDef <$> ds)
