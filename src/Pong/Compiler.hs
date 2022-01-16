@@ -69,7 +69,7 @@ convertClosures =
           [] -> lambda
           _ -> do
             app
-              (foldType (typeOf body) (fst <$> args))
+              (foldType (typeOf body) (args <#> fst))
               lambda
               (uncurry var <$> extra)
 
@@ -114,7 +114,7 @@ uniqueName name = do
 compileFunction :: Name -> Signature Expr -> Compiler ()
 compileFunction name (Signature args (ty, body)) = do
   expr <- asks (runReader (preprocess body))
-  let self = (foldType ty (fst <$> args), name)
+  let self = (foldType ty (args <#> fst), name)
   main <- local (insertArgs (self : args)) (compileExpr expr)
   modify (insertDefinition name (Function (Signature args (ty, main))))
 
