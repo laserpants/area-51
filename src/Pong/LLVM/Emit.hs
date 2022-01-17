@@ -261,7 +261,7 @@ emitCase expr cs =
         ]
       blocks <-
         forM cs $ \(con:fields, body) -> do
-          blk <- block `named` "case"
+          block `named` "case"
           r <-
             if null fields
               then body
@@ -275,6 +275,7 @@ emitCase expr cs =
                     load pi 0
                 local (Env.inserts (zip fields ops)) body
           br end
+          blk <- currentBlock
           pure (r, blk)
       end <- block `named` "end"
       phi blocks

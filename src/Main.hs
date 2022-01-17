@@ -105,7 +105,7 @@ testProgram2 =
     fooExpr =
       let_
         ((), "xs")
-        (app () (var () "Cons") [lit (LInt32 5), var () "Nil"])
+        (app () (var () "Cons") [lit (LInt32 5), app () (var () "Nil") []])
         (let_
            ((), "ys")
            (app () (var () "Cons") [lit (LInt32 5), var () "xs"])
