@@ -255,16 +255,16 @@ emitCase expr cs =
   mdo dt <- expr
       a0 <- gep dt [int32 0, int32 0]
       m <- load a0 0
-      let names = snd <$> blocks
+      let names = blocks <#> snd
       switch
         m
         (last names)
-        [ (Int 8 (fromIntegral m), block)
-        | (m, block) <- zip [0 ..] (init names)
+        [ (Int 8 (fromIntegral i), block)
+        | (i, block) <- zip [1 ..] (init names)
         ]
       blocks <-
         forM cs $ \(con:fields, body) -> do
-          block `named` "case"
+          blk <- block `named` "case"
           r <-
             if null fields
               then body
@@ -278,7 +278,7 @@ emitCase expr cs =
                     load pi 0
                 local (Env.inserts (zip fields ops)) body
           br end
-          blk <- currentBlock
-          pure (r, blk)
+          cb <- currentBlock
+          pure ((r, cb), blk)
       end <- block `named` "end"
-      phi blocks
+      phi (blocks <#> fst)
