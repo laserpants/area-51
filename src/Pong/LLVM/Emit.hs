@@ -99,7 +99,7 @@ buildProgram name Program {..} =
     env <-
       Env.fromList . concat <$$> forM (Map.toList definitions) $ \(name, def) ->
         case def of
-          Data css -> do
+          Data _ css -> do
             t1 <- typedef (llvmRep name) (Just (StructureType False [i8]))
             concat <$$> forM (sortOn consName css `zip` [1 ..]) $ \(Constructor tycon fields, i) -> do
               let ts = llvmType <$> fields

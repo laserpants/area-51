@@ -179,10 +179,15 @@ fillParams (Function (Signature arguments (ty, body)))
             }))
 fillParams def = pure def
 
+consTypes :: (Name, Definition (Ast ())) -> [(Name, Type)]
+consTypes (name, def) =
+  constructors def <#> \Constructor {..} ->
+    (consName, foldr tArr (tData name) (typeOf <$> consFields))
+
 compileProgram :: [(Name, Definition (Ast ()))] -> Program
 compileProgram ds = execCompiler comp env
   where
-    env = Env.fromList (typeOf <$$> ds)
+    env = Env.fromList ((typeOf <$$> ds) <> (consTypes =<< ds))
     comp
       | null ls =
         forM_ rs $ \(name, def) -> do
@@ -191,7 +196,7 @@ compileProgram ds = execCompiler comp env
               Function sig -> fillParams =<< compileFunction name sig
               External sig -> pure (External sig)
               Constant lit -> pure (Constant lit)
-              Data clauses -> pure (Data clauses)
+              Data name css -> pure (Data name css)
           modify (insertDefinition name newDef)
       | otherwise = error (show ls)
     -- /

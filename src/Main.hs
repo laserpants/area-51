@@ -34,7 +34,9 @@ testModule =
   Program 0 $
   Map.fromList
     [ ( "List"
-      , Data [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+      , Data
+          "List"
+          [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
     , ( "foo"
       , Function
           (Signature
@@ -88,3 +90,39 @@ testModule3 = buildProgram "Main" (compileProgram testProgram)
 
 runTestModule3 :: IO ()
 runTestModule3 = Text.putStrLn (ppll testModule3)
+
+--
+testProgram2 :: [(Name, Definition (Ast ()))]
+testProgram2 =
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+  , ("foo", Function (Signature [] (tInt32, fooExpr)))
+  , ("main", Function (Signature [] (tInt32, mainExpr)))
+  ]
+  where
+    fooExpr =
+      let_
+        ((), "xs")
+        (app () (var () "Cons") [lit (LInt32 5), var () "Nil"])
+        (let_
+           ((), "ys")
+           (app () (var () "Cons") [lit (LInt32 5), var () "xs"])
+           (case_
+              (var () "ys")
+              [ (["Nil"], lit (LInt32 1))
+              , ( ["Cons", "_", "zs"]
+                , case_
+                    (var () "zs")
+                    [ (["Nil"], lit (LInt32 2))
+                    , (["Cons", "_", "_"], lit (LInt32 3))
+                    ])
+              ]))
+    mainExpr = app () (var () "foo") []
+
+testModule4 :: LLVM.Module
+testModule4 = buildProgram "Main" (compileProgram testProgram2)
+
+runTestModule4 :: IO ()
+runTestModule4 = Text.putStrLn (ppll testModule4)

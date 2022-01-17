@@ -149,7 +149,7 @@ check =
      -> throwError EmptyCaseStatement
     ECase expr clauses -> do
       e <- expr
-      cs <- traverse (sequence <=< applySubstitution) clauses
+      cs <- traverse (checkClause <=< applySubstitution) clauses
       let t:ts = snd <$> cs
       forM_ ts (unifyM t)
       pure (case_ e cs)
@@ -169,3 +169,10 @@ check =
       unifyM e1 t1
       unifyM e2 t2
       pure (op2 op e1 e2)
+
+checkClause :: (Names, TypeChecker (Ast Type)) -> TypeChecker (Names, Ast Type)
+checkClause (con:vs, expr) = do
+  Env env <- ask
+  ty <- maybe (throwError (NotInScope con)) pure (env !? con)
+  e <- local (Env.inserts (vs `zip` unwindType ty)) expr
+  pure (con : vs, e)

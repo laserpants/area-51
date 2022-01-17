@@ -20,6 +20,7 @@ module Pong.Lang
   , arity
   , returnTypeOf
   , funArgs
+  , constructors
   , insertDefinition
   , emptyProgram
   , printProgram
@@ -143,6 +144,7 @@ instance Typed (Definition a) where
       Function Signature {..} -> foldType (fst body) (fst <$> arguments)
       External Signature {..} -> foldType (fst body) (fst <$> arguments)
       Constant lit -> typeOf lit
+      Data name _ -> tData name
 
 class HasArity a where
   arity :: a -> Int
@@ -191,6 +193,12 @@ funArgs =
   \case
     Function Signature {..} -> arguments
     External Signature {..} -> arguments
+    _ -> []
+
+constructors :: Definition a -> [Constructor]
+constructors =
+  \case
+    Data _ cs -> cs
     _ -> []
 
 {-# INLINE foldType #-}
