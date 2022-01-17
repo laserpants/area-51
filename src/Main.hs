@@ -126,3 +126,42 @@ testModule4 = buildProgram "Main" (compileProgram testProgram2)
 
 runTestModule4 :: IO ()
 runTestModule4 = Text.putStrLn (ppll testModule4)
+
+z123 :: [(Name, Definition Body)]
+z123 =
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+  , ( "def_0"
+    , Function
+        (Signature
+           [ (tInt32 `tArr` tData "List" `tArr` tData "List", "Cons")
+           , (tData "List", "xs")
+           ]
+           (tInt32, bCall "def_1" [bCall "Cons" [bLit (LInt32 5), bVar "xs"]])))
+  , ( "def_1"
+    , Function
+        (Signature
+           [(tData "List", "ys")]
+           ( tInt32
+           , bCase
+               (bVar "ys")
+               [ (["Nil"], bLit (LInt32 1))
+               , ( ["Cons", "_", "zs"]
+                 , bCase
+                     (bVar "zs")
+                     [ (["Nil"], bLit (LInt32 2))
+                     , (["Cons", "_", "_"], bLit (LInt32 3))
+                     ])
+               ])))
+  , ( "foo"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , bCall
+               "def_0"
+               [bVar "Cons", bCall "Cons" [bLit (LInt32 5), bCall "Nil" []]])))
+  , ("main", Function (Signature [] (tInt32, bCall "foo" [])))
+  ]

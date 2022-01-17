@@ -186,7 +186,10 @@ emitBody =
     BVar name -> do
       Env env <- ask
       case env !? name of
-        Just op -> pure op
+        Just op@(ConstantOperand (GlobalReference PointerType {..} _)) ->
+          emitCall name []
+        Just op -- /
+         -> pure op
         _ -> error ("Not in scope: '" <> show name <> "'")
     BCall fun args -> emitCall fun args
 
@@ -219,7 +222,7 @@ emitCall fun args = do
                      p1 <- gep s [int32 0, int32 1]
                      h <- load p1 0
                      an <-
-                       forM [2 .. length vs + 2] $ \n -> do
+                       forM [2 .. length ts1 + 1] $ \n -> do
                          q <- gep s [int32 0, int32 (fromIntegral n)]
                          load q 0
                      r <- call h (zip (an <> vs) (repeat []))
