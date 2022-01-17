@@ -130,6 +130,11 @@ runFillParamsTest description (input, env) expected =
       compileExpr (fromRight (error "Implementation error") e)
       mapDefinitionsM fillParams
 
+runCompileProgramTest ::
+     TestCase [(Name, Definition (Ast ()))] [(Name, Definition Body)]
+runCompileProgramTest description input expected =
+  it description $ definitions (compileProgram input) == Map.fromList expected
+
 runLlvmTypeTest :: TestCase Type LLVM.Type
 runLlvmTypeTest description input expected =
   it description $ llvmType input == expected

@@ -26,7 +26,7 @@ main :: IO ()
 main =
   hspec $
     ---------------------------------------------------------------------------
-    -- Module Pong -----------------------------------------------------------
+    -- Module Pong ------------------------------------------------------------
     ---------------------------------------------------------------------------
    do
     describe "free" $ do
@@ -134,7 +134,7 @@ main =
     ---------------------------------------------------------------------------
     describe "insertDefinition" $ do runIO $ print "TODO"
     ---------------------------------------------------------------------------
-    -- Module Pong.TypeChecker -----------------------------------------------
+    -- Module Pong.TypeChecker ------------------------------------------------
     ---------------------------------------------------------------------------
     describe "runCheck" $ do
       runTypeCheckerTest
@@ -146,7 +146,7 @@ main =
         (input2, Env.fromList [("x", i32), ("y", i32)])
         (Right input2Typed)
     ---------------------------------------------------------------------------
-    -- Module Pong.Compiler --------------------------------------------------
+    -- Module Pong.Compiler ---------------------------------------------------
     ---------------------------------------------------------------------------
     describe "convertLetBindings" $ do
       runConvertLetBindingsTest "#1" input6 input6Converted
@@ -166,8 +166,10 @@ main =
       runCompileExpressionTest1 "#1" (input12, input13) (i32 .-> i32 .-> i32)
     describe "lookupFunType" $ do runIO $ print "TODO"
     describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
+    describe "compileProgram" $ do
+      runCompileProgramTest "#1" input16 input16Compiled
     ---------------------------------------------------------------------------
-    -- Module Pong.LLVM.Emit -------------------------------------------------
+    -- Module Pong.LLVM.Emit --------------------------------------------------
     ---------------------------------------------------------------------------
     describe "llvmType" $ do
       runLlvmTypeTest "() ==> i1" tUnit LLVM.i1
