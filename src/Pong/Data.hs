@@ -143,7 +143,7 @@ newtype Substitution =
 
 newtype TypeChecker a =
   TypeChecker
-    { getTypeChecker :: ExceptT TypeError (ReaderT TypeEnv (State Substitution)) a
+    { getTypeChecker :: ExceptT TypeError (ReaderT TypeEnv (State (Int, Substitution))) a
     }
 
 data TypeError
@@ -311,7 +311,7 @@ deriving instance Applicative TypeChecker
 
 deriving instance Monad TypeChecker
 
-deriving instance (MonadState Substitution) TypeChecker
+deriving instance (MonadState (Int, Substitution)) TypeChecker
 
 deriving instance (MonadReader TypeEnv) TypeChecker
 

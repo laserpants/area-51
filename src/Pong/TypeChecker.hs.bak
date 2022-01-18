@@ -6,12 +6,14 @@ module Pong.TypeChecker
   ( runCheck
   ) where
 
+import Debug.Trace
 import Control.Arrow ((>>>))
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
+import qualified Data.Text as Text
 import Data.Tuple.Extra (first, firstM, second)
 import Pong.Lang
 import qualified Pong.Util.Env as Env
@@ -83,11 +85,16 @@ unify t1 t2 =
       sub1 <- unify t1 u1
       sub2 <- unify (apply sub1 t2) (apply sub1 u2)
       pure (sub2 <> sub1)
+    (TRow {} , TRow {}) -> unifyRows t1 t2
     _
       | t1 == t2 -> pure mempty
-      | otherwise -> throwError UnificationError
+      | otherwise -> traceShow (t1, t2) $ throwError UnificationError
 
-applySubstitution :: (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
+unifyRows t1 t2 =
+  pure mempty
+
+applySubstitution ::
+     (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
 applySubstitution a = gets (apply . snd) <*> pure a
 
 unifyM ::
@@ -136,13 +143,9 @@ check =
       xs <- traverse (firstM (applySubstitution . tVar)) args
       pure (lam xs e)
     EVar t name -> do
-      Env env <- ask
-      case env !? name of
-        Just ty -> do
-          unifyM (tVar t) ty
-          pure (var ty name)
-        _ -- /
-         -> throwError (NotInScope name)
+      ty <- varType name
+      unifyM (tVar t) ty
+      pure (var ty name)
     ECase _ [] -- /
      -> throwError EmptyCaseStatement
     ECase expr clauses -> do
@@ -168,9 +171,22 @@ check =
       unifyM e2 t2
       pure (op2 op e1 e2)
 
+varType :: Name -> TypeChecker Type
+varType name
+  | '{' == Text.head name = do
+    if "{}" == name
+      then pure (tData "{}")
+      else do
+        t1 <- tag
+        t2 <- tag
+        --pure (tRow name (tVar t1))
+        pure (tVar t1 `tArr` tVar t2 `tArr` tRow name (tVar t1))
+  | otherwise = do
+    Env env <- ask
+    maybe (throwError (NotInScope name)) pure (env !? name)
+
 checkClause :: (Names, TypeChecker (Ast Type)) -> TypeChecker (Names, Ast Type)
 checkClause (con:vs, expr) = do
-  Env env <- ask
-  ty <- maybe (throwError (NotInScope con)) pure (env !? con)
+  ty <- varType con
   e <- local (Env.inserts (vs `zip` unwindType ty)) expr
   pure (con : vs, e)
