@@ -211,7 +211,8 @@ emitCall fun args = do
         _ ->
           mdo let sTy =
                     StructureType False (LLVM.typeOf g : LLVM.typeOf op : ts1)
-              name <- freshName "anon"
+              --name <- freshName "anon"
+              name <- freshUnName
               g <-
                 function
                   name
