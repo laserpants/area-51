@@ -115,7 +115,7 @@ buildProgram name Program {..} =
                   (\args -> do
                      sz <- zext (ConstantOperand (sizeof td)) i64
                      m <-
-                       call (functionSig "gc_malloc" charPtr [i64]) [(sz, [])]
+                       call (functionSig "gc_malloc" (ptr LLVM.void) [i64]) [(sz, [])]
                      a <- bitcast m (ptr td)
                      p0 <- gep a [int32 0, int32 0]
                      store p0 0 (int8 i)
