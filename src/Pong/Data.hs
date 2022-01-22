@@ -206,11 +206,11 @@ deriving instance Eq Op2
 deriving instance Ord Op2
 
 -- Expr
-deriving instance (Show a) => Show (ExprF Type a)
+deriving instance (Show t, Show a) => Show (ExprF t a)
 
-deriving instance (Eq a) => Eq (ExprF Type a)
+deriving instance (Eq t, Eq a) => Eq (ExprF t a)
 
-deriving instance (Ord a) => Ord (ExprF Type a)
+deriving instance (Ord t, Ord a) => Ord (ExprF t a)
 
 deriveShow1 ''ExprF
 
