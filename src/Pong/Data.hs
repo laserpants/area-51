@@ -85,7 +85,7 @@ data ExprF t a
   | EOp2 Op2 a a
   | ECase a [([TyId t], a)]
 
-type Ast a = Fix (ExprF a)
+type Ast t = Fix (ExprF t)
 
 type Expr = Ast Type
 
@@ -218,11 +218,11 @@ deriveEq1 ''ExprF
 
 deriveOrd1 ''ExprF
 
-deriving instance Functor (ExprF a)
+deriving instance Functor (ExprF t)
 
-deriving instance Foldable (ExprF a)
+deriving instance Foldable (ExprF t)
 
-deriving instance Traversable (ExprF a)
+deriving instance Traversable (ExprF t)
 
 -- Con
 deriving instance Show Con
