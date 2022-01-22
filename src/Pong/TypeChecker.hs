@@ -55,7 +55,7 @@ mapsTo = Substitution <$$> Map.singleton
 tagTyId :: TyId a -> TypeChecker (TyId Int)
 tagTyId (_, name) = (,) <$> tag <*> pure name
 
-tagExpr :: Ast a -> TypeChecker (Ast Int)
+tagExpr :: Ast t -> TypeChecker (Ast Int)
 tagExpr =
   cata $ \case
     EVar tname -> var <$> tagTyId tname
