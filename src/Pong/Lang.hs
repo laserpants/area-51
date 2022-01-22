@@ -53,6 +53,7 @@ module Pong.Lang
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
+import Data.Tuple.Extra (first)
 import Pong.Data
 import Pong.Util
 import qualified Pong.Util.Env as Env
@@ -63,14 +64,14 @@ class FreeIn a where
 instance FreeIn (Ast a) where
   free =
     cata $ \case
-      EVar _ name -> [name]
+      EVar (_, name) -> [name]
       ELit lit -> []
       EIf e1 e2 e3 -> e1 <> e2 <> e3
       ELam args expr -> expr `without` (snd <$> args)
       ELet bind e1 e2 -> (e1 <> e2) `without` [snd bind]
       EApp _ fun args -> fun <> concat args
       EOp2 op e1 e2 -> e1 <> e2
-      ECase e1 cs -> e1 <> (cs >>= free . uncurry Clause)
+      ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
 
 instance FreeIn Body where
   free =
@@ -128,7 +129,7 @@ instance Typed Op2 where
 instance Typed Expr where
   typeOf =
     cata $ \case
-      EVar ty _ -> ty
+      EVar (ty, _) -> ty
       ELit lit -> typeOf lit
       EIf _ _ e3 -> e3
       ELam args expr -> foldType expr (fst <$> args)
@@ -266,8 +267,8 @@ tData :: Name -> Type
 tData = embed1 TData
 
 {-# INLINE var #-}
-var :: a -> Name -> Ast a
-var = embed2 EVar
+var :: (a, Name) -> Ast a
+var = embed1 EVar
 
 {-# INLINE lit #-}
 lit :: Literal -> Ast a
@@ -294,7 +295,7 @@ op2 :: Op2 -> Ast a -> Ast a -> Ast a
 op2 = embed3 EOp2
 
 {-# INLINE case_ #-}
-case_ :: Ast a -> [(Names, Ast a)] -> Ast a
+case_ :: Ast a -> [([(a, Name)], Ast a)] -> Ast a
 case_ = embed2 ECase
 
 {-# INLINE bVar #-}

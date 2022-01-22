@@ -29,7 +29,7 @@ instance Substitutable Type where
 instance Substitutable Expr where
   apply sub =
     cata $ \case
-      EVar t name -> var (apply sub t) name
+      EVar (t, name) -> var (apply sub t, name)
       ELam args expr -> lam (first (apply sub) <$> args) expr
       ELet (t, name) expr1 expr2 -> let_ (apply sub t, name) expr1 expr2
       EApp t fun args -> app (apply sub t) fun args
@@ -52,21 +52,21 @@ compose s1 s2 =
 mapsTo :: Int -> Type -> Substitution
 mapsTo = Substitution <$$> Map.singleton
 
+tagTyId :: TyId a -> TypeChecker (TyId Int)
+tagTyId (_, name) = (,) <$> tag <*> pure name
+
 tagExpr :: Ast a -> TypeChecker (Ast Int)
 tagExpr =
   cata $ \case
-    EVar _ name -> var <$> tag <*> pure name
+    EVar tname -> var <$> tagTyId tname
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-    ELam args expr -> do
-      ts <- replicateM (length args) tag
-      lam (zip ts (snd <$> args)) <$> expr
-    ELet (_, name) e1 e2 -> do
-      t <- tag
-      let_ (t, name) <$> e1 <*> e2
+    ELam args expr -> lam <$> traverse tagTyId args <*> expr
+    ELet bind e1 e2 -> let_ <$> tagTyId bind <*> e1 <*> e2
     EApp _ fun args -> app <$> tag <*> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
-    ECase e1 cs -> case_ <$> e1 <*> traverse sequence cs
+    ECase e1 cs ->
+      case_ <$> e1 <*> traverse (firstM (traverse tagTyId) <=< sequence) cs
 
 tag :: MonadState (Int, a) m => m Int
 tag = do
@@ -87,7 +87,8 @@ unify t1 t2 =
       | t1 == t2 -> pure mempty
       | otherwise -> throwError UnificationError
 
-applySubstitution :: (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
+applySubstitution ::
+     (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
 applySubstitution a = gets (apply . snd) <*> pure a
 
 unifyM ::
@@ -135,12 +136,12 @@ check =
       e <- local (insertArgs (first tVar <$> args)) expr
       xs <- traverse (firstM (applySubstitution . tVar)) args
       pure (lam xs e)
-    EVar t name -> do
+    EVar (t, name) -> do
       Env env <- ask
       case env !? name of
         Just ty -> do
           unifyM (tVar t) ty
-          pure (var ty name)
+          pure (var (ty, name))
         _ -- /
          -> throwError (NotInScope name)
     ECase _ [] -- /
@@ -168,9 +169,16 @@ check =
       unifyM e2 t2
       pure (op2 op e1 e2)
 
-checkClause :: (Names, TypeChecker (Ast Type)) -> TypeChecker (Names, Ast Type)
-checkClause (con:vs, expr) = do
+checkClause ::
+     ([TyId Int], TypeChecker (Ast Type)) -> TypeChecker ([TyId Type], Ast Type)
+checkClause ((_, con):vs, expr) = do
   Env env <- ask
   ty <- maybe (throwError (NotInScope con)) pure (env !? con)
-  e <- local (Env.inserts (vs `zip` unwindType ty)) expr
-  pure (con : vs, e)
+  let ts = unwindType ty
+      ps = vs `zip` ts
+  e <- local (Env.inserts (first snd <$> ps)) expr
+  tvs <-
+    forM ps $ \((t, n), t1) -> do
+      unifyM (tVar t) t1
+      pure (tVar t, n)
+  pure ((ty, con) : tvs, e)

@@ -73,15 +73,17 @@ data Op2
   | OSubDouble
   | ODivDouble
 
+type TyId t = (t, Name)
+
 data ExprF t a
-  = EVar t Name
+  = EVar (TyId t)
   | ELit Literal
   | EIf a a a
-  | ELam [(t, Name)] a
-  | ELet (t, Name) a a
+  | ELam [TyId t] a
+  | ELet (TyId t) a a
   | EApp t a [a]
   | EOp2 Op2 a a
-  | ECase a [(Names, a)]
+  | ECase a [([TyId t], a)]
 
 type Ast a = Fix (ExprF a)
 

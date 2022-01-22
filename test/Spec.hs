@@ -31,20 +31,20 @@ main =
    do
     describe "free" $ do
       describe "Ast" $ do
-        runFreeTest "x ==> [x]" (var i32 "x") ["x"]
+        runFreeTest "x ==> [x]" (var (i32, "x")) ["x"]
         runFreeTest "5 ==> []" (lit (LInt32 5) :: Ast ()) []
-        runFreeTest "\\x : Int -> x ==> []" (lam [((), "x")] (var () "x")) []
+        runFreeTest "\\x : Int -> x ==> []" (lam [((), "x")] (var ((), "x"))) []
         runFreeTest
           "\\x : Int -> y ==> [y]"
-          (lam [((), "x")] (var () "y"))
+          (lam [((), "x")] (var ((), "y")))
           ["y"]
         runFreeTest
           "\\x : Int -> f y ==> [f, y]"
-          (lam [((), "x")] (app () (var () "f") [var () "y"]))
+          (lam [((), "x")] (app () (var ((), "f")) [var ((), "y")]))
           ["f", "y"]
         runFreeTest
           "\\x : Int -> f x ==> [f]"
-          (lam [((), "x")] (app () (var () "f") [var () "x"]))
+          (lam [((), "x")] (app () (var ((), "f")) [var ((), "x")]))
           ["f"]
         runFreeTest "let f = foo in \\x : Int -> f x ==> [foo]" input1 ["foo"]
         runFreeTest "x + y ==> [x, y]" input2 ["x", "y"]
@@ -95,8 +95,8 @@ main =
       runIsTConTest "t /~ ArrT" (ArrT, tVar 0) False
     ---------------------------------------------------------------------------
     describe "isCon" $ do
-      runIsConTest "x ~ Var" (VarE, var () "x") True
-      runIsConTest "x /~ Lit" (LitE, var () "x") False
+      runIsConTest "x ~ Var" (VarE, var ((), "x")) True
+      runIsConTest "x /~ Lit" (LitE, var ((), "x")) False
       runIsConTest "() ~ Lit" (LitE, lit LUnit) True
       runIsConTest "() /~ Var" (VarE, lit LUnit) False
     ---------------------------------------------------------------------------

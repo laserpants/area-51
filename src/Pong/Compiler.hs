@@ -30,7 +30,7 @@ convertLetBindings =
       | isCon VarE e1 || isCon LitE e1 || isCon LamE e1 ->
         let alg =
               \case
-                EVar _ var
+                EVar (_, var)
                   | name == var -> e1
                 e -> embed e
          in cata alg e2
@@ -48,7 +48,7 @@ combineLambdas =
 convertClosures :: (MonadReader TypeEnv m) => Expr -> m Expr
 convertClosures =
   cata $ \case
-    EVar ty name -> pure (var ty name)
+    EVar (ty, name) -> pure (var (ty, name))
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
     ELet {} ->
@@ -57,10 +57,9 @@ convertClosures =
     EApp ty fun args -> app ty <$> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
-      let insertNames (n:ns, expr) = do
-            ts <- unwindType <$> lookupNameUnsafe n
-            e <- local (insertArgs (zip ts ns)) expr
-            pure (n : ns, e)
+      let insertNames (n:vs, expr) = do
+            e <- local (insertArgs vs) expr
+            pure (n : vs, e)
        in case_ <$> e1 <*> traverse insertNames cs
     ELam args expr -> do
       body <- local (insertArgs args) expr
@@ -71,10 +70,7 @@ convertClosures =
         case extra of
           [] -> lambda
           _ -> do
-            app
-              (foldType (typeOf body) (args <#> fst))
-              lambda
-              (uncurry var <$> extra)
+            app (foldType (typeOf body) (args <#> fst)) lambda (var <$> extra)
 
 lookupNameUnsafe :: (MonadReader TypeEnv m) => Name -> m Type
 lookupNameUnsafe = asks . (fromJust <$$> Env.lookup)
@@ -136,11 +132,12 @@ compileExpr =
       pure (bVar anon)
     expr ->
       snd <$> expr & \case
-        EVar _ name -> pure (bVar name)
+        EVar (_, name) -> pure (bVar name)
         ELit lit -> pure (bLit lit)
         EIf e1 e2 e3 -> bIf <$> e1 <*> e2 <*> e3
         EOp2 op e1 e2 -> bOp2 op <$> e1 <*> e2
-        ECase e1 cs -> bCase <$> e1 <*> traverse sequence cs
+        ECase e1 cs ->
+          bCase <$> e1 <*> traverse sequence (first (fmap snd) <$> cs)
         EApp _ expr args -> do
           as <- sequence args
           expr >>=

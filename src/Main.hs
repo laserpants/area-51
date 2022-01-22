@@ -78,13 +78,13 @@ testProgram =
   where
     factExpr =
       if_
-        (op2 OEqInt32 (var () "n") (lit (LInt32 0)))
+        (op2 OEqInt32 (var ((), "n")) (lit (LInt32 0)))
         (lit (LInt32 1))
         (op2
            OMulInt32
-           (var () "n")
-           (app () (var () "fact") [op2 OSubInt32 (var () "n") (lit (LInt32 1))]))
-    mainExpr = app () (var () "fact") [lit (LInt32 5)]
+           (var ((), "n"))
+           (app () (var ((), "fact")) [op2 OSubInt32 (var ((), "n")) (lit (LInt32 1))]))
+    mainExpr = app () (var ((), "fact")) [lit (LInt32 5)]
 
 testModule3 :: LLVM.Module
 testModule3 = buildProgram "Main" (compileProgram testProgram)
@@ -106,21 +106,21 @@ testProgram2 =
     fooExpr =
       let_
         ((), "xs")
-        (app () (var () "Cons") [lit (LInt32 5), app () (var () "Nil") []])
+        (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
         (let_
            ((), "ys")
-           (app () (var () "Cons") [lit (LInt32 5), var () "xs"])
+           (app () (var ((), "Cons")) [lit (LInt32 5), var ((), "xs")])
            (case_
-              (var () "ys")
-              [ (["Nil"], lit (LInt32 1))
-              , ( ["Cons", "_", "zs"]
+              (var ((), "ys"))
+              [ ([((), "Nil")], lit (LInt32 1))
+              , ( [((), "Cons"), ((), "_"), ((), "zs")]
                 , case_
-                    (var () "zs")
-                    [ (["Nil"], lit (LInt32 2))
-                    , (["Cons", "_", "_"], lit (LInt32 3))
+                    (var ((), "zs"))
+                    [ ([((), "Nil")], lit (LInt32 2))
+                    , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
                     ])
               ]))
-    mainExpr = app () (var () "foo") []
+    mainExpr = app () (var ((), "foo")) []
 
 testModule4 :: LLVM.Module
 testModule4 = buildProgram "Main" (compileProgram testProgram2)

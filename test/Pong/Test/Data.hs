@@ -14,31 +14,31 @@ input1 :: Ast ()
 input1 =
   let_
     ((), "f")
-    (var () "foo")
-    (lam [((), "x")] (app () (var () "f") [var () "x"]))
+    (var ((), "foo"))
+    (lam [((), "x")] (app () (var ((), "f")) [var ((), "x")]))
 
 input1Typed :: Expr
 input1Typed =
   let_
     (i32 .-> i32, "f")
-    (var (i32 .-> i32) "foo")
-    (lam [(i32, "x")] (app i32 (var (i32 .-> i32) "f") [var i32 "x"]))
+    (var (i32 .-> i32, "foo"))
+    (lam [(i32, "x")] (app i32 (var (i32 .-> i32, "f")) [var (i32, "x")]))
 
 input2 :: Ast ()
-input2 = op2 OAddInt32 (var () "x") (var () "y")
+input2 = op2 OAddInt32 (var ((), "x")) (var ((), "y"))
 
 input2Typed :: Expr
-input2Typed = op2 OAddInt32 (var i32 "x") (var i32 "y")
+input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
 
 input3 :: Ast ()
-input3 = case_ (var () "xs") [(["Cons", "x", "ys"], var () "x")]
+input3 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
 input4 :: Ast ()
-input4 = case_ (var () "xs") [(["Cons", "x", "ys"], var () "y")]
+input4 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "y"))]
 
 input5 :: Ast ()
 input5 =
-  case_ (var () "xs") [(["Nil"], var () "y"), (["Cons", "x", "ys"], var () "x")]
+  case_ (var ((), "xs")) [([((), "Nil")], var ((), "y")), ([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
 {-
 
@@ -64,9 +64,9 @@ input6 =
              [(i32, "n")]
              (op2
                 OAddInt32
-                (op2 OAddInt32 (var i32 "m") (var i32 "n"))
-                (var i32 "p")))))
-    (var (i32 .-> i32 .-> i32) "sum")
+                (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
+                (var (i32, "p"))))))
+    (var (i32 .-> i32 .-> i32, "sum"))
 
 input6Converted :: Expr
 input6Converted =
@@ -76,7 +76,7 @@ input6Converted =
        [(i32, "n")]
        (op2
           OAddInt32
-          (op2 OAddInt32 (var i32 "m") (var i32 "n"))
+          (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
           (lit (LInt32 3))))
 
 {-
@@ -93,15 +93,15 @@ input7 :: Expr
 input7 =
   let_
     (i32, "x")
-    (app i32 (var (i32 .-> i32) "foo") [var i32 "x"])
-    (op2 OAddInt32 (var i32 "x") (lit (LInt32 3)))
+    (app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")])
+    (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3)))
 
 input7Converted :: Expr
 input7Converted =
   app
     i32
-    (lam [(i32, "x")] (op2 OAddInt32 (var i32 "x") (lit (LInt32 3))))
-    [app i32 (var (i32 .-> i32) "foo") [var i32 "x"]]
+    (lam [(i32, "x")] (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3))))
+    [app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")]]
 
 input8 :: Expr
 input8 =
@@ -111,17 +111,17 @@ input8 =
        [(i32, "n")]
        (op2
           OAddInt32
-          (op2 OAddInt32 (var i32 "m") (var i32 "n"))
+          (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
           (lit (LInt32 3))))
 
 input8Converted :: Expr
 input8Converted =
   lam
     [(i32, "m"), (i32, "n")]
-    (op2 OAddInt32 (op2 OAddInt32 (var i32 "m") (var i32 "n")) (lit (LInt32 3)))
+    (op2 OAddInt32 (op2 OAddInt32 (var (i32, "m")) (var (i32, "n"))) (lit (LInt32 3)))
 
 input9 :: Expr
-input9 = lam [(i32, "p")] (lam [(i32, "x")] (var i32 "p"))
+input9 = lam [(i32, "p")] (lam [(i32, "x")] (var (i32, "p")))
 
 input9Converted :: Expr
 input9Converted =
@@ -129,8 +129,8 @@ input9Converted =
     [(i32, "p")]
     (app
        (i32 .-> i32)
-       (lam [(i32, "p"), (i32, "x")] (var i32 "p"))
-       [var i32 "p"])
+       (lam [(i32, "p"), (i32, "x")] (var (i32, "p")))
+       [var (i32, "p")])
 
 input10 :: Program
 input10 =
@@ -161,7 +161,7 @@ input11 =
     }
 
 input12 :: Ast ()
-input12 = lam [((), "x")] (app () (var () "plus") [var () "x"])
+input12 = lam [((), "x")] (app () (var ((), "plus")) [var ((), "x")])
 
 input13 :: TypeEnv
 input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
@@ -173,7 +173,7 @@ input15 :: Expr
 input15 =
   lam
     [(i32, "x")]
-    (lam [(i32, "y")] (op2 OAddInt32 (var i32 "x") (var i32 "y")))
+    (lam [(i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
 
 input15Converted :: Expr
 input15Converted =
@@ -181,8 +181,8 @@ input15Converted =
     [(i32, "x")]
     (app
        (i32 .-> i32)
-       (lam [(i32, "x"), (i32, "y")] (op2 OAddInt32 (var i32 "x") (var i32 "y")))
-       [var i32 "x"])
+       (lam [(i32, "x"), (i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
+       [var (i32, "x")])
 
 input16 :: [(Name, Definition (Ast ()))]
 input16 =
@@ -197,21 +197,21 @@ input16 =
     fooExpr =
       let_
         ((), "xs")
-        (app () (var () "Cons") [lit (LInt32 5), app () (var () "Nil") []])
+        (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
         (let_
            ((), "ys")
-           (app () (var () "Cons") [lit (LInt32 5), var () "xs"])
+           (app () (var ((), "Cons")) [lit (LInt32 5), var ((), "xs")])
            (case_
-              (var () "ys")
-              [ (["Nil"], lit (LInt32 1))
-              , ( ["Cons", "_", "zs"]
+              (var ((), "ys"))
+              [ ([((), "Nil")], lit (LInt32 1))
+              , ( [((), "Cons"), ((), "_"), ((), "zs")]
                 , case_
-                    (var () "zs")
-                    [ (["Nil"], lit (LInt32 2))
-                    , (["Cons", "_", "_"], lit (LInt32 3))
+                    (var ((), "zs"))
+                    [ ([((), "Nil")], lit (LInt32 2))
+                    , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
                     ])
               ]))
-    mainExpr = app () (var () "foo") []
+    mainExpr = app () (var ((), "foo")) []
 
 input16Compiled :: [(Name, Definition Body)]
 input16Compiled =
