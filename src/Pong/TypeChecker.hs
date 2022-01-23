@@ -53,21 +53,22 @@ compose s1 s2 =
 mapsTo :: Int -> Type -> Substitution
 mapsTo = Substitution <$$> Map.singleton
 
-tagTyId :: TyId a -> TypeChecker (TyId Int)
-tagTyId (_, name) = (,) <$> tag <*> pure name
+tagTyId :: Name -> TypeChecker (TyId Int)
+tagTyId name = (,) <$> tag <*> pure name
 
 tagAst :: Expr t -> TypeChecker (Expr Int)
 tagAst =
   cata $ \case
-    EVar tname -> var <$> tagTyId tname
+    EVar (_, name) -> var <$> tagTyId name
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-    ELam args expr -> lam <$> traverse tagTyId args <*> expr
-    ELet bind e1 e2 -> let_ <$> tagTyId bind <*> e1 <*> e2
+    ELam args expr -> lam <$> traverse (tagTyId . snd) args <*> expr
+    ELet (_, name) e1 e2 -> let_ <$> tagTyId name <*> e1 <*> e2
     EApp _ fun args -> app <$> tag <*> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
-      case_ <$> e1 <*> traverse (firstM (traverse tagTyId) <=< sequence) cs
+      case_ <$> e1 <*>
+      traverse (firstM (traverse (tagTyId . snd)) <=< sequence) cs
 
 tag :: MonadState (Int, a) m => m Int
 tag = do
@@ -171,7 +172,8 @@ check =
       pure (op2 op e1 e2)
 
 checkClause ::
-     ([TyId Int], TypeChecker (Expr Type)) -> TypeChecker ([TyId Type], Expr Type)
+     ([TyId Int], TypeChecker (Expr Type))
+  -> TypeChecker ([TyId Type], Expr Type)
 checkClause ((_, con):vs, expr) = do
   Env env <- ask
   ty <- maybe (throwError (NotInScope con)) pure (env !? con)
