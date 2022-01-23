@@ -33,6 +33,7 @@ instance Substitutable Expr where
       ELam args expr -> lam (first (apply sub) <$> args) expr
       ELet (t, name) expr1 expr2 -> let_ (apply sub t, name) expr1 expr2
       EApp t fun args -> app (apply sub t) fun args
+      ECase expr cs -> case_ expr (first (fmap (first (apply sub))) <$> cs)
       e -> embed e
 
 instance (Functor f, Substitutable a) => Substitutable (f a) where
