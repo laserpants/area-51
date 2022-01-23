@@ -85,9 +85,9 @@ data ExprF t a
   | EOp2 Op2 a a
   | ECase a [([TyId t], a)]
 
-type Ast t = Fix (ExprF t)
+type Expr t = Fix (ExprF t)
 
-type Expr = Ast Type
+type Ast = Expr Type
 
 data Con
   = VarE

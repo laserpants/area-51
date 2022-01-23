@@ -23,7 +23,7 @@ import Pong.TypeChecker
 import qualified Pong.Util.Env as Env
 import TextShow (showt)
 
-convertLetBindings :: Expr -> Expr
+convertLetBindings :: Ast -> Ast
 convertLetBindings =
   cata $ \case
     ELet (_, name) e1 e2
@@ -38,14 +38,14 @@ convertLetBindings =
      -> app (typeOf e2) (lam [bind] e2) [e1]
     e -> embed e
 
-combineLambdas :: Expr -> Expr
+combineLambdas :: Ast -> Ast
 combineLambdas =
   cata $ \case
     ELam xs (Fix (ELam ys expr)) -- /
      -> lam (xs <> ys) expr
     e -> embed e
 
-convertClosures :: (MonadReader TypeEnv m) => Expr -> m Expr
+convertClosures :: (MonadReader TypeEnv m) => Ast -> m Ast
 convertClosures =
   cata $ \case
     EVar (ty, name) -> pure (var (ty, name))
@@ -75,10 +75,10 @@ convertClosures =
 lookupNameUnsafe :: (MonadReader TypeEnv m) => Name -> m Type
 lookupNameUnsafe = asks . (fromJust <$$> Env.lookup)
 
-preprocess :: (MonadReader TypeEnv m) => Expr -> m Expr
+preprocess :: (MonadReader TypeEnv m) => Ast -> m Ast
 preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
 
-typeCheck :: Ast () -> Compiler (Either TypeError Expr)
+typeCheck :: Expr () -> Compiler (Either TypeError Ast)
 typeCheck ast = asks (`runCheck` ast)
 
 runCompiler :: Compiler a -> TypeEnv -> (a, Program)
@@ -110,15 +110,15 @@ uniqueName name = do
   put Program {count = succ count, ..}
   pure (name <> "_" <> showt count)
 
-compileFunction :: Name -> Signature Expr -> Compiler (Definition Body)
+compileFunction :: Name -> Signature Ast -> Compiler (Definition Body)
 compileFunction name (Signature args (ty, body)) = do
   expr <- asks (runReader (preprocess body))
   let self = (foldType ty (args <#> fst), name)
-  main <- local (insertArgs (self : args)) (compileExpr expr)
+  main <- local (insertArgs (self : args)) (compileAst expr)
   pure (Function (Signature args (ty, main)))
 
-compileExpr :: Expr -> Compiler Body
-compileExpr =
+compileAst :: Ast -> Compiler Body
+compileAst =
   para $ \case
     ELet {} -- /
      -> error "Implementation error"
@@ -176,12 +176,12 @@ fillParams (Function (Signature arguments (ty, body)))
             }))
 fillParams def = pure def
 
-consTypes :: (Name, Definition (Ast ())) -> [(Name, Type)]
+consTypes :: (Name, Definition (Expr ())) -> [(Name, Type)]
 consTypes (name, def) =
   constructors def <#> \Constructor {..} ->
     (consName, foldr tArr (tData name) (typeOf <$> consFields))
 
-compileProgram :: [(Name, Definition (Ast ()))] -> Program
+compileProgram :: [(Name, Definition (Expr ()))] -> Program
 compileProgram ds = execCompiler comp env
   where
     env = Env.fromList ((typeOf <$$> ds) <> (consTypes =<< ds))
@@ -199,7 +199,7 @@ compileProgram ds = execCompiler comp env
     -- /
     (ls, rs) =
       let typecheckDef ::
-               Definition (Ast ()) -> Definition (Either TypeError Expr)
+               Definition (Expr ()) -> Definition (Either TypeError Ast)
           typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
           partitionDefs =
             partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)

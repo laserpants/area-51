@@ -26,7 +26,7 @@ instance Substitutable Type where
       TVar n -> fromMaybe (tVar n) (getSubstitution sub !? n)
       t -> embed t
 
-instance Substitutable Expr where
+instance Substitutable Ast where
   apply sub =
     cata $ \case
       EVar (t, name) -> var (apply sub t, name)
@@ -56,8 +56,8 @@ mapsTo = Substitution <$$> Map.singleton
 tagTyId :: TyId a -> TypeChecker (TyId Int)
 tagTyId (_, name) = (,) <$> tag <*> pure name
 
-tagExpr :: Ast t -> TypeChecker (Ast Int)
-tagExpr =
+tagAst :: Expr t -> TypeChecker (Expr Int)
+tagAst =
   cata $ \case
     EVar tname -> var <$> tagTyId tname
     ELit prim -> pure (lit prim)
@@ -108,14 +108,14 @@ unifyM a b = do
   sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
   modify (second (sub1 <>))
 
-runCheck :: TypeEnv -> Ast () -> Either TypeError Expr
+runCheck :: TypeEnv -> Expr () -> Either TypeError Ast
 runCheck symtab ast = apply sub <$> res
   where
-    (res, (_, sub)) = runMonad (check =<< tagExpr ast)
+    (res, (_, sub)) = runMonad (check =<< tagAst ast)
     runMonad m =
       runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
 
-check :: Ast Int -> TypeChecker Expr
+check :: Expr Int -> TypeChecker Ast
 check =
   cata $ \case
     ELet (t, name) expr1 expr2 -> do
@@ -171,7 +171,7 @@ check =
       pure (op2 op e1 e2)
 
 checkClause ::
-     ([TyId Int], TypeChecker (Ast Type)) -> TypeChecker ([TyId Type], Ast Type)
+     ([TyId Int], TypeChecker (Expr Type)) -> TypeChecker ([TyId Type], Expr Type)
 checkClause ((_, con):vs, expr) = do
   Env env <- ask
   ty <- maybe (throwError (NotInScope con)) pure (env !? con)

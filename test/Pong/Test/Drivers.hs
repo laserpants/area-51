@@ -49,7 +49,7 @@ runIsTConTest :: TestCase (TCon, Type) Bool
 runIsTConTest description (con, expr) expected =
   it description $ isTCon con expr == expected
 
-runIsConTest :: TestCase (Con, Ast a) Bool
+runIsConTest :: TestCase (Con, Expr a) Bool
 runIsConTest description (con, expr) expected =
   it description $ isCon con expr == expected
 
@@ -57,19 +57,19 @@ runReturnTypeOfTest :: (Typed a) => TestCase a Type
 runReturnTypeOfTest description input expected =
   it description $ returnTypeOf input == expected
 
-runTypeCheckerTest :: TestCase (Ast (), TypeEnv) (Either TypeError Expr)
+runTypeCheckerTest :: TestCase (Expr (), TypeEnv) (Either TypeError Ast)
 runTypeCheckerTest description (input, env) expected =
   it description $ runCheck env input == expected
 
-runConvertLetBindingsTest :: TestCase Expr Expr
+runConvertLetBindingsTest :: TestCase Ast Ast
 runConvertLetBindingsTest description input expected =
   it description $ convertLetBindings input == expected
 
-runCombineLambdasTest :: TestCase Expr Expr
+runCombineLambdasTest :: TestCase Ast Ast
 runCombineLambdasTest description input expected =
   it description $ combineLambdas input == expected
 
-runConvertClosuresTest :: TestCase Expr Expr
+runConvertClosuresTest :: TestCase Ast Ast
 runConvertClosuresTest description input expected =
   it description $ runReader (convertClosures input) mempty == expected
 
@@ -110,16 +110,16 @@ runUniqueNameTest description =
     b <- uniqueName "foo"
     pure (a /= b)
 
-runCompileExpressionTest1 :: TestCase (Ast (), TypeEnv) Type
-runCompileExpressionTest1 description (input, env) expected = do
+runCompileAstessionTest1 :: TestCase (Expr (), TypeEnv) Type
+runCompileAstessionTest1 description (input, env) expected = do
   it description $
     typeOf (definitions (execCompiler body env) ! "def_0") == expected
   where
     body = do
       e <- typeCheck input
-      compileExpr (fromRight (error "Implementation error") e)
+      compileAst (fromRight (error "Implementation error") e)
 
-runFillParamsTest :: TestCase (Ast (), TypeEnv) Type
+runFillParamsTest :: TestCase (Expr (), TypeEnv) Type
 runFillParamsTest description (input, env) expected =
   it description $ t == expected
   where
@@ -127,11 +127,11 @@ runFillParamsTest description (input, env) expected =
       definitions (execCompiler body env) ! "def_0"
     body = do
       e <- typeCheck input
-      compileExpr (fromRight (error "Implementation error") e)
+      compileAst (fromRight (error "Implementation error") e)
       mapDefinitionsM fillParams
 
 runCompileProgramTest ::
-     TestCase [(Name, Definition (Ast ()))] [(Name, Definition Body)]
+     TestCase [(Name, Definition (Expr ()))] [(Name, Definition Body)]
 runCompileProgramTest description input expected =
   it description $ definitions (compileProgram input) == Map.fromList expected
 

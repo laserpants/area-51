@@ -61,7 +61,7 @@ import qualified Pong.Util.Env as Env
 class FreeIn a where
   free :: a -> [Name]
 
-instance FreeIn (Ast t) where
+instance FreeIn (Expr t) where
   free =
     cata $ \case
       EVar (_, name) -> [name]
@@ -126,7 +126,7 @@ instance Typed Op2 where
       OSubDouble -> tDouble .-> tDouble .-> tDouble
       ODivDouble -> tDouble .-> tDouble .-> tDouble
 
-instance Typed Expr where
+instance Typed Ast where
   typeOf =
     cata $ \case
       EVar (ty, _) -> ty
@@ -169,7 +169,7 @@ isTCon con =
       | VarT == con -> True
     _ -> False
 
-isCon :: Con -> Ast t -> Bool
+isCon :: Con -> Expr t -> Bool
 isCon con =
   project >>> \case
     EVar {}
@@ -267,35 +267,35 @@ tData :: Name -> Type
 tData = embed1 TData
 
 {-# INLINE var #-}
-var :: (t, Name) -> Ast t
+var :: (t, Name) -> Expr t
 var = embed1 EVar
 
 {-# INLINE lit #-}
-lit :: Literal -> Ast t
+lit :: Literal -> Expr t
 lit = embed1 ELit
 
 {-# INLINE if_ #-}
-if_ :: Ast t -> Ast t -> Ast t -> Ast t
+if_ :: Expr t -> Expr t -> Expr t -> Expr t
 if_ = embed3 EIf
 
 {-# INLINE lam #-}
-lam :: [(t, Name)] -> Ast t -> Ast t
+lam :: [(t, Name)] -> Expr t -> Expr t
 lam = embed2 ELam
 
 {-# INLINE let_ #-}
-let_ :: (t, Name) -> Ast t -> Ast t -> Ast t
+let_ :: (t, Name) -> Expr t -> Expr t -> Expr t
 let_ = embed3 ELet
 
 {-# INLINE app #-}
-app :: t -> Ast t -> [Ast t] -> Ast t
+app :: t -> Expr t -> [Expr t] -> Expr t
 app = embed3 EApp
 
 {-# INLINE op2 #-}
-op2 :: Op2 -> Ast t -> Ast t -> Ast t
+op2 :: Op2 -> Expr t -> Expr t -> Expr t
 op2 = embed3 EOp2
 
 {-# INLINE case_ #-}
-case_ :: Ast t -> [([(t, Name)], Ast t)] -> Ast t
+case_ :: Expr t -> [([(t, Name)], Expr t)] -> Expr t
 case_ = embed2 ECase
 
 {-# INLINE bVar #-}

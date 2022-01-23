@@ -70,7 +70,7 @@ testModule =
              (tInt32, bCall "f" [bLit (LInt32 5)])))
     ]
 
-testProgram :: [(Name, Definition (Ast ()))]
+testProgram :: [(Name, Definition (Expr ()))]
 testProgram =
   [ ("fact", Function (Signature [(tInt32, "n")] (tInt32, factExpr)))
   , ("main", Function (Signature [] (tInt32, mainExpr)))
@@ -93,7 +93,7 @@ runTestModule3 :: IO ()
 runTestModule3 = Text.putStrLn (ppll testModule3)
 
 --
-testProgram2 :: [(Name, Definition (Ast ()))]
+testProgram2 :: [(Name, Definition (Expr ()))]
 testProgram2 =
   [ ( "List"
     , Data

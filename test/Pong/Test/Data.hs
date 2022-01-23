@@ -10,33 +10,33 @@ import qualified Pong.Util.Env as Env
 i32 :: Type
 i32 = tInt32
 
-input1 :: Ast ()
+input1 :: Expr ()
 input1 =
   let_
     ((), "f")
     (var ((), "foo"))
     (lam [((), "x")] (app () (var ((), "f")) [var ((), "x")]))
 
-input1Typed :: Expr
+input1Typed :: Ast
 input1Typed =
   let_
     (i32 .-> i32, "f")
     (var (i32 .-> i32, "foo"))
     (lam [(i32, "x")] (app i32 (var (i32 .-> i32, "f")) [var (i32, "x")]))
 
-input2 :: Ast ()
+input2 :: Expr ()
 input2 = op2 OAddInt32 (var ((), "x")) (var ((), "y"))
 
-input2Typed :: Expr
+input2Typed :: Ast
 input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
 
-input3 :: Ast ()
+input3 :: Expr ()
 input3 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
-input4 :: Ast ()
+input4 :: Expr ()
 input4 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "y"))]
 
-input5 :: Ast ()
+input5 :: Expr ()
 input5 =
   case_ (var ((), "xs")) [([((), "Nil")], var ((), "y")), ([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
@@ -51,7 +51,7 @@ let sum =
 lam(m) => lam(n) => m + n + Int32(3) 
 
 -}
-input6 :: Expr
+input6 :: Ast
 input6 =
   let_
     (i32, "sum")
@@ -68,7 +68,7 @@ input6 =
                 (var (i32, "p"))))))
     (var (i32 .-> i32 .-> i32, "sum"))
 
-input6Converted :: Expr
+input6Converted :: Ast
 input6Converted =
   lam
     [(i32, "m")]
@@ -89,21 +89,21 @@ let x =
 ((x) => x + 3)(foo(x))
 
 -}
-input7 :: Expr
+input7 :: Ast
 input7 =
   let_
     (i32, "x")
     (app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")])
     (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3)))
 
-input7Converted :: Expr
+input7Converted :: Ast
 input7Converted =
   app
     i32
     (lam [(i32, "x")] (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3))))
     [app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")]]
 
-input8 :: Expr
+input8 :: Ast
 input8 =
   lam
     [(i32, "m")]
@@ -114,16 +114,16 @@ input8 =
           (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
           (lit (LInt32 3))))
 
-input8Converted :: Expr
+input8Converted :: Ast
 input8Converted =
   lam
     [(i32, "m"), (i32, "n")]
     (op2 OAddInt32 (op2 OAddInt32 (var (i32, "m")) (var (i32, "n"))) (lit (LInt32 3)))
 
-input9 :: Expr
+input9 :: Ast
 input9 = lam [(i32, "p")] (lam [(i32, "x")] (var (i32, "p")))
 
-input9Converted :: Expr
+input9Converted :: Ast
 input9Converted =
   lam
     [(i32, "p")]
@@ -160,7 +160,7 @@ input11 =
           ]
     }
 
-input12 :: Ast ()
+input12 :: Expr ()
 input12 = lam [((), "x")] (app () (var ((), "plus")) [var ((), "x")])
 
 input13 :: TypeEnv
@@ -169,13 +169,13 @@ input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
 input14 :: Body
 input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
 
-input15 :: Expr
+input15 :: Ast
 input15 =
   lam
     [(i32, "x")]
     (lam [(i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
 
-input15Converted :: Expr
+input15Converted :: Ast
 input15Converted =
   lam
     [(i32, "x")]
@@ -184,17 +184,17 @@ input15Converted =
        (lam [(i32, "x"), (i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
        [var (i32, "x")])
 
-input16 :: [(Name, Definition (Ast ()))]
+input16 :: [(Name, Definition (Expr ()))]
 input16 =
   [ ( "List"
     , Data
         "List"
         [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
-  , ("foo", Function (Signature [] (tInt32, fooExpr)))
-  , ("main", Function (Signature [] (tInt32, mainExpr)))
+  , ("foo", Function (Signature [] (tInt32, fooAst)))
+  , ("main", Function (Signature [] (tInt32, mainAst)))
   ]
   where
-    fooExpr =
+    fooAst =
       let_
         ((), "xs")
         (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
@@ -211,7 +211,7 @@ input16 =
                     , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
                     ])
               ]))
-    mainExpr = app () (var ((), "foo")) []
+    mainAst = app () (var ((), "foo")) []
 
 input16Compiled :: [(Name, Definition Body)]
 input16Compiled =

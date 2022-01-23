@@ -30,9 +30,9 @@ main =
     ---------------------------------------------------------------------------
    do
     describe "free" $ do
-      describe "Ast" $ do
+      describe "Expr" $ do
         runFreeTest "x ==> [x]" (var (i32, "x")) ["x"]
-        runFreeTest "5 ==> []" (lit (LInt32 5) :: Ast ()) []
+        runFreeTest "5 ==> []" (lit (LInt32 5) :: Expr ()) []
         runFreeTest "\\x : Int -> x ==> []" (lam [((), "x")] (var ((), "x"))) []
         runFreeTest
           "\\x : Int -> y ==> [y]"
@@ -72,7 +72,7 @@ main =
       describe "Literal" $ do runTypeOfTest "True" (LBool True) tBool
       describe "Op2" $ do
         runTypeOfTest "OEqInt32" OEqInt32 (i32 .-> i32 .-> tBool)
-      describe "Expr" $ do runIO $ print "TODO"
+      describe "Ast" $ do runIO $ print "TODO"
       describe "Definition" $ do
         runTypeOfTest
           "#1"
@@ -162,8 +162,8 @@ main =
       runModifyFunDefsTest2 "#2" input10 (bLit (LInt32 1))
     describe "uniqueName" $ do runUniqueNameTest "#1"
     describe "compileFunction" $ do runIO $ print "TODO"
-    describe "compileExpr" $ do
-      runCompileExpressionTest1 "#1" (input12, input13) (i32 .-> i32 .-> i32)
+    describe "compileAst" $ do
+      runCompileAstessionTest1 "#1" (input12, input13) (i32 .-> i32 .-> i32)
     describe "lookupFunType" $ do runIO $ print "TODO"
     describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
     describe "compileProgram" $ do
