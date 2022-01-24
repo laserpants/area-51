@@ -126,15 +126,15 @@ instance Typed Op2 where
       OSubDouble -> tDouble .-> tDouble .-> tDouble
       ODivDouble -> tDouble .-> tDouble .-> tDouble
 
-instance Typed Ast where
+instance (Typed t) => Typed (Expr t) where
   typeOf =
     cata $ \case
-      EVar (ty, _) -> ty
+      EVar (t, _) -> typeOf t
       ELit lit -> typeOf lit
       EIf _ _ e3 -> e3
-      ELam args expr -> foldType expr (fst <$> args)
+      ELam args expr -> foldType expr (typeOf . fst <$> args)
       ELet _ _ e2 -> e2
-      EApp ty _ _ -> ty
+      EApp t _ _ -> typeOf t
       EOp2 op _ _ -> returnTypeOf op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
