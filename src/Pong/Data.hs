@@ -167,7 +167,7 @@ newtype CodeGen a =
     }
 
 class Source a where
-  toProgram :: [(Name, Definition a)] -> Program
+  toProgram :: [(Name, Definition a)] -> Program -- TODO: Either Error Program
 
 -- Type
 deriving instance (Show a) => Show (TypeF a)

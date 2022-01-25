@@ -1,9 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 module Pong.Compiler where
 
@@ -204,7 +204,7 @@ instance Source Ast where
 instance Source (Expr ()) where
   toProgram ds
     | null ls = execCompiler (compileDefinitions rs) env
-    | otherwise = error (show ls)
+    | otherwise = error (show ls)  -- TODO
     where
       env = getEnv ds
       (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> ds)
