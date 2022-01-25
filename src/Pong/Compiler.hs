@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -197,39 +198,18 @@ compileDefinitions ds =
 getEnv :: [(Name, Definition (Expr t))] -> Environment Type
 getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
 
-compileProgramAst :: [(Name, Definition Ast)] -> Program
-compileProgramAst ds = execCompiler (compileDefinitions ds) (getEnv ds)
+class Compiles a where
+  toProgram :: [(Name, Definition a)] -> Program
 
-compileProgram :: [(Name, Definition (Expr ()))] -> Program
-compileProgram ds
-  | null ls = execCompiler (compileDefinitions rs) env
-  | otherwise = error (show ls)
-  where
-    env = getEnv ds
-    (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> ds)
-    typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
-    partitionDefs = partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)
+instance Compiles Ast where
+  toProgram ds = execCompiler (compileDefinitions ds) (getEnv ds)
 
---compileProgram :: [(Name, Definition (Expr ()))] -> Program
---compileProgram ds = execCompiler comp env
---  where
---    env = Env.fromList ((typeOf <$$> ds) <> (consTypes =<< ds))
---    comp
---      | null ls =
---        forM_ rs $ \(name, def) -> do
---          newDef <-
---            case def of
---              Function sig -> fillParams =<< compileFunction name sig
---              External sig -> pure (External sig)
---              Constant lit -> pure (Constant lit)
---              Data name css -> pure (Data name css)
---          modify (insertDefinition name newDef)
---      | otherwise = error (show ls)
---    -- /
---    (ls, rs) =
---      let typecheckDef ::
---               Definition (Expr ()) -> Definition (Either TypeError Ast)
---          typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
---          partitionDefs =
---            partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)
---       in partitionDefs (sequence <$$> second typecheckDef <$> ds)
+instance Compiles (Expr ()) where
+  toProgram ds
+    | null ls = execCompiler (compileDefinitions rs) env
+    | otherwise = error (show ls)
+    where
+      env = getEnv ds
+      (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> ds)
+      typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
+      partitionDefs = partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)

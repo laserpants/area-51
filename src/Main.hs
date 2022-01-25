@@ -91,7 +91,7 @@ testProgram =
     mainExpr = app () (var ((), "fact")) [lit (LInt32 5)]
 
 testModule3 :: LLVM.Module
-testModule3 = buildProgram "Main" (compileProgram testProgram)
+testModule3 = buildProgram "Main" (toProgram testProgram)
 
 runTestModule3 :: IO ()
 runTestModule3 = Text.putStrLn (ppll testModule3)
@@ -127,7 +127,7 @@ testProgram2 =
     mainExpr = app () (var ((), "foo")) []
 
 testModule4 :: LLVM.Module
-testModule4 = buildProgram "Main" (compileProgram testProgram2)
+testModule4 = buildProgram "Main" (toProgram testProgram2)
 
 runTestModule4 :: IO ()
 runTestModule4 = Text.putStrLn (ppll testModule4)
@@ -255,10 +255,10 @@ z125 =
 --                            [var (tData "List", "xs")]
 --                        ]))))))
 z126 :: Program
-z126 = compileProgramAst z125
+z126 = toProgram z125
 
 testModule7 :: LLVM.Module
-testModule7 = buildProgram "Main" (compileProgramAst z125)
+testModule7 = buildProgram "Main" (toProgram z125)
 
 runTestModule7 :: IO ()
 runTestModule7 = Text.putStrLn (ppll testModule7)
