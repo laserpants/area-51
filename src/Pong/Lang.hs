@@ -33,6 +33,7 @@ module Pong.Lang
   , tVar
   , tArr
   , tData
+  , tOpaque
   , (.->)
   , var
   , lit

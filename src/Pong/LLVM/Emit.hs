@@ -54,6 +54,9 @@ llvmType =
                 , isVarArg = False
                 }
 
+find :: Name -> CodeGen (Maybe Operand)
+find = asks . Env.lookup
+
 emitLit :: Literal -> CodeGen Operand
 emitLit =
   pure <<< ConstantOperand <<< \case
@@ -113,9 +116,9 @@ buildProgram name Program {..} =
                   (zip ts (repeat "a"))
                   (ptr t1)
                   (\args -> do
-                     sz <- zext (ConstantOperand (sizeof td)) i64
+                     size <- zext (ConstantOperand (sizeof td)) i64
                      m <-
-                       call (functionSig "gc_malloc" charPtr [i64]) [(sz, [])]
+                       call (functionSig "gc_malloc" charPtr [i64]) [(size, [])]
                      a <- bitcast m (ptr td)
                      p0 <- gep a [int32 0, int32 0]
                      store p0 0 (int8 i)
@@ -183,10 +186,9 @@ emitBody =
       emitOp2Instr op a b
     BCase expr cs -- /
      -> emitCase expr (sortOn fst cs)
-    BVar name -> do
-      Env env <- ask
-      case env !? name of
-        Just op@(ConstantOperand (GlobalReference PointerType {..} _)) ->
+    BVar name -> 
+      find name >>= \case
+        Just (ConstantOperand (GlobalReference PointerType {..} _)) ->
           emitCall name []
         Just op -- /
          -> pure op
@@ -196,8 +198,7 @@ emitBody =
 emitCall :: Name -> [CodeGen Operand] -> CodeGen Operand
 emitCall fun args = do
   as <- sequence args
-  Env env <- ask
-  case env !? fun of
+  find fun >>= \case
     Just op@(LocalReference PointerType {..} _) -> do
       a <- bitcast op charPtr
       p <- gep op [int32 0, int32 0]
