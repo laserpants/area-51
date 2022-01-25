@@ -166,6 +166,9 @@ newtype CodeGen a =
     { getCodeGen :: ReaderT CodeGenEnv (IRBuilderT ModuleBuilder) a
     }
 
+class Source a where
+  toProgram :: [(Name, Definition a)] -> Program
+
 -- Type
 deriving instance (Show a) => Show (TypeF a)
 
