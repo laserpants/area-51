@@ -136,8 +136,7 @@ compileAst =
         ELit lit -> pure (bLit lit)
         EIf e1 e2 e3 -> bIf <$> e1 <*> e2 <*> e3
         EOp2 op e1 e2 -> bOp2 op <$> e1 <*> e2
-        ECase e1 cs ->
-          bCase <$> e1 <*> traverse sequence (first (fmap snd) <$> cs)
+        ECase e1 cs -> bCase <$> e1 <*> traverse clauses cs
         EApp _ expr args -> do
           as <- sequence args
           expr >>=
@@ -152,6 +151,9 @@ compileAst =
                    bCase <$> (fst <$> sequence expr) <*>
                    traverse sequence (snd <$$> clauses)
                  e -> pure (embed (fst <$> e)))
+
+clauses :: ([TyId Type], Compiler Body) -> Compiler (Names, Body)
+clauses (pairs, body) = (,) (pairs <#> snd) <$> local (insertArgs pairs) body
 
 fillParams :: Definition Body -> Compiler (Definition Body)
 fillParams (Function (Signature arguments (ty, body)))
@@ -176,7 +178,7 @@ fillParams (Function (Signature arguments (ty, body)))
             }))
 fillParams def = pure def
 
-consTypes :: (Name, Definition (Expr ())) -> [(Name, Type)]
+consTypes :: (Name, Definition (Expr t)) -> [(Name, Type)]
 consTypes (name, def) =
   constructors def <#> \Constructor {..} ->
     (consName, foldr tArr (tData name) (typeOf <$> consFields))

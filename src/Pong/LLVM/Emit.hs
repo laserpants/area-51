@@ -35,7 +35,7 @@ charPtr = ptr i8
 llvmType :: Type -> LLVM.Type
 llvmType =
   project >>> \case
-    TUnit -> LLVM.i1
+    TUnit -> StructureType False [] -- LLVM.i1
     TBool {} -> LLVM.i1
     TInt32 {} -> LLVM.i32
     TInt64 {} -> LLVM.i64
