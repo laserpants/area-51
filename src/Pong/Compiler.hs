@@ -198,13 +198,14 @@ compileDefinitions ds =
 getEnv :: [(Name, Definition (Expr t))] -> Environment Type
 getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
 
-class Compiles a where
+-- TODO: move?
+class Source a where
   toProgram :: [(Name, Definition a)] -> Program
 
-instance Compiles Ast where
+instance Source Ast where
   toProgram ds = execCompiler (compileDefinitions ds) (getEnv ds)
 
-instance Compiles (Expr ()) where
+instance Source (Expr ()) where
   toProgram ds
     | null ls = execCompiler (compileDefinitions rs) env
     | otherwise = error (show ls)
