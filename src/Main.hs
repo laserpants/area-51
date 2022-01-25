@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Control.Monad
@@ -83,7 +84,10 @@ testProgram =
         (op2
            OMulInt32
            (var ((), "n"))
-           (app () (var ((), "fact")) [op2 OSubInt32 (var ((), "n")) (lit (LInt32 1))]))
+           (app
+              ()
+              (var ((), "fact"))
+              [op2 OSubInt32 (var ((), "n")) (lit (LInt32 1))]))
     mainExpr = app () (var ((), "fact")) [lit (LInt32 5)]
 
 testModule3 :: LLVM.Module
@@ -166,3 +170,95 @@ z123 =
                [bVar "Cons", bCall "Cons" [bLit (LInt32 5), bCall "Nil" []]])))
   , ("main", Function (Signature [] (tInt32, bCall "foo" [])))
   ]
+
+z125 :: [(Name, Definition (Expr Type))]
+z125 =
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           []
+           ( tData "List"
+           , app
+               (tData "List")
+               (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+               [ lit (LInt32 5)
+               , app (tData "List") (var (tData "List", "Nil")) []
+               ])))
+  , ( "zoo"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , case_ (var (tData "List", "foo"))
+                [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "x"), (tData "List", "xs")], var (tInt32, "x"))
+                , ([(tData "List", "Nil")], lit (LInt32 0))
+                ])))
+  ]
+
+--  , ( "foo"
+--    , Function
+--        (Signature
+--           []
+--           ( tInt32
+--           , let_
+--               (tData "List", "fs")
+--               (app
+--                  (tData "List")
+--                  (var
+--                     ( (tInt32 .-> tInt32) .-> tData "List" .-> tData "List"
+--                     , "Cons"))
+--                  [ lam
+--                      [(tInt32, "x")]
+--                      (op2 OAddInt32 (var (tInt32, "x")) (lit (LInt32 1)))
+--                  , app (tData "List") (var (tData "List", "Nil")) []
+--                  ])
+--               (let_
+--                  (tData "List", "xs")
+--                  (app
+--                     (tData "List")
+--                     (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+--                     [ lit (LInt32 5)
+--                     , app
+--                         (tData "List")
+--                         (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+--                         [ lit (LInt32 7)
+--                         , app (tData "List") (var (tData "List", "Nil")) []
+--                         ]
+--                     ])
+--                  (let_
+--                     (tData "List" .-> tOpaque, "head")
+--                     (lam
+--                        [(tData "List", "xs")]
+--                        (case_
+--                           (var (tData "List", "xs"))
+--                           [ ([(tData "List", "Nil")], lit (LInt32 0))
+--                           , ( [ ( tOpaque .-> tData "List" .-> tData "List"
+--                                 , "Cons")
+--                               , (tOpaque, "y")
+--                               , (tData "List", "ys")
+--                               ]
+--                             , var (tOpaque, "y"))
+--                           ]))
+--                     (app
+--                        tInt32
+--                        (app
+--                           (tInt32 .-> tInt32)
+--                           (var (tData "List" .-> tInt32 .-> tInt32, "head"))
+--                           [var (tData "List", "fs")])
+--                        [ app
+--                            tInt32
+--                            (var (tData "List" .-> tInt32, "head"))
+--                            [var (tData "List", "xs")]
+--                        ]))))))
+z126 :: Program
+z126 = compileProgramAst z125
+
+testModule7 :: LLVM.Module
+testModule7 = buildProgram "Main" (compileProgramAst z125)
+
+runTestModule7 :: IO ()
+runTestModule7 = Text.putStrLn (ppll testModule7)
