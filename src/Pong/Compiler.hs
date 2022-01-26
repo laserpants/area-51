@@ -35,15 +35,13 @@ convertLetBindings =
                   | name == var -> e1
                 e -> embed e
          in cata alg e2
-    ELet bind e1 e2 -- /
-     -> app (typeOf e2) (lam [bind] e2) [e1]
+    ELet bind e1 e2 -> app (typeOf e2) (lam [bind] e2) [e1]
     e -> embed e
 
 combineLambdas :: Ast -> Ast
 combineLambdas =
   cata $ \case
-    ELam xs (Fix (ELam ys expr)) -- /
-     -> lam (xs <> ys) expr
+    ELam xs (Fix (ELam ys expr)) -> lam (xs <> ys) expr
     e -> embed e
 
 convertClosures :: (MonadReader TypeEnv m) => Ast -> m Ast
@@ -120,64 +118,111 @@ compileFunction name (Signature args (ty, body)) = do
 
 compileAst :: Ast -> Compiler Body
 compileAst =
-  para $ \case
-    ELet {} -- /
-     -> error "Implementation error"
+  cata $ \case 
+    ELet {} -> error "Implementation error"
     ELam args expr -> do
-      anon <- uniqueName "def"
-      body <- local (insertArgs args) (snd expr)
-      modify
-        (insertDefinition
-           anon
-           (Function (Signature args (typeOf (fst expr), body))))
-      pure (bVar anon)
-    expr ->
-      snd <$> expr & \case
-        EVar (_, name) -> pure (bVar name)
-        ELit lit -> pure (bLit lit)
-        EIf e1 e2 e3 -> bIf <$> e1 <*> e2 <*> e3
-        EOp2 op e1 e2 -> bOp2 op <$> e1 <*> e2
-        ECase e1 cs -> bCase <$> e1 <*> traverse clauses cs
-        EApp _ expr args -> do
-          as <- sequence args
-          expr >>=
-            para
-              (\case
-                 BVar name -> pure (bCall name as)
-                 BCall fun ys -> pure (bCall fun ((fst <$> ys) <> as))
-                 BIf expr1 expr2 expr3 ->
-                   bIf <$> (fst <$> sequence expr1) <*> (fst <$> sequence expr2) <*>
-                   (fst <$> sequence expr3)
-                 BCase expr clauses ->
-                   bCase <$> (fst <$> sequence expr) <*>
-                   traverse sequence (snd <$$> clauses)
-                 e -> pure (embed (fst <$> e)))
+      name <- uniqueName "def"
+      body <- local (insertArgs args) expr
+      let signature = Function (Signature args (typeOf body, body))
+      modify (insertDefinition name signature)
+      pure (var (typeOf signature, name))
+    EApp t expr args -> do
+      e <- expr
+      as <- sequence args
+      case project e of
+        EVar (_, name) ->
+          pure (call_ (t, name) as)
+        ECall (_, fun) as1 -> do
+          pure (call_ (t, fun) (as1 <> as))
+        e -> error (show e)
 
-clauses :: ([TyId Type], Compiler Body) -> Compiler (Names, Body)
-clauses (pairs, body) = (,) (pairs <#> snd) <$> local (insertArgs pairs) body
+--        EVar v -> pure (var v)
+--        ELit prim -> pure (lit prim)
+--        EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
+--        EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
+--    ECase e1 cs -> case_ <$> e1 <*> traverse clauses cs
+    e -> embed <$> sequence e
+
+--compileAst :: Ast -> Compiler Body
+--compileAst =
+--  para $ \case -- cata!
+--    ELet {} -- /
+--     -> error "Implementation error"
+--    expr ->
+--      snd <$> expr & \case
+--        ELam args expr -> do
+--          name <- uniqueName "def"
+--          body <- local (insertArgs args) expr
+--          let signature = Function (Signature args (typeOf body, body))
+--          modify
+--            (insertDefinition name signature)
+--          pure (var (typeOf signature, name))
+----        EVar v -> pure (var v)
+----        ELit prim -> pure (lit prim)
+----        EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
+----        EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
+--        ECase e1 cs -> case_ <$> e1 <*> traverse clauses cs
+--        e -> embed <$> sequence e
+----        EApp t expr args -> do
+----          as <- sequence args
+----          expr >>= 
+----            para (\case
+----                 EApp _ expr1 args1 -> do
+----                   e1 <- expr
+----                   as1 <- sequence (snd <$> args1)
+----                   pure (app t e1 (as1 <> as))
+----                 EIf expr1 expr2 expr3 ->
+----                   if_ <$> (fst <$> sequence expr1)  
+----                       <*> (fst <$> sequence expr2) 
+----                       <*> (fst <$> sequence expr3)
+----                 ECase expr clauses ->
+----                   case_ <$> (fst <$> sequence expr) 
+----                         <*> traverse sequence (snd <$$> clauses)
+----                 e -> pure (app t (embed (fst <$> e)) as)
+----                 )
+------          expr >>=
+------            para
+------              (\case
+------                 EVar name -> pure (app t (var name) as)
+------                 EApp t1 fun ys -> undefined -- pure (bCall fun ((fst <$> ys) <> as))
+------              )
+--------                 BCall fun ys -> pure (bCall fun ((fst <$> ys) <> as))
+--------                 BIf expr1 expr2 expr3 ->
+--------                   bIf <$> (fst <$> sequence expr1) <*> (fst <$> sequence expr2) <*>
+--------                   (fst <$> sequence expr3)
+--------                 BCase expr clauses ->
+--------                   bCase <$> (fst <$> sequence expr) <*>
+--------                   traverse sequence (snd <$$> clauses)
+--------                 e -> pure (embed (fst <$> e)))
+
+clauses :: ([TyId Type], Compiler Body) -> Compiler ([TyId Type], Body)
+--clauses (pairs, body) = (,) (pairs <#> snd) <$> local (insertArgs pairs) body
+clauses = undefined
 
 fillParams :: Definition Body -> Compiler (Definition Body)
-fillParams (Function (Signature arguments (ty, body)))
-  | isTCon ArrT ty = do
-    let tys = init (unwindType ty)
-        applyTo xs =
-          project >>> \case
-            BCall fun args -- /
-             -> pure (bCall fun (args <> xs))
-            BVar name -> do
-              names <- gets definitions
-              pure (bCall name xs)
-            expr -- /
-             -> pure (embed expr)
-    vars <- replicateM (length tys) (uniqueName "v")
-    newBody <- applyTo (bVar <$> vars) body
-    pure
-      (Function
-         (Signature
-            { arguments = arguments <> zip tys vars
-            , body = (returnTypeOf ty, newBody)
-            }))
-fillParams def = pure def
+fillParams = undefined
+-- TODO
+--fillParams (Function (Signature arguments (ty, body)))
+--  | isTCon ArrT ty = do
+--    let tys = init (unwindType ty)
+--        applyTo xs =
+--          project >>> \case
+--            BCall fun args -- /
+--             -> pure (bCall fun (args <> xs))
+--            BVar name -> do
+--              names <- gets definitions
+--              pure (bCall name xs)
+--            expr -- /
+--             -> pure (embed expr)
+--    vars <- replicateM (length tys) (uniqueName "v")
+--    newBody <- applyTo (bVar <$> vars) body
+--    pure
+--      (Function
+--         (Signature
+--            { arguments = arguments <> zip tys vars
+--            , body = (returnTypeOf ty, newBody)
+--            }))
+--fillParams def = pure def
 
 consTypes :: (Name, Definition (Expr t)) -> [(Name, Type)]
 consTypes (name, def) =

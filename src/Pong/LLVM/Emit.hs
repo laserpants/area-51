@@ -167,33 +167,34 @@ buildProgram name Program {..} =
 emitBody :: Body -> CodeGen Operand
 emitBody =
   cata $ \case
-    BLit lit -- /
+    ELit lit -- /
      -> emitLit lit
-    BIf expr1 expr2 expr3 ->
-      mdo ifOp <- expr1
-          condBr ifOp thenBlock elseBlock
-          thenBlock <- block `named` "then"
-          thenOp <- expr2
-          br mergeBlock
-          elseBlock <- block `named` "else"
-          elseOp <- expr3
-          br mergeBlock
-          mergeBlock <- block `named` "ifcont"
-          phi [(thenOp, thenBlock), (elseOp, elseBlock)]
-    BOp2 op expr1 expr2 -> do
-      a <- expr1
-      b <- expr2
-      emitOp2Instr op a b
-    BCase expr cs -- /
-     -> emitCase expr (sortOn fst cs)
-    BVar name -> 
-      find name >>= \case
-        Just (ConstantOperand (GlobalReference PointerType {..} _)) ->
-          emitCall name []
-        Just op -- /
-         -> pure op
-        _ -> error ("Not in scope: '" <> show name <> "'")
-    BCall fun args -> emitCall fun args
+    -- TODO
+--    BIf expr1 expr2 expr3 ->
+--      mdo ifOp <- expr1
+--          condBr ifOp thenBlock elseBlock
+--          thenBlock <- block `named` "then"
+--          thenOp <- expr2
+--          br mergeBlock
+--          elseBlock <- block `named` "else"
+--          elseOp <- expr3
+--          br mergeBlock
+--          mergeBlock <- block `named` "ifcont"
+--          phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+--    BOp2 op expr1 expr2 -> do
+--      a <- expr1
+--      b <- expr2
+--      emitOp2Instr op a b
+--    BCase expr cs -- /
+--     -> emitCase expr (sortOn fst cs)
+--    BVar name -> 
+--      find name >>= \case
+--        Just (ConstantOperand (GlobalReference PointerType {..} _)) ->
+--          emitCall name []
+--        Just op -- /
+--         -> pure op
+--        _ -> error ("Not in scope: '" <> show name <> "'")
+--    BCall fun args -> emitCall fun args
 
 emitCall :: Name -> [CodeGen Operand] -> CodeGen Operand
 emitCall fun args = do

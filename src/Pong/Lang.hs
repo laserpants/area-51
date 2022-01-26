@@ -41,14 +41,9 @@ module Pong.Lang
   , lam
   , let_
   , app
+  , call_
   , op2
   , case_
-  , bVar
-  , bLit
-  , bIf
-  , bCall
-  , bOp2
-  , bCase
   ) where
 
 import Data.Map.Strict (Map)
@@ -73,16 +68,6 @@ instance FreeIn (Expr t) where
       EApp _ fun args -> fun <> concat args
       EOp2 op e1 e2 -> e1 <> e2
       ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
-
-instance FreeIn Body where
-  free =
-    cata $ \case
-      BVar name -> [name]
-      BLit lit -> []
-      BIf e1 e2 e3 -> e1 <> e2 <> e3
-      BCall fun args -> [fun] <> concat args
-      BOp2 op e1 e2 -> e1 <> e2
-      BCase e1 cs -> e1 <> (cs >>= free . uncurry Clause)
 
 instance FreeIn (Clause Name) where
   free =
@@ -295,6 +280,10 @@ let_ = embed3 ELet
 app :: t -> Expr t -> [Expr t] -> Expr t
 app = embed3 EApp
 
+{-# INLINE call_ #-}
+call_ :: TyId t -> [Expr t] -> Expr t
+call_ = embed2 ECall
+
 {-# INLINE op2 #-}
 op2 :: Op2 -> Expr t -> Expr t -> Expr t
 op2 = embed3 EOp2
@@ -302,27 +291,3 @@ op2 = embed3 EOp2
 {-# INLINE case_ #-}
 case_ :: Expr t -> [([(t, Name)], Expr t)] -> Expr t
 case_ = embed2 ECase
-
-{-# INLINE bVar #-}
-bVar :: Name -> Body
-bVar = embed1 BVar
-
-{-# INLINE bLit #-}
-bLit :: Literal -> Body
-bLit = embed1 BLit
-
-{-# INLINE bIf #-}
-bIf :: Body -> Body -> Body -> Body
-bIf = embed3 BIf
-
-{-# INLINE bCall #-}
-bCall :: Name -> [Body] -> Body
-bCall = embed2 BCall
-
-{-# INLINE bOp2 #-}
-bOp2 :: Op2 -> Body -> Body -> Body
-bOp2 = embed3 BOp2
-
-{-# INLINE bCase #-}
-bCase :: Body -> [(Names, Body)] -> Body
-bCase = embed2 BCase
