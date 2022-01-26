@@ -39,6 +39,13 @@ foo3 =
 foo4 =
   runCompiler (compileAst foo3) mempty
 
+foo5 = 
+  app tInt32 (var (tInt32 .-> tInt32, "f")) [lit (LInt32 5)]
+
+foo6 =
+  runCompiler (compileAst foo5) mempty
+
+
 
 --runTestModule :: IO ()
 --runTestModule = Text.putStrLn (ppll testModule)
