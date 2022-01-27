@@ -13,21 +13,22 @@ import Control.Monad.State
 import Data.Bifunctor (bimap)
 import Data.Either (partitionEithers)
 import Data.Function ((&))
-import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust, fromMaybe, maybeToList)
-import qualified Data.Set as Set
-import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
+import Data.Void
 import Debug.Trace
 import Pong.Lang
 import Pong.TypeChecker
-import qualified Pong.Util.Env as Env
 import TextShow (showt)
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Text as Text
+import qualified Pong.Util.Env as Env
 
-convertLetBindings :: Ast -> Ast
+convertLetBindings :: Expr Type () () () Void -> Expr Type () () () Void
 convertLetBindings =
   cata $ \case
-    ELet (_, name) e1 e2
+    ELet _ (_, name) e1 e2
       | isCon VarE e1 || isCon LitE e1 || isCon LamE e1 ->
         let alg =
               \case
@@ -35,32 +36,29 @@ convertLetBindings =
                   | name == var -> e1
                 e -> embed e
          in cata alg e2
-    ELet bind e1 e2 -> app (typeOf e2) (lam [bind] e2) [e1]
+    ELet _ bind e1 e2 -> app (typeOf e2) (lam [bind] e2) [e1]
     e -> embed e
 
-combineLambdas :: Ast -> Ast
+combineLambdas :: Expr t () () () Void -> Expr t () () () Void
 combineLambdas =
   cata $ \case
-    ELam xs (Fix (ELam ys expr)) -> lam (xs <> ys) expr
+    ELam _ xs (Fix (ELam _ ys expr)) -> lam (xs <> ys) expr
     e -> embed e
 
-convertClosures :: (MonadReader TypeEnv m) => Ast -> m Ast
+convertClosures :: (MonadReader TypeEnv m) => Expr Type Void () () Void -> m (Expr Type Void () () Void)
 convertClosures =
   cata $ \case
     EVar (ty, name) -> pure (var (ty, name))
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-    ELet {} ->
-      error
-        "Implementation error: Let bindings should be removed prior to this."
-    EApp ty fun args -> app ty <$> fun <*> sequence args
+    EApp _ ty fun args -> app ty <$> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
       let insertNames (n:vs, expr) = do
             e <- local (insertArgs vs) expr
             pure (n : vs, e)
        in case_ <$> e1 <*> traverse insertNames cs
-    ELam args expr -> do
+    ELam _ args expr -> do
       body <- local (insertArgs args) expr
       let names = free body `without` (args <#> snd)
       extra <- (`zip` names) <$> traverse (fromJust <$$> Env.askLookup) names
@@ -71,9 +69,9 @@ convertClosures =
           _ -> do
             app (foldType (typeOf body) (args <#> fst)) lambda (var <$> extra)
 
-preprocess :: (MonadReader TypeEnv m) => Ast -> m Ast
-preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
-
+--preprocess :: (MonadReader TypeEnv m) => Expr Type a1 -> m (Expr Type ())
+--preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
+--
 --typeCheck :: Expr () -> Compiler (Either TypeError Ast)
 --typeCheck ast = asks (`runCheck` ast)
 --
@@ -112,20 +110,21 @@ preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
 --  let self = (foldType ty (args <#> fst), name)
 --  main <- local (insertArgs (self : args)) (compileAst expr)
 --  pure (Function (Signature args (ty, main)))
---
---compileAst :: Ast -> Compiler Body
---compileAst =
---  cata $ \case 
---    ELet {} -> error "Implementation error"
---    ELam args expr -> do
---      name <- uniqueName "def"
---      body <- local (insertArgs args) expr
---      let signature = Function (Signature args (typeOf body, body))
---      modify (insertDefinition name signature)
---      pure (var (typeOf signature, name))
---    EApp t expr args -> do
---      e <- expr
---      as <- sequence args
+
+compileAst :: Expr Type a0 () a2 Void -> Compiler Ast
+compileAst =
+  cata $ \case 
+    ELet {} -> error "Implementation error"
+    ELam _ args expr -> do
+      name <- undefined -- uniqueName "def"
+      body <- local (insertArgs args) expr
+      let signature = Function (Signature args (typeOf body, body))
+      modify (insertDefinition name signature)
+      pure (var (typeOf signature, name))
+    EApp _ t expr args -> do
+      e <- expr
+      as <- sequence args
+      undefined
 --      case project e of
 --        EVar (_, name) ->
 --          pure (call_ (t, name) as)

@@ -21,7 +21,7 @@ module Pong.Lang
   , returnTypeOf
   , funArgs
 --  , constructors
---  , insertDefinition
+  , insertDefinition
   , emptyProgram
 --  , printProgram
   , tUnit
@@ -49,6 +49,7 @@ module Pong.Lang
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
+import Data.Void
 import Data.Tuple.Extra (first)
 import Pong.Data
 import Pong.Util
@@ -57,16 +58,16 @@ import qualified Pong.Util.Env as Env
 class FreeIn a where
   free :: a -> [Name]
 
-instance FreeIn (Expr t) where
+instance FreeIn (Expr t a0 a1 a2 a3) where
   free =
     cata $ \case
       EVar (_, name) -> [name]
       ELit lit -> []
       EIf e1 e2 e3 -> e1 <> e2 <> e3
-      ELam args expr -> expr `without` (snd <$> args)
-      ELet bind e1 e2 -> (e1 <> e2) `without` [snd bind]
-      EApp _ fun args -> fun <> concat args
-      ECall (_, name) args -> name : concat args
+      ELam _ args expr -> expr `without` (snd <$> args)
+      ELet _ bind e1 e2 -> (e1 <> e2) `without` [snd bind]
+      EApp _ _ fun args -> fun <> concat args
+      ECall _ (_, name) args -> name : concat args
       EOp2 op e1 e2 -> e1 <> e2
       ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
 
@@ -115,16 +116,16 @@ instance Typed Op2 where
       OSubDouble -> tDouble .-> tDouble .-> tDouble
       ODivDouble -> tDouble .-> tDouble .-> tDouble
 
-instance Typed (Expr Type) where
+instance Typed (Expr Type a0 a1 a2 a3) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
       ELit lit -> typeOf lit
       EIf _ _ e3 -> e3
-      ELam args expr -> foldType expr (typeOf . fst <$> args)
-      ELet _ _ e2 -> e2
-      EApp t _ _ -> typeOf t
-      ECall (t, _) as -> foldType1 (drop (length as) (unwindType t))
+      ELam _ args expr -> foldType expr (typeOf . fst <$> args)
+      ELet _ _ _ e2 -> e2
+      EApp _ t _ _ -> typeOf t
+      ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
       EOp2 op _ _ -> returnTypeOf op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
@@ -159,7 +160,7 @@ isTCon con =
       | VarT == con -> True
     _ -> False
 
-isCon :: Con -> Expr t -> Bool
+isCon :: Con -> Expr t a0 a1 a2 a3 -> Bool
 isCon con =
   project >>> \case
     EVar {}
@@ -207,12 +208,12 @@ insertArgs = Env.inserts . (swap <$>)
 emptyProgram :: Program
 emptyProgram = Program 0 mempty
 
---insertDefinition :: Name -> Definition Body -> Program -> Program
---insertDefinition name def =
---  \case
---    Program {definitions, ..} ->
---      Program {definitions = Map.insert name def definitions, ..}
---
+insertDefinition :: Name -> Definition Ast -> Program -> Program
+insertDefinition name def =
+  \case
+    Program {definitions, ..} ->
+      Program {definitions = Map.insert name def definitions, ..}
+
 --printProgram :: Program -> IO ()
 --printProgram Program {..} = sequence_ (Map.mapWithKey (curry print) definitions)
 
@@ -264,37 +265,37 @@ tOpaque :: Type
 tOpaque = embed TOpaque
 
 {-# INLINE var #-}
-var :: (t, Name) -> Expr t
+var :: (t, Name) -> Expr t a0 a1 a2 a3
 var = embed1 EVar
 
 {-# INLINE lit #-}
-lit :: Literal -> Expr t
+lit :: Literal -> Expr t a0 a1 a2 a3
 lit = embed1 ELit
 
 {-# INLINE if_ #-}
-if_ :: Expr t -> Expr t -> Expr t -> Expr t
+if_ :: Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3
 if_ = embed3 EIf
 
 {-# INLINE lam #-}
-lam :: [(t, Name)] -> Expr t -> Expr t
-lam = embed2 ELam
+lam :: [(t, Name)] -> Expr t a0 () a2 a3 -> Expr t a0 () a2 a3
+lam = embed3 ELam () 
 
 {-# INLINE let_ #-}
-let_ :: (t, Name) -> Expr t -> Expr t -> Expr t
-let_ = embed3 ELet
+let_ :: (t, Name) -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3
+let_ = embed4 ELet ()
 
 {-# INLINE app #-}
-app :: t -> Expr t -> [Expr t] -> Expr t
-app = embed3 EApp
+app :: t -> Expr t a0 a1 () a3 -> [Expr t a0 a1 () a3] -> Expr t a0 a1 () a3
+app = embed4 EApp ()
 
 {-# INLINE call_ #-}
-call_ :: TyId t -> [Expr t] -> Expr t
-call_ = embed2 ECall
+call_ :: TyId t -> [Expr t a0 a1 a2 ()] -> Expr t a0 a1 a2 ()
+call_ = embed3 ECall ()
 
 {-# INLINE op2 #-}
-op2 :: Op2 -> Expr t -> Expr t -> Expr t
+op2 :: Op2 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3
 op2 = embed3 EOp2
 
 {-# INLINE case_ #-}
-case_ :: Expr t -> [([(t, Name)], Expr t)] -> Expr t
+case_ :: Expr t a0 a1 a2 a3 -> [([(t, Name)], Expr t a0 a1 a2 a3)] -> Expr t a0 a1 a2 a3
 case_ = embed2 ECase

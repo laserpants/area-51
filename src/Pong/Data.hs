@@ -15,6 +15,7 @@ import Control.Monad.State
 import Data.Eq.Deriving (deriveEq1)
 import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
+import Data.Void
 import LLVM.AST.Operand
 import LLVM.IRBuilder
 import Pong.Util
@@ -76,20 +77,20 @@ data Op2
 
 type TyId t = (t, Name)
 
-data ExprF t a
+data ExprF t a0 a1 a2 a3 a
   = EVar (TyId t)
   | ELit Literal
   | EIf a a a
-  | ELam [TyId t] a
-  | ELet (TyId t) a a
-  | EApp t a [a]
-  | ECall (TyId t) [a]
+  | ELet a0 (TyId t) a a
+  | ELam a1 [TyId t] a
+  | EApp a2 t a [a]
+  | ECall a3 (TyId t) [a]
   | EOp2 Op2 a a
   | ECase a [([TyId t], a)]
 
-type Expr t = Fix (ExprF t)
+type Expr t a0 a1 a2 a3 = Fix (ExprF t a0 a1 a2 a3)
 
-type Ast = Expr Type
+type Ast = Expr Type Void Void Void ()
 
 data Con
   = VarE
@@ -201,11 +202,11 @@ deriving instance Eq Op2
 deriving instance Ord Op2
 
 -- Expr
-deriving instance (Show t, Show a) => Show (ExprF t a)
+deriving instance (Show t, Show a0, Show a1, Show a2, Show a3, Show a) => Show (ExprF t a0 a1 a2 a3 a)
 
-deriving instance (Eq t, Eq a) => Eq (ExprF t a)
+deriving instance (Eq t, Eq a0, Eq a1, Eq a2, Eq a3, Eq a) => Eq (ExprF t a0 a1 a2 a3 a)
 
-deriving instance (Ord t, Ord a) => Ord (ExprF t a)
+deriving instance (Ord t, Ord a0, Ord a1, Ord a2, Ord a3, Ord a) => Ord (ExprF t a0 a1 a2 a3 a)
 
 deriveShow1 ''ExprF
 
@@ -213,11 +214,11 @@ deriveEq1 ''ExprF
 
 deriveOrd1 ''ExprF
 
-deriving instance Functor (ExprF t)
+deriving instance Functor (ExprF t a0 a1 a2 a3)
 
-deriving instance Foldable (ExprF t)
+deriving instance Foldable (ExprF t a0 a1 a2 a3)
 
-deriving instance Traversable (ExprF t)
+deriving instance Traversable (ExprF t a0 a1 a2 a3)
 
 -- Con
 deriving instance Show Con
