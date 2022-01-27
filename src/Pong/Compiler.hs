@@ -2,8 +2,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TupleSections #-}
+-- {-# LANGUAGE RecordWildCards #-}
+-- {-# LANGUAGE TupleSections #-}
 
 module Pong.Compiler where
 
@@ -55,11 +55,11 @@ convertClosures =
         "Implementation error: Let bindings should be removed prior to this."
     EApp ty fun args -> app ty <$> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
---    ECase e1 cs ->
---      let insertNames (n:vs, expr) = do
---            e <- local (insertArgs vs) expr
---            pure (n : vs, e)
---       in case_ <$> e1 <*> traverse insertNames cs
+    ECase e1 cs ->
+      let insertNames (n:vs, expr) = do
+            e <- local (insertArgs vs) expr
+            pure (n : vs, e)
+       in case_ <$> e1 <*> traverse insertNames cs
     ELam args expr -> do
       body <- local (insertArgs args) expr
       let names = free body `without` (args <#> snd)
@@ -71,9 +71,9 @@ convertClosures =
           _ -> do
             app (foldType (typeOf body) (args <#> fst)) lambda (var <$> extra)
 
---preprocess :: (MonadReader TypeEnv m) => Ast -> m Ast
---preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
---
+preprocess :: (MonadReader TypeEnv m) => Ast -> m Ast
+preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
+
 --typeCheck :: Expr () -> Compiler (Either TypeError Ast)
 --typeCheck ast = asks (`runCheck` ast)
 --
