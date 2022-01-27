@@ -30,7 +30,7 @@ module Pong.Lang
   , tInt64
   , tFloat
   , tDouble
-  , tVar
+--  , tVar
   , tArr
   , tData
   , tOpaque

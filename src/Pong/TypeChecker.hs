@@ -7,20 +7,20 @@ module Pong.TypeChecker where
 --module Pong.TypeChecker
 --  ( runCheck
 --  ) where
---
---import Control.Arrow ((>>>))
---import Control.Monad.Except
---import Control.Monad.Reader
---import Control.Monad.State
---import qualified Data.Map.Strict as Map
---import Data.Maybe (fromMaybe)
---import Data.Tuple.Extra (first, firstM, second)
---import Pong.Lang
---import qualified Pong.Util.Env as Env
---
---class Substitutable a where
---  apply :: Substitution -> a -> a
---
+
+import Control.Arrow ((>>>))
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
+import Data.Tuple.Extra (first, firstM, second)
+import Pong.Lang
+import qualified Pong.Util.Env as Env
+
+class Substitutable a where
+  apply :: Substitution -> a -> a
+
 --instance Substitutable Type where
 --  apply sub =
 --    cata $ \case
@@ -40,13 +40,13 @@ module Pong.TypeChecker where
 --
 --instance (Functor f, Substitutable a) => Substitutable (f a) where
 --  apply = fmap . apply
---
+
 --instance Semigroup Substitution where
 --  (<>) = compose
---
+
 --instance Monoid Substitution where
 --  mempty = Substitution mempty
---
+
 --compose :: Substitution -> Substitution -> Substitution
 --compose s1 s2 =
 --  Substitution
