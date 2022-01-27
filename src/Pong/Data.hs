@@ -83,7 +83,7 @@ data ExprF t a0 a1 a2 a3 a
   | EIf a a a
   | ELet a0 (TyId t) a a
   | ELam a1 [TyId t] a
-  | EApp a2 t a [a]
+  | EApp a2 a [a]
   | ECall a3 (TyId t) [a]
   | EOp2 Op2 a a
   | ECase a [([TyId t], a)]

@@ -27,24 +27,34 @@ main :: IO ()
 main = do
   putStrLn "hello world"
 
---foo1 = 
---  app tInt32 (app (tInt32 .-> tInt32) (var (tInt32 .-> tInt32 .-> tInt32, "f")) [lit (LInt32 5)]) [lit (LInt32 6)]
---
---foo2 =
---  runCompiler (compileAst foo1) mempty
---
---foo3 = 
---  lam [(tInt32, "x"), (tInt32, "y")] (op2 OAddInt32 (var (tInt32, "x")) (var (tInt32, "y")))
---
---foo4 =
---  runCompiler (compileAst foo3) mempty
---
---foo5 = 
---  app tInt32 (var (tInt32 .-> tInt32, "f")) [lit (LInt32 5)]
---
---foo6 =
---  runCompiler (compileAst foo5) mempty
---
+foo1 = 
+  app (app (var (tInt32 .-> tInt32 .-> tInt32, "f")) [lit (LInt32 5)]) [lit (LInt32 6)]
+
+foo2 =
+  runCompiler (compileAst foo1) mempty
+
+foo3 = 
+  lam [(tInt32, "x"), (tInt32, "y")] (op2 OAddInt32 (var (tInt32, "x")) (var (tInt32, "y")))
+
+foo4 =
+  runCompiler (compileAst foo3) mempty
+
+foo5 = 
+  app (var (tInt32 .-> tInt32, "f")) [lit (LInt32 5)]
+
+foo6 =
+  runCompiler (compileAst foo5) mempty
+
+foo9 =
+  runCheck (Env.fromList [("foo", tInt32 .-> tInt32)]) input1
+
+input1 :: Expr () () () () a3
+input1 =
+  let_
+    ((), "f")
+    (var ((), "foo"))
+    (lam [((), "x")] (app (var ((), "f")) [var ((), "x")]))
+
 --
 --
 ----runTestModule :: IO ()

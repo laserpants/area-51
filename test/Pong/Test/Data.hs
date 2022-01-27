@@ -2,9 +2,10 @@
 
 module Pong.Test.Data where
 
-import qualified Data.Map.Strict as Map
+import Data.Void
 import Pong.Data
 import Pong.Lang
+import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 
 i32 :: Type
@@ -15,20 +16,20 @@ input1 =
   let_
     ((), "f")
     (var ((), "foo"))
-    (lam [((), "x")] (app () (var ((), "f")) [var ((), "x")]))
+    (lam [((), "x")] (app (var ((), "f")) [var ((), "x")]))
 
---input1Typed :: Ast
---input1Typed =
---  let_
---    (i32 .-> i32, "f")
---    (var (i32 .-> i32, "foo"))
---    (lam [(i32, "x")] (app i32 (var (i32 .-> i32, "f")) [var (i32, "x")]))
+input1Typed :: Expr Type () () () Void
+input1Typed =
+  let_
+    (i32 .-> i32, "f")
+    (var (i32 .-> i32, "foo"))
+    (lam [(i32, "x")] (app (var (i32 .-> i32, "f")) [var (i32, "x")]))
 
 input2 :: Expr () a0 a1 a2 a3
 input2 = op2 OAddInt32 (var ((), "x")) (var ((), "y"))
 
---input2Typed :: Ast
---input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
+input2Typed :: Expr Type () () () Void
+input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
 
 input3 :: Expr () () a1 a2 a3
 input3 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
@@ -72,15 +73,14 @@ input7 :: Expr Type () () () a3
 input7 =
   let_
     (i32, "x")
-    (app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")])
+    (app (var (i32 .-> i32, "foo")) [var (i32, "x")])
     (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3)))
 
 input7Converted :: Expr Type a0 () () a3
 input7Converted =
   app
-    i32
     (lam [(i32, "x")] (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3))))
-    [app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")]]
+    [app (var (i32 .-> i32, "foo")) [var (i32, "x")]]
 
 input8 :: Expr Type a0 () () a3
 input8 =
@@ -107,7 +107,6 @@ input9Converted =
   lam
     [(i32, "p")]
     (app
-       (i32 .-> i32)
        (lam [(i32, "p"), (i32, "x")] (var (i32, "p")))
        [var (i32, "p")])
 
@@ -159,7 +158,6 @@ input15Converted =
   lam
     [(i32, "x")]
     (app
-       (i32 .-> i32)
        (lam [(i32, "x"), (i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
        [var (i32, "x")])
 

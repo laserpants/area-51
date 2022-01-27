@@ -42,7 +42,7 @@ convertLetBindings =
                   | name == var -> e1
                 e -> embed e
          in cata alg e2
-    ELet _ bind e1 e2 -> app (typeOf e2) (lam [bind] e2) [e1]
+    ELet _ bind e1 e2 -> app (lam [bind] e2) [e1]
     e -> embed e
 
 convertClosures :: (MonadReader TypeEnv m) => Expr Type () () () Void -> m (Expr Type Void () () Void)
@@ -51,7 +51,7 @@ convertClosures =
     EVar (ty, name) -> pure (var (ty, name))
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-    EApp _ ty fun args -> app ty <$> fun <*> sequence args
+    EApp _ fun args -> app <$> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
       let insertNames (n:vs, expr) = do
@@ -67,26 +67,26 @@ convertClosures =
         case extra of
           [] -> lambda
           _ -> do
-            app (foldType (typeOf body) (args <#> fst)) lambda (var <$> extra)
+            app lambda (var <$> extra)
 
 preprocess :: (MonadReader TypeEnv m) => Expr Type () () () Void -> m (Expr Type Void () () Void)
 preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
 
---typeCheck :: Expr () -> Compiler (Either TypeError Ast)
---typeCheck ast = asks (`runCheck` ast)
---
---runCompiler :: Compiler a -> TypeEnv -> (a, Program)
---runCompiler comp env = runState (getCompilerState comp env) emptyProgram
---
---execCompiler :: Compiler a -> TypeEnv -> Program
---execCompiler comp env = execState (getCompilerState comp env) emptyProgram
---
---evalCompiler :: Compiler a -> TypeEnv -> a
---evalCompiler comp env = evalState (getCompilerState comp env) emptyProgram
---
---getCompilerState :: Compiler a -> TypeEnv -> State Program a
---getCompilerState = runReaderT . getCompiler
---
+typeCheck :: Expr t () () () Void -> Compiler (Either TypeError (Expr Type () () () Void))
+typeCheck ast = asks (`runCheck` ast)
+
+runCompiler :: Compiler a -> TypeEnv -> (a, Program)
+runCompiler comp env = runState (getCompilerState comp env) emptyProgram
+
+execCompiler :: Compiler a -> TypeEnv -> Program
+execCompiler comp env = execState (getCompilerState comp env) emptyProgram
+
+evalCompiler :: Compiler a -> TypeEnv -> a
+evalCompiler comp env = evalState (getCompilerState comp env) emptyProgram
+
+getCompilerState :: Compiler a -> TypeEnv -> State Program a
+getCompilerState = runReaderT . getCompiler
+
 --programNames :: (MonadState Program m) => m Names
 --programNames = gets definitions <#> Map.keys
 --
@@ -111,27 +111,27 @@ preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
 --  main <- local (insertArgs (self : args)) (compileAst expr)
 --  pure (Function (Signature args (ty, main)))
 
-compileAst :: Expr Type a0 () a2 Void -> Compiler Ast
+compileAst :: Expr Type Void a1 a2 Void -> Compiler Ast
 compileAst =
   cata $ \case 
-    ELet {} -> error "Implementation error"
     ELam _ args expr -> do
       name <- undefined -- uniqueName "def"
       body <- local (insertArgs args) expr
       let signature = Function (Signature args (typeOf body, body))
       modify (insertDefinition name signature)
       pure (var (typeOf signature, name))
-    EApp _ t expr args -> do
+    EApp _ expr args -> do
       e <- expr
       as <- sequence args
-      undefined
---      case project e of
---        EVar (_, name) ->
---          pure (call_ (t, name) as)
---        ECall (_, fun) as1 -> do
---          pure (call_ (t, fun) (as1 <> as))
---        e -> error (show e)
---
+      case project e of
+        EVar (t1, name) ->
+          pure (call_ (t1, name) as)
+        ECall _ fun as1 -> do
+          pure (call_ fun (as1 <> as))
+        e -> error (show e)
+    EVar v -> pure (var v)
+    ELit prim -> pure (lit prim)
+
 ----        EVar v -> pure (var v)
 ----        ELit prim -> pure (lit prim)
 ----        EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3

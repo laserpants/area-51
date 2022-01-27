@@ -66,7 +66,7 @@ instance FreeIn (Expr t a0 a1 a2 a3) where
       EIf e1 e2 e3 -> e1 <> e2 <> e3
       ELam _ args expr -> expr `without` (snd <$> args)
       ELet _ bind e1 e2 -> (e1 <> e2) `without` [snd bind]
-      EApp _ _ fun args -> fun <> concat args
+      EApp _ fun args -> fun <> concat args
       ECall _ (_, name) args -> name : concat args
       EOp2 op e1 e2 -> e1 <> e2
       ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
@@ -124,11 +124,13 @@ instance Typed (Expr Type a0 a1 a2 a3) where
       EIf _ _ e3 -> e3
       ELam _ args expr -> foldType expr (typeOf . fst <$> args)
       ELet _ _ _ e2 -> e2
-      EApp _ t _ _ -> typeOf t
-      ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
+      EApp _ fun as -> tapp fun as
+      ECall _ (t, _) as -> tapp t as
       EOp2 op _ _ -> returnTypeOf op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
+    where
+      tapp t as = foldType1 (drop (length as) (unwindType t))
 
 instance Typed (Definition a) where
   typeOf =
@@ -171,11 +173,12 @@ isCon con =
       | LamE == con -> True
     _ -> False
 
-unwindType :: Type -> [Type]
+unwindType :: (Typed t) => t -> [Type]
 unwindType =
-  para $ \case
-    TArr (t, _) (_, u) -> t : u
-    t -> [embed (fst <$> t)]
+  typeOf >>> 
+    para (\case
+      TArr (t, _) (_, u) -> t : u
+      t -> [embed (fst <$> t)])
 
 returnTypeOf :: (Typed t) => t -> Type
 returnTypeOf = last <<< unwindType <<< typeOf
@@ -285,8 +288,8 @@ let_ :: (t, Name) -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3 -> Expr t () a1 a2
 let_ = embed4 ELet ()
 
 {-# INLINE app #-}
-app :: t -> Expr t a0 a1 () a3 -> [Expr t a0 a1 () a3] -> Expr t a0 a1 () a3
-app = embed4 EApp ()
+app :: Expr t a0 a1 () a3 -> [Expr t a0 a1 () a3] -> Expr t a0 a1 () a3
+app = embed3 EApp ()
 
 {-# INLINE call_ #-}
 call_ :: TyId t -> [Expr t a0 a1 a2 ()] -> Expr t a0 a1 a2 ()

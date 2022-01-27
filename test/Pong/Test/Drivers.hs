@@ -58,9 +58,9 @@ runReturnTypeOfTest :: (Typed a) => TestCase a Type
 runReturnTypeOfTest description input expected =
   it description $ returnTypeOf input == expected
 
---runTypeCheckerTest :: TestCase (Expr t a0 a1 a2 a3, TypeEnv) (Either TypeError (Expr t a0 a1 a2 a3))
---runTypeCheckerTest description (input, env) expected =
---  it description $ runCheck env input == expected
+runTypeCheckerTest :: TestCase (Expr t () () () Void, TypeEnv) (Either TypeError (Expr Type () () () Void))
+runTypeCheckerTest description (input, env) expected =
+  it description $ runCheck env input == expected
 
 runConvertLetBindingsTest :: TestCase (Expr Type () () () Void) (Expr Type () () () Void)
 runConvertLetBindingsTest description input expected =

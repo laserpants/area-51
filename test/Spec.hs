@@ -36,8 +36,8 @@ main =
         runFreeTest "5                                       >>  []"      (lit (LInt32 5)) []
         runFreeTest "lam(x) => x                             >>  []"      (lam [((), "x")] (var ((), "x"))) []
         runFreeTest "lam(x) => y                             >>  [y]"     (lam [((), "x")] (var ((), "y"))) ["y"]
-        runFreeTest "lam(x) => f y                           >>  [f, y]"  (lam [((), "x")] (app () (var ((), "f")) [var ((), "y")])) ["f", "y"]
-        runFreeTest "lam(x) => f x                           >>  [f]"     (lam [((), "x")] (app () (var ((), "f")) [var ((), "x")])) ["f"]
+        runFreeTest "lam(x) => f y                           >>  [f, y]"  (lam [((), "x")] (app (var ((), "f")) [var ((), "y")])) ["f", "y"]
+        runFreeTest "lam(x) => f x                           >>  [f]"     (lam [((), "x")] (app (var ((), "f")) [var ((), "x")])) ["f"]
         runFreeTest "let f = foo in lam(x) => f x            >>  [foo]"   input1 ["foo"]
         runFreeTest "x + y                                   >>  [x, y]"  input2 ["x", "y"]
         runFreeTest "match xs { Cons x ys => x }             >>  [xs]"    input3 ["xs"]
@@ -115,15 +115,15 @@ main =
     ---------------------------------------------------------------------------
     -- Module Pong.TypeChecker ------------------------------------------------
     ---------------------------------------------------------------------------
---    describe "runCheck" $ do
---      runTypeCheckerTest
---        "#1"
---        (input1, Env.fromList [("foo", i32 .-> i32)])
---        (Right input1Typed)
---      runTypeCheckerTest
---        "#2"
---        (input2, Env.fromList [("x", i32), ("y", i32)])
---        (Right input2Typed)
+    describe "runCheck" $ do
+      runTypeCheckerTest
+        "#1"
+        (input1, Env.fromList [("foo", i32 .-> i32)])
+        (Right input1Typed)
+      runTypeCheckerTest
+        "#2"
+        (input2, Env.fromList [("x", i32), ("y", i32)])
+        (Right input2Typed)
     ---------------------------------------------------------------------------
     -- Module Pong.Compiler ---------------------------------------------------
     ---------------------------------------------------------------------------
