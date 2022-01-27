@@ -45,7 +45,10 @@ combineLambdas =
     ELam _ xs (Fix (ELam _ ys expr)) -> lam (xs <> ys) expr
     e -> embed e
 
-convertClosures :: (MonadReader TypeEnv m) => Expr Type Void () () Void -> m (Expr Type Void () () Void)
+convertClosures 
+  :: (MonadReader TypeEnv m) 
+  => Expr Type Void () () Void 
+  -> m (Expr Type Void () () Void)
 convertClosures =
   cata $ \case
     EVar (ty, name) -> pure (var (ty, name))
