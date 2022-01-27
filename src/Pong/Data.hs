@@ -96,17 +96,6 @@ data Con
   | LitE
   | LamE
 
---data BodyF a
---  = BVar Name
---  | BLit Literal
---  | BIf a a a
---  | BCall Name [a]
---  | BOp2 Op2 a a
---  | BCase a [(Names, a)]
-
-type Body = Ast
---type Body = Fix BodyF
-
 data Clause a =
   Clause [a] [a]
 
@@ -138,7 +127,7 @@ data Definition a
 data Program =
   Program
     { count :: Int
-    , definitions :: Map Name (Definition Body)
+    , definitions :: Map Name (Definition Ast)
     }
 
 newtype Substitution =
@@ -236,25 +225,6 @@ deriving instance Show Con
 deriving instance Eq Con
 
 deriving instance Ord Con
-
----- Body
---deriving instance (Show a) => Show (BodyF a)
---
---deriving instance (Eq a) => Eq (BodyF a)
---
---deriving instance (Ord a) => Ord (BodyF a)
---
---deriveShow1 ''BodyF
---
---deriveEq1 ''BodyF
---
---deriveOrd1 ''BodyF
---
---deriving instance Functor BodyF
---
---deriving instance Foldable BodyF
---
---deriving instance Traversable BodyF
 
 -- Clause
 deriving instance (Show a) => Show (Clause a)

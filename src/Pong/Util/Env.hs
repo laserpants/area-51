@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Pong.Util.Env
   ( empty
   , insert
@@ -17,12 +18,14 @@ module Pong.Util.Env
   , alter
   , delete
   , map
+  , askLookup
   ) where
 
-import qualified Data.Map.Strict as Map
+import Control.Monad.Reader
 import Pong.Data
 import Pong.Util
 import Prelude hiding (insert, lookup, map)
+import qualified Data.Map.Strict as Map
 
 {-# INLINE empty #-}
 empty :: Environment a
@@ -82,3 +85,6 @@ delete key (Env envMap) = Env (Map.delete key envMap)
 
 map :: (a -> b) -> Environment a -> Environment b
 map f (Env envMap) = Env (Map.map f envMap)
+
+askLookup :: (MonadReader (Environment a) m) => Name -> m (Maybe a)
+askLookup = asks . lookup

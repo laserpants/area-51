@@ -20,10 +20,10 @@ module Pong.Lang
   , arity
   , returnTypeOf
   , funArgs
-  , constructors
-  , insertDefinition
+--  , constructors
+--  , insertDefinition
   , emptyProgram
-  , printProgram
+--  , printProgram
   , tUnit
   , tBool
   , tInt32
@@ -66,6 +66,7 @@ instance FreeIn (Expr t) where
       ELam args expr -> expr `without` (snd <$> args)
       ELet bind e1 e2 -> (e1 <> e2) `without` [snd bind]
       EApp _ fun args -> fun <> concat args
+      ECall (_, name) args -> name : concat args
       EOp2 op e1 e2 -> e1 <> e2
       ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
 
@@ -94,6 +95,8 @@ instance Typed Literal where
       LInt64 {} -> tInt64
       LFloat {} -> tFloat
       LDouble {} -> tDouble
+--      LChar {} -> tChar
+--      LString {} -> tString
       LUnit -> tUnit
 
 instance Typed Op2 where
@@ -112,7 +115,7 @@ instance Typed Op2 where
       OSubDouble -> tDouble .-> tDouble .-> tDouble
       ODivDouble -> tDouble .-> tDouble .-> tDouble
 
-instance (Typed t) => Typed (Expr t) where
+instance Typed (Expr Type) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -121,6 +124,7 @@ instance (Typed t) => Typed (Expr t) where
       ELam args expr -> foldType expr (typeOf . fst <$> args)
       ELet _ _ e2 -> e2
       EApp t _ _ -> typeOf t
+      ECall (t, _) as -> foldType1 (drop (length as) (unwindType t))
       EOp2 op _ _ -> returnTypeOf op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
@@ -182,15 +186,18 @@ funArgs =
     External Signature {..} -> arguments
     _ -> []
 
-constructors :: Definition a -> [Constructor]
-constructors =
-  \case
-    Data _ cs -> cs
-    _ -> []
+--constructors :: Definition a -> [Constructor]
+--constructors =
+--  \case
+--    Data _ cs -> cs
+--    _ -> []
 
 {-# INLINE foldType #-}
 foldType :: Type -> [Type] -> Type
 foldType = foldr tArr
+
+foldType1 :: [Type] -> Type
+foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
 insertArgs :: [(Type, Name)] -> TypeEnv -> TypeEnv
@@ -200,14 +207,14 @@ insertArgs = Env.inserts . (swap <$>)
 emptyProgram :: Program
 emptyProgram = Program 0 mempty
 
-insertDefinition :: Name -> Definition Body -> Program -> Program
-insertDefinition name def =
-  \case
-    Program {definitions, ..} ->
-      Program {definitions = Map.insert name def definitions, ..}
-
-printProgram :: Program -> IO ()
-printProgram Program {..} = sequence_ (Map.mapWithKey (curry print) definitions)
+--insertDefinition :: Name -> Definition Body -> Program -> Program
+--insertDefinition name def =
+--  \case
+--    Program {definitions, ..} ->
+--      Program {definitions = Map.insert name def definitions, ..}
+--
+--printProgram :: Program -> IO ()
+--printProgram Program {..} = sequence_ (Map.mapWithKey (curry print) definitions)
 
 {-# INLINE tUnit #-}
 tUnit :: Type

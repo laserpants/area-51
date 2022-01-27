@@ -17,18 +17,18 @@ input1 =
     (var ((), "foo"))
     (lam [((), "x")] (app () (var ((), "f")) [var ((), "x")]))
 
-input1Typed :: Ast
-input1Typed =
-  let_
-    (i32 .-> i32, "f")
-    (var (i32 .-> i32, "foo"))
-    (lam [(i32, "x")] (app i32 (var (i32 .-> i32, "f")) [var (i32, "x")]))
+--input1Typed :: Ast
+--input1Typed =
+--  let_
+--    (i32 .-> i32, "f")
+--    (var (i32 .-> i32, "foo"))
+--    (lam [(i32, "x")] (app i32 (var (i32 .-> i32, "f")) [var (i32, "x")]))
 
 input2 :: Expr ()
 input2 = op2 OAddInt32 (var ((), "x")) (var ((), "y"))
 
-input2Typed :: Ast
-input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
+--input2Typed :: Ast
+--input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
 
 input3 :: Expr ()
 input3 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
@@ -40,17 +40,17 @@ input5 :: Expr ()
 input5 =
   case_ (var ((), "xs")) [([((), "Nil")], var ((), "y")), ([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
-{-
-
-let sum = 
-  lam(m) => 
-    let p = Int32(3) 
-      in lam(n) => m + n + p 
-  in sum
-
-lam(m) => lam(n) => m + n + Int32(3) 
-
--}
+--{-
+--
+--let sum = 
+--  lam(m) => 
+--    let p = Int32(3) 
+--      in lam(n) => m + n + p 
+--  in sum
+--
+--lam(m) => lam(n) => m + n + Int32(3) 
+--
+---}
 input6 :: Ast
 input6 =
   let_
@@ -79,16 +79,17 @@ input6Converted =
           (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
           (lit (LInt32 3))))
 
-{-
+--{-
+--
+--let x = 
+--  foo(x)
+--  in
+--    x + 3
+--
+--((x) => x + 3)(foo(x))
+--
+---}
 
-let x = 
-  foo(x)
-  in
-    x + 3
-
-((x) => x + 3)(foo(x))
-
--}
 input7 :: Ast
 input7 =
   let_
@@ -132,42 +133,42 @@ input9Converted =
        (lam [(i32, "p"), (i32, "x")] (var (i32, "p")))
        [var (i32, "p")])
 
-input10 :: Program
-input10 =
-  Program
-    { count = 0
-    , definitions =
-        Map.fromList
-          [ ("foo", Function (Signature [(i32, "x")] (i32, bLit (LInt32 123))))
-          , ("baz", Function (Signature [(i32, "x")] (i32, bLit (LInt32 123))))
-          ]
-    }
-
-input11 :: Program
-input11 =
-  Program
-    { count = 0
-    , definitions =
-        Map.fromList
-          [ ( "plus"
-            , Function
-                (Signature
-                   [(i32, "x"), (i32, "y")]
-                   (i32, bOp2 OAddInt32 (bVar "x") (bVar "y"))))
-          , ( "fun"
-            , Function
-                (Signature [(i32, "x")] (i32 .-> i32, bCall "plus" [bVar "x"])))
-          ]
-    }
-
-input12 :: Expr ()
-input12 = lam [((), "x")] (app () (var ((), "plus")) [var ((), "x")])
-
-input13 :: TypeEnv
-input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
-
-input14 :: Body
-input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
+--input10 :: Program
+--input10 =
+--  Program
+--    { count = 0
+--    , definitions =
+--        Map.fromList
+--          [ ("foo", Function (Signature [(i32, "x")] (i32, bLit (LInt32 123))))
+--          , ("baz", Function (Signature [(i32, "x")] (i32, bLit (LInt32 123))))
+--          ]
+--    }
+--
+--input11 :: Program
+--input11 =
+--  Program
+--    { count = 0
+--    , definitions =
+--        Map.fromList
+--          [ ( "plus"
+--            , Function
+--                (Signature
+--                   [(i32, "x"), (i32, "y")]
+--                   (i32, bOp2 OAddInt32 (bVar "x") (bVar "y"))))
+--          , ( "fun"
+--            , Function
+--                (Signature [(i32, "x")] (i32 .-> i32, bCall "plus" [bVar "x"])))
+--          ]
+--    }
+--
+--input12 :: Expr ()
+--input12 = lam [((), "x")] (app () (var ((), "plus")) [var ((), "x")])
+--
+--input13 :: TypeEnv
+--input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
+--
+--input14 :: Body
+--input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
 
 input15 :: Ast
 input15 =
@@ -184,70 +185,70 @@ input15Converted =
        (lam [(i32, "x"), (i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
        [var (i32, "x")])
 
-input16 :: [(Name, Definition (Expr ()))]
-input16 =
-  [ ( "List"
-    , Data
-        "List"
-        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
-  , ("foo", Function (Signature [] (tInt32, fooAst)))
-  , ("main", Function (Signature [] (tInt32, mainAst)))
-  ]
-  where
-    fooAst =
-      let_
-        ((), "xs")
-        (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
-        (let_
-           ((), "ys")
-           (app () (var ((), "Cons")) [lit (LInt32 5), var ((), "xs")])
-           (case_
-              (var ((), "ys"))
-              [ ([((), "Nil")], lit (LInt32 1))
-              , ( [((), "Cons"), ((), "_"), ((), "zs")]
-                , case_
-                    (var ((), "zs"))
-                    [ ([((), "Nil")], lit (LInt32 2))
-                    , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
-                    ])
-              ]))
-    mainAst = app () (var ((), "foo")) []
-
-input16Compiled :: [(Name, Definition Body)]
-input16Compiled =
-  [ ( "List"
-    , Data
-        "List"
-        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
-  , ( "def_0"
-    , Function
-        (Signature
-           [ (tInt32 `tArr` tData "List" `tArr` tData "List", "Cons")
-           , (tData "List", "xs")
-           ]
-           (tInt32, bCall "def_1" [bCall "Cons" [bLit (LInt32 5), bVar "xs"]])))
-  , ( "def_1"
-    , Function
-        (Signature
-           [(tData "List", "ys")]
-           ( tInt32
-           , bCase
-               (bVar "ys")
-               [ (["Nil"], bLit (LInt32 1))
-               , ( ["Cons", "_", "zs"]
-                 , bCase
-                     (bVar "zs")
-                     [ (["Nil"], bLit (LInt32 2))
-                     , (["Cons", "_", "_"], bLit (LInt32 3))
-                     ])
-               ])))
-  , ( "foo"
-    , Function
-        (Signature
-           []
-           ( tInt32
-           , bCall
-               "def_0"
-               [bVar "Cons", bCall "Cons" [bLit (LInt32 5), bCall "Nil" []]])))
-  , ("main", Function (Signature [] (tInt32, bCall "foo" [])))
-  ]
+--input16 :: [(Name, Definition (Expr ()))]
+--input16 =
+--  [ ( "List"
+--    , Data
+--        "List"
+--        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+--  , ("foo", Function (Signature [] (tInt32, fooAst)))
+--  , ("main", Function (Signature [] (tInt32, mainAst)))
+--  ]
+--  where
+--    fooAst =
+--      let_
+--        ((), "xs")
+--        (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
+--        (let_
+--           ((), "ys")
+--           (app () (var ((), "Cons")) [lit (LInt32 5), var ((), "xs")])
+--           (case_
+--              (var ((), "ys"))
+--              [ ([((), "Nil")], lit (LInt32 1))
+--              , ( [((), "Cons"), ((), "_"), ((), "zs")]
+--                , case_
+--                    (var ((), "zs"))
+--                    [ ([((), "Nil")], lit (LInt32 2))
+--                    , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
+--                    ])
+--              ]))
+--    mainAst = app () (var ((), "foo")) []
+--
+--input16Compiled :: [(Name, Definition Body)]
+--input16Compiled =
+--  [ ( "List"
+--    , Data
+--        "List"
+--        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+--  , ( "def_0"
+--    , Function
+--        (Signature
+--           [ (tInt32 `tArr` tData "List" `tArr` tData "List", "Cons")
+--           , (tData "List", "xs")
+--           ]
+--           (tInt32, bCall "def_1" [bCall "Cons" [bLit (LInt32 5), bVar "xs"]])))
+--  , ( "def_1"
+--    , Function
+--        (Signature
+--           [(tData "List", "ys")]
+--           ( tInt32
+--           , bCase
+--               (bVar "ys")
+--               [ (["Nil"], bLit (LInt32 1))
+--               , ( ["Cons", "_", "zs"]
+--                 , bCase
+--                     (bVar "zs")
+--                     [ (["Nil"], bLit (LInt32 2))
+--                     , (["Cons", "_", "_"], bLit (LInt32 3))
+--                     ])
+--               ])))
+--  , ( "foo"
+--    , Function
+--        (Signature
+--           []
+--           ( tInt32
+--           , bCall
+--               "def_0"
+--               [bVar "Cons", bCall "Cons" [bLit (LInt32 5), bCall "Nil" []]])))
+--  , ("main", Function (Signature [] (tInt32, bCall "foo" [])))
+--  ]

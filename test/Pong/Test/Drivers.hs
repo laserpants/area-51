@@ -23,8 +23,8 @@ import Test.Hspec
 
 type TestCase input result = String -> input -> result -> SpecWith ()
 
-iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
-iso xs ys = Set.fromList xs == Set.fromList ys
+--iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
+--iso xs ys = Set.fromList xs == Set.fromList ys
 
 runFreeTest :: (FreeIn a) => String -> a -> [Name] -> SpecWith ()
 runFreeTest description input expected = it description $ free input == expected
@@ -57,9 +57,9 @@ runReturnTypeOfTest :: (Typed a) => TestCase a Type
 runReturnTypeOfTest description input expected =
   it description $ returnTypeOf input == expected
 
-runTypeCheckerTest :: TestCase (Expr (), TypeEnv) (Either TypeError Ast)
-runTypeCheckerTest description (input, env) expected =
-  it description $ runCheck env input == expected
+--runTypeCheckerTest :: TestCase (Expr (), TypeEnv) (Either TypeError Ast)
+--runTypeCheckerTest description (input, env) expected =
+--  it description $ runCheck env input == expected
 
 runConvertLetBindingsTest :: TestCase Ast Ast
 runConvertLetBindingsTest description input expected =
@@ -73,68 +73,68 @@ runConvertClosuresTest :: TestCase Ast Ast
 runConvertClosuresTest description input expected =
   it description $ runReader (convertClosures input) mempty == expected
 
-runModifyFunDefsTest1 :: TestCase Program [Name]
-runModifyFunDefsTest1 description input expected =
-  it description $
-  expected `iso`
-  evalCompiler
-    (do put input
-        mapDefinitionsM
-          (\s -> do
-             modify (insertDefinition "new" (Constant (LInt32 5)))
-             pure s)
-        programNames)
-    mempty
-
-runModifyFunDefsTest2 :: TestCase Program Body
-runModifyFunDefsTest2 description input expected =
-  it description $
-  expected ==
-  evalCompiler
-    (do put input
-        mapDefinitionsM
-          (\case
-             Function (Signature _ (ty, _)) ->
-               pure (Function (Signature [] (ty, bLit (LInt32 1))))
-             d -> pure d)
-        defs <- gets definitions
-        let Function Signature {..} = defs ! "foo"
-        pure (snd body))
-    mempty
-
-runUniqueNameTest :: String -> SpecWith ()
-runUniqueNameTest description =
-  it description $
-  flip evalCompiler mempty $ do
-    a <- uniqueName "foo"
-    b <- uniqueName "foo"
-    pure (a /= b)
-
-runCompileAstessionTest1 :: TestCase (Expr (), TypeEnv) Type
-runCompileAstessionTest1 description (input, env) expected = do
-  it description $
-    typeOf (definitions (execCompiler body env) ! "def_0") == expected
-  where
-    body = do
-      e <- typeCheck input
-      compileAst (fromRight (error "Implementation error") e)
-
-runFillParamsTest :: TestCase (Expr (), TypeEnv) Type
-runFillParamsTest description (input, env) expected =
-  it description $ t == expected
-  where
-    Function (Signature _ (t, _)) =
-      definitions (execCompiler body env) ! "def_0"
-    body = do
-      e <- typeCheck input
-      compileAst (fromRight (error "Implementation error") e)
-      mapDefinitionsM fillParams
-
-runCompileProgramTest ::
-     TestCase [(Name, Definition (Expr ()))] [(Name, Definition Body)]
-runCompileProgramTest description input expected =
-  it description $ definitions (compileProgram input) == Map.fromList expected
-
-runLlvmTypeTest :: TestCase Type LLVM.Type
-runLlvmTypeTest description input expected =
-  it description $ llvmType input == expected
+--runModifyFunDefsTest1 :: TestCase Program [Name]
+--runModifyFunDefsTest1 description input expected =
+--  it description $
+--  expected `iso`
+--  evalCompiler
+--    (do put input
+--        mapDefinitionsM
+--          (\s -> do
+--             modify (insertDefinition "new" (Constant (LInt32 5)))
+--             pure s)
+--        programNames)
+--    mempty
+--
+--runModifyFunDefsTest2 :: TestCase Program Body
+--runModifyFunDefsTest2 description input expected =
+--  it description $
+--  expected ==
+--  evalCompiler
+--    (do put input
+--        mapDefinitionsM
+--          (\case
+--             Function (Signature _ (ty, _)) ->
+--               pure (Function (Signature [] (ty, bLit (LInt32 1))))
+--             d -> pure d)
+--        defs <- gets definitions
+--        let Function Signature {..} = defs ! "foo"
+--        pure (snd body))
+--    mempty
+--
+--runUniqueNameTest :: String -> SpecWith ()
+--runUniqueNameTest description =
+--  it description $
+--  flip evalCompiler mempty $ do
+--    a <- uniqueName "foo"
+--    b <- uniqueName "foo"
+--    pure (a /= b)
+--
+--runCompileAstessionTest1 :: TestCase (Expr (), TypeEnv) Type
+--runCompileAstessionTest1 description (input, env) expected = do
+--  it description $
+--    typeOf (definitions (execCompiler body env) ! "def_0") == expected
+--  where
+--    body = do
+--      e <- typeCheck input
+--      compileAst (fromRight (error "Implementation error") e)
+--
+--runFillParamsTest :: TestCase (Expr (), TypeEnv) Type
+--runFillParamsTest description (input, env) expected =
+--  it description $ t == expected
+--  where
+--    Function (Signature _ (t, _)) =
+--      definitions (execCompiler body env) ! "def_0"
+--    body = do
+--      e <- typeCheck input
+--      compileAst (fromRight (error "Implementation error") e)
+--      mapDefinitionsM fillParams
+--
+--runCompileProgramTest ::
+--     TestCase [(Name, Definition (Expr ()))] [(Name, Definition Body)]
+--runCompileProgramTest description input expected =
+--  it description $ definitions (compileProgram input) == Map.fromList expected
+--
+--runLlvmTypeTest :: TestCase Type LLVM.Type
+--runLlvmTypeTest description input expected =
+--  it description $ llvmType input == expected
