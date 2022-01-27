@@ -9,70 +9,71 @@ import Control.Monad.Reader
 import Control.Monad.State (gets, modify, put)
 import Data.Either (fromRight)
 import Data.Map.Strict ((!))
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import qualified LLVM.AST.Type as LLVM
+import Data.Void
 import Pong.Compiler
 import Pong.Data
 import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util
-import qualified Pong.Util.Env as Env
 import Test.Hspec
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified LLVM.AST.Type as LLVM
+import qualified Pong.Util.Env as Env
 
 type TestCase input result = String -> input -> result -> SpecWith ()
 
 -- --iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
 -- --iso xs ys = Set.fromList xs == Set.fromList ys
--- 
--- runFreeTest :: (FreeIn a) => String -> a -> [Name] -> SpecWith ()
--- runFreeTest description input expected = it description $ free input == expected
--- 
--- runUnwindTypeTest :: TestCase Type [Type]
--- runUnwindTypeTest description input expected =
---   it description $ unwindType input == expected
--- 
--- runFoldTypeTest :: TestCase (Type, [Type]) Type
--- runFoldTypeTest description (t, ts) expected =
---   it description $ foldType t ts == expected
--- 
--- runTypeOfTest :: (Typed a) => TestCase a Type
--- runTypeOfTest description input expected =
---   it description $ typeOf input == expected
--- 
--- runArityTest :: (HasArity a) => TestCase a Int
--- runArityTest description input expected =
---   it description $ arity input == expected
--- 
--- runIsTConTest :: TestCase (TCon, Type) Bool
--- runIsTConTest description (con, expr) expected =
---   it description $ isTCon con expr == expected
--- 
--- runIsConTest :: TestCase (Con, Expr t a1) Bool
--- runIsConTest description (con, expr) expected =
---   it description $ isCon con expr == expected
--- 
--- runReturnTypeOfTest :: (Typed a) => TestCase a Type
--- runReturnTypeOfTest description input expected =
---   it description $ returnTypeOf input == expected
--- 
--- --runTypeCheckerTest :: TestCase (Expr (), TypeEnv) (Either TypeError Ast)
--- --runTypeCheckerTest description (input, env) expected =
--- --  it description $ runCheck env input == expected
--- 
--- runConvertLetBindingsTest :: TestCase Ast Ast
--- runConvertLetBindingsTest description input expected =
---   it description $ convertLetBindings input == expected
--- 
--- runCombineLambdasTest :: TestCase Ast Ast
--- runCombineLambdasTest description input expected =
---   it description $ combineLambdas input == expected
--- 
--- runConvertClosuresTest :: TestCase Ast Ast
--- runConvertClosuresTest description input expected =
---   it description $ runReader (convertClosures input) mempty == expected
--- 
+
+runFreeTest :: (FreeIn a) => String -> a -> [Name] -> SpecWith ()
+runFreeTest description input expected = it description $ free input == expected
+
+runUnwindTypeTest :: TestCase Type [Type]
+runUnwindTypeTest description input expected =
+  it description $ unwindType input == expected
+
+runFoldTypeTest :: TestCase (Type, [Type]) Type
+runFoldTypeTest description (t, ts) expected =
+  it description $ foldType t ts == expected
+
+runTypeOfTest :: (Typed a) => TestCase a Type
+runTypeOfTest description input expected =
+  it description $ typeOf input == expected
+
+runArityTest :: (HasArity a) => TestCase a Int
+runArityTest description input expected =
+  it description $ arity input == expected
+
+runIsTConTest :: TestCase (TCon, Type) Bool
+runIsTConTest description (con, expr) expected =
+  it description $ isTCon con expr == expected
+
+runIsConTest :: TestCase (Con, Expr t a0 a1 a2 a3) Bool
+runIsConTest description (con, expr) expected =
+  it description $ isCon con expr == expected
+
+runReturnTypeOfTest :: (Typed a) => TestCase a Type
+runReturnTypeOfTest description input expected =
+  it description $ returnTypeOf input == expected
+
+--runTypeCheckerTest :: TestCase (Expr t a0 a1 a2 a3, TypeEnv) (Either TypeError (Expr t a0 a1 a2 a3))
+--runTypeCheckerTest description (input, env) expected =
+--  it description $ runCheck env input == expected
+
+runConvertLetBindingsTest :: TestCase (Expr Type () () () Void) (Expr Type () () () Void)
+runConvertLetBindingsTest description input expected =
+  it description $ convertLetBindings input == expected
+
+runCombineLambdasTest :: TestCase (Expr Type () () () Void) (Expr Type () () () Void)
+runCombineLambdasTest description input expected =
+  it description $ combineLambdas input == expected
+
+runConvertClosuresTest :: TestCase (Expr Type () () () Void) (Expr Type Void () () Void)
+runConvertClosuresTest description input expected =
+  it description $ runReader (convertClosures input) mempty == expected
+
 -- --runModifyFunDefsTest1 :: TestCase Program [Name]
 -- --runModifyFunDefsTest1 description input expected =
 -- --  it description $

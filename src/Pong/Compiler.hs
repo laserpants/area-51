@@ -25,6 +25,12 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
+combineLambdas :: Expr Type () () () Void -> Expr Type () () () Void
+combineLambdas =
+  cata $ \case
+    ELam _ xs (Fix (ELam _ ys expr)) -> lam (xs <> ys) expr
+    e -> embed e
+
 convertLetBindings :: Expr Type () () () Void -> Expr Type () () () Void
 convertLetBindings =
   cata $ \case
@@ -39,16 +45,7 @@ convertLetBindings =
     ELet _ bind e1 e2 -> app (typeOf e2) (lam [bind] e2) [e1]
     e -> embed e
 
-combineLambdas :: Expr t () () () Void -> Expr t () () () Void
-combineLambdas =
-  cata $ \case
-    ELam _ xs (Fix (ELam _ ys expr)) -> lam (xs <> ys) expr
-    e -> embed e
-
-convertClosures 
-  :: (MonadReader TypeEnv m) 
-  => Expr Type Void () () Void 
-  -> m (Expr Type Void () () Void)
+convertClosures :: (MonadReader TypeEnv m) => Expr Type () () () Void -> m (Expr Type Void () () Void)
 convertClosures =
   cata $ \case
     EVar (ty, name) -> pure (var (ty, name))
@@ -72,9 +69,9 @@ convertClosures =
           _ -> do
             app (foldType (typeOf body) (args <#> fst)) lambda (var <$> extra)
 
---preprocess :: (MonadReader TypeEnv m) => Expr Type a1 -> m (Expr Type ())
---preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
---
+preprocess :: (MonadReader TypeEnv m) => Expr Type () () () Void -> m (Expr Type Void () () Void)
+preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
+
 --typeCheck :: Expr () -> Compiler (Either TypeError Ast)
 --typeCheck ast = asks (`runCheck` ast)
 --
