@@ -10,7 +10,7 @@ import qualified Pong.Util.Env as Env
 i32 :: Type
 i32 = tInt32
 
-input1 :: Expr ()
+input1 :: Expr () () () () a3
 input1 =
   let_
     ((), "f")
@@ -24,34 +24,23 @@ input1 =
 --    (var (i32 .-> i32, "foo"))
 --    (lam [(i32, "x")] (app i32 (var (i32 .-> i32, "f")) [var (i32, "x")]))
 
-input2 :: Expr ()
+input2 :: Expr () a0 a1 a2 a3
 input2 = op2 OAddInt32 (var ((), "x")) (var ((), "y"))
 
 --input2Typed :: Ast
 --input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
 
-input3 :: Expr ()
+input3 :: Expr () () a1 a2 a3
 input3 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
-input4 :: Expr ()
+input4 :: Expr () a0 a1 a2 a3
 input4 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "y"))]
 
-input5 :: Expr ()
+input5 :: Expr () a0 a1 a2 a3
 input5 =
   case_ (var ((), "xs")) [([((), "Nil")], var ((), "y")), ([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
---{-
---
---let sum = 
---  lam(m) => 
---    let p = Int32(3) 
---      in lam(n) => m + n + p 
---  in sum
---
---lam(m) => lam(n) => m + n + Int32(3) 
---
----}
-input6 :: Ast
+input6 :: Expr Type () () () a3
 input6 =
   let_
     (i32, "sum")
@@ -68,7 +57,7 @@ input6 =
                 (var (i32, "p"))))))
     (var (i32 .-> i32 .-> i32, "sum"))
 
-input6Converted :: Ast
+input6Converted :: Expr Type a0 () () a3
 input6Converted =
   lam
     [(i32, "m")]
@@ -79,32 +68,21 @@ input6Converted =
           (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
           (lit (LInt32 3))))
 
---{-
---
---let x = 
---  foo(x)
---  in
---    x + 3
---
---((x) => x + 3)(foo(x))
---
----}
-
-input7 :: Ast
+input7 :: Expr Type () () () a3
 input7 =
   let_
     (i32, "x")
     (app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")])
     (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3)))
 
-input7Converted :: Ast
+input7Converted :: Expr Type a0 () () a3
 input7Converted =
   app
     i32
     (lam [(i32, "x")] (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3))))
     [app i32 (var (i32 .-> i32, "foo")) [var (i32, "x")]]
 
-input8 :: Ast
+input8 :: Expr Type a0 () () a3
 input8 =
   lam
     [(i32, "m")]
@@ -115,16 +93,16 @@ input8 =
           (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
           (lit (LInt32 3))))
 
-input8Converted :: Ast
+input8Converted :: Expr Type a0 () () a3
 input8Converted =
   lam
     [(i32, "m"), (i32, "n")]
     (op2 OAddInt32 (op2 OAddInt32 (var (i32, "m")) (var (i32, "n"))) (lit (LInt32 3)))
 
-input9 :: Ast
+input9 :: Expr Type a0 () () a3
 input9 = lam [(i32, "p")] (lam [(i32, "x")] (var (i32, "p")))
 
-input9Converted :: Ast
+input9Converted :: Expr Type a0 () () a3
 input9Converted =
   lam
     [(i32, "p")]
@@ -170,13 +148,13 @@ input9Converted =
 --input14 :: Body
 --input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
 
-input15 :: Ast
+input15 :: Expr Type a0 () () a3
 input15 =
   lam
     [(i32, "x")]
     (lam [(i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
 
-input15Converted :: Ast
+input15Converted :: Expr Type a0 () () a3
 input15Converted =
   lam
     [(i32, "x")]
