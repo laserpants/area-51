@@ -2,8 +2,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
--- {-# LANGUAGE RecordWildCards #-}
--- {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 module Pong.Compiler where
 
@@ -16,7 +16,6 @@ import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe, maybeToList)
 import Data.Tuple.Extra (first, second)
 import Data.Void
-import Debug.Trace
 import Pong.Lang
 import Pong.TypeChecker
 import TextShow (showt)
@@ -87,23 +86,22 @@ evalCompiler comp env = evalState (getCompilerState comp env) emptyProgram
 getCompilerState :: Compiler a -> TypeEnv -> State Program a
 getCompilerState = runReaderT . getCompiler
 
---programNames :: (MonadState Program m) => m Names
---programNames = gets definitions <#> Map.keys
---
---mapDefinitionsM ::
---     (Definition Body -> Compiler (Definition Body)) -> Compiler ()
---mapDefinitionsM f = mapM_ updateDefinition =<< programNames
---  where
---    updateDefinition name = do
---      defs <- gets definitions
---      f (defs ! name) >>= modify . insertDefinition name
---
---uniqueName :: Name -> Compiler Name
---uniqueName name = do
---  Program {..} <- get
---  put Program {count = succ count, ..}
---  pure (name <> "_" <> showt count)
---
+programNames :: (MonadState Program m) => m Names
+programNames = gets definitions <#> Map.keys
+
+mapDefinitionsM :: (Definition Ast -> Compiler (Definition Ast)) -> Compiler ()
+mapDefinitionsM f = mapM_ updateDefinition =<< programNames
+  where
+    updateDefinition name = do
+      defs <- gets definitions
+      f (defs ! name) >>= modify . insertDefinition name
+
+uniqueName :: Name -> Compiler Name
+uniqueName name = do
+  Program {..} <- get
+  put Program {count = succ count, ..}
+  pure (name <> "_" <> showt count)
+
 --compileFunction :: Name -> Signature Ast -> Compiler (Definition Body)
 --compileFunction name (Signature args (ty, body)) = do
 --  expr <- asks (runReader (preprocess body))
@@ -111,15 +109,22 @@ getCompilerState = runReaderT . getCompiler
 --  main <- local (insertArgs (self : args)) (compileAst expr)
 --  pure (Function (Signature args (ty, main)))
 
-compileAst :: Expr Type Void a1 a2 Void -> Compiler Ast
+--Expr Type () () () Void)
+
+compileAst :: Expr Type a0 a1 a2 Void -> Compiler Ast
 compileAst =
   cata $ \case 
+    EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
+    EOp2 op a b -> op2 op <$> a <*> b
     ELam _ args expr -> do
-      name <- undefined -- uniqueName "def"
+      name <- uniqueName "def"
       body <- local (insertArgs args) expr
       let signature = Function (Signature args (typeOf body, body))
       modify (insertDefinition name signature)
       pure (var (typeOf signature, name))
+    EVar v -> pure (var v)
+    ELit prim -> pure (lit prim)
+    ECase e1 cs -> case_ <$> e1 <*> traverse clauses cs
     EApp _ expr args -> do
       e <- expr
       as <- sequence args
@@ -129,16 +134,10 @@ compileAst =
         ECall _ fun as1 -> do
           pure (call_ fun (as1 <> as))
         e -> error (show e)
-    EVar v -> pure (var v)
-    ELit prim -> pure (lit prim)
 
-----        EVar v -> pure (var v)
-----        ELit prim -> pure (lit prim)
-----        EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-----        EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
-----    ECase e1 cs -> case_ <$> e1 <*> traverse clauses cs
---    e -> embed <$> sequence e
---
+clauses :: ([TyId Type], Compiler (Expr Type Void Void Void ())) -> Compiler ([TyId Type], Expr Type Void Void Void ())
+clauses (pairs, expr) = (pairs, ) <$> local (insertArgs pairs) expr
+
 ----compileAst :: Ast -> Compiler Body
 ----compileAst =
 ----  para $ \case -- cata!
@@ -194,7 +193,30 @@ compileAst =
 --clauses :: ([TyId Type], Compiler Body) -> Compiler ([TyId Type], Body)
 ----clauses (pairs, body) = (,) (pairs <#> snd) <$> local (insertArgs pairs) body
 --clauses = undefined
---
+
+fillParams :: Definition Ast -> Compiler (Definition Ast)
+fillParams (Function (Signature arguments (ty, body)))
+  | isTCon ArrT ty = do
+    let tys = init (unwindType ty)
+        applyTo xs =
+          project >>> \case
+            ECall _ fun args -> 
+              pure (call_ fun (args <> xs))
+            EVar name -> do
+              names <- gets definitions
+              pure (call_ name xs)
+            expr -> pure (embed expr)
+    vars <- replicateM (length tys) (uniqueName "v")
+    let extra = tys `zip` vars
+    newBody <- applyTo (var <$> extra) body
+    pure
+      (Function
+         (Signature
+            { arguments = arguments <> extra
+            , body = (returnTypeOf ty, newBody)
+            }))
+fillParams def = pure def
+
 --fillParams :: Definition Body -> Compiler (Definition Body)
 --fillParams = undefined
 ---- TODO
