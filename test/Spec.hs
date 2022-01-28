@@ -136,9 +136,9 @@ main =
       runConvertClosuresTest "#1" input9 input9Converted
       runConvertClosuresTest "#2" input15 input15Converted
     describe "preprocess" $ do runIO $ print "TODO"
---    describe "modifyFunDefs" $ do
---      runModifyFunDefsTest1 "#1" input10 ["foo", "baz", "new"]
---      runModifyFunDefsTest2 "#2" input10 (bLit (LInt32 1))
+    describe "modifyFunDefs" $ do
+      runModifyFunDefsTest1 "#1" input10 ["foo", "baz", "new"]
+      runModifyFunDefsTest2 "#2" input10 (lit (LInt32 1))
     describe "uniqueName" $ do runUniqueNameTest "#1"
     describe "compileFunction" $ do runIO $ print "TODO"
 --    describe "compileAst" $ do

@@ -110,17 +110,17 @@ input9Converted =
        (lam [(i32, "p"), (i32, "x")] (var (i32, "p")))
        [var (i32, "p")])
 
---input10 :: Program
---input10 =
---  Program
---    { count = 0
---    , definitions =
---        Map.fromList
---          [ ("foo", Function (Signature [(i32, "x")] (i32, bLit (LInt32 123))))
---          , ("baz", Function (Signature [(i32, "x")] (i32, bLit (LInt32 123))))
---          ]
---    }
---
+input10 :: Program
+input10 =
+  Program
+    { count = 0
+    , definitions =
+        Map.fromList
+          [ ("foo", Function (Signature [(i32, "x")] (i32, lit (LInt32 123))))
+          , ("baz", Function (Signature [(i32, "x")] (i32, lit (LInt32 123))))
+          ]
+    }
+
 --input11 :: Program
 --input11 =
 --  Program

@@ -24,8 +24,8 @@ import qualified Pong.Util.Env as Env
 
 type TestCase input result = String -> input -> result -> SpecWith ()
 
--- --iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
--- --iso xs ys = Set.fromList xs == Set.fromList ys
+iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
+iso xs ys = Set.fromList xs == Set.fromList ys
 
 runFreeTest :: (FreeIn a) => String -> a -> [Name] -> SpecWith ()
 runFreeTest description input expected = it description $ free input == expected
@@ -74,34 +74,34 @@ runConvertClosuresTest :: TestCase (Expr Type () () () Void) (Expr Type Void () 
 runConvertClosuresTest description input expected =
   it description $ runReader (convertClosures input) mempty == expected
 
--- --runModifyFunDefsTest1 :: TestCase Program [Name]
--- --runModifyFunDefsTest1 description input expected =
--- --  it description $
--- --  expected `iso`
--- --  evalCompiler
--- --    (do put input
--- --        mapDefinitionsM
--- --          (\s -> do
--- --             modify (insertDefinition "new" (Constant (LInt32 5)))
--- --             pure s)
--- --        programNames)
--- --    mempty
--- --
--- --runModifyFunDefsTest2 :: TestCase Program Body
--- --runModifyFunDefsTest2 description input expected =
--- --  it description $
--- --  expected ==
--- --  evalCompiler
--- --    (do put input
--- --        mapDefinitionsM
--- --          (\case
--- --             Function (Signature _ (ty, _)) ->
--- --               pure (Function (Signature [] (ty, bLit (LInt32 1))))
--- --             d -> pure d)
--- --        defs <- gets definitions
--- --        let Function Signature {..} = defs ! "foo"
--- --        pure (snd body))
--- --    mempty
+runModifyFunDefsTest1 :: TestCase Program [Name]
+runModifyFunDefsTest1 description input expected =
+  it description $
+  expected `iso`
+  evalCompiler
+    (do put input
+        mapDefinitionsM
+          (\s -> do
+             modify (insertDefinition "new" (Constant (LInt32 5)))
+             pure s)
+        programNames)
+    mempty
+
+runModifyFunDefsTest2 :: TestCase Program Ast
+runModifyFunDefsTest2 description input expected =
+  it description $
+  expected ==
+  evalCompiler
+    (do put input
+        mapDefinitionsM
+          (\case
+             Function (Signature _ (ty, _)) ->
+               pure (Function (Signature [] (ty, lit (LInt32 1))))
+             d -> pure d)
+        defs <- gets definitions
+        let Function Signature {..} = defs ! "foo"
+        pure (snd body))
+    mempty
 
 runUniqueNameTest :: String -> SpecWith ()
 runUniqueNameTest description =
