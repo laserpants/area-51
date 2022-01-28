@@ -75,18 +75,18 @@ data Op2
   | OSubDouble
   | ODivDouble
 
-type TyId t = (t, Name)
+type Label t = (t, Name)
 
 data ExprF t a0 a1 a2 a3 a
-  = EVar (TyId t)
+  = EVar (Label t)
   | ELit Literal
   | EIf a a a
-  | ELet a0 (TyId t) a a
-  | ELam a1 [TyId t] a
+  | ELet a0 (Label t) a a
+  | ELam a1 [Label t] a
   | EApp a2 a [a]
-  | ECall a3 (TyId t) [a]
+  | ECall a3 (Label t) [a]
   | EOp2 Op2 a a
-  | ECase a [([TyId t], a)]
+  | ECase a [([Label t], a)]
 
 type Expr t a0 a1 a2 a3 = Fix (ExprF t a0 a1 a2 a3)
 
@@ -109,7 +109,7 @@ type TypeEnv = Environment Type
 
 data Signature a =
   Signature
-    { arguments :: [(Type, Name)]
+    { arguments :: [Label Type]
     , body :: (Type, a)
     }
 

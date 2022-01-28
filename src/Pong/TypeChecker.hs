@@ -2,9 +2,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Pong.TypeChecker where
---  ( runCheck
---  ) where
+module Pong.TypeChecker 
+  ( runCheck
+  ) where
 
 import Control.Arrow ((>>>))
 import Control.Monad.Except
@@ -54,21 +54,21 @@ compose s1 s2 =
 mapsTo :: Int -> Type -> Substitution
 mapsTo = Substitution <$$> Map.singleton
 
-tagTyId :: Name -> TypeChecker (TyId Int)
-tagTyId name = (,) <$> tag <*> pure name
+tagLabel :: Name -> TypeChecker (Label Int)
+tagLabel name = (,) <$> tag <*> pure name
 
 tagAst :: Expr t () () () a3 -> TypeChecker (Expr Int () () () a3)
 tagAst =
   cata $ \case
-    EVar (_, name) -> var <$> tagTyId name
+    EVar (_, name) -> var <$> tagLabel name
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-    ELam _ args expr -> lam <$> traverse (tagTyId . snd) args <*> expr
-    ELet _ (_, name) e1 e2 -> let_ <$> tagTyId name <*> e1 <*> e2
+    ELam _ args expr -> lam <$> traverse (tagLabel . snd) args <*> expr
+    ELet _ (_, name) e1 e2 -> let_ <$> tagLabel name <*> e1 <*> e2
     EApp _ fun args -> app <$> fun <*> sequence args
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
-      case_ <$> e1 <*> traverse (firstM (traverse (tagTyId . snd)) <=< sequence) cs
+      case_ <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
 
 tag :: MonadState (Int, a) m => m Int
 tag = do
@@ -168,7 +168,7 @@ check =
       unifyM e2 t2
       pure (op2 op e1 e2)
 
-checkClause :: ([TyId Int], TypeChecker (Expr Type () () () Void)) -> TypeChecker ([TyId Type], Expr Type () () () Void)
+checkClause :: ([Label Int], TypeChecker (Expr Type () () () Void)) -> TypeChecker ([Label Type], Expr Type () () () Void)
 checkClause ((_, con):vs, expr) = do
   Env env <- ask
   ty <- maybe (throwError (NotInScope con)) pure (env !? con)

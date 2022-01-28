@@ -135,7 +135,7 @@ compileAst =
           pure (call_ fun (as1 <> as))
         e -> error (show e)
 
-clauses :: ([TyId Type], Compiler (Expr Type Void Void Void ())) -> Compiler ([TyId Type], Expr Type Void Void Void ())
+clauses :: ([Label Type], Compiler (Expr Type Void Void Void ())) -> Compiler ([Label Type], Expr Type Void Void Void ())
 clauses (pairs, expr) = (pairs, ) <$> local (insertArgs pairs) expr
 
 ----compileAst :: Ast -> Compiler Body
@@ -190,7 +190,7 @@ clauses (pairs, expr) = (pairs, ) <$> local (insertArgs pairs) expr
 ----------                   traverse sequence (snd <$$> clauses)
 ----------                 e -> pure (embed (fst <$> e)))
 --
---clauses :: ([TyId Type], Compiler Body) -> Compiler ([TyId Type], Body)
+--clauses :: ([Label Type], Compiler Body) -> Compiler ([Label Type], Body)
 ----clauses (pairs, body) = (,) (pairs <#> snd) <$> local (insertArgs pairs) body
 --clauses = undefined
 

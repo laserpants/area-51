@@ -292,7 +292,7 @@ app :: Expr t a0 a1 () a3 -> [Expr t a0 a1 () a3] -> Expr t a0 a1 () a3
 app = embed3 EApp ()
 
 {-# INLINE call_ #-}
-call_ :: TyId t -> [Expr t a0 a1 a2 ()] -> Expr t a0 a1 a2 ()
+call_ :: Label t -> [Expr t a0 a1 a2 ()] -> Expr t a0 a1 a2 ()
 call_ = embed3 ECall ()
 
 {-# INLINE op2 #-}
