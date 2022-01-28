@@ -102,15 +102,15 @@ runConvertClosuresTest description input expected =
 -- --        let Function Signature {..} = defs ! "foo"
 -- --        pure (snd body))
 -- --    mempty
--- --
--- --runUniqueNameTest :: String -> SpecWith ()
--- --runUniqueNameTest description =
--- --  it description $
--- --  flip evalCompiler mempty $ do
--- --    a <- uniqueName "foo"
--- --    b <- uniqueName "foo"
--- --    pure (a /= b)
--- --
+
+runUniqueNameTest :: String -> SpecWith ()
+runUniqueNameTest description =
+  it description $
+  flip evalCompiler mempty $ do
+    a <- uniqueName "foo"
+    b <- uniqueName "foo"
+    pure (a /= b)
+
 -- --runCompileAstessionTest1 :: TestCase (Expr (), TypeEnv) Type
 -- --runCompileAstessionTest1 description (input, env) expected = do
 -- --  it description $

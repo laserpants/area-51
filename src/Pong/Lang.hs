@@ -200,6 +200,7 @@ funArgs =
 foldType :: Type -> [Type] -> Type
 foldType = foldr tArr
 
+{-# INLINE foldType1 #-}
 foldType1 :: [Type] -> Type
 foldType1 = foldr1 tArr
 

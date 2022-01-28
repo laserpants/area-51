@@ -3,11 +3,7 @@
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Map.Strict ((!))
-import qualified Data.Map.Strict as Map
-import qualified Data.Text.Lazy.IO as Text
 import Debug.Trace
-import qualified LLVM.AST as LLVM
-import qualified LLVM.AST.Type as LLVM
 import LLVM.IRBuilder
 import LLVM.IRBuilder.Module
 import LLVM.Pretty
@@ -19,8 +15,12 @@ import Pong.Test.Data
 import Pong.Test.Drivers
 import Pong.TypeChecker
 import Pong.Util
-import qualified Pong.Util.Env as Env
 import Test.Hspec
+import qualified Data.Map.Strict as Map
+import qualified Data.Text.Lazy.IO as Text
+import qualified LLVM.AST as LLVM
+import qualified LLVM.AST.Type as LLVM
+import qualified Pong.Util.Env as Env
 
 main :: IO ()
 main =
@@ -139,8 +139,8 @@ main =
 --    describe "modifyFunDefs" $ do
 --      runModifyFunDefsTest1 "#1" input10 ["foo", "baz", "new"]
 --      runModifyFunDefsTest2 "#2" input10 (bLit (LInt32 1))
---    describe "uniqueName" $ do runUniqueNameTest "#1"
---    describe "compileFunction" $ do runIO $ print "TODO"
+    describe "uniqueName" $ do runUniqueNameTest "#1"
+    describe "compileFunction" $ do runIO $ print "TODO"
 --    describe "compileAst" $ do
 --      runCompileAstessionTest1 "#1" (input12, input13) (i32 .-> i32 .-> i32)
 --    describe "lookupFunType" $ do runIO $ print "TODO"

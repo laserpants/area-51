@@ -5,23 +5,23 @@
 
 module Pong.LLVM.Emit where
 
---import Control.Monad.Reader
---import Control.Monad.Writer
---import Data.Char (isUpper)
---import Data.Foldable (foldlM, foldrM)
---import Data.List (sortOn)
---import qualified Data.Map.Strict as Map
---import Data.String (IsString, fromString)
---import qualified Data.Text as Text
---import qualified LLVM.AST as LLVM
---import qualified LLVM.AST.IntegerPredicate as LLVM
---import qualified LLVM.AST.Type as LLVM
---import qualified LLVM.AST.Typed as LLVM
---import Pong.LLVM hiding (void)
---import Pong.Lang
---import qualified Pong.Util.Env as Env
---import TextShow (TextShow, showt)
---
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Data.Char (isUpper)
+import Data.Foldable (foldlM, foldrM)
+import Data.List (sortOn)
+import Data.String (IsString, fromString)
+import Pong.LLVM hiding (void)
+import Pong.Lang
+import TextShow (TextShow, showt)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
+import qualified LLVM.AST as LLVM
+import qualified LLVM.AST.IntegerPredicate as LLVM
+import qualified LLVM.AST.Type as LLVM
+import qualified LLVM.AST.Typed as LLVM
+import qualified Pong.Util.Env as Env
+
 --llvmRep :: (IsString s) => Name -> s
 --llvmRep = fromString <<< unpack
 --
