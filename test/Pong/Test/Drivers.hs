@@ -119,18 +119,19 @@ runConvertClosuresTest description input expected =
 -- --    body = do
 -- --      e <- typeCheck input
 -- --      compileAst (fromRight (error "Implementation error") e)
--- --
--- --runFillParamsTest :: TestCase (Expr (), TypeEnv) Type
--- --runFillParamsTest description (input, env) expected =
--- --  it description $ t == expected
--- --  where
--- --    Function (Signature _ (t, _)) =
--- --      definitions (execCompiler body env) ! "def_0"
--- --    body = do
--- --      e <- typeCheck input
--- --      compileAst (fromRight (error "Implementation error") e)
--- --      mapDefinitionsM fillParams
--- --
+
+--runFillParamsTest :: TestCase (Expr () () () () a3, TypeEnv) Type
+runFillParamsTest description (input, env) expected =
+  it description $ t == expected
+  where
+    Function (Signature _ (t, _)) =
+      definitions (execCompiler body env) ! "def_0"
+    body = do
+      e <- fromRight (error "Implementation error") <$> typeCheck input
+      f <- preprocess e
+      compileAst f
+      mapDefinitionsM fillParams
+
 -- --runCompileProgramTest ::
 -- --     TestCase [(Name, Definition (Expr ()))] [(Name, Definition Body)]
 -- --runCompileProgramTest description input expected =

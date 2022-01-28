@@ -144,7 +144,7 @@ main =
 --    describe "compileAst" $ do
 --      runCompileAstessionTest1 "#1" (input12, input13) (i32 .-> i32 .-> i32)
 --    describe "lookupFunType" $ do runIO $ print "TODO"
---    describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
+    describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
 --    describe "compileProgram" $ do
 --      runCompileProgramTest "#1" input16 input16Compiled
 --    ---------------------------------------------------------------------------

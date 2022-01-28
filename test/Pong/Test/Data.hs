@@ -137,13 +137,13 @@ input9Converted =
 --                (Signature [(i32, "x")] (i32 .-> i32, bCall "plus" [bVar "x"])))
 --          ]
 --    }
---
---input12 :: Expr ()
---input12 = lam [((), "x")] (app () (var ((), "plus")) [var ((), "x")])
---
---input13 :: TypeEnv
---input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
---
+
+input12 :: Expr () () () () a3
+input12 = lam [((), "x")] (app (var ((), "plus")) [var ((), "x")])
+
+input13 :: TypeEnv
+input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
+
 --input14 :: Body
 --input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
 
