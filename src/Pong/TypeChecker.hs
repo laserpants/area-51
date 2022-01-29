@@ -12,7 +12,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.Maybe (fromMaybe)
 import Data.Tuple.Extra (first, firstM, second)
-import Data.Void
 import Pong.Lang
 import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
@@ -27,15 +26,17 @@ instance Substitutable Type where
       TVar n -> fromMaybe (tVar n) (getSubstitution sub !? n)
       t -> embed t
 
-instance Substitutable (Expr Type () () () a3) where
+instance Substitutable TypedExpr where
   apply sub =
     cata $ \case
-      EVar (t, name) -> var (apply sub t, name)
-      ELam _ args expr -> lam (first (apply sub) <$> args) expr
-      ELet _ (t, name) expr1 expr2 -> let_ (apply sub t, name) expr1 expr2
+      EVar name -> var (subst name)
+      ELam _ args expr -> lam (subst <$> args) expr
+      ELet _ name expr1 expr2 -> let_ (subst name) expr1 expr2
       EApp _ fun args -> app fun args
-      ECase expr cs -> case_ expr (first (fmap (first (apply sub))) <$> cs)
+      ECase expr cs -> case_ expr (first (fmap subst) <$> cs)
       e -> embed e
+    where
+      subst = first (apply sub)
 
 instance (Functor f, Substitutable a) => Substitutable (f a) where
   apply = fmap . apply
@@ -57,7 +58,7 @@ mapsTo = Substitution <$$> Map.singleton
 tagLabel :: Name -> TypeChecker (Label Int)
 tagLabel name = (,) <$> tag <*> pure name
 
-tagAst :: Expr t () () () a3 -> TypeChecker (Expr Int () () () a3)
+tagAst :: SourceExpr t -> TypeChecker (SourceExpr Int)
 tagAst =
   cata $ \case
     EVar (_, name) -> var <$> tagLabel name
@@ -109,14 +110,14 @@ unifyM a b = do
   sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
   modify (second (sub1 <>))
 
-runCheck :: TypeEnv -> Expr t () () () Void -> Either TypeError (Expr Type () () () Void)
+runCheck :: TypeEnv -> SourceExpr t -> Either TypeError TypedExpr 
 runCheck symtab ast = apply sub <$> res
   where
     (res, (_, sub)) = runMonad (check =<< tagAst ast)
     runMonad m =
       runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
 
-check :: Expr Int () () () Void -> TypeChecker (Expr Type () () () Void)
+check :: SourceExpr Int -> TypeChecker TypedExpr
 check =
   cata $ \case
     ELet _ (t, name) expr1 expr2 -> do
@@ -168,7 +169,7 @@ check =
       unifyM e2 t2
       pure (op2 op e1 e2)
 
-checkClause :: ([Label Int], TypeChecker (Expr Type () () () Void)) -> TypeChecker ([Label Type], Expr Type () () () Void)
+checkClause :: ([Label Int], TypeChecker TypedExpr) -> TypeChecker ([Label Type], TypedExpr)
 checkClause ((_, con):vs, expr) = do
   Env env <- ask
   ty <- maybe (throwError (NotInScope con)) pure (env !? con)

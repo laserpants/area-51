@@ -15,7 +15,6 @@ import Data.Either (partitionEithers)
 import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe, maybeToList)
 import Data.Tuple.Extra (first, second)
-import Data.Void
 import Pong.Lang
 import Pong.TypeChecker
 import TextShow (showt)
@@ -24,13 +23,13 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
-combineLambdas :: Expr Type () () () Void -> Expr Type () () () Void
+combineLambdas :: TypedExpr -> TypedExpr
 combineLambdas =
   cata $ \case
     ELam _ xs (Fix (ELam _ ys expr)) -> lam (xs <> ys) expr
     e -> embed e
 
-convertLetBindings :: Expr Type () () () Void -> Expr Type () () () Void
+convertLetBindings :: TypedExpr -> TypedExpr
 convertLetBindings =
   cata $ \case
     ELet _ (_, name) e1 e2
@@ -44,7 +43,7 @@ convertLetBindings =
     ELet _ bind e1 e2 -> app (lam [bind] e2) [e1]
     e -> embed e
 
-convertClosures :: (MonadReader TypeEnv m) => Expr Type () () () Void -> m (Expr Type Void () () Void)
+convertClosures :: (MonadReader TypeEnv m) => TypedExpr -> m NoLetsExpr
 convertClosures =
   cata $ \case
     EVar (ty, name) -> pure (var (ty, name))
@@ -65,13 +64,12 @@ convertClosures =
       pure $
         case extra of
           [] -> lambda
-          _ -> do
-            app lambda (var <$> extra)
+          _ -> app lambda (var <$> extra)
 
-preprocess :: (MonadReader TypeEnv m) => Expr Type () () () Void -> m (Expr Type Void () () Void)
+preprocess :: (MonadReader TypeEnv m) => TypedExpr -> m NoLetsExpr
 preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
 
-typeCheck :: Expr t () () () Void -> Compiler (Either TypeError (Expr Type () () () Void))
+typeCheck :: SourceExpr t -> Compiler (Either TypeError TypedExpr)
 typeCheck ast = asks (`runCheck` ast)
 
 runCompiler :: Compiler a -> TypeEnv -> (a, Program)
@@ -109,9 +107,7 @@ uniqueName name = do
 --  main <- local (insertArgs (self : args)) (compileAst expr)
 --  pure (Function (Signature args (ty, main)))
 
---Expr Type () () () Void)
-
-compileAst :: Expr Type a0 a1 a2 Void -> Compiler Ast
+compileAst :: NoLetsExpr -> Compiler Ast
 compileAst =
   cata $ \case 
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
@@ -135,7 +131,7 @@ compileAst =
           pure (call_ fun (as1 <> as))
         e -> error (show e)
 
-clauses :: ([Label Type], Compiler (Expr Type Void Void Void ())) -> Compiler ([Label Type], Expr Type Void Void Void ())
+clauses :: ([Label Type], Compiler Ast) -> Compiler ([Label Type], Ast)
 clauses (pairs, expr) = (pairs, ) <$> local (insertArgs pairs) expr
 
 ----compileAst :: Ast -> Compiler Body
@@ -261,10 +257,10 @@ fillParams def = pure def
 --getEnv :: [(Name, Definition (Expr t))] -> Environment Type
 --getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
 --
---instance Source Ast where
+--instance Typed Ast where
 --  toProgram ds = execCompiler (compileDefinitions ds) (getEnv ds)
 --
---instance Source (Expr ()) where
+--instance Typed (Expr ()) where
 --  toProgram ds
 --    | null ls = execCompiler (compileDefinitions rs) env
 --    | otherwise = error (show ls)  -- TODO

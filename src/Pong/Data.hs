@@ -90,6 +90,10 @@ data ExprF t a0 a1 a2 a3 a
 
 type Expr t a0 a1 a2 a3 = Fix (ExprF t a0 a1 a2 a3)
 
+type SourceExpr t = Expr t () () () Void
+type TypedExpr = SourceExpr Type 
+
+type NoLetsExpr = Expr Type Void () () Void
 type Ast = Expr Type Void Void Void ()
 
 data Con

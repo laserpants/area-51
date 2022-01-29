@@ -11,6 +11,7 @@ import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple (swap)
+import Data.Void
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.Type as LLVM
 import LLVM.IRBuilder

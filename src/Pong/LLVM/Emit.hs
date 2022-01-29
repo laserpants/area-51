@@ -22,29 +22,31 @@ import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
 import qualified Pong.Util.Env as Env
 
---llvmRep :: (IsString s) => Name -> s
---llvmRep = fromString <<< unpack
---
---namedReference :: Name -> LLVM.Type
---namedReference = NamedTypeReference . llvmRep
---
+llvmRep :: (IsString s) => Name -> s
+llvmRep = fromString <<< unpack
+
 --charPtr :: LLVM.Type
 --charPtr = ptr i8
---
----- | Translate a language type to equivalent LLVM type
---llvmType :: Type -> LLVM.Type
---llvmType =
---  project >>> \case
---    TUnit -> StructureType False [] -- LLVM.i1
---    TBool {} -> LLVM.i1
---    TInt32 {} -> LLVM.i32
---    TInt64 {} -> LLVM.i64
---    TFloat {} -> LLVM.float
---    TDouble {} -> LLVM.double
---    TVar {} -> LLVM.void
---    TChar {} -> error "Not implemented" -- TODO
---    TString {} -> error "Not implemented" -- TODO
---    TData name -> ptr (namedReference name)
+
+namedReference :: Name -> LLVM.Type
+namedReference = NamedTypeReference . llvmRep
+
+-- | Translate a language type to equivalent LLVM type
+llvmType :: Type -> LLVM.Type
+llvmType =
+  project >>> \case
+    TUnit -> StructureType False []
+    TBool {} -> LLVM.i1
+    TInt32 {} -> LLVM.i32
+    TInt64 {} -> LLVM.i64
+    TFloat {} -> LLVM.float
+    TDouble {} -> LLVM.double
+    TVar {} -> error "Implementation error"
+    TChar {} -> error "Not implemented" -- TODO
+    TString {} -> error "Not implemented" -- TODO
+    TData name -> ptr (namedReference name)
+    ty@TArr {} ->
+      undefined
 --    ty@TArr {} -> ptr (StructureType False [ptr funTy])
 --      where types = llvmType <$> unwindType (embed ty)
 --            funTy =
@@ -53,52 +55,50 @@ import qualified Pong.Util.Env as Env
 --                , resultType = last types
 --                , isVarArg = False
 --                }
---
---find :: Name -> CodeGen (Maybe Operand)
---find = asks . Env.lookup
---
---emitLit :: Literal -> CodeGen Operand
---emitLit =
---  pure <<< ConstantOperand <<< \case
---    LBool True -> Int 1 1
---    LBool False -> Int 1 0
---    LInt32 n -> Int 32 (toInteger n)
---    LInt64 n -> Int 64 (toInteger n)
---    LFloat f -> Float (Single f)
---    LDouble d -> Float (Double d)
---    LChar c -> error "Not implemented" -- TODO
---    LString s -> error "Not implemented" -- TODO
---    LUnit -> Int 1 0
---
---emitOp2Instr :: Op2 -> Operand -> Operand -> CodeGen Operand
---emitOp2Instr =
---  \case
---    OEqInt32 -> icmp LLVM.EQ
---    OAddInt32 -> add
---    OSubInt32 -> sub
---    OMulInt32 -> mul
---    OAddFloat -> fadd
---    OMulFloat -> fmul
---    OSubFloat -> fsub
---    ODivFloat -> fdiv
---    OAddDouble -> fadd
---    OMulDouble -> fmul
---    OSubDouble -> fsub
---    ODivDouble -> fdiv
---
+
+emitLit :: Literal -> CodeGen Operand
+emitLit =
+  pure <<< ConstantOperand <<< \case
+    LBool True -> Int 1 1
+    LBool False -> Int 1 0
+    LInt32 n -> Int 32 (toInteger n)
+    LInt64 n -> Int 64 (toInteger n)
+    LFloat f -> Float (Single f)
+    LDouble d -> Float (Double d)
+    LChar c -> error "Not implemented" -- TODO
+    LString s -> error "Not implemented" -- TODO
+    LUnit -> Struct Nothing False []
+
+emitOp2Instr :: Op2 -> Operand -> Operand -> CodeGen Operand
+emitOp2Instr =
+  \case
+    OEqInt32 -> icmp LLVM.EQ
+    OAddInt32 -> add
+    OSubInt32 -> sub
+    OMulInt32 -> mul
+    OAddFloat -> fadd
+    OMulFloat -> fmul
+    OSubFloat -> fsub
+    ODivFloat -> fdiv
+    OAddDouble -> fadd
+    OMulDouble -> fmul
+    OSubDouble -> fsub
+    ODivDouble -> fdiv
+
 --globalRef :: LLVM.Name -> LLVM.Type -> Operand
 --globalRef name ty = ConstantOperand (GlobalReference ty name)
---
+
 --functionSig :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
 --functionSig name rty ats =
 --  globalRef name $ PointerType (FunctionType rty ats False) (AddrSpace 0)
 --
 --newFunRep :: (IsString s) => Name -> Name -> s
 --newFunRep name tycon = llvmRep ("new_" <> name <> "_" <> tycon)
---
---buildProgram :: Name -> Program -> LLVM.Module
---buildProgram name Program {..} =
---  buildModule (llvmRep name) $ do
+
+buildProgram :: Name -> Program -> LLVM.Module
+buildProgram name Program {..} =
+  buildModule (llvmRep name) $ do
+    undefined
 --    env <-
 --      Env.fromList . concat <$$> forM (Map.toList definitions) $ \(name, def) ->
 --        case def of
@@ -252,7 +252,7 @@ import qualified Pong.Util.Env as Env
 --
 --retType :: Operand -> LLVM.Type
 --retType = resultType <<< funType
---
+
 --emitCase :: CodeGen Operand -> [(Names, CodeGen Operand)] -> CodeGen Operand
 --emitCase expr cs =
 --  mdo dt <- expr
@@ -284,4 +284,4 @@ import qualified Pong.Util.Env as Env
 --          cb <- currentBlock
 --          pure ((r, cb), blk)
 --      end <- block `named` "end"
---      phi (blocks <#> fst)
+--      phi (blocks <#> fst--)
