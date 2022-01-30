@@ -127,8 +127,8 @@ check =
       e1 <- insertBound expr1
       unifyM (tVar t) e1
       e2 <- insertBound expr2
-      ty <- applySubstitution (tVar t)
-      pure (let_ (ty, name) e1 e2)
+      t1 <- applySubstitution (tVar t)
+      pure (let_ (t1, name) e1 e2)
     EApp _ fun args -> do
       f <- fun
       as <- sequence args
@@ -142,9 +142,9 @@ check =
     EVar (t, name) -> do
       Env env <- ask
       case env !? name of
-        Just ty -> do
-          unifyM (tVar t) ty
-          pure (var (ty, name))
+        Just t1 -> do
+          unifyM (tVar t) t1
+          pure (var (t1, name))
         _ -> throwError (NotInScope name)
     ECase _ [] -> throwError EmptyCaseStatement
     ECase expr clauses -> do

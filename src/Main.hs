@@ -28,19 +28,34 @@ main :: IO ()
 main = do
   putStrLn "hello world"
 
-foo1 = 
+foo123 =
+  [ ("abc", External (Signature [(tInt32, "x")] (tInt32, ())))
+  , ("def", Function (Signature [(tInt32, "x")] (tInt32, var (tInt32, "x"))))
+  , ("List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+  ]
+
+foo456 =
+  Program 0 (Map.fromList foo123)
+
+foo789 =
+  buildProgram "Main" foo456
+
+foo999 =
+  Text.putStrLn (ppll foo789)
+
+foo1 =
   app (app (var (tInt32 .-> tInt32 .-> tInt32, "f")) [lit (LInt32 5)]) [lit (LInt32 6)]
 
 foo2 =
   runCompiler (compileAst foo1) mempty
 
-foo3 = 
+foo3 =
   lam [(tInt32, "x"), (tInt32, "y")] (op2 OAddInt32 (var (tInt32, "x")) (var (tInt32, "y")))
 
 foo4 =
   runCompiler (compileAst foo3) mempty
 
-foo5 = 
+foo5 =
   app (var (tInt32 .-> tInt32, "f")) [lit (LInt32 5)]
 
 foo6 =
@@ -56,7 +71,131 @@ input1 =
     (var ((), "foo"))
     (lam [((), "x")] (app (var ((), "f")) [var ((), "x")]))
 
---
+testProgram :: [(Name, Definition Ast)]
+testProgram =
+  [
+    ( "fact"
+    , Function
+        ( Signature
+            [(tInt32, "n")]
+            ( tInt32
+            , if_
+                (op2 OEqInt32 (var (tInt32, "n")) (lit (LInt32 0)))
+                (lit (LInt32 1))
+                ( op2
+                    OMulInt32
+                    (var (tInt32, "n"))
+                    ( call_
+                        (tInt32 .-> tInt32, "fact")
+                        [op2 OSubInt32 (var (tInt32, "n")) (lit (LInt32 1))]
+                    )
+                )
+            )
+        )
+    )
+  , ("main", Function (Signature [] (tInt32, call_ (tInt32 .-> tInt32, "fact") [lit (LInt32 5)])))
+--  , ( "f2"
+--    , Function
+--        ( Signature
+--            []
+--            ( tInt32 .-> tInt32
+--            , var (tInt32 .-> tInt32, "fact")
+--            )
+--        )
+--    )
+--  ,
+--    ( "f3"
+--    , Function
+--        ( Signature
+--            []
+--            ( tInt32
+--            , call_ (tInt32 .-> tInt32, "f2") [lit (LInt32 5)]
+--            )
+--        )
+--    )
+  ]
+
+foo4562 =
+  Program 0 (Map.fromList testProgram)
+
+foo7892 =
+  buildProgram "Main" foo4562
+
+foo9992 =
+  Text.putStrLn (ppll foo7892)
+
+
+testProgram2 :: [(Name, Definition TypedExpr)]
+testProgram2 =
+  [
+    ( "fact"
+    , Function
+        ( Signature
+            [(tInt32, "n")]
+            ( tInt32
+            , if_
+                (op2 OEqInt32 (var (tInt32, "n")) (lit (LInt32 0)))
+                (lit (LInt32 1))
+                ( op2
+                    OMulInt32
+                    (var (tInt32, "n"))
+                    ( app
+                        (var (tInt32 .-> tInt32, "fact"))
+                        [op2 OSubInt32 (var (tInt32, "n")) (lit (LInt32 1))]
+                    )
+                )
+            )
+        )
+    )
+  , ("main", Function (Signature [] (tInt32, app (var (tInt32 .-> tInt32, "fact")) [lit (LInt32 5)])))
+  , ( "f2"
+    , Function
+        ( Signature
+            []
+            ( tInt32 .-> tInt32
+            , var (tInt32 .-> tInt32, "fact")
+            )
+        )
+    )
+  ]
+
+abc123 = Text.putStrLn (ppll foo)
+  where 
+    foo = buildProgram "Main" prog
+    prog = execCompiler (compileDefinitions testProgram2) mempty
+
+
+testProgram3 :: [(Name, Definition TypedExpr)]
+testProgram3 =
+  [
+    ( "sum"
+    , Function
+        ( Signature
+            [(tInt32, "m"), (tInt32, "n")]
+            ( tInt32
+            , op2 OAddInt32 (var (tInt32, "m")) (var (tInt32, "n"))
+            )
+        )
+    )
+  , ( "plus5"
+    , Function
+        ( Signature
+            []
+            ( tInt32 .-> tInt32
+            , app (var (tInt32 .-> tInt32 .-> tInt32, "sum")) [lit (LInt32 5)]
+            )
+        )
+    )
+  , ("main", Function (Signature [] (tInt32, app (var (tInt32 .-> tInt32, "plus5")) [lit (LInt32 5)])))
+  ]
+
+abc456 = Text.putStrLn (ppll foo)
+  where 
+    foo = buildProgram "Main" prog
+    prog = execCompiler (compileDefinitions testProgram3) mempty
+
+
+
 --
 ----runTestModule :: IO ()
 ----runTestModule = Text.putStrLn (ppll testModule)

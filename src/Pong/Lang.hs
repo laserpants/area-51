@@ -19,6 +19,7 @@ module Pong.Lang
   , isTCon
   , arity
   , returnTypeOf
+  , argTypes
   , funArgs
 --  , constructors
   , insertDefinition
@@ -181,7 +182,10 @@ unwindType =
       t -> [embed (fst <$> t)])
 
 returnTypeOf :: (Typed t) => t -> Type
-returnTypeOf = last <<< unwindType <<< typeOf
+returnTypeOf = last <<< unwindType 
+
+argTypes :: (Typed t) => t -> [Type]
+argTypes = init <<< unwindType
 
 funArgs :: Definition a -> [(Type, Name)]
 funArgs =

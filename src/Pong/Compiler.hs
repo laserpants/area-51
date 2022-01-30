@@ -46,7 +46,7 @@ convertLetBindings =
 convertClosures :: (MonadReader TypeEnv m) => TypedExpr -> m NoLetsExpr
 convertClosures =
   cata $ \case
-    EVar (ty, name) -> pure (var (ty, name))
+    EVar v -> pure (var v)
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
     EApp _ fun args -> app <$> fun <*> sequence args
@@ -100,12 +100,12 @@ uniqueName name = do
   put Program {count = succ count, ..}
   pure (name <> "_" <> showt count)
 
---compileFunction :: Name -> Signature Ast -> Compiler (Definition Body)
---compileFunction name (Signature args (ty, body)) = do
---  expr <- asks (runReader (preprocess body))
---  let self = (foldType ty (args <#> fst), name)
---  main <- local (insertArgs (self : args)) (compileAst expr)
---  pure (Function (Signature args (ty, main)))
+compileFunction :: Name -> Signature TypedExpr -> Compiler (Definition Ast)
+compileFunction name (Signature args (ty, body)) = do
+  expr <- asks (runReader (preprocess body))
+  let self = (foldType ty (args <#> fst), name)
+  main <- local (insertArgs (self : args)) (compileAst expr)
+  pure (Function (Signature args (ty, main)))
 
 compileAst :: NoLetsExpr -> Compiler Ast
 compileAst =
@@ -193,8 +193,7 @@ clauses (pairs, expr) = (pairs, ) <$> local (insertArgs pairs) expr
 fillParams :: Definition Ast -> Compiler (Definition Ast)
 fillParams (Function (Signature arguments (ty, body)))
   | isTCon ArrT ty = do
-    let tys = init (unwindType ty)
-        applyTo xs =
+    let applyTo xs =
           project >>> \case
             ECall _ fun args -> 
               pure (call_ fun (args <> xs))
@@ -202,8 +201,8 @@ fillParams (Function (Signature arguments (ty, body)))
               names <- gets definitions
               pure (call_ name xs)
             expr -> pure (embed expr)
-    vars <- replicateM (length tys) (uniqueName "v")
-    let extra = tys `zip` vars
+    vars <- replicateM (arity ty) (uniqueName "v")
+    let extra = argTypes ty `zip` vars
     newBody <- applyTo (var <$> extra) body
     pure
       (Function
@@ -242,18 +241,18 @@ fillParams def = pure def
 --consTypes (name, def) =
 --  constructors def <#> \Constructor {..} ->
 --    (consName, foldr tArr (tData name) (typeOf <$> consFields))
---
---compileDefinitions :: [(Name, Definition Ast)] -> Compiler ()
---compileDefinitions ds =
---  forM_ ds $ \(name, def) -> do
---    newDef <-
---      case def of
---        Function sig -> fillParams =<< compileFunction name sig
---        External sig -> pure (External sig)
---        Constant lit -> pure (Constant lit)
---        Data name css -> pure (Data name css)
---    modify (insertDefinition name newDef)
---
+
+compileDefinitions :: [(Name, Definition TypedExpr)] -> Compiler ()
+compileDefinitions ds =
+  forM_ ds $ \(name, def) -> do
+    newDef <-
+      case def of
+        Function sig -> fillParams =<< compileFunction name sig
+        External sig -> pure (External sig)
+        Constant lit -> pure (Constant lit)
+        Data name css -> pure (Data name css)
+    modify (insertDefinition name newDef)
+
 --getEnv :: [(Name, Definition (Expr t))] -> Environment Type
 --getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
 --
