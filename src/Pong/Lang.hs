@@ -21,7 +21,7 @@ module Pong.Lang
   , returnTypeOf
   , argTypes
   , funArgs
---  , constructors
+  , constructors
   , insertDefinition
   , emptyProgram
 --  , printProgram
@@ -194,11 +194,11 @@ funArgs =
     External Signature {..} -> arguments
     _ -> []
 
---constructors :: Definition a -> [Constructor]
---constructors =
---  \case
---    Data _ cs -> cs
---    _ -> []
+constructors :: Definition a -> [Constructor]
+constructors =
+  \case
+    Data _ cs -> cs
+    _ -> []
 
 {-# INLINE foldType #-}
 foldType :: Type -> [Type] -> Type

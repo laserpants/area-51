@@ -57,6 +57,15 @@ llvmType =
                 , isVarArg = False
                 }
 
+llvmFunType :: Operand -> LLVM.Type
+llvmFunType =
+  \case
+    ConstantOperand (GlobalReference PointerType {..} _) -> pointerReferent
+    LocalReference functionType _ -> functionType
+
+llvmArgTypes :: Operand -> [LLVM.Type]
+llvmArgTypes = argumentTypes <<< llvmFunType
+
 emitLit :: Literal -> CodeGen Operand
 emitLit =
   pure <<< ConstantOperand <<< \case
@@ -182,49 +191,58 @@ emitCall (t, fun) args = do
   as <- sequence args
   Env.askLookup fun >>= \case
     Just op@(LocalReference PointerType {..} _) -> do
-      undefined
+      a <- bitcast op charPtr
+      p <- gep op [int32 0, int32 0]
+      h <- load p 0
+      call h (zip (a : as) (repeat []))
     Just op -> do
       let tys = argTypes t
           (ts1, ts2) = splitAt (length args) (llvmType <$> tys)
+      as111 <- traverse argCast (zip3 as (llvmArgTypes op) tys)
+      traceShowM t
+      traceShowM (arity t)
+      traceShowM (length args)
+      traceShowM "******"
       case compare (arity t) (length args) of
-        GT -> error "Implementation error"
+--        GT -> emitLit (LInt32 455) -- error "Implementation error"
         EQ -> do
-          call op =<< foo as tys
+          call op as111
           -- TODO
           --r <- call op =<< foo as tys
           --pure r
-        _ -> mdo 
-          let sty = StructureType False (LLVM.typeOf g : LLVM.typeOf op : ts1)
-          name <- freshUnName
-          g <- 
-            function
-              name
-              (zip (charPtr : ts2) (repeat "a"))
-              (llvmType (returnTypeOf t))
-              (\(v:vs) -> do
-                s <- bitcast v (ptr sty)
-                p1 <- gep s [int32 0, int32 1]
-                h <- load p1 0
-                an <-
-                  forM [2 .. length ts1 + 1] $ \n -> do
-                    q <- gep s [int32 0, int32 (fromIntegral n)]
-                    load q 0
-                r <- call h (zip (an <> vs) (repeat []))
-                ret r)
-          s <- malloc sty
-          storeAtOffs 0 s g
-          storeAtOffs 1 s op
-          forM_ (zip as [2 ..]) $ \(a, i) -> 
-            storeAtOffs i s a
-          bitcast s (ptr (StructureType False [LLVM.typeOf g]))
+        _ -> error ">>>>"
+ --       _ -> mdo 
+ --         let sty = StructureType False (LLVM.typeOf g : LLVM.typeOf op : ts1)
+ --         name <- freshUnName
+ --         g <- 
+ --           function
+ --             name
+ --             (zip (charPtr : ts2) (repeat "a"))
+ --             (llvmType (returnTypeOf t))
+ --             (\(v:vs) -> do
+ --               s <- bitcast v (ptr sty)
+ --               p1 <- gep s [int32 0, int32 1]
+ --               h <- load p1 0
+ --               an <-
+ --                 forM [2 .. length ts1 + 1] $ \n -> do
+ --                   q <- gep s [int32 0, int32 (fromIntegral n)]
+ --                   load q 0
+ --               r <- call h (zip (an <> vs) (repeat []))
+ --               ret r)
+ --         s <- malloc sty
+ --         storeAtOffs 0 s g
+ --         storeAtOffs 1 s op
+ --         forM_ (as `zip` [2 ..]) $ \(a, i) -> 
+ --           storeAtOffs i s a
+ --         bitcast s (ptr (StructureType False [LLVM.typeOf g]))
     _ -> error ("Function not in scope: '" <> show fun <> "'")
 
-foo :: [Operand] -> [Type] -> CodeGen [(Operand, [ParameterAttribute])]
-foo ops tys = traverse foo2 (zip ops tys)
-
-foo2 :: (Operand, Type) -> CodeGen (Operand, [ParameterAttribute])
-foo2 (op, ty) = do
-  pure (op, [])
+argCast :: (Operand, LLVM.Type, Type) -> CodeGen (Operand, [ParameterAttribute])
+argCast = \case
+  (op, llvmt, t) | charPtr == llvmt && (t `elem` [tInt32, tInt64]) -> do
+    p <- inttoptr op charPtr 
+    pure (p, [])
+  (op, _, _) -> pure (op, [])
 
 emitCase :: CodeGen Operand -> [([Label t], CodeGen Operand)] -> CodeGen Operand
 emitCase expr cs = do
@@ -294,16 +312,7 @@ emitCase expr cs = do
 --                store an 0 a
 --              bitcast s (ptr (StructureType False [LLVM.typeOf g]))
 --    _ -> error ("Function not in scope: '" <> show fun <> "'")
---
---funType :: Operand -> LLVM.Type
---funType =
---  \case
---    ConstantOperand (GlobalReference PointerType {..} _) -> pointerReferent
---    LocalReference functionType _ -> functionType
---
---argTypes :: Operand -> [LLVM.Type]
---argTypes = argumentTypes <<< funType
---
+
 --retType :: Operand -> LLVM.Type
 --retType = resultType <<< funType
 

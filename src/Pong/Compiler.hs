@@ -14,7 +14,7 @@ import Data.Bifunctor (bimap)
 import Data.Either (partitionEithers)
 import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe, maybeToList)
-import Data.Tuple.Extra (first, second)
+import Data.Tuple.Extra (first, second, secondM)
 import Pong.Lang
 import Pong.TypeChecker
 import TextShow (showt)
@@ -43,7 +43,7 @@ convertLetBindings =
     ELet _ bind e1 e2 -> app (lam [bind] e2) [e1]
     e -> embed e
 
-convertClosures :: (MonadReader TypeEnv m) => TypedExpr -> m NoLetsExpr
+convertClosures :: (MonadReader TypeEnv m) => TypedExpr -> m PreAst
 convertClosures =
   cata $ \case
     EVar v -> pure (var v)
@@ -59,14 +59,22 @@ convertClosures =
     ELam _ args expr -> do
       body <- local (insertArgs args) expr
       let names = free body `without` (args <#> snd)
-      extra <- (`zip` names) <$> traverse (fromJust <$$> Env.askLookup) names
+      extra <- (`zip` names) <$> traverse foo2 names -- (fromJust <$$> Env.askLookup) names
       let lambda = lam (extra <> args) body
       pure $
         case extra of
           [] -> lambda
           _ -> app lambda (var <$> extra)
 
-preprocess :: (MonadReader TypeEnv m) => TypedExpr -> m NoLetsExpr
+foo2 name = do
+  Env env <- ask
+  case env !? name of
+    Nothing ->
+      error ("Not found: " <> show name)
+    Just x ->
+      pure x
+
+preprocess :: (MonadReader TypeEnv m) => TypedExpr -> m PreAst
 preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
 
 typeCheck :: SourceExpr t -> Compiler (Either TypeError TypedExpr)
@@ -107,7 +115,7 @@ compileFunction name (Signature args (ty, body)) = do
   main <- local (insertArgs (self : args)) (compileAst expr)
   pure (Function (Signature args (ty, main)))
 
-compileAst :: NoLetsExpr -> Compiler Ast
+compileAst :: PreAst -> Compiler Ast
 compileAst =
   cata $ \case 
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
@@ -236,35 +244,37 @@ fillParams def = pure def
 ----            , body = (returnTypeOf ty, newBody)
 ----            }))
 ----fillParams def = pure def
---
---consTypes :: (Name, Definition (Expr t)) -> [(Name, Type)]
---consTypes (name, def) =
---  constructors def <#> \Constructor {..} ->
---    (consName, foldr tArr (tData name) (typeOf <$> consFields))
 
-compileDefinitions :: [(Name, Definition TypedExpr)] -> Compiler ()
-compileDefinitions ds =
-  forM_ ds $ \(name, def) -> do
-    newDef <-
-      case def of
-        Function sig -> fillParams =<< compileFunction name sig
-        External sig -> pure (External sig)
-        Constant lit -> pure (Constant lit)
-        Data name css -> pure (Data name css)
-    modify (insertDefinition name newDef)
+consTypes :: (Name, Definition (Expr t a0 a1 a2 a3)) -> [(Name, Type)]
+consTypes (name, def) =
+  constructors def <#> \Constructor {..} ->
+    (consName, foldr tArr (tData name) (typeOf <$> consFields))
 
---getEnv :: [(Name, Definition (Expr t))] -> Environment Type
---getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
---
---instance Typed Ast where
---  toProgram ds = execCompiler (compileDefinitions ds) (getEnv ds)
---
---instance Typed (Expr ()) where
---  toProgram ds
---    | null ls = execCompiler (compileDefinitions rs) env
---    | otherwise = error (show ls)  -- TODO
---    where
---      env = getEnv ds
---      (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> ds)
---      typecheckDef def = runCheck (insertArgs (funArgs def) env) <$> def
---      partitionDefs = partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)
+getEnv :: [(Name, Definition (Expr t a0 a1 a2 a3))] -> Environment Type
+getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
+
+toProgram :: Source (Expr t a0 a1 a2 a3) => [(Name, Definition (Expr t a0 a1 a2 a3))] -> Program
+toProgram ds = execCompiler (compileDefinitions ds) (getEnv ds)
+
+instance Source TypedExpr where
+  compileDefinitions = 
+    compileDefinitions <=<
+      mapM (\(name, def) -> do
+        (name,) <$> (case def of
+          --Function sig -> fillParams =<< compileFunction name sig
+          Function sig -> compileFunction name sig
+          External sig -> pure (External sig)
+          Constant lit -> pure (Constant lit)
+          Data name css -> pure (Data name css)))
+
+instance Source Ast where
+  compileDefinitions = mapM_ (modify . uncurry insertDefinition) 
+
+instance Source (SourceExpr ()) where
+  compileDefinitions ds 
+    | null ls = compileDefinitions rs
+    | otherwise = error (show ls)  -- TODO
+    where
+      (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> ds)
+      typecheckDef def = runCheck (insertArgs (funArgs def) (getEnv ds)) <$> def
+      partitionDefs = partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)

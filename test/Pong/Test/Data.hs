@@ -2,10 +2,10 @@
 
 module Pong.Test.Data where
 
+import qualified Data.Map.Strict as Map
 import Data.Void
 import Pong.Data
 import Pong.Lang
-import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 
 i32 :: Type
@@ -32,14 +32,24 @@ input2Typed :: Expr Type () () () Void
 input2Typed = op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))
 
 input3 :: Expr () () a1 a2 a3
-input3 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
+input3 =
+  case_
+    (var ((), "xs"))
+    [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
 
 input4 :: Expr () a0 a1 a2 a3
-input4 = case_ (var ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "y"))]
+input4 =
+  case_
+    (var ((), "xs"))
+    [([((), "Cons"), ((), "x"), ((), "ys")], var ((), "y"))]
 
 input5 :: Expr () a0 a1 a2 a3
 input5 =
-  case_ (var ((), "xs")) [([((), "Nil")], var ((), "y")), ([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))]
+  case_
+    (var ((), "xs"))
+    [ ([((), "Nil")], var ((), "y"))
+    , ([((), "Cons"), ((), "x"), ((), "ys")], var ((), "x"))
+    ]
 
 input6 :: Expr Type () () () a3
 input6 =
@@ -58,8 +68,8 @@ input6 =
                 (var (i32, "p"))))))
     (var (i32 .-> i32 .-> i32, "sum"))
 
-input6Converted :: Expr Type a0 () () a3
-input6Converted =
+input6NoLetBindings :: Expr Type a0 () () a3
+input6NoLetBindings =
   lam
     [(i32, "m")]
     (lam
@@ -76,8 +86,8 @@ input7 =
     (app (var (i32 .-> i32, "foo")) [var (i32, "x")])
     (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3)))
 
-input7Converted :: Expr Type a0 () () a3
-input7Converted =
+input7NoLetBindings :: Expr Type a0 () () a3
+input7NoLetBindings =
   app
     (lam [(i32, "x")] (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3))))
     [app (var (i32 .-> i32, "foo")) [var (i32, "x")]]
@@ -97,18 +107,19 @@ input8Converted :: Expr Type a0 () () a3
 input8Converted =
   lam
     [(i32, "m"), (i32, "n")]
-    (op2 OAddInt32 (op2 OAddInt32 (var (i32, "m")) (var (i32, "n"))) (lit (LInt32 3)))
+    (op2
+       OAddInt32
+       (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
+       (lit (LInt32 3)))
 
 input9 :: Expr Type a0 () () a3
 input9 = lam [(i32, "p")] (lam [(i32, "x")] (var (i32, "p")))
 
-input9Converted :: Expr Type a0 () () a3
-input9Converted =
+input9ClosuresConverted :: Expr Type a0 () () a3
+input9ClosuresConverted =
   lam
     [(i32, "p")]
-    (app
-       (lam [(i32, "p"), (i32, "x")] (var (i32, "p")))
-       [var (i32, "p")])
+    (app (lam [(i32, "p"), (i32, "x")] (var (i32, "p"))) [var (i32, "p")])
 
 input10 :: Program
 input10 =
@@ -137,7 +148,6 @@ input10 =
 --                (Signature [(i32, "x")] (i32 .-> i32, bCall "plus" [bVar "x"])))
 --          ]
 --    }
-
 input12 :: Expr () () () () a3
 input12 = lam [((), "x")] (app (var ((), "plus")) [var ((), "x")])
 
@@ -146,21 +156,43 @@ input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
 
 --input14 :: Body
 --input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
-
 input15 :: Expr Type a0 () () a3
 input15 =
   lam
     [(i32, "x")]
     (lam [(i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
 
-input15Converted :: Expr Type a0 () () a3
-input15Converted =
+input15ClosuresConverted :: Expr Type a0 () () a3
+input15ClosuresConverted =
   lam
     [(i32, "x")]
     (app
-       (lam [(i32, "x"), (i32, "y")] (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
+       (lam
+          [(i32, "x"), (i32, "y")]
+          (op2 OAddInt32 (var (i32, "x")) (var (i32, "y"))))
        [var (i32, "x")])
 
+-- (\xs : List -> foo(xs))(Cons(5, Nil))
+input16 :: Expr Type () a1 () a3
+input16 =
+  let_
+    (tData "List", "xs")
+    (app
+       (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+       [lit (LInt32 5), var (tData "List", "Nil")])
+    (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])
+
+-- (\xs : List -> foo(xs))(Cons(5, Nil))
+input16NoLetBindings :: Expr Type a0 () () a3
+input16NoLetBindings =
+  app
+    (lam
+       [(tData "List", "xs")]
+       (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")]))
+    [ app
+        (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+        [lit (LInt32 5), var (tData "List", "Nil")]
+    ]
 --input16 :: [(Name, Definition (Expr ()))]
 --input16 =
 --  [ ( "List"

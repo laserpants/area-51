@@ -128,13 +128,14 @@ main =
     -- Module Pong.Compiler ---------------------------------------------------
     ---------------------------------------------------------------------------
     describe "convertLetBindings" $ do
-      runConvertLetBindingsTest "#1" input6 input6Converted
-      runConvertLetBindingsTest "#2" input7 input7Converted
+      runConvertLetBindingsTest "#1" input6 input6NoLetBindings
+      runConvertLetBindingsTest "#2" input7 input7NoLetBindings
+      runConvertLetBindingsTest "#3" input16 input16NoLetBindings
     describe "combineLambdas" $ do
       runCombineLambdasTest "#1" input8 input8Converted
     describe "convertClosures" $ do
-      runConvertClosuresTest "#1" input9 input9Converted
-      runConvertClosuresTest "#2" input15 input15Converted
+      runConvertClosuresTest "#1" input9 input9ClosuresConverted
+      runConvertClosuresTest "#2" input15 input15ClosuresConverted
     describe "preprocess" $ do runIO $ print "TODO"
     describe "modifyFunDefs" $ do
       runModifyFunDefsTest1 "#1" input10 ["foo", "baz", "new"]

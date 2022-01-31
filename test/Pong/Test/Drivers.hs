@@ -120,7 +120,7 @@ runUniqueNameTest description =
 -- --      e <- typeCheck input
 -- --      compileAst (fromRight (error "Implementation error") e)
 
---runFillParamsTest :: TestCase (Expr () () () () a3, TypeEnv) Type
+runFillParamsTest :: TestCase (SourceExpr t, TypeEnv) Type
 runFillParamsTest description (input, env) expected =
   it description $ t == expected
   where

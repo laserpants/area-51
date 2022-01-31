@@ -93,7 +93,7 @@ type Expr t a0 a1 a2 a3 = Fix (ExprF t a0 a1 a2 a3)
 type SourceExpr t = Expr t () () () Void
 type TypedExpr = SourceExpr Type 
 
-type NoLetsExpr = Expr Type Void () () Void
+type PreAst = Expr Type Void () () Void
 type Ast = Expr Type Void Void Void ()
 
 data Con
@@ -163,7 +163,8 @@ newtype CodeGen a =
     }
 
 class Source a where
-  toProgram :: [(Name, Definition a)] -> Program -- TODO: Either Error Program
+--  toProgram :: [(Name, Definition a)] -> Program -- TODO: Either Error Program
+  compileDefinitions :: [(Name, Definition a)] -> Compiler ()
 
 -- Type
 deriving instance (Show a) => Show (TypeF a)

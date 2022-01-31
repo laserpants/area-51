@@ -195,6 +195,72 @@ abc456 = Text.putStrLn (ppll foo)
     prog = execCompiler (compileDefinitions testProgram3) mempty
 
 
+testProgram4 :: [(Name, Definition TypedExpr)]
+testProgram4 =
+  [ ("List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+  , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
+        lit (LInt32 4))))
+        --case_ (var (tData "List", "xs"))
+        --    [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "y"), (tData "List", "ys")], var (tInt32, "y"))
+        --    , ([(tData "List", "Nil")], lit (LInt32 0))
+        --    ])))
+
+  , ("xyz", Function (Signature [(tData "List", "xs")] (tData "List", 
+        app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")]
+                                                       )))
+
+--  , ("xs", Function (Signature [] (tData "List", var (tData "List", "Nil"))))
+--
+  , ("main", Function (Signature [] (tInt32, 
+      let_ 
+          (tData "List", "xs")
+          (app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")])
+--          (var (tData "List", "xyz"))
+          (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])
+        )))
+  ]
+
+          --(app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), app (var (tData "List", "Nil")) []])
+          --(var (tData "List", "Nil"))
+          --(lit (LInt32 771))
+
+-- let xs = Cons(5, Nil) in foo(xs)
+testAbc = 
+  let_ (tData "List", "xs")
+    (app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")])
+    (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])
+
+-- (\xs : List -> foo(xs))(Cons(5, Nil))
+testAbc2 = 
+  app (lam [(tData "List", "xs")] (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])) 
+    [app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")]]
+
+testProgram5 :: [(Name, Definition Ast)]
+testProgram5 =
+  [ ("List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+--  , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
+--        lit (LInt32 4))))
+        --case_ (var (tData "List", "xs"))
+        --    [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "y"), (tData "List", "ys")], var (tInt32, "y"))
+        --    , ([(tData "List", "Nil")], lit (LInt32 0))
+        --    ])))
+
+  , ("xs", Function (Signature [] (tData "List",
+          call_ (tInt32 .-> tData "List" .-> tData "List", "Cons") 
+              [lit (LInt32 5), var (tData "List", "Nil") 
+          ])))
+
+--  , ("main", Function (Signature [] (tInt32, 
+--          call_ (tData "List" .-> tInt32, "foo") [var (tData "List", "xs")]
+--        )))
+  ]
+
+
+abc789 = Text.putStrLn (ppll foo)
+  where 
+    foo = buildProgram "Main" prog
+    prog = toProgram testProgram4
+
 
 --
 ----runTestModule :: IO ()
