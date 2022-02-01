@@ -178,7 +178,18 @@ emitBody =
       emitOp2Instr op a b
     EVar (t, name) -> 
       Env.askLookup name >>= \case
-        Just (ConstantOperand (GlobalReference PointerType {..} _)) ->
+        -- Just (op@(ConstantOperand (GlobalReference PointerType {..} _))) -> do
+        Just op | isTCon ArrT t -> do
+          --emitLit (LInt32 123)
+          --emitCall (t, name) []
+          --pure op
+          --traceShowM "..."
+          --traceShowM t
+          --traceShowM op
+          --a <- bitcast op charPtr
+          --p <- gep op [int32 0, int32 0]
+          --load p 0
+          --call h (zip (a : as) (repeat []))
           emitCall (t, name) []
         Just op -> pure op
         _ -> 
@@ -191,9 +202,11 @@ emitCall (t, fun) args = do
   as <- sequence args
   Env.askLookup fun >>= \case
     Just op@(LocalReference PointerType {..} _) -> do
+      -- TODO: what exactly is happening here?
       a <- bitcast op charPtr
-      p <- gep op [int32 0, int32 0]
-      h <- load p 0
+--      p <- gep op [int32 0, int32 0]
+--      h <- load p 0
+      h <- loadFromOffset 0 op
       call h (zip (a : as) (repeat []))
     Just op -> do
       let tys = argTypes t
@@ -210,33 +223,36 @@ emitCall (t, fun) args = do
           -- TODO
           --r <- call op =<< foo as tys
           --pure r
-        _ -> error ">>>>"
- --       _ -> mdo 
- --         let sty = StructureType False (LLVM.typeOf g : LLVM.typeOf op : ts1)
- --         name <- freshUnName
- --         g <- 
- --           function
- --             name
- --             (zip (charPtr : ts2) (repeat "a"))
- --             (llvmType (returnTypeOf t))
- --             (\(v:vs) -> do
- --               s <- bitcast v (ptr sty)
- --               p1 <- gep s [int32 0, int32 1]
- --               h <- load p1 0
- --               an <-
- --                 forM [2 .. length ts1 + 1] $ \n -> do
- --                   q <- gep s [int32 0, int32 (fromIntegral n)]
- --                   load q 0
- --               r <- call h (zip (an <> vs) (repeat []))
- --               ret r)
- --         s <- malloc sty
- --         storeAtOffs 0 s g
- --         storeAtOffs 1 s op
- --         forM_ (as `zip` [2 ..]) $ \(a, i) -> 
- --           storeAtOffs i s a
- --         bitcast s (ptr (StructureType False [LLVM.typeOf g]))
+        GT -> mdo 
+         let sty = StructureType False (LLVM.typeOf g : LLVM.typeOf op : ts1)
+         name <- freshName "fun"
+         g <- 
+           function
+             name
+             (zip (charPtr : ts2) (repeat "a"))
+             (llvmType (returnTypeOf t))
+             (\(v:vs) -> do
+               s <- bitcast v (ptr sty)
+               --p1 <- gep s [int32 0, int32 1]
+               --h <- load p1 0
+               h <- loadFromOffset 1 s
+               an <-
+                 forM [2 .. length ts1 + 1] $ \n -> do
+                   --q <- gep s [int32 0, int32 (fromIntegral n)]
+                   --load q 0
+                   loadFromOffset (fromIntegral n) s
+               r <- call h (zip (an <> vs) (repeat []))
+               ret r)
+         s <- malloc sty
+         storeAtOffs 0 s g
+         storeAtOffs 1 s op
+         forM_ (as `zip` [2 ..]) $ \(a, i) -> 
+           storeAtOffs i s a
+         bitcast s (ptr (StructureType False [LLVM.typeOf g]))
+        LT -> error "Implementation error"
     _ -> error ("Function not in scope: '" <> show fun <> "'")
 
+-- Down/up-cast?
 argCast :: (Operand, LLVM.Type, Type) -> CodeGen (Operand, [ParameterAttribute])
 argCast = \case
   (op, llvmt, t) | charPtr == llvmt && (t `elem` [tInt32, tInt64]) -> do
@@ -244,8 +260,26 @@ argCast = \case
     pure (p, [])
   (op, _, _) -> pure (op, [])
 
-emitCase :: CodeGen Operand -> [([Label t], CodeGen Operand)] -> CodeGen Operand
-emitCase expr cs = do
+-- Down/up-cast?
+argCast2 :: (Operand, LLVM.Type, Type) -> CodeGen Operand
+argCast2 = \case
+  (op, llvmt, t) | charPtr == llvmt && (t `elem` [tInt32, tInt64]) -> do
+    ptrtoint op (llvmType t)
+  (op, _, _) -> pure op
+
+emitCase :: CodeGen Operand -> [([Label Type], CodeGen Operand)] -> CodeGen Operand
+emitCase expr cs = mdo 
+  dt <- expr
+--  p0 <- gep dt [int32 0, int32 0]
+--  m <- load p0 0
+  m <- loadFromOffset 0 dt
+  let names = blocks <#> snd
+  switch
+    m
+    (last names)  -- Default case
+    [ (Int 8 (fromIntegral i), block)
+    | (i, block) <- zip [1 ..] (init names)
+    ]
   blocks <-
     forM cs $ \(con:fields, body) -> do
       blk <- block `named` "case"
@@ -254,9 +288,28 @@ emitCase expr cs = do
           then body
           else do
             Env env <- ask
-            undefined
-      undefined
-  undefined
+            --let argTys = llvmType <$> argTypes (fst con)
+            let argTys = argTypes (fst con)
+                argTys1 = llvmArgTypes (env ! snd con)
+
+            traceShowM argTys
+            traceShowM argTys1
+
+            dn <- bitcast dt (ptr (StructureType False (i8 : argTys1)))
+            --ops <-
+            --  forM [1 .. length argTys1] $ \i -> do
+            --    pi <- gep dn [int32 0, int32 (fromIntegral i)]
+            --    load pi 0
+            ops <-
+              forM (zip3 [1..] argTys1 argTys) $ \(i, llvmt, t) -> do
+                --pi <- gep dn [int32 0, int32 (fromIntegral i)]
+                --op <- load pi 0
+                op <- loadFromOffset i dn
+                argCast2 (op, llvmt, t)
+            local (Env.inserts (zip (fields <#> snd) ops)) body
+      br end
+      cb <- currentBlock
+      pure ((r, cb), blk)
   end <- block `named` "end"
   phi (blocks <#> fst)
 
@@ -368,3 +421,8 @@ storeAtOffs :: (MonadModuleBuilder m, MonadIRBuilder m) => Integer -> Operand ->
 storeAtOffs offs op val = do
   p <- gep op [int32 0, int32 offs]
   store p 0 val
+
+loadFromOffset :: (MonadModuleBuilder m, MonadIRBuilder m) => Integer -> Operand -> m Operand
+loadFromOffset offs op = do
+  p <- gep op [int32 0, int32 offs]
+  load p 0

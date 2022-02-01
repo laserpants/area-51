@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -56,32 +57,59 @@ import Pong.Data
 import Pong.Util
 import qualified Pong.Util.Env as Env
 
-class FreeIn a where
-  free :: a -> [Name]
+class FreeIn t a where
+  free :: a -> [Label t]
 
-instance FreeIn (Expr t a0 a1 a2 a3) where
+instance (Eq t) => FreeIn t (Expr t a0 a1 a2 a3) where
   free =
     cata $ \case
-      EVar (_, name) -> [name]
+      EVar v -> [v]
       ELit lit -> []
       EIf e1 e2 e3 -> e1 <> e2 <> e3
-      ELam _ args expr -> expr `without` (snd <$> args)
-      ELet _ bind e1 e2 -> (e1 <> e2) `without` [snd bind]
+      ELam _ args expr -> expr `without` args
+      ELet _ bind e1 e2 -> (e1 <> e2) `without` [bind]
       EApp _ fun args -> fun <> concat args
-      ECall _ (_, name) args -> name : concat args
+      ECall _ fun args -> fun : concat args
       EOp2 op e1 e2 -> e1 <> e2
-      ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
+      ECase e1 cs -> e1 <> (cs >>= free . uncurry Clause)
 
-instance FreeIn (Clause Name) where
+instance (Eq t) => FreeIn t (Clause (Label t)) where
   free =
     \case
       Clause (_:vs) expr -> expr `without` vs
 
-instance (FreeIn a) => FreeIn (Signature a) where
+instance (FreeIn t a) => FreeIn t (Signature a) where
   free = free . snd . body
 
-instance (FreeIn a) => FreeIn (Map Name (Signature a)) where
+instance (FreeIn t a) => FreeIn t (Map Name (Signature a)) where
   free = concatMap free . Map.elems
+
+--class FreeIn a where
+--  free :: a -> [Name]
+--
+--instance FreeIn (Expr t a0 a1 a2 a3) where
+--  free =
+--    cata $ \case
+--      EVar (_, name) -> [name]
+--      ELit lit -> []
+--      EIf e1 e2 e3 -> e1 <> e2 <> e3
+--      ELam _ args expr -> expr `without` (snd <$> args)
+--      ELet _ bind e1 e2 -> (e1 <> e2) `without` [snd bind]
+--      EApp _ fun args -> fun <> concat args
+--      ECall _ (_, name) args -> name : concat args
+--      EOp2 op e1 e2 -> e1 <> e2
+--      ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
+--
+--instance FreeIn (Clause Name) where
+--  free =
+--    \case
+--      Clause (_:vs) expr -> expr `without` vs
+--
+--instance (FreeIn a) => FreeIn (Signature a) where
+--  free = free . snd . body
+--
+--instance (FreeIn a) => FreeIn (Map Name (Signature a)) where
+--  free = concatMap free . Map.elems
 
 class Typed a where
   typeOf :: a -> Type

@@ -31,38 +31,37 @@ main = do
 foo123 =
   [ ("abc", External (Signature [(tInt32, "x")] (tInt32, ())))
   , ("def", Function (Signature [(tInt32, "x")] (tInt32, var (tInt32, "x"))))
-  , ("List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
   ]
 
-foo456 =
-  Program 0 (Map.fromList foo123)
+foo456 = Program 0 (Map.fromList foo123)
 
-foo789 =
-  buildProgram "Main" foo456
+foo789 = buildProgram "Main" foo456
 
-foo999 =
-  Text.putStrLn (ppll foo789)
+foo999 = Text.putStrLn (ppll foo789)
 
 foo1 =
-  app (app (var (tInt32 .-> tInt32 .-> tInt32, "f")) [lit (LInt32 5)]) [lit (LInt32 6)]
+  app
+    (app (var (tInt32 .-> tInt32 .-> tInt32, "f")) [lit (LInt32 5)])
+    [lit (LInt32 6)]
 
-foo2 =
-  runCompiler (compileAst foo1) mempty
+foo2 = runCompiler (compileAst foo1) mempty
 
 foo3 =
-  lam [(tInt32, "x"), (tInt32, "y")] (op2 OAddInt32 (var (tInt32, "x")) (var (tInt32, "y")))
+  lam
+    [(tInt32, "x"), (tInt32, "y")]
+    (op2 OAddInt32 (var (tInt32, "x")) (var (tInt32, "y")))
 
-foo4 =
-  runCompiler (compileAst foo3) mempty
+foo4 = runCompiler (compileAst foo3) mempty
 
-foo5 =
-  app (var (tInt32 .-> tInt32, "f")) [lit (LInt32 5)]
+foo5 = app (var (tInt32 .-> tInt32, "f")) [lit (LInt32 5)]
 
-foo6 =
-  runCompiler (compileAst foo5) mempty
+foo6 = runCompiler (compileAst foo5) mempty
 
-foo9 =
-  runCheck (Env.fromList [("foo", tInt32 .-> tInt32)]) input1
+foo9 = runCheck (Env.fromList [("foo", tInt32 .-> tInt32)]) input1
 
 input1 :: Expr () () () () a3
 input1 =
@@ -73,27 +72,27 @@ input1 =
 
 testProgram :: [(Name, Definition Ast)]
 testProgram =
-  [
-    ( "fact"
+  [ ( "fact"
     , Function
-        ( Signature
-            [(tInt32, "n")]
-            ( tInt32
-            , if_
-                (op2 OEqInt32 (var (tInt32, "n")) (lit (LInt32 0)))
-                (lit (LInt32 1))
-                ( op2
-                    OMulInt32
-                    (var (tInt32, "n"))
-                    ( call_
-                        (tInt32 .-> tInt32, "fact")
-                        [op2 OSubInt32 (var (tInt32, "n")) (lit (LInt32 1))]
-                    )
-                )
-            )
-        )
-    )
-  , ("main", Function (Signature [] (tInt32, call_ (tInt32 .-> tInt32, "fact") [lit (LInt32 5)])))
+        (Signature
+           [(tInt32, "n")]
+           ( tInt32
+           , if_
+               (op2 OEqInt32 (var (tInt32, "n")) (lit (LInt32 0)))
+               (lit (LInt32 1))
+               (op2
+                  OMulInt32
+                  (var (tInt32, "n"))
+                  (call_
+                     (tInt32 .-> tInt32, "fact")
+                     [op2 OSubInt32 (var (tInt32, "n")) (lit (LInt32 1))])))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           (tInt32, call_ (tInt32 .-> tInt32, "fact") [lit (LInt32 5)])))
+  ]
+
 --  , ( "f2"
 --    , Function
 --        ( Signature
@@ -113,156 +112,236 @@ testProgram =
 --            )
 --        )
 --    )
-  ]
+foo4562 = Program 0 (Map.fromList testProgram)
 
-foo4562 =
-  Program 0 (Map.fromList testProgram)
+foo7892 = buildProgram "Main" foo4562
 
-foo7892 =
-  buildProgram "Main" foo4562
-
-foo9992 =
-  Text.putStrLn (ppll foo7892)
-
+foo9992 = Text.putStrLn (ppll foo7892)
 
 testProgram2 :: [(Name, Definition TypedExpr)]
 testProgram2 =
-  [
-    ( "fact"
+  [ ( "fact"
     , Function
-        ( Signature
-            [(tInt32, "n")]
-            ( tInt32
-            , if_
-                (op2 OEqInt32 (var (tInt32, "n")) (lit (LInt32 0)))
-                (lit (LInt32 1))
-                ( op2
-                    OMulInt32
-                    (var (tInt32, "n"))
-                    ( app
-                        (var (tInt32 .-> tInt32, "fact"))
-                        [op2 OSubInt32 (var (tInt32, "n")) (lit (LInt32 1))]
-                    )
-                )
-            )
-        )
-    )
-  , ("main", Function (Signature [] (tInt32, app (var (tInt32 .-> tInt32, "fact")) [lit (LInt32 5)])))
+        (Signature
+           [(tInt32, "n")]
+           ( tInt32
+           , if_
+               (op2 OEqInt32 (var (tInt32, "n")) (lit (LInt32 0)))
+               (lit (LInt32 1))
+               (op2
+                  OMulInt32
+                  (var (tInt32, "n"))
+                  (app
+                     (var (tInt32 .-> tInt32, "fact"))
+                     [op2 OSubInt32 (var (tInt32, "n")) (lit (LInt32 1))])))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           (tInt32, app (var (tInt32 .-> tInt32, "fact")) [lit (LInt32 5)])))
   , ( "f2"
     , Function
-        ( Signature
-            []
-            ( tInt32 .-> tInt32
-            , var (tInt32 .-> tInt32, "fact")
-            )
-        )
-    )
+        (Signature [] (tInt32 .-> tInt32, var (tInt32 .-> tInt32, "fact"))))
   ]
 
 abc123 = Text.putStrLn (ppll foo)
-  where 
+  where
     foo = buildProgram "Main" prog
     prog = execCompiler (compileDefinitions testProgram2) mempty
 
-
 testProgram3 :: [(Name, Definition TypedExpr)]
 testProgram3 =
-  [
-    ( "sum"
+  [ ( "sum"
     , Function
-        ( Signature
-            [(tInt32, "m"), (tInt32, "n")]
-            ( tInt32
-            , op2 OAddInt32 (var (tInt32, "m")) (var (tInt32, "n"))
-            )
-        )
-    )
+        (Signature
+           [(tInt32, "m"), (tInt32, "n")]
+           (tInt32, op2 OAddInt32 (var (tInt32, "m")) (var (tInt32, "n")))))
   , ( "plus5"
     , Function
-        ( Signature
-            []
-            ( tInt32 .-> tInt32
-            , app (var (tInt32 .-> tInt32 .-> tInt32, "sum")) [lit (LInt32 5)]
-            )
-        )
-    )
-  , ("main", Function (Signature [] (tInt32, app (var (tInt32 .-> tInt32, "plus5")) [lit (LInt32 5)])))
+        (Signature
+           []
+           ( tInt32 .-> tInt32
+           , app (var (tInt32 .-> tInt32 .-> tInt32, "sum")) [lit (LInt32 5)])))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           (tInt32, app (var (tInt32 .-> tInt32, "plus5")) [lit (LInt32 5)])))
   ]
 
 abc456 = Text.putStrLn (ppll foo)
-  where 
+  where
     foo = buildProgram "Main" prog
     prog = execCompiler (compileDefinitions testProgram3) mempty
 
-
 testProgram4 :: [(Name, Definition TypedExpr)]
 testProgram4 =
-  [ ("List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
-  , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
-        lit (LInt32 4))))
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+  , ( "foo"
+    , Function (Signature [(tData "List", "xs")] (tInt32, lit (LInt32 4))))
         --case_ (var (tData "List", "xs"))
         --    [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "y"), (tData "List", "ys")], var (tInt32, "y"))
         --    , ([(tData "List", "Nil")], lit (LInt32 0))
         --    ])))
-
-  , ("xyz", Function (Signature [(tData "List", "xs")] (tData "List", 
-        app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")]
-                                                       )))
-
---  , ("xs", Function (Signature [] (tData "List", var (tData "List", "Nil"))))
---
-  , ("main", Function (Signature [] (tInt32, 
-      let_ 
-          (tData "List", "xs")
-          (app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")])
---          (var (tData "List", "xyz"))
-          (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])
-        )))
+  , ( "xyz"
+    , Function
+        (Signature
+           [(tData "List", "xs")]
+           ( tData "List"
+           , app
+               (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+               [lit (LInt32 5), var (tData "List", "Nil")])))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , let_
+               (tData "List", "xs")
+               (app
+                  (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+                  [lit (LInt32 5), var (tData "List", "Nil")])
+               (app
+                  (var (tData "List" .-> tInt32, "foo"))
+                  [var (tData "List", "xs")]))))
   ]
-
           --(app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), app (var (tData "List", "Nil")) []])
           --(var (tData "List", "Nil"))
           --(lit (LInt32 771))
 
+--  , ("xs", Function (Signature [] (tData "List", var (tData "List", "Nil"))))
+--
+--          (var (tData "List", "xyz"))
 -- let xs = Cons(5, Nil) in foo(xs)
-testAbc = 
-  let_ (tData "List", "xs")
-    (app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")])
+testAbc =
+  let_
+    (tData "List", "xs")
+    (app
+       (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+       [lit (LInt32 5), var (tData "List", "Nil")])
     (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])
 
 -- (\xs : List -> foo(xs))(Cons(5, Nil))
-testAbc2 = 
-  app (lam [(tData "List", "xs")] (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])) 
-    [app (var (tInt32 .-> tData "List" .-> tData "List", "Cons")) [lit (LInt32 5), var (tData "List", "Nil")]]
+testAbc2 =
+  app
+    (lam
+       [(tData "List", "xs")]
+       (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")]))
+    [ app
+        (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+        [lit (LInt32 5), var (tData "List", "Nil")]
+    ]
+
+--testAbc3 :: TypedExpr
+testAbc3 = runReader (preprocess testAbc2) mempty
+
+testAbc4 :: TypedExpr
+testAbc4 =
+  app
+    (app
+       (lam
+          [(tData "List" .-> tInt32, "foo"), (tData "List", "xs")]
+          (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")]))
+       [var (tData "List" .-> tInt32, "foo")])
+    [ app
+        (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+        [lit (LInt32 5), var (tData "List", "Nil")]
+    ]
+
+testAbc6 :: PreAst
+testAbc6 =
+  app
+    (lam
+       [(tData "List" .-> tInt32, "foo"), (tData "List", "xs")]
+       (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")]))
+    [ var (tData "List" .-> tInt32, "foo")
+    , app
+        (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+        [lit (LInt32 5), var (tData "List", "Nil")]
+    ]
+
+testAbc7 = runCompiler (compileAst testAbc6) mempty
+
+testAbc8 =
+  call_
+    ((tData "List" .-> tInt32) .-> tData "List" .-> tInt32, "def_0")
+    [ var (tData "List" .-> tInt32, "foo")
+    , call_
+        (tInt32 .-> tData "List" .-> tData "List", "Cons")
+        [lit (LInt32 5), var (tData "List", "Nil")]
+    ]
+
+--    [("def_0",Function (Signature {arguments = [(Fix (TArr (Fix (TData "List")) (Fix TInt32)),"foo"),(Fix (TData "List"),"xs")], body = (Fix TInt32,Fix (ECall () (Fix (TArr (Fix (TData "List")) (Fix TInt32)),"foo") [Fix (EVar (Fix (TData "List"),"xs"))]))}))]})
+--testAbc5 = compileFunction "main" (Signature [] (undefined, testAbc4))
+testAbc5 = Text.putStrLn (ppll foo)
+  where
+    foo = buildProgram "Main" prog
+    prog =
+      toProgram
+        [ ( "List"
+          , Data
+              "List"
+              [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+        , ( "main"
+          , Function
+              (Signature
+                 []
+                 ( tInt32
+                 , app
+                     (app
+                        (lam
+                           [ (tData "List" .-> tInt32, "foo")
+                           , (tData "List", "xs")
+                           ]
+                           (app
+                              (var (tData "List" .-> tInt32, "foo"))
+                              [var (tData "List", "xs")]))
+                        [var (tData "List" .-> tInt32, "foo")])
+                     [ app
+                         (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+                         [lit (LInt32 5), app (var (tData "List", "Nil")) []] -- var (tData "List", "Nil")]
+                     ] :: TypedExpr)))
+        , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
+                    case_ (var (tData "List", "xs"))
+                    [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "y"), (tData "List", "ys")], var (tInt32, "y"))
+                    , ([(tData "List", "Nil")], lit (LInt32 0))
+                    ]
+                                                             )))
+        ]
+
 
 testProgram5 :: [(Name, Definition Ast)]
 testProgram5 =
-  [ ("List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
---  , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
---        lit (LInt32 4))))
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
         --case_ (var (tData "List", "xs"))
         --    [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "y"), (tData "List", "ys")], var (tInt32, "y"))
         --    , ([(tData "List", "Nil")], lit (LInt32 0))
         --    ])))
+  , ( "xs"
+    , Function
+        (Signature
+           []
+           ( tData "List"
+           , call_
+               (tInt32 .-> tData "List" .-> tData "List", "Cons")
+               [lit (LInt32 5), var (tData "List", "Nil")])))
+  ]
 
-  , ("xs", Function (Signature [] (tData "List",
-          call_ (tInt32 .-> tData "List" .-> tData "List", "Cons") 
-              [lit (LInt32 5), var (tData "List", "Nil") 
-          ])))
-
+--  , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
+--        lit (LInt32 4))))
 --  , ("main", Function (Signature [] (tInt32, 
 --          call_ (tData "List" .-> tInt32, "foo") [var (tData "List", "xs")]
 --        )))
-  ]
-
-
 abc789 = Text.putStrLn (ppll foo)
-  where 
+  where
     foo = buildProgram "Main" prog
-    prog = toProgram testProgram4
-
-
---
+    prog = toProgram testProgram4 --
 ----runTestModule :: IO ()
 ----runTestModule = Text.putStrLn (ppll testModule)
 ----

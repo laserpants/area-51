@@ -49,7 +49,13 @@ convertClosures =
     EVar v -> pure (var v)
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
-    EApp _ fun args -> app <$> fun <*> sequence args
+    EApp _ fun args -> do
+      fun >>= (project >>> \case
+        EApp _ g as1 -> do
+          as <- sequence args
+          pure (app g (as1 <> as))
+        _ ->
+          app <$> fun <*> sequence args)
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
       let insertNames (n:vs, expr) = do
@@ -58,21 +64,21 @@ convertClosures =
        in case_ <$> e1 <*> traverse insertNames cs
     ELam _ args expr -> do
       body <- local (insertArgs args) expr
-      let names = free body `without` (args <#> snd)
-      extra <- (`zip` names) <$> traverse foo2 names -- (fromJust <$$> Env.askLookup) names
-      let lambda = lam (extra <> args) body
+      let extra = free body `without` args 
+          lambda = lam (extra <> args) body
       pure $
         case extra of
           [] -> lambda
           _ -> app lambda (var <$> extra)
 
-foo2 name = do
-  Env env <- ask
-  case env !? name of
-    Nothing ->
-      error ("Not found: " <> show name)
-    Just x ->
-      pure x
+--foo2 :: (MonadReader TypeEnv m) => Name -> m Type
+--foo2 name = do
+--  Env env <- ask
+--  case env !? name of
+--    Nothing ->
+--      error ("-- Not found: " <> show name)
+--    Just x ->
+--      pure x
 
 preprocess :: (MonadReader TypeEnv m) => TypedExpr -> m PreAst
 preprocess = combineLambdas >>> convertLetBindings >>> convertClosures
