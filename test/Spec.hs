@@ -32,19 +32,19 @@ main =
    do
     describe "free" $ do
       describe "Expr" $ do
-        runFreeTest "x                                       >>  [x]"     (var (i32, "x")) ["x"]
-        runFreeTest "5                                       >>  []"      (lit (LInt32 5)) []
+        runFreeTest "x                                       >>  [x]"     (var (i32, "x")) [(tInt32, "x")]
+        runFreeTest "5                                       >>  []"      (lit (LInt32 5) :: Ast) []
         runFreeTest "lam(x) => x                             >>  []"      (lam [((), "x")] (var ((), "x"))) []
-        runFreeTest "lam(x) => y                             >>  [y]"     (lam [((), "x")] (var ((), "y"))) ["y"]
-        runFreeTest "lam(x) => f y                           >>  [f, y]"  (lam [((), "x")] (app (var ((), "f")) [var ((), "y")])) ["f", "y"]
-        runFreeTest "lam(x) => f x                           >>  [f]"     (lam [((), "x")] (app (var ((), "f")) [var ((), "x")])) ["f"]
-        runFreeTest "let f = foo in lam(x) => f x            >>  [foo]"   input1 ["foo"]
-        runFreeTest "x + y                                   >>  [x, y]"  input2 ["x", "y"]
-        runFreeTest "match xs { Cons x ys => x }             >>  [xs]"    input3 ["xs"]
-        runFreeTest "match xs { Cons x ys => y }             >>  [xs, y]" input4 ["xs", "y"]
-        runFreeTest "match xs { Cons x ys => x | Nil => y }  >>  [xs, y]" input5 ["xs", "y"]
-        runFreeTest "if x then y else z                      >>  [x, y, z]" (if_ (var ((), "x")) (var ((), "y")) (var ((), "z"))) ["x", "y", "z"]
-        runFreeTest "f(5)                                    >>  f"         (call_ ((), "f") [lit (LInt32 5)]) ["f"]
+        runFreeTest "lam(x) => y                             >>  [y]"     (lam [((), "x")] (var ((), "y"))) [((), "y")]
+        runFreeTest "lam(x) => f y                           >>  [f, y]"  (lam [((), "x")] (app (var ((), "f")) [var ((), "y")])) [((), "f"), ((), "y")]
+        runFreeTest "lam(x) => f x                           >>  [f]"     (lam [((), "x")] (app (var ((), "f")) [var ((), "x")])) [((), "f")]
+        runFreeTest "let f = foo in lam(x) => f x            >>  [foo]"   input1 [((), "foo")]
+        runFreeTest "x + y                                   >>  [x, y]"  input2 [((), "x"), ((), "y")]
+        runFreeTest "match xs { Cons x ys => x }             >>  [xs]"    input3 [((), "xs")]
+        runFreeTest "match xs { Cons x ys => y }             >>  [xs, y]" input4 [((), "xs"), ((), "y")]
+        runFreeTest "match xs { Cons x ys => x | Nil => y }  >>  [xs, y]" input5 [((), "xs"), ((), "y")]
+        runFreeTest "if x then y else z                      >>  [x, y, z]" (if_ (var ((), "x")) (var ((), "y")) (var ((), "z"))) [((), "x"), ((), "y"), ((), "z")]
+        runFreeTest "f(5)                                    >>  f"         (call_ ((), "f") [lit (LInt32 5)]) [((), "f")]
       describe "Signature" $ do runIO $ print "TODO"
     ---------------------------------------------------------------------------
     describe "typeOf" $ do

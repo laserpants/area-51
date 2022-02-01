@@ -27,7 +27,7 @@ type TestCase input result = String -> input -> result -> SpecWith ()
 iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
 iso xs ys = Set.fromList xs == Set.fromList ys
 
-runFreeTest :: (FreeIn a) => String -> a -> [Name] -> SpecWith ()
+runFreeTest :: (Eq t) => String -> Expr t a0 a1 a2 a3 -> [Label t] -> SpecWith ()
 runFreeTest description input expected = it description $ free input == expected
 
 runUnwindTypeTest :: TestCase Type [Type]
