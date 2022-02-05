@@ -267,8 +267,8 @@ instance Source TypedExpr where
     compileDefinitions <=<
       mapM (\(name, def) -> do
         (name,) <$> (case def of
-          --Function sig -> fillParams =<< compileFunction name sig
-          Function sig -> compileFunction name sig
+          Function sig -> fillParams =<< compileFunction name sig
+          --Function sig -> compileFunction name sig
           External sig -> pure (External sig)
           Constant lit -> pure (Constant lit)
           Data name css -> pure (Data name css)))

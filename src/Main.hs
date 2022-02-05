@@ -292,8 +292,8 @@ testAbc5 = Text.putStrLn (ppll foo)
                  ( tInt32
                  , app
                      (app
-                        (lam
-                           [ (tData "List" .-> tInt32, "foo")
+                        (lam  -- \foo xs -> foo(xs)
+                           [ (tData "List" .-> tOpaque, "foo")
                            , (tData "List", "xs")
                            ]
                            (app
@@ -304,9 +304,9 @@ testAbc5 = Text.putStrLn (ppll foo)
                          (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
                          [lit (LInt32 5), app (var (tData "List", "Nil")) []] -- var (tData "List", "Nil")]
                      ] :: TypedExpr)))
-        , ("foo", Function (Signature [(tData "List", "xs")] (tInt32, 
+        , ("foo", Function (Signature [(tData "List", "xs")] (tOpaque, 
                     case_ (var (tData "List", "xs"))
-                    [ ([(tInt32 .-> tData "List" .-> tData "List", "Cons"), (tInt32, "y"), (tData "List", "ys")], var (tInt32, "y"))
+                    [ ([(tOpaque .-> tData "List" .-> tData "List", "Cons"), (tOpaque, "y"), (tData "List", "ys")], var (tOpaque, "y"))
                     , ([(tData "List", "Nil")], lit (LInt32 0))
                     ]
                                                              )))
@@ -577,3 +577,48 @@ abc789 = Text.putStrLn (ppll foo)
 ----
 ----runTestModule7 :: IO ()
 ----runTestModule7 = Text.putStrLn (ppll testModule7)
+
+
+testAbc56 = Text.putStrLn (ppll foo)
+  where
+    foo = buildProgram "Main" prog
+    prog :: Program
+    prog =
+      toProgram
+        (
+        [ ( "List"
+          , Data
+              "List"
+              [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+--        , ( "main"
+--          , Function undefined
+--          )
+--
+--        , ( "main"
+--          , Function
+--              (Signature
+--                 []
+--                 ( tInt32
+--                 , app
+--                     (app
+--                        (lam  -- \foo xs -> foo(xs)
+--                           [ (tData "List" .-> tOpaque, "foo")
+--                           , (tData "List", "xs")
+--                           ]
+--                           (app
+--                              (var (tData "List" .-> tInt32, "foo"))
+--                              [var (tData "List", "xs")]))
+--                        [var (tData "List" .-> tInt32, "foo")])
+--                     [ app
+--                         (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+--                         [lit (LInt32 5), app (var (tData "List", "Nil")) []] -- var (tData "List", "Nil")]
+--                     ] :: TypedExpr)))
+        , ("foo", Function (Signature [(tData "List", "xs")] (tOpaque, 
+                    case_ (var (tData "List", "xs"))
+                    [ ([(tOpaque .-> tData "List" .-> tData "List", "Cons"), (tOpaque, "y"), (tData "List", "ys")], var (tOpaque, "y"))
+                    , ([(tData "List", "Nil")], lit (LInt32 0))
+                    ]
+                                                             )))
+        ] :: [(Name, Definition Ast)] )
+
+
