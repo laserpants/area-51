@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Pong.Data where
 
@@ -155,7 +155,7 @@ newtype Compiler a =
     { getCompiler :: ReaderT TypeEnv (State Program) a
     }
 
-type CodeGenEnv = Environment Operand
+type CodeGenEnv = Environment (Type, Operand)
 
 newtype CodeGen a =
   CodeGen
@@ -163,8 +163,7 @@ newtype CodeGen a =
     }
 
 class Source a where
---  toProgram :: [(Name, Definition a)] -> Program -- TODO: Either Error Program
-  compileDefinitions :: [(Name, Definition a)] -> Compiler ()
+  compileFunction :: Name -> Signature a -> Compiler (Definition Ast)
 
 -- Type
 deriving instance (Show a) => Show (TypeF a)
@@ -247,6 +246,10 @@ deriving instance (Eq a) => Eq (Environment a)
 deriving instance (Ord a) => Ord (Environment a)
 
 deriving instance Functor Environment
+
+deriving instance Foldable Environment
+
+deriving instance Traversable Environment
 
 instance Semigroup (Environment a) where
   Env a <> Env b = Env (a <> b)

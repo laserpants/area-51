@@ -21,9 +21,9 @@ input1 =
 input1Typed :: Expr Type () () () Void
 input1Typed =
   let_
-    (i32 .-> i32, "f")
-    (var (i32 .-> i32, "foo"))
-    (lam [(i32, "x")] (app (var (i32 .-> i32, "f")) [var (i32, "x")]))
+    (i32 ~> i32, "f")
+    (var (i32 ~> i32, "foo"))
+    (lam [(i32, "x")] (app (var (i32 ~> i32, "f")) [var (i32, "x")]))
 
 input2 :: Expr () a0 a1 a2 a3
 input2 = op2 OAddInt32 (var ((), "x")) (var ((), "y"))
@@ -66,7 +66,7 @@ input6 =
                 OAddInt32
                 (op2 OAddInt32 (var (i32, "m")) (var (i32, "n")))
                 (var (i32, "p"))))))
-    (var (i32 .-> i32 .-> i32, "sum"))
+    (var (i32 ~> i32 ~> i32, "sum"))
 
 input6NoLetBindings :: Expr Type a0 () () a3
 input6NoLetBindings =
@@ -83,14 +83,14 @@ input7 :: Expr Type () () () a3
 input7 =
   let_
     (i32, "x")
-    (app (var (i32 .-> i32, "foo")) [var (i32, "x")])
+    (app (var (i32 ~> i32, "foo")) [var (i32, "x")])
     (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3)))
 
 input7NoLetBindings :: Expr Type a0 () () a3
 input7NoLetBindings =
   app
     (lam [(i32, "x")] (op2 OAddInt32 (var (i32, "x")) (lit (LInt32 3))))
-    [app (var (i32 .-> i32, "foo")) [var (i32, "x")]]
+    [app (var (i32 ~> i32, "foo")) [var (i32, "x")]]
 
 input8 :: Expr Type a0 () () a3
 input8 =
@@ -145,14 +145,14 @@ input10 =
 --                   (i32, bOp2 OAddInt32 (bVar "x") (bVar "y"))))
 --          , ( "fun"
 --            , Function
---                (Signature [(i32, "x")] (i32 .-> i32, bCall "plus" [bVar "x"])))
+--                (Signature [(i32, "x")] (i32 ~> i32, bCall "plus" [bVar "x"])))
 --          ]
 --    }
 input12 :: Expr () () () () a3
 input12 = lam [((), "x")] (app (var ((), "plus")) [var ((), "x")])
 
 input13 :: TypeEnv
-input13 = Env.fromList [("plus", i32 .-> i32 .-> i32)]
+input13 = Env.fromList [("plus", i32 ~> i32 ~> i32)]
 
 --input14 :: Body
 --input14 = bCase (bVar "xs") [(["Cons", "x", "ys"], bVar "x")]
@@ -178,9 +178,9 @@ input16 =
   let_
     (tData "List", "xs")
     (app
-       (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+       (var (tInt32 ~> tData "List" ~> tData "List", "Cons"))
        [lit (LInt32 5), var (tData "List", "Nil")])
-    (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")])
+    (app (var (tData "List" ~> tInt32, "foo")) [var (tData "List", "xs")])
 
 -- (\xs : List -> foo(xs))(Cons(5, Nil))
 input16NoLetBindings :: Expr Type a0 () () a3
@@ -188,9 +188,9 @@ input16NoLetBindings =
   app
     (lam
        [(tData "List", "xs")]
-       (app (var (tData "List" .-> tInt32, "foo")) [var (tData "List", "xs")]))
+       (app (var (tData "List" ~> tInt32, "foo")) [var (tData "List", "xs")]))
     [ app
-        (var (tInt32 .-> tData "List" .-> tData "List", "Cons"))
+        (var (tInt32 ~> tData "List" ~> tData "List", "Cons"))
         [lit (LInt32 5), var (tData "List", "Nil")]
     ]
 --input16 :: [(Name, Definition (Expr ()))]

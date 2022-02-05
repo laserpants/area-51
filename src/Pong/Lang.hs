@@ -12,6 +12,7 @@ module Pong.Lang
   , FreeIn(..)
   , Typed
   , HasArity
+  , annotate
   , unwindType
   , insertArgs
   , typeOf
@@ -36,7 +37,7 @@ module Pong.Lang
   , tArr
   , tData
   , tOpaque
-  , (.->)
+  , (~>)
   , var
   , lit
   , if_
@@ -52,7 +53,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
 import Data.Void
-import Data.Tuple.Extra (first)
+import Data.Tuple.Extra (first, dupe)
 import Pong.Data
 import Pong.Util
 import qualified Pong.Util.Env as Env
@@ -84,33 +85,6 @@ instance (FreeIn t a) => FreeIn t (Signature a) where
 instance (FreeIn t a) => FreeIn t (Map Name (Signature a)) where
   free = concatMap free . Map.elems
 
---class FreeIn a where
---  free :: a -> [Name]
---
---instance FreeIn (Expr t a0 a1 a2 a3) where
---  free =
---    cata $ \case
---      EVar (_, name) -> [name]
---      ELit lit -> []
---      EIf e1 e2 e3 -> e1 <> e2 <> e3
---      ELam _ args expr -> expr `without` (snd <$> args)
---      ELet _ bind e1 e2 -> (e1 <> e2) `without` [snd bind]
---      EApp _ fun args -> fun <> concat args
---      ECall _ (_, name) args -> name : concat args
---      EOp2 op e1 e2 -> e1 <> e2
---      ECase e1 cs -> e1 <> (cs >>= (free . uncurry Clause) . first (fmap snd))
---
---instance FreeIn (Clause Name) where
---  free =
---    \case
---      Clause (_:vs) expr -> expr `without` vs
---
---instance (FreeIn a) => FreeIn (Signature a) where
---  free = free . snd . body
---
---instance (FreeIn a) => FreeIn (Map Name (Signature a)) where
---  free = concatMap free . Map.elems
-
 class Typed a where
   typeOf :: a -> Type
 
@@ -132,18 +106,18 @@ instance Typed Literal where
 instance Typed Op2 where
   typeOf =
     \case
-      OEqInt32 -> tInt32 .-> tInt32 .-> tBool
-      OAddInt32 -> tInt32 .-> tInt32 .-> tInt32
-      OSubInt32 -> tInt32 .-> tInt32 .-> tInt32
-      OMulInt32 -> tInt32 .-> tInt32 .-> tInt32
-      OAddFloat -> tFloat .-> tFloat .-> tFloat
-      OMulFloat -> tFloat .-> tFloat .-> tFloat
-      OSubFloat -> tFloat .-> tFloat .-> tFloat
-      ODivFloat -> tFloat .-> tFloat .-> tFloat
-      OAddDouble -> tDouble .-> tDouble .-> tDouble
-      OMulDouble -> tDouble .-> tDouble .-> tDouble
-      OSubDouble -> tDouble .-> tDouble .-> tDouble
-      ODivDouble -> tDouble .-> tDouble .-> tDouble
+      OEqInt32 -> tInt32 ~> tInt32 ~> tBool
+      OAddInt32 -> tInt32 ~> tInt32 ~> tInt32
+      OSubInt32 -> tInt32 ~> tInt32 ~> tInt32
+      OMulInt32 -> tInt32 ~> tInt32 ~> tInt32
+      OAddFloat -> tFloat ~> tFloat ~> tFloat
+      OMulFloat -> tFloat ~> tFloat ~> tFloat
+      OSubFloat -> tFloat ~> tFloat ~> tFloat
+      ODivFloat -> tFloat ~> tFloat ~> tFloat
+      OAddDouble -> tDouble ~> tDouble ~> tDouble
+      OMulDouble -> tDouble ~> tDouble ~> tDouble
+      OSubDouble -> tDouble ~> tDouble ~> tDouble
+      ODivDouble -> tDouble ~> tDouble ~> tDouble
 
 instance Typed (Expr Type a0 a1 a2 a3) where
   typeOf =
@@ -201,6 +175,9 @@ isCon con =
     ELam {}
       | LamE == con -> True
     _ -> False
+
+annotate :: (Typed a) => a -> (Type, a)
+annotate = first typeOf . dupe
 
 unwindType :: (Typed t) => t -> [Type]
 unwindType =
@@ -287,10 +264,10 @@ tArr = embed2 TArr
 
 infixr 1 `tArr`
 
-{-# INLINE (.->) #-}
-(.->) = tArr
+{-# INLINE (~>) #-}
+(~>) = tArr
 
-infixr 1 .->
+infixr 1 ~>
 
 {-# INLINE tData #-}
 tData :: Name -> Type

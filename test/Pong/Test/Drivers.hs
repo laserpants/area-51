@@ -62,7 +62,7 @@ runTypeCheckerTest :: TestCase (Expr t () () () Void, TypeEnv) (Either TypeError
 runTypeCheckerTest description (input, env) expected =
   it description $ runCheck env input == expected
 
-runConvertLetBindingsTest :: TestCase (Expr Type () () () Void) (Expr Type () () () Void)
+runConvertLetBindingsTest :: TestCase (Expr Type () () () Void) PreAst
 runConvertLetBindingsTest description input expected =
   it description $ convertLetBindings input == expected
 
@@ -70,7 +70,7 @@ runCombineLambdasTest :: TestCase (Expr Type () () () Void) (Expr Type () () () 
 runCombineLambdasTest description input expected =
   it description $ combineLambdas input == expected
 
-runConvertClosuresTest :: TestCase (Expr Type () () () Void) (Expr Type Void () () Void)
+runConvertClosuresTest :: TestCase PreAst (Expr Type Void () () Void)
 runConvertClosuresTest description input expected =
   it description $ runReader (convertClosures input) mempty == expected
 

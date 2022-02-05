@@ -18,6 +18,10 @@ module Pong.Util
   , embed4
   , embed5
   , without
+--  , localFirst
+--  , asksFirst
+--  , localSecond
+--  , asksSecond
   ) where
 
 import Control.Arrow ((***), (<<<), (>>>))
@@ -87,3 +91,19 @@ embed5 ::
   -> t5
   -> t
 embed5 t a b c d e = embed (t a b c d e)
+
+--{-# INLINE localFirst #-}
+--localFirst :: MonadReader (q, r) m => (q -> q) -> m a -> m a
+--localFirst = local . first
+--
+--{-# INLINE asksFirst #-}
+--asksFirst :: MonadReader (q, r) m => (q -> a) -> m a
+--asksFirst = asks . (fst >>>)
+--
+--{-# INLINE localSecond #-}
+--localSecond :: MonadReader (q, r) m => (r -> r) -> m a -> m a
+--localSecond = local . second
+--
+--{-# INLINE asksSecond #-}
+--asksSecond :: MonadReader (q, r) m => (r -> a) -> m a
+--asksSecond = asks . (snd >>>)
