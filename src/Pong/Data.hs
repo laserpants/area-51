@@ -43,7 +43,7 @@ data TypeF a
   | TArr a a
   | TVar Int
   | TData Name
-  | TOpaque
+--  | TOpaque
 
 type Type = Fix TypeF
 

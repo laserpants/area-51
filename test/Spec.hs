@@ -50,24 +50,24 @@ main =
     describe "typeOf" $ do
       describe "Literal" $ do runTypeOfTest "True" (LBool True) tBool
       describe "Op2" $ do
-        runTypeOfTest "OEqInt32" OEqInt32 (i32 .-> i32 .-> tBool)
+        runTypeOfTest "OEqInt32" OEqInt32 (i32 ~> i32 ~> tBool)
       describe "Ast" $ do runIO $ print "TODO"
       describe "Definition" $ do
         runTypeOfTest
           "#1"
           (Function
              (Signature [(i32, "x"), (tUnit, "y")] (tBool, lit (LBool True))))
-          (i32 .-> tUnit .-> tBool)
+          (i32 ~> tUnit ~> tBool)
         runTypeOfTest "#2" (Constant (LBool True)) tBool
     ---------------------------------------------------------------------------
     describe "arity" $ do
       describe "Definition" $ do runIO $ print "TODO"
       describe "Type" $ do
-        runArityTest "Int32 -> Int32 -> Int32" (i32 .-> i32 .-> i32) 2
+        runArityTest "Int32 ~> Int32 ~> Int32" (i32 ~> i32 ~> i32) 2
         runArityTest "Int32" i32 0
     ---------------------------------------------------------------------------
     describe "isTCon" $ do
-      runIsTConTest "i32 -> i32 == ArrT" (ArrT, i32 .-> i32) True
+      runIsTConTest "i32 ~> i32 == ArrT" (ArrT, i32 ~> i32) True
       runIsTConTest "t          /= ArrT" (ArrT, tVar 0) False
       runIsTConTest "i32        /= VarT" (VarT, i32) False
       runIsTConTest "t          == VarT" (VarT, tVar 0) True
@@ -81,22 +81,22 @@ main =
     ---------------------------------------------------------------------------
     describe "unwindType" $ do
       runUnwindTypeTest "i32" i32 [i32]
-      runUnwindTypeTest "i32 -> i32" (i32 .-> i32) [i32, i32]
+      runUnwindTypeTest "i32 ~> i32" (i32 ~> i32) [i32, i32]
       runUnwindTypeTest
-        "(i32 -> i32) -> i32"
-        ((i32 .-> i32) .-> i32)
-        [i32 .-> i32, i32]
+        "(i32 ~> i32 ~> i32"
+        ((i32 ~> i32) ~> i32)
+        [i32 ~> i32, i32]
       runUnwindTypeTest
-        "(i32 -> i32) -> (i32 -> i32)"
-        ((i32 .-> i32) .-> (i32 .-> i32))
-        [i32 .-> i32, i32, i32]
+        "(i32 ~> i32 ~> (i32 ~> i32)"
+        ((i32 ~> i32) ~> (i32 ~> i32))
+        [i32 ~> i32, i32, i32]
       runUnwindTypeTest
-        "(i32 -> i32) -> i32 -> i32"
-        ((i32 .-> i32) .-> i32 .-> i32)
-        [i32 .-> i32, i32, i32]
+        "(i32 ~> i32 ~> i32 ~> i32"
+        ((i32 ~> i32) ~> i32 ~> i32)
+        [i32 ~> i32, i32, i32]
     ---------------------------------------------------------------------------
     describe "returnTypeOf" $ do
-      runReturnTypeOfTest "Int32 -> Int32 -> Bool" (i32 .-> i32 .-> tBool) tBool
+      runReturnTypeOfTest "Int32 ~> Int32 ~> Bool" (i32 ~> i32 ~> tBool) tBool
       runReturnTypeOfTest "OEqInt32" OEqInt32 tBool
       runReturnTypeOfTest "Bool" tBool tBool
     ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ main =
       runFoldTypeTest
         "(tBool, [i32, tUnit])"
         (tBool, [i32, tUnit])
-        (i32 .-> tUnit .-> tBool)
+        (i32 ~> tUnit ~> tBool)
       runFoldTypeTest "(i32, [])" (i32, []) i32
     ---------------------------------------------------------------------------
     describe "insertArgs" $ do runIO $ print "TODO"
@@ -118,7 +118,7 @@ main =
     describe "runCheck" $ do
       runTypeCheckerTest
         "#1"
-        (input1, Env.fromList [("foo", i32 .-> i32)])
+        (input1, Env.fromList [("foo", i32 ~> i32)])
         (Right input1Typed)
       runTypeCheckerTest
         "#2"
@@ -143,7 +143,7 @@ main =
     describe "uniqueName" $ do runUniqueNameTest "#1"
     describe "compileFunction" $ do runIO $ print "TODO"
 --    describe "compileAst" $ do
---      runCompileAstessionTest1 "#1" (input12, input13) (i32 .-> i32 .-> i32)
+--      runCompileAstessionTest1 "#1" (input12, input13) (i32 ~> i32 ~> i32)
 --    describe "lookupFunType" $ do runIO $ print "TODO"
     describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
 --    describe "compileProgram" $ do

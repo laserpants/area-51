@@ -6,6 +6,7 @@ module Pong.TypeChecker
   ( runCheck
   ) where
 
+import Debug.Trace
 import Control.Arrow ((>>>))
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -86,6 +87,8 @@ unify t1 t2 =
       sub1 <- unify t1 u1
       sub2 <- unify (apply sub1 t2) (apply sub1 u2)
       pure (sub2 <> sub1)
+--    (TOpaque, _) -> pure mempty
+--    (_, TOpaque) -> pure mempty
     _
       | t1 == t2 -> pure mempty
       | otherwise -> throwError UnificationError

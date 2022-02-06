@@ -44,11 +44,12 @@ llvmType =
     TInt64 {} -> LLVM.i64
     TFloat {} -> LLVM.float
     TDouble {} -> LLVM.double
-    TVar {} -> error "Implementation error"
+--    TVar {} -> error "Implementation error"
+    TVar {} -> charPtr -- TODO ??
     TChar {} -> error "Not implemented" -- TODO
     TString {} -> error "Not implemented" -- TODO
     TData name -> ptr (namedReference name)
-    TOpaque -> charPtr
+--    TOpaque -> charPtr
     ty@TArr {} -> ptr (StructureType False [ptr funTy])
       where types = llvmType <$> unwindType (embed ty)
             funTy =
@@ -101,18 +102,18 @@ emitOp2Instr =
     OSubDouble -> fsub
     ODivDouble -> fdiv
 
-refOp :: LLVM.Name -> LLVM.Type -> Operand
-refOp name ty = ConstantOperand (GlobalReference ty name)
+globalRef :: LLVM.Name -> LLVM.Type -> Operand
+globalRef name ty = ConstantOperand (GlobalReference ty name)
 
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
-functionRef name rty argtys = refOp name (ptr (FunctionType rty argtys False))
+functionRef name rty argtys = globalRef name (ptr (FunctionType rty argtys False))
 
 --buildDataType :: (MonadModuleBuilder m) => Name -> [Constructor] -> m ()
 --buildDataType tyName cstrs = do
 --  tp <- typedef (llvmRep tyName) (Just (StructureType False [i8]))
---  forM_ (sortOn consName cstrs `zip` [1 ..]) $ \(Constructor tycon fields, i) -> do
+--  forM_ (sortOn consName cstrs `zip` [1 ..]) $ \(Constructor tcon fields, i) -> do
 --    let ts = llvmType <$> fields
---        con = llvmRep (tyName <> "__" <> tycon)
+--        con = llvmRep (tyName <> "__" <> tcon)
 --    td <-
 --      typedef con
 --        (Just (StructureType False (i8 : ts)))
@@ -127,24 +128,6 @@ functionRef name rty argtys = refOp name (ptr (FunctionType rty argtys False))
 --        p <- bitcast op (ptr tp)
 --        ret p)
 --
----- TODO
---consTypes :: (Name, Definition (Expr t a0 a1 a2 a3)) -> [(Name, Type)]
---consTypes (name, def) =
---  constructors def <#> \Constructor {..} ->
---    (consName, foldr tArr (tData name) (Pong.Lang.typeOf <$> consFields))
---
---xxx :: Name -> Definition (Expr t a0 a1 a2 a3) -> [(Name, Type)]
---xxx = curry consTypes 
---boom :: Name -> Definition Ast -> Environment (Type, Operand) -> Environment (Type, Operand)
---boom name def env = 
---    Env.inserts undefined env
---  where
---    consts :: Int
---    consts = 
---      constructors def <#> \Constructor {..} ->
---        (consName, foldr tArr (tData name) (Pong.Lang.typeOf <$> consFields))
---annotate :: (Functor f) => f (Definition Ast) -> f (Type, Definition Ast)
---annotate = fmap annotate1
 
 forEachDef :: (Monad m) => Map Name (a, b) -> (Name -> a -> b -> m c) -> m [c]
 forEachDef map f = forM (Map.toList map) $ uncurry (uncurry . f)
@@ -169,10 +152,9 @@ buildProgram prog Program {..} =
             pure [(name, (t, op))]
           Data tyName cstrs -> do
             tp <- typedef (llvmRep tyName) (Just (StructureType False [i16]))
-            concat <$$> forM (sortOn consName cstrs `zip` [1 ..]) $ \(Constructor tycon fields, i) -> do
+            concat <$$> forM (sortOn consName cstrs `zip` [1 ..]) $ \(Constructor tcon fields, i) -> do
               let ts = llvmType <$> fields
-                  name1 = tyName <> "__" <> tycon
-                  con = llvmRep name1
+                  con = llvmRep (tyName <> "__" <> tcon)
               td <- typedef con (Just (StructureType False (i16 : ts)))
               f <-
                 function
@@ -186,7 +168,7 @@ buildProgram prog Program {..} =
                        storeAtOffs j op arg
                      p <- bitcast op (ptr tp)
                      ret p)
-              pure [(name1, (foldType (tData tyName) fields, f))]
+              pure [(tcon, (foldType (tData tyName) fields, f))]
           Function Signature {..} ->
             pure
               [ ( name
@@ -232,8 +214,10 @@ emitBody =
       emitOp2Instr op a b
     EVar (t, name) ->
       Env.askLookup name >>= \case
-        Just (t1, op) -> do
-          emitLit (LInt32 123123) -- TODO
+        Just (_, x) ->
+          pure x
+--        Just (t1, op) -> do
+--          emitLit (LInt32 123123) -- TODO
         _ -> error ("Not in scope: '" <> show name <> "'")
     ECase expr clss -> emitCase expr (sortOn fst clss)
     ECall () fun args -> emitCall fun args
@@ -243,10 +227,98 @@ emitBody =
 --        Just op -> pure op
 emitCase ::
      CodeGen Operand -> [([Label Type], CodeGen Operand)] -> CodeGen Operand
-emitCase = undefined
+emitCase expr cs = mdo
+  e <- expr
+  m <- loadFromOffset 0 e
+  let names = blocks <#> snd
+  switch
+    m
+    (last names)  -- Default case
+    [ (Int 16 (fromIntegral i), block)
+    | (i, block) <- zip [1 ..] (init names)
+    ]
+  blocks <-
+    forM cs $ \((t, con):fields, body) -> do
+      blk <- block `named` "case"
+      r <-
+        if null fields
+          then body
+          else do
+            Env env <- ask
+            traceShowM "~~~~~~~~~~"
+            traceShowM (argTypes t)
+            let t0 = fst (env ! con)
+            struct <- bitcast e (ptr (StructureType False (i16 : (argTypes t0 <#> llvmType))))
+            ops <-
+              forM (zip3 [1..] (argTypes t0) (argTypes t)) $ \(i, t0, t) -> do
+                op <- loadFromOffset i struct
+                --op <- loadFromOffset i struct
+                q <- foo2 (op, t0, t)
+                pure (t, q)
+                --pure (t, q)
+                ---pure (t, op)
+                --op <- loadFromOffset i struct
+                --op1 <- foo2 (op, t)
+            local (Env.inserts (zip (fields <#> snd) ops)) body
+      br end
+      cb <- currentBlock
+      pure ((r, cb), blk)
+  end <- block `named` "end"
+  phi (blocks <#> fst)
 
 emitCall :: Label Type -> [CodeGen Operand] -> CodeGen Operand
-emitCall = undefined
+emitCall (t, fun) args = do
+  as <- sequence args
+  Env.askLookup fun >>= \case
+    Just (t0, op@(LocalReference PointerType {..} _)) -> do
+      undefined
+    Just (t0, op) ->
+      case compare (arity t) (length args) of
+        EQ -> do
+--          traceShowM "////"
+--          traceShowM "start"
+--          traceShowM "////"
+--          traceShowM "t0:"
+--          traceShowM t0
+--          traceShowM "t:"
+--          traceShowM t
+--          traceShowM "as:"
+--          traceShowM as
+--          traceShowM "////"
+--          traceShowM "end"
+--          traceShowM "////"
+          as' <- traverse foo1 (zip3 as (unwindType t0) (unwindType t))
+          call op (zip as' (repeat []))
+          --as' <- traverse foo1 (zip as (unwindType t0))
+          --r <- call op (zip as' (repeat []))
+          --foo2 (r, returnTypeOf t0)
+        GT -> do 
+          undefined
+        LT -> error "Implementation error"
+    _ -> error ("Function not in scope: '" <> show fun <> "'")
+
+foo1 :: (Operand, Type, Type) -> CodeGen Operand
+foo1 = \case
+  (op, s, t) | isTCon VarT s && t `elem` [tInt32, tInt64] -> 
+    inttoptr op charPtr
+--  (op@(ConstantOperand Int {}), t) | tOpaque == t -> do
+--    inttoptr op charPtr 
+  (op, _, _) -> pure op
+
+foo2 :: (Operand, Type, Type) -> CodeGen Operand
+foo2 = \case
+  (op, s, t) | isTCon VarT s && t `elem` [tInt32, tInt64] -> 
+    ptrtoint op (llvmType t)
+--  (op@(ConstantOperand Int {}), t) | tOpaque == t -> do
+--    inttoptr op charPtr 
+  (op, _, _) -> pure op
+
+--foo2 :: (Operand, Type) -> CodeGen Operand
+--foo2 = \case
+--  (op, t) | charPtr == LLVM.typeOf op && t `elem` [tInt32, tInt64] -> 
+--    ptrtoint op (llvmType t)
+--  (op, _) -> pure op
+
 
 --forEachDef ::
 --     (Monad m)
@@ -265,9 +337,9 @@ emitCall = undefined
 --        \case 
 --          Data _ css -> do
 --            t1 <- typedef (llvmRep name) (Just (StructureType False [i8]))
---            concat <$$> forM (sortOn consName css `zip` [1 ..]) $ \(Constructor tycon fields, i) -> do
+--            concat <$$> forM (sortOn consName css `zip` [1 ..]) $ \(Constructor tcon fields, i) -> do
 --              let ts = llvmType <$> fields
---                  con = llvmRep (name <> "__" <> tycon)
+--                  con = llvmRep (name <> "__" <> tcon)
 --              td <-
 --                typedef con
 --                  (Just (StructureType False (i8 : ts)))
@@ -281,7 +353,7 @@ emitCall = undefined
 --                    forM_ (args `zip` [1 ..]) $ \(arg, j) -> 
 --                      storeAtOffs j op arg
 --                    bitcast op (ptr t1) >>= ret)
---              pure [(tycon, f)]
+--              pure [(tcon, f)]
 --          Function Signature {..} -> do
 --            pure 
 --              [ (name

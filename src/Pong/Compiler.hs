@@ -7,6 +7,7 @@
 
 module Pong.Compiler where
 
+import Debug.Trace
 import Control.Applicative ((<|>))
 import Control.Monad.Reader
 import Control.Monad.State
@@ -190,11 +191,16 @@ compileDefinitions defs =
         Function sig -> fillParams =<< compileFunction name sig
         External sig -> pure (External sig)
         Constant lit -> pure (Constant lit)
-        Data name cstrs -> pure (Data name cstrs)
+        Data name ctrs -> pure (Data name ctrs)
 
 compileSource :: [(Name, Definition (SourceExpr ()))] -> Compiler ()
 compileSource defs 
-  | null ls = compileDefinitions rs
+  | null ls = do
+    forM_ rs $ \a -> do
+      traceShowM a
+      traceShowM "////////"
+      traceShowM "////////"
+    compileDefinitions rs
   | otherwise = error (show ls)  -- TODO
   where
     (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> defs)

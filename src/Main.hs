@@ -43,7 +43,6 @@ instance Iso ((a, b), c) (a, b, c) where
 --instance (Iso a b, Iso b c) => Iso a c where
 --  mu = undefined
 --  um = undefined
-
 --fmapx :: (Functor f) => (a -> b) -> f a -> f b
 --fmapx = 
 fooz :: Identity Int
@@ -655,10 +654,62 @@ testAbc5 = Text.putStrLn (ppll foo)
            , Data
                "List"
                [ Constructor "Nil" []
-               , Constructor "Cons" [tOpaque, tData "List"]
+               , Constructor "Cons" [undefined, tData "List"]
                ])
          , ( "bar"
            , Function (Signature [(tInt32, "n")] (tInt32, var (tInt32, "n"))))
          , ("foo", External (Signature [(tInt32, "x")] (tInt32, ())))
+         , ( "boo"
+           , Function
+               (Signature
+                  [(tInt32, "x")]
+                  ( tData "List"
+                  , app
+                      (var (undefined ~> tData "List" ~> tData "List", "Cons"))
+                      [lit (LInt32 123), app (var (tData "List", "Nil")) []])))
          , ("baz", Constant (LInt32 1223))
-         ] :: [(Name, Definition Ast)])
+         ] :: [(Name, Definition TypedExpr)])
+
+testAbc7 = Text.putStrLn (ppll foo)
+  where
+    foo = buildProgram "Main" prog
+    prog = execCompiler (compileSource ds) (getEnv ds)
+    ds =
+      [ ( "List"
+         , Data
+             "List"
+--             [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
+             [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+       , ( "zoo"
+         , Function (Signature [] (tInt32,
+              let_ 
+                ((), "foo")
+                (app (var ((), "Cons")) [lit (LInt32 5), app (var ((), "Nil")) []])
+                (case_ (var ((), "foo")) 
+                      [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                      , ([((), "Nil")], lit (LInt32 9))
+                      ]))))
+
+--       , ( "zoo"
+--         , Function (Signature [] (tInt32, 
+--            case_ (var ((), "foo")) 
+--              [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+--              , ([((), "Nil")], lit (LInt32 9))
+--              ]))
+--         )
+--       , ( "foo"
+--         , Function
+--             (Signature
+--                []
+--                ( tData "List"
+--                , app
+--                    (var ((), "Cons"))
+--                    [lit (LInt32 5), app (var ((), "Nil")) []])))
+       ] :: [(Name, Definition (SourceExpr ()))]
+--         , ( "bar"
+--           , Function (Signature [(tInt32, "n")] (tInt32, var (tInt32, "n"))))
+--         , ("foo", External (Signature [(tInt32, "x")] (tInt32, ())))
+--         , ("boo", Function (Signature [(tInt32, "x")] (tData "List", 
+--              app (var (tOpaque ~> tData "List" ~> tData "List", "Cons")) [lit (LInt32 123), app (var (tData "List", "Nil")) []] )))
+--         , ("baz", Constant (LInt32 1223))
+--         ] :: [(Name, Definition TypedExpr)])

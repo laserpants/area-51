@@ -36,7 +36,7 @@ module Pong.Lang
   , tVar
   , tArr
   , tData
-  , tOpaque
+--  , tOpaque
   , (~>)
   , var
   , lit
@@ -273,9 +273,9 @@ infixr 1 ~>
 tData :: Name -> Type
 tData = embed1 TData
 
-{-# INLINE tOpaque #-}
-tOpaque :: Type
-tOpaque = embed TOpaque
+--{-# INLINE tOpaque #-}
+--tOpaque :: Type
+--tOpaque = embed TOpaque
 
 {-# INLINE var #-}
 var :: (t, Name) -> Expr t a0 a1 a2 a3
