@@ -44,7 +44,6 @@ llvmType =
     TInt64 {} -> LLVM.i64
     TFloat {} -> LLVM.float
     TDouble {} -> LLVM.double
---    TVar {} -> error "Implementation error"
     TVar {} -> charPtr 
     TChar {} -> error "Not implemented" -- TODO
     TString {} -> error "Not implemented" -- TODO
@@ -214,6 +213,8 @@ emitBody =
       emitOp2Instr op a b
     EVar (t, name) ->
       Env.askLookup name >>= \case
+        Just (t1, op) | isTCon ArrT t1 -> 
+          undefined -- TODO
         Just (_, op) -> pure op
         _ -> error ("Not in scope: '" <> show name <> "'")
     ECase expr clss -> emitCase expr (sortOn fst clss)
@@ -221,7 +222,6 @@ emitBody =
 
 --        Just (t1, op) | isTCon ArrT t -> do
 --          emitCall (t, name) []
---        Just op -> pure op
 emitCase ::
      CodeGen Operand -> [([Label Type], CodeGen Operand)] -> CodeGen Operand
 emitCase expr cs = mdo
