@@ -142,8 +142,10 @@ buildProgram prog Program {..} =
             op <-
               extern
                 (llvmRep name)
-                (llvmType . fst <$> arguments)
-                (llvmType (fst body))
+                --(llvmType . fst <$> arguments)
+                (llvmType <$> arguments)
+                -- (llvmType (fst body))
+                (llvmType body)
             pure [(name, (t, op))]
           Constant lit -> do
             let constant = llvmLiteral lit

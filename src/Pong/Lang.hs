@@ -57,6 +57,7 @@ import Data.Tuple.Extra (first, dupe)
 import Pong.Data
 import Pong.Util
 import qualified Pong.Util.Env as Env
+import TextShow
 
 class FreeIn t a where
   free :: a -> [Label t]
@@ -79,10 +80,10 @@ instance (Eq t) => FreeIn t (Clause (Label t)) where
     \case
       Clause (_:vs) expr -> expr `without` vs
 
-instance (FreeIn t a) => FreeIn t (Signature a) where
+instance (FreeIn t a) => FreeIn t (Signature s (Type, a)) where
   free = free . snd . body
 
-instance (FreeIn t a) => FreeIn t (Map Name (Signature a)) where
+instance (FreeIn t a) => FreeIn t (Map Name (Signature s (Type, a))) where
   free = concatMap free . Map.elems
 
 class Typed a where
@@ -139,7 +140,7 @@ instance Typed (Definition a) where
   typeOf =
     \case
       Function Signature {..} -> foldType (fst body) (fst <$> arguments)
-      External Signature {..} -> foldType (fst body) (fst <$> arguments)
+      External Signature {..} -> foldType body arguments
       Constant lit -> typeOf lit
       Data name _ -> tData name
 
@@ -196,7 +197,7 @@ funArgs :: Definition a -> [(Type, Name)]
 funArgs =
   \case
     Function Signature {..} -> arguments
-    External Signature {..} -> arguments
+    External Signature {..} -> showt <$$> zip arguments [0 :: Int ..]
     _ -> []
 
 constructors :: Definition a -> [Constructor]

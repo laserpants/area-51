@@ -111,10 +111,10 @@ newtype Environment a =
 
 type TypeEnv = Environment Type
 
-data Signature a =
+data Signature s a =
   Signature
-    { arguments :: [Label Type]
-    , body :: (Type, a)
+    { arguments :: [s]
+    , body :: a
     }
 
 data Constructor =
@@ -124,8 +124,8 @@ data Constructor =
     }
 
 data Definition a
-  = Function (Signature a) -- ^ Function definition
-  | External (Signature ()) -- ^ External declaration
+  = Function (Signature (Label Type) (Type, a)) -- ^ Function definition
+  | External (Signature Type Type) -- ^ External declaration
   | Constant Literal -- ^ Constant value
   | Data Name [Constructor] -- ^ Data type definition
 
@@ -163,7 +163,7 @@ newtype CodeGen a =
     }
 
 class Source a where
-  compileFunction :: Name -> Signature a -> Compiler (Definition Ast)
+  compileFunction :: Name -> Signature (Label Type) (Type, a) -> Compiler (Definition Ast)
 
 -- Type
 deriving instance (Show a) => Show (TypeF a)
@@ -258,15 +258,15 @@ instance Monoid (Environment a) where
   mempty = Env mempty
 
 -- Signature
-deriving instance (Show a) => Show (Signature a)
+deriving instance (Show s, Show a) => Show (Signature s a)
 
-deriving instance (Eq a) => Eq (Signature a)
+deriving instance (Eq s, Eq a) => Eq (Signature s a)
 
-deriving instance Functor Signature
+deriving instance Functor (Signature s)
 
-deriving instance Foldable Signature
+deriving instance Foldable (Signature s)
 
-deriving instance Traversable Signature
+deriving instance Traversable (Signature s)
 
 -- Definition
 deriving instance (Show a) => Show (Definition a)

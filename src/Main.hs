@@ -662,7 +662,7 @@ testAbc5 = Text.putStrLn (ppll foo)
                ])
          , ( "bar"
            , Function (Signature [(tInt32, "n")] (tInt32, var (tInt32, "n"))))
-         , ("foo", External (Signature [(tInt32, "x")] (tInt32, ())))
+         , ("foo", External (Signature [tInt32] tInt32))
          , ( "boo"
            , Function
                (Signature
@@ -683,8 +683,8 @@ testAbc77 = do
     module_ = buildProgram "Main" prog
     prog = execCompiler (compileSource ds) (getEnv ds)
     ds =
-      [ ("gc_malloc", External (Signature [(tInt64, "0")] (tVar 0, ())))
-      , ("print_int32", External (Signature [(tInt32, "0")] (tUnit, ())))
+      [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+      , ("print_int32", External (Signature [tInt32] tUnit))
       , ( "List"
         , Data
             "List"
