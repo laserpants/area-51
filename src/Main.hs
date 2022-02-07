@@ -18,9 +18,13 @@ import Data.Tuple (swap)
 import Data.Void
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.Type as LLVM
+import LLVM.Context (withContext)
 import LLVM.IRBuilder
 import LLVM.IRBuilder.Module
+import LLVM.Linking (loadLibraryPermanently)
+import LLVM.Module (File(..), withModuleFromAST, writeObjectToFile)
 import LLVM.Pretty
+import LLVM.Target (withHostTargetMachineDefault, withTargetOptions)
 import Pong.Compiler
 import Pong.LLVM.Emit
 import Pong.Lang
@@ -670,26 +674,69 @@ testAbc5 = Text.putStrLn (ppll foo)
          , ("baz", Constant (LInt32 1223))
          ] :: [(Name, Definition TypedExpr)])
 
+testAbc77 = do
+  withContext (\ctx -> withModuleFromAST ctx module_ (\m -> 
+      withHostTargetMachineDefault
+        (\machine -> do writeObjectToFile machine (File "./outtmp.o") m)))
+  where
+    module_ :: LLVM.Module
+    module_ = buildProgram "Main" prog
+    prog = execCompiler (compileSource ds) (getEnv ds)
+    ds =
+      [ ("gc_malloc", External (Signature [(tInt64, "0")] (tVar 0, ())))
+      , ("print_int32", External (Signature [(tInt32, "0")] (tUnit, ())))
+      , ( "List"
+        , Data
+            "List"
+            [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+      , ( "foo"
+        , Function
+            (Signature
+               []
+               ( tInt32
+               , let_
+                   ((), "foo")
+                   (app
+                      (var ((), "Cons"))
+                      [lit (LInt32 5), app (var ((), "Nil")) []])
+                   (case_
+                      (var ((), "foo"))
+                      [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                      , ([((), "Nil")], lit (LInt32 9))
+                      ]))))
+      , ( "main"
+        , Function
+            (Signature
+               []
+               ( tInt32
+               , app (var ((), "print_int32")) [app (var ((), "foo")) []])))
+      ] :: [(Name, Definition (SourceExpr ()))]
+
 testAbc7 = Text.putStrLn (ppll foo)
   where
     foo = buildProgram "Main" prog
     prog = execCompiler (compileSource ds) (getEnv ds)
     ds =
       [ ( "List"
-         , Data
-             "List"
+        , Data
+            "List"
 --             [Constructor "Nil" [], Constructor "Cons" [tOpaque, tData "List"]])
-             [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
-       , ( "zoo"
-         , Function (Signature [] (tInt32,
-              let_ 
-                ((), "foo")
-                (app (var ((), "Cons")) [lit (LInt32 5), app (var ((), "Nil")) []])
-                (case_ (var ((), "foo")) 
+            [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+      , ( "zoo"
+        , Function
+            (Signature
+               []
+               ( tInt32
+               , let_
+                   ((), "foo")
+                   (app
+                      (var ((), "Cons"))
+                      [lit (LInt32 5), app (var ((), "Nil")) []])
+                   (case_
+                      (var ((), "foo"))
                       [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
                       , ([((), "Nil")], lit (LInt32 9))
                       ]))))
-
 --       , ( "zoo"
 --         , Function (Signature [] (tInt32, 
 --            case_ (var ((), "foo")) 
@@ -705,7 +752,7 @@ testAbc7 = Text.putStrLn (ppll foo)
 --                , app
 --                    (var ((), "Cons"))
 --                    [lit (LInt32 5), app (var ((), "Nil")) []])))
-       ] :: [(Name, Definition (SourceExpr ()))]
+      ] :: [(Name, Definition (SourceExpr ()))]
 --         , ( "bar"
 --           , Function (Signature [(tInt32, "n")] (tInt32, var (tInt32, "n"))))
 --         , ("foo", External (Signature [(tInt32, "x")] (tInt32, ())))
