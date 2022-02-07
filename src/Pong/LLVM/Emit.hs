@@ -45,7 +45,7 @@ llvmType =
     TFloat {} -> LLVM.float
     TDouble {} -> LLVM.double
 --    TVar {} -> error "Implementation error"
-    TVar {} -> charPtr -- TODO ??
+    TVar {} -> charPtr 
     TChar {} -> error "Not implemented" -- TODO
     TString {} -> error "Not implemented" -- TODO
     TData name -> ptr (namedReference name)
@@ -214,10 +214,7 @@ emitBody =
       emitOp2Instr op a b
     EVar (t, name) ->
       Env.askLookup name >>= \case
-        Just (_, x) ->
-          pure x
---        Just (t1, op) -> do
---          emitLit (LInt32 123123) -- TODO
+        Just (_, op) -> pure op
         _ -> error ("Not in scope: '" <> show name <> "'")
     ECase expr clss -> emitCase expr (sortOn fst clss)
     ECall () fun args -> emitCall fun args
@@ -245,20 +242,13 @@ emitCase expr cs = mdo
           then body
           else do
             Env env <- ask
-            traceShowM "~~~~~~~~~~"
-            traceShowM (argTypes t)
             let t0 = fst (env ! con)
             struct <- bitcast e (ptr (StructureType False (i16 : (argTypes t0 <#> llvmType))))
             ops <-
               forM (zip3 [1..] (argTypes t0) (argTypes t)) $ \(i, t0, t) -> do
                 op <- loadFromOffset i struct
-                --op <- loadFromOffset i struct
-                q <- foo2 (op, t0, t)
-                pure (t, q)
-                --pure (t, q)
-                ---pure (t, op)
-                --op <- loadFromOffset i struct
-                --op1 <- foo2 (op, t)
+                op' <- foo2 (op, t0, t)
+                pure (t, op')
             local (Env.inserts (zip (fields <#> snd) ops)) body
       br end
       cb <- currentBlock
@@ -275,23 +265,10 @@ emitCall (t, fun) args = do
     Just (t0, op) ->
       case compare (arity t) (length args) of
         EQ -> do
---          traceShowM "////"
---          traceShowM "start"
---          traceShowM "////"
---          traceShowM "t0:"
---          traceShowM t0
---          traceShowM "t:"
---          traceShowM t
---          traceShowM "as:"
---          traceShowM as
---          traceShowM "////"
---          traceShowM "end"
---          traceShowM "////"
           as' <- traverse foo1 (zip3 as (unwindType t0) (unwindType t))
-          call op (zip as' (repeat []))
-          --as' <- traverse foo1 (zip as (unwindType t0))
-          --r <- call op (zip as' (repeat []))
-          --foo2 (r, returnTypeOf t0)
+          r <- call op (zip as' (repeat []))
+          foo2 (r, returnTypeOf t0, returnTypeOf t)
+          -- TODO return?
         GT -> do 
           undefined
         LT -> error "Implementation error"
