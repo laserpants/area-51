@@ -26,6 +26,8 @@ dependencies:
   - text
   - text-show
   - transformers
+  - process
+  - temporary
 
 executables:
   pong:

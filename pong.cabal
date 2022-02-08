@@ -41,7 +41,9 @@ executable pong
     , llvm-hs-pretty
     , llvm-hs-pure
     , mtl
+    , process
     , recursion-schemes
+    , temporary
     , text
     , text-show
     , transformers
@@ -70,7 +72,9 @@ test-suite pong-test
     , llvm-hs-pure
     , mtl
     , pong
+    , process
     , recursion-schemes
+    , temporary
     , text
     , text-show
     , transformers
