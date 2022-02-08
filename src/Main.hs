@@ -15,6 +15,7 @@ import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple (swap)
+import Data.Tuple.Extra (snd3)
 import Data.Void
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.Type as LLVM
@@ -31,6 +32,7 @@ import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util
 import qualified Pong.Util.Env as Env
+import System.Process
 
 class Iso a b where
   mu :: a -> b
@@ -678,6 +680,8 @@ testAbc77 = do
   withContext (\ctx -> withModuleFromAST ctx module_ (\m -> 
       withHostTargetMachineDefault
         (\machine -> do writeObjectToFile machine (File "./outtmp.o") m)))
+  readProcess "clang" ["-o", "hello", "memory.c", "outtmp.o", "-lgc" ] [] 
+  snd3 <$> readProcessWithExitCode "/home/laserpants/code/area-51/hello" [] [] 
   where
     module_ :: LLVM.Module
     module_ = buildProgram "Main" prog

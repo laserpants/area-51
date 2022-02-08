@@ -7,23 +7,23 @@
 
 module Pong.Compiler where
 
-import Debug.Trace
 import Control.Applicative ((<|>))
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Bifunctor (bimap)
-import Data.Void
 import Data.Either (partitionEithers)
 import Data.Function ((&))
-import Data.Maybe (fromJust, fromMaybe, maybeToList)
-import Data.Tuple.Extra (first, second, secondM)
-import Pong.Lang
-import Pong.TypeChecker
-import TextShow (showt)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromJust, fromMaybe, maybeToList)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import Data.Tuple.Extra (first, second, secondM)
+import Data.Void
+import Debug.Trace
+import Pong.Lang
+import Pong.TypeChecker
 import qualified Pong.Util.Env as Env
+import TextShow (showt)
 
 combineLambdas :: TypedExpr -> TypedExpr
 combineLambdas =
@@ -58,12 +58,12 @@ convertClosures =
     ELit prim -> pure (lit prim)
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
     EApp _ fun args -> do
-      fun >>= (project >>> \case
-        EApp _ g as1 -> do
-          as <- sequence args
-          pure (app g (as1 <> as))
-        _ ->
-          app <$> fun <*> sequence args)
+      fun >>=
+        (project >>> \case
+           EApp _ g as1 -> do
+             as <- sequence args
+             pure (app g (as1 <> as))
+           _ -> app <$> fun <*> sequence args)
     EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
     ECase e1 cs ->
       let insertNames (n:vs, expr) = do
@@ -72,7 +72,7 @@ convertClosures =
        in case_ <$> e1 <*> traverse insertNames cs
     ELam _ args expr -> do
       body <- local (insertArgs args) expr
-      let extra = free body `without` args 
+      let extra = free body `without` args
           lambda = lam (extra <> args) body
       pure $
         case extra of
@@ -115,7 +115,7 @@ uniqueName name = do
 
 compileAst :: PreAst -> Compiler Ast
 compileAst =
-  cata $ \case 
+  cata $ \case
     EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
     EOp2 op a b -> op2 op <$> a <*> b
     ELam _ args expr -> do
@@ -131,8 +131,7 @@ compileAst =
       e <- expr
       as <- sequence args
       case project e of
-        EVar (t1, name) ->
-          pure (call_ (t1, name) as)
+        EVar (t1, name) -> pure (call_ (t1, name) as)
         ECall _ fun as1 -> do
           pure (call_ fun (as1 <> as))
         e -> error (show e)
@@ -145,8 +144,7 @@ fillParams (Function (Signature arguments (ty, body)))
   | isTCon ArrT ty = do
     let applyTo xs =
           project >>> \case
-            ECall _ fun args -> 
-              pure (call_ fun (args <> xs))
+            ECall _ fun args -> pure (call_ fun (args <> xs))
             EVar name -> do
               names <- gets definitions
               pure (call_ name xs)
@@ -157,9 +155,7 @@ fillParams (Function (Signature arguments (ty, body)))
     pure
       (Function
          (Signature
-            { arguments = arguments <> extra
-            , body = (returnTypeOf ty, newBody)
-            }))
+            {arguments = arguments <> extra, body = (returnTypeOf ty, newBody)}))
 fillParams def = pure def
 
 consTypes :: (Name, Definition (Expr t a0 a1 a2 a3)) -> [(Name, Type)]
@@ -170,7 +166,10 @@ consTypes (name, def) =
 getEnv :: [(Name, Definition (Expr t a0 a1 a2 a3))] -> Environment Type
 getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
 
-toProgram :: Source (Expr t a0 a1 a2 a3) => [(Name, Definition (Expr t a0 a1 a2 a3))] -> Program
+toProgram ::
+     Source (Expr t a0 a1 a2 a3)
+  => [(Name, Definition (Expr t a0 a1 a2 a3))]
+  -> Program
 toProgram ds = execCompiler (compileDefinitions ds) (getEnv ds)
 
 instance Source Ast where
@@ -184,9 +183,9 @@ instance Source TypedExpr where
     pure (Function (Signature args (ty, main)))
 
 compileDefinitions :: (Source a) => [(Name, Definition a)] -> Compiler ()
-compileDefinitions defs = 
+compileDefinitions defs =
   forM_ defs $ \(name, def) -> do
-    modify . insertDefinition name =<< 
+    modify . insertDefinition name =<<
       case def of
         Function sig -> fillParams =<< compileFunction name sig
         External sig -> pure (External sig)
@@ -194,14 +193,14 @@ compileDefinitions defs =
         Data name ctrs -> pure (Data name ctrs)
 
 compileSource :: [(Name, Definition (SourceExpr ()))] -> Compiler ()
-compileSource defs 
+compileSource defs
   | null ls = do
     forM_ rs $ \a -> do
       traceShowM a
       traceShowM "////////"
       traceShowM "////////"
     compileDefinitions rs
-  | otherwise = error (show ls)  -- TODO
+  | otherwise = error (show ls) -- TODO
   where
     (ls, rs) = partitionDefs (sequence <$$> second typecheckDef <$> defs)
     partitionDefs = partitionEithers . (uncurry (\a -> bimap (a, ) (a, )) <$>)
