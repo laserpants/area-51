@@ -4,23 +4,31 @@
 
 module Pong.Test.Drivers where
 
+import Control.Monad.Cont
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State (gets, modify, put)
 import Data.Either (fromRight)
 import Data.Map.Strict ((!))
+import Data.Tuple.Extra (snd3)
 import Data.Void
+import LLVM.Context (Context, withContext)
+import LLVM.Module (File(..), withModuleFromAST, writeObjectToFile)
+import LLVM.Target (withHostTargetMachineDefault, withTargetOptions)
 import Pong.Compiler
 import Pong.Data
 import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util
+import System.IO.Temp
+import System.Process
 import Test.Hspec
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
+import GHC.IO.Handle.Types
 
 type TestCase input result = String -> input -> result -> SpecWith ()
 
@@ -140,3 +148,35 @@ runFillParamsTest description (input, env) expected =
 runLlvmTypeTest :: TestCase Type LLVM.Type
 runLlvmTypeTest description input expected =
   it description $ llvmType input == expected
+
+--foo = pure (withTempFile "." "obj")
+
+--cont :: ((a -> r) -> r) -> Cont r a
+
+--wtf3 :: FilePath -> String -> Cont (IO a) (FilePath, Handle)
+--wtf3 fp s = ContT (withTempFile fp s . curry)
+--
+----wctx :: Cont (IO a) Context
+--wctx = ContT withContext
+--
+----wtm :: Context -> LLVM.Module -> Cont (IO a) LLVM.Internal.Module.Module
+--wtm ctx module_ = ContT (withModuleFromAST ctx module_)
+--
+--wtmcmn = ContT withHostTargetMachineDefault
+
+--runLlvmTypeTest :: TestCase Type LLVM.Type
+runX :: [(Name, Definition (SourceExpr ()))] -> IO String
+runX definitions = 
+  flip runContT id $ do
+    (file, _) <- ContT (withTempFile "." "obj" . curry)
+    context <- ContT withContext
+    llvmMod <- ContT (withModuleFromAST context module_)
+    machine <- ContT withHostTargetMachineDefault
+    liftIO $ do
+      writeObjectToFile machine (File file) llvmMod
+      callProcess "clang" ["-o", ".build/test-exec", "memory.c", file, "-lgc"]  
+      pure (snd3 <$> readProcessWithExitCode ".build/test-exec" [] [])
+  where
+    module_ = buildProgram "Main" prog
+    prog = execCompiler (compileSource definitions) (getEnv definitions)
+

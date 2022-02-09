@@ -193,6 +193,7 @@ input16NoLetBindings =
         (var (tInt32 ~> tData "List" ~> tData "List", "Cons"))
         [lit (LInt32 5), var (tData "List", "Nil")]
     ]
+
 --input16 :: [(Name, Definition (Expr ()))]
 --input16 =
 --  [ ( "List"
@@ -260,3 +261,33 @@ input16NoLetBindings =
 --               [bVar "Cons", bCall "Cons" [bLit (LInt32 5), bCall "Nil" []]])))
 --  , ("main", Function (Signature [] (tInt32, bCall "foo" [])))
 --  ]
+program1 :: [(Name, Definition (SourceExpr ()))]
+program1 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           ( tInt32
+           , let_
+               ((), "foo")
+               (app
+                  (var ((), "Cons"))
+                  [lit (LInt32 5), app (var ((), "Nil")) []])
+               (case_
+                  (var ((), "foo"))
+                  [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]
