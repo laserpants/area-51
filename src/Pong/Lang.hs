@@ -50,14 +50,14 @@ module Pong.Lang
   ) where
 
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
-import Data.Void
 import Data.Tuple.Extra (first, dupe)
+import Data.Void
 import Pong.Data
 import Pong.Util
-import qualified Pong.Util.Env as Env
 import TextShow
+import qualified Data.Map.Strict as Map
+import qualified Pong.Util.Env as Env
 
 class FreeIn t a where
   free :: a -> [Label t]

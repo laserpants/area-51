@@ -33,6 +33,7 @@ import Pong.TypeChecker
 import Pong.Util
 import qualified Pong.Util.Env as Env
 import System.Process
+import System.IO.Temp
 
 class Iso a b where
   mu :: a -> b
@@ -677,26 +678,29 @@ testAbc5 = Text.putStrLn (ppll foo)
          ] :: [(Name, Definition TypedExpr)])
 
 testAbc77 = do
-  withContext (\ctx -> withModuleFromAST ctx module_ (\m -> 
-      withHostTargetMachineDefault
-        (\machine -> do writeObjectToFile machine (File "./outtmp.o") m)))
-  readProcess "clang" ["-o", "hello", "memory.c", "outtmp.o", "-lgc" ] [] 
-  snd3 <$> readProcessWithExitCode "/home/laserpants/code/area-51/hello" [] [] 
+--    withTempFile "." "prog" (\file2 _ -> do
+--      undefined
+--      )
+  withTempFile "." "obj" (\file1 _ -> do
+      withContext (\ctx -> withModuleFromAST ctx module_ 
+          (\m -> withHostTargetMachineDefault 
+              (\machine -> do writeObjectToFile machine (File file1) m)))
+      callProcess "clang" ["-o", ".build/exe", "memory.c", file1, "-lgc" ]  
+      snd3 <$> readProcessWithExitCode ".build/exe" [] []
+                            )
+--                              ))
   where
     module_ :: LLVM.Module
     module_ = buildProgram "Main" prog
     prog = execCompiler (compileSource ds) (getEnv ds)
     ds =
       [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
-      , ("print_int32", External (Signature [tInt32] tUnit))
-      , ( "List"
-        , Data
-            "List"
-            [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+      , ("print_int32", External (Signature [tInt32] tInt32))
+      , ( "List", Data "List" [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
       , ( "foo"
         , Function
             (Signature
-               []
+               [(tUnit, "_")]
                ( tInt32
                , let_
                    ((), "foo")
@@ -713,7 +717,7 @@ testAbc77 = do
             (Signature
                []
                ( tInt32
-               , app (var ((), "print_int32")) [app (var ((), "foo")) []])))
+               , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
       ] :: [(Name, Definition (SourceExpr ()))]
 
 testAbc7 = Text.putStrLn (ppll foo)

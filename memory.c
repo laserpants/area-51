@@ -11,9 +11,10 @@ void gc_finalizer (void *obj, void *client_data)
     printf ("free: %d\n", count++);
 }
 
-void print_int32 (int32_t n)
+int print_int32 (int32_t n)
 {
-    printf ("print_int: %d\n", n);
+    printf ("%d\n", n);
+    return 0;
 }
 
 void *gc_malloc (long size) 

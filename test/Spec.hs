@@ -148,16 +148,16 @@ main =
     describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
 --    describe "compileProgram" $ do
 --      runCompileProgramTest "#1" input16 input16Compiled
---    ---------------------------------------------------------------------------
---    -- Module Pong.LLVM.Emit --------------------------------------------------
---    ---------------------------------------------------------------------------
---    describe "llvmType" $ do
---      runLlvmTypeTest "() ==> i1" tUnit LLVM.i1
---      runLlvmTypeTest "Bool ==> i1" tBool LLVM.i1
---      runLlvmTypeTest "Int32 ==> i32" i32 LLVM.i32
---      runLlvmTypeTest "Int64 ==> i64" tInt64 LLVM.i64
---      runLlvmTypeTest "Float ==> float" tFloat LLVM.float
---      runLlvmTypeTest "Double ==> double" tDouble LLVM.double
---    describe "emitLit" $ do runIO $ print "TODO"
---    describe "emitOp2Instr" $ do runIO $ print "TODO"
---    describe "emitBody" $ do runIO $ print "TODO"
+    ---------------------------------------------------------------------------
+    -- Module Pong.LLVM.Emit --------------------------------------------------
+    ---------------------------------------------------------------------------
+    describe "llvmType" $ do
+      runLlvmTypeTest "()         >>      i1" tUnit (LLVM.StructureType False [])
+      runLlvmTypeTest "Bool       >>      i1" tBool LLVM.i1
+      runLlvmTypeTest "Int32      >>      i32" i32 LLVM.i32
+      runLlvmTypeTest "Int64      >>      i64" tInt64 LLVM.i64
+      runLlvmTypeTest "Float      >>      float" tFloat LLVM.float
+      runLlvmTypeTest "Double     >>      double" tDouble LLVM.double
+    describe "emitLit" $ do runIO $ print "TODO"
+    describe "emitOp2Instr" $ do runIO $ print "TODO"
+    describe "emitBody" $ do runIO $ print "TODO"

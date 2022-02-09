@@ -137,6 +137,6 @@ runFillParamsTest description (input, env) expected =
 -- --runCompileProgramTest description input expected =
 -- --  it description $ definitions (compileProgram input) == Map.fromList expected
 -- --
--- --runLlvmTypeTest :: TestCase Type LLVM.Type
--- --runLlvmTypeTest description input expected =
--- --  it description $ llvmType input == expected
+runLlvmTypeTest :: TestCase Type LLVM.Type
+runLlvmTypeTest description input expected =
+  it description $ llvmType input == expected
