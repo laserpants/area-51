@@ -59,6 +59,7 @@ mapsTo = Substitution <$$> Map.singleton
 tagLabel :: Name -> TypeChecker (Label Int)
 tagLabel name = (,) <$> tag <*> pure name
 
+-- tagExpr?
 tagAst :: SourceExpr t -> TypeChecker (SourceExpr Int)
 tagAst =
   cata $ \case

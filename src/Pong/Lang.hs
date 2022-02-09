@@ -120,7 +120,7 @@ instance Typed Op2 where
       OSubDouble -> tDouble ~> tDouble ~> tDouble
       ODivDouble -> tDouble ~> tDouble ~> tDouble
 
-instance Typed (Expr Type a0 a1 a2 a3) where
+instance (Typed t) => Typed (Expr t a0 a1 a2 a3) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -193,7 +193,7 @@ returnTypeOf = last <<< unwindType
 argTypes :: (Typed t) => t -> [Type]
 argTypes = init <<< unwindType
 
-funArgs :: Definition a -> [(Type, Name)]
+funArgs :: Definition a -> [Label Type]
 funArgs =
   \case
     Function Signature {..} -> arguments
@@ -279,7 +279,7 @@ tData = embed1 TData
 --tOpaque = embed TOpaque
 
 {-# INLINE var #-}
-var :: (t, Name) -> Expr t a0 a1 a2 a3
+var :: Label t -> Expr t a0 a1 a2 a3
 var = embed1 EVar
 
 {-# INLINE lit #-}
@@ -291,11 +291,11 @@ if_ :: Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t 
 if_ = embed3 EIf
 
 {-# INLINE lam #-}
-lam :: [(t, Name)] -> Expr t a0 () a2 a3 -> Expr t a0 () a2 a3
+lam :: [Label t] -> Expr t a0 () a2 a3 -> Expr t a0 () a2 a3
 lam = embed3 ELam () 
 
 {-# INLINE let_ #-}
-let_ :: (t, Name) -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3
+let_ :: Label t -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3
 let_ = embed4 ELet ()
 
 {-# INLINE app #-}
@@ -311,5 +311,5 @@ op2 :: Op2 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3
 op2 = embed3 EOp2
 
 {-# INLINE case_ #-}
-case_ :: Expr t a0 a1 a2 a3 -> [([(t, Name)], Expr t a0 a1 a2 a3)] -> Expr t a0 a1 a2 a3
+case_ :: Expr t a0 a1 a2 a3 -> [([Label t], Expr t a0 a1 a2 a3)] -> Expr t a0 a1 a2 a3
 case_ = embed2 ECase
