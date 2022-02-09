@@ -152,7 +152,7 @@ main =
     -- Module Pong.LLVM.Emit --------------------------------------------------
     ---------------------------------------------------------------------------
     describe "llvmType" $ do
-      runLlvmTypeTest "()         >>      i1" tUnit (LLVM.StructureType False [])
+      runLlvmTypeTest "()         >>      {}" tUnit (LLVM.StructureType False [])
       runLlvmTypeTest "Bool       >>      i1" tBool LLVM.i1
       runLlvmTypeTest "Int32      >>      i32" i32 LLVM.i32
       runLlvmTypeTest "Int64      >>      i64" tInt64 LLVM.i64
