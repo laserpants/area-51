@@ -149,34 +149,16 @@ runLlvmTypeTest :: TestCase Type LLVM.Type
 runLlvmTypeTest description input expected =
   it description $ llvmType input == expected
 
---foo = pure (withTempFile "." "obj")
-
---cont :: ((a -> r) -> r) -> Cont r a
-
---wtf3 :: FilePath -> String -> Cont (IO a) (FilePath, Handle)
---wtf3 fp s = ContT (withTempFile fp s . curry)
---
-----wctx :: Cont (IO a) Context
---wctx = ContT withContext
---
-----wtm :: Context -> LLVM.Module -> Cont (IO a) LLVM.Internal.Module.Module
---wtm ctx module_ = ContT (withModuleFromAST ctx module_)
---
---wtmcmn = ContT withHostTargetMachineDefault
-
---runLlvmTypeTest :: TestCase Type LLVM.Type
 runX :: [(Name, Definition (SourceExpr ()))] -> IO String
 runX definitions = 
   flip runContT id $ do
     (file, _) <- ContT (withTempFile "." "obj" . curry)
     context <- ContT withContext
-    llvmMod <- ContT (withModuleFromAST context module_)
+    module_ <- ContT (withModuleFromAST context (buildProgram "Main" prog))
     machine <- ContT withHostTargetMachineDefault
     liftIO $ do
-      writeObjectToFile machine (File file) llvmMod
+      writeObjectToFile machine (File file) module_
       callProcess "clang" ["-o", ".build/test-exec", "memory.c", file, "-lgc"]  
       pure (snd3 <$> readProcessWithExitCode ".build/test-exec" [] [])
   where
-    module_ = buildProgram "Main" prog
     prog = execCompiler (compileSource definitions) (getEnv definitions)
-
