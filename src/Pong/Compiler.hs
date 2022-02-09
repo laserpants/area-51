@@ -161,7 +161,7 @@ fillParams def = pure def
 consTypes :: (Name, Definition (Expr t a0 a1 a2 a3)) -> [(Name, Type)]
 consTypes (name, def) =
   constructors def <#> \Constructor {..} ->
-    (consName, foldr tArr (tData name) (typeOf <$> consFields))
+    (consName, foldType (tData name) (typeOf <$> consFields))
 
 getEnv :: [(Name, Definition (Expr t a0 a1 a2 a3))] -> Environment Type
 getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
