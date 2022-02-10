@@ -194,18 +194,21 @@ input16NoLetBindings =
         [lit (LInt32 5), var (tData "List", "Nil")]
     ]
 
---input16 :: [(Name, Definition (Expr ()))]
---input16 =
---  [ ( "List"
---    , Data
---        "List"
---        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
---  , ("foo", Function (Signature [] (tInt32, fooAst)))
---  , ("main", Function (Signature [] (tInt32, mainAst)))
---  ]
---  where
---    fooAst =
---      let_
+input160 :: [(Name, Definition TypedExpr)]
+input160 =
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+  , ("foo", Function (Signature [] (tInt32, fooAst)))
+  , ("main", Function (Signature [] (tInt32, mainAst)))
+  ]
+  where
+    fooAst =
+      let_
+        undefined
+        undefined
+        undefined
 --        ((), "xs")
 --        (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
 --        (let_
@@ -221,46 +224,61 @@ input16NoLetBindings =
 --                    , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
 --                    ])
 --              ]))
---    mainAst = app () (var ((), "foo")) []
---
---input16Compiled :: [(Name, Definition Body)]
---input16Compiled =
---  [ ( "List"
---    , Data
---        "List"
---        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
---  , ( "def_0"
---    , Function
---        (Signature
---           [ (tInt32 `tArr` tData "List" `tArr` tData "List", "Cons")
---           , (tData "List", "xs")
---           ]
---           (tInt32, bCall "def_1" [bCall "Cons" [bLit (LInt32 5), bVar "xs"]])))
---  , ( "def_1"
---    , Function
---        (Signature
---           [(tData "List", "ys")]
---           ( tInt32
---           , bCase
---               (bVar "ys")
---               [ (["Nil"], bLit (LInt32 1))
---               , ( ["Cons", "_", "zs"]
---                 , bCase
---                     (bVar "zs")
---                     [ (["Nil"], bLit (LInt32 2))
---                     , (["Cons", "_", "_"], bLit (LInt32 3))
---                     ])
---               ])))
---  , ( "foo"
---    , Function
---        (Signature
---           []
---           ( tInt32
---           , bCall
---               "def_0"
---               [bVar "Cons", bCall "Cons" [bLit (LInt32 5), bCall "Nil" []]])))
---  , ("main", Function (Signature [] (tInt32, bCall "foo" [])))
---  ]
+    mainAst = undefined -- app (var ((), "foo")) []
+
+input160Compiled :: [(Name, Definition Ast)]
+input160Compiled =
+  [ ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tInt32, tData "List"]])
+  , ( "def_0"
+    , Function
+        (Signature
+           [ (tInt32 ~> tData "List" ~> tData "List", "Cons")
+           , (tData "List", "xs")
+           ]
+           ( tInt32
+           , call_
+               (undefined, "def_1")
+               [ call_
+                   (undefined, "Cons")
+                   [lit (LInt32 5), var (undefined, "xs")]
+               ])))
+  , ( "def_1"
+    , Function
+        (Signature
+           [(tData "List", "ys")]
+           ( tInt32
+           , case_
+               (var (undefined, "ys"))
+               [ ([(undefined, "Nil")], lit (LInt32 1))
+               , ( [(undefined, "Cons"), (undefined, "_"), (undefined, "zs")]
+                 , case_
+                     (var (undefined, "zs"))
+                     [ ([(undefined, "Nil")], lit (LInt32 2))
+                     , ( [ (undefined, "Cons")
+                         , (undefined, "_")
+                         , (undefined, "_")
+                         ]
+                       , lit (LInt32 3))
+                     ])
+               ])))
+  , ( "foo"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , call_
+               (undefined, "def_0")
+               [ var (undefined, "Cons")
+               , call_
+                   (undefined, "Cons")
+                   [lit (LInt32 5), call_ (undefined, "Nil") []]
+               ])))
+  , ("main", Function (Signature [] (tInt32, call_ (undefined, "foo") [])))
+  ]
+
 program1 :: [(Name, Definition (SourceExpr ()))]
 program1 =
   [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))

@@ -143,11 +143,10 @@ main =
     describe "uniqueName" $ do runUniqueNameTest "#1"
     describe "compileFunction" $ do runIO $ print "TODO"
 --    describe "compileAst" $ do
---      runCompileAstessionTest1 "#1" (input12, input13) (i32 ~> i32 ~> i32)
---    describe "lookupFunType" $ do runIO $ print "TODO"
+--      runCompileExpressionTest1 "#1" (input12, input13) (i32 ~> i32 ~> i32)
+    describe "lookupFunType" $ do runIO $ print "TODO"
     describe "fillParams" $ do runFillParamsTest "#1" (input12, input13) i32
---    describe "compileProgram" $ do
---      runCompileProgramTest "#1" input16 input16Compiled
+--    describe "compileProgram" $ runCompileProgramTest "#1" input160 input160Compiled
     ---------------------------------------------------------------------------
     -- Module Pong.LLVM.Emit --------------------------------------------------
     ---------------------------------------------------------------------------
@@ -161,3 +160,8 @@ main =
     describe "emitLit" $ do runIO $ print "TODO"
     describe "emitOp2Instr" $ do runIO $ print "TODO"
     describe "emitBody" $ do runIO $ print "TODO"
+    ---------------------------------------------------------------------------
+    -- End to end -------------------------------------------------------------
+    ---------------------------------------------------------------------------
+    describe "End to end" $ do
+      runEndToEndCompilerTest "#1" program1 "5\n"

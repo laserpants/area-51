@@ -2,11 +2,14 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE LambdaCase #-}
 
+{-# LANGUAGE FlexibleContexts #-}
+
 module Pong.Test.Drivers where
 
 import Control.Monad.Cont
 import Control.Monad.Except
 import Control.Monad.Reader
+import Debug.Trace
 import Control.Monad.State (gets, modify, put)
 import Data.Either (fromRight)
 import Data.Map.Strict ((!))
@@ -119,14 +122,14 @@ runUniqueNameTest description =
     b <- uniqueName "foo"
     pure (a /= b)
 
--- --runCompileAstessionTest1 :: TestCase (Expr (), TypeEnv) Type
--- --runCompileAstessionTest1 description (input, env) expected = do
--- --  it description $
--- --    typeOf (definitions (execCompiler body env) ! "def_0") == expected
--- --  where
--- --    body = do
--- --      e <- typeCheck input
--- --      compileAst (fromRight (error "Implementation error") e)
+runCompileExpressionTest1 :: TestCase (SourceExpr t, TypeEnv) Type
+runCompileExpressionTest1 description (input, env) expected = 
+  it description $ do
+    typeOf (definitions (execCompiler body env) ! "def_0") == expected
+  where
+    body = do
+      e <- preprocess . fromRight (error "Implementation error") =<< typeCheck input
+      compileAst e
 
 runFillParamsTest :: TestCase (SourceExpr t, TypeEnv) Type
 runFillParamsTest description (input, env) expected =
@@ -135,30 +138,29 @@ runFillParamsTest description (input, env) expected =
     Function (Signature _ (t, _)) =
       definitions (execCompiler body env) ! "def_0"
     body = do
-      e <- fromRight (error "Implementation error") <$> typeCheck input
-      f <- preprocess e
-      compileAst f
+      e <- preprocess . fromRight (error "Implementation error") =<< typeCheck input
+      compileAst e
       mapDefinitionsM fillParams
 
--- --runCompileProgramTest ::
--- --     TestCase [(Name, Definition (Expr ()))] [(Name, Definition Body)]
--- --runCompileProgramTest description input expected =
--- --  it description $ definitions (compileProgram input) == Map.fromList expected
--- --
+runCompileProgramTest :: TestCase [(Name, Definition TypedExpr)] [(Name, Definition Ast)]
+runCompileProgramTest description input expected =
+  it description $ definitions (toProgram input) == Map.fromList expected
+
 runLlvmTypeTest :: TestCase Type LLVM.Type
 runLlvmTypeTest description input expected =
   it description $ llvmType input == expected
 
-runX :: [(Name, Definition (SourceExpr ()))] -> IO String
-runX definitions = 
-  flip runContT id $ do
+runEndToEndCompilerTest :: TestCase [(Name, Definition (SourceExpr ()))] String 
+runEndToEndCompilerTest description definitions expected = do
+  result <- runIO $ flip runContT id $ do
     (file, _) <- ContT (withTempFile "." "obj" . curry)
     context <- ContT withContext
-    module_ <- ContT (withModuleFromAST context (buildProgram "Main" prog))
+    module_ <- ContT (withModuleFromAST context (buildProgram "Main" program))
     machine <- ContT withHostTargetMachineDefault
     liftIO $ do
       writeObjectToFile machine (File file) module_
       callProcess "clang" ["-o", ".build/test-exec", "memory.c", file, "-lgc"]  
       pure (snd3 <$> readProcessWithExitCode ".build/test-exec" [] [])
-  where
-    prog = execCompiler (compileSource definitions) (getEnv definitions)
+  it description $ result == expected
+    where
+  program = execCompiler (compileSource definitions) (getEnv definitions)

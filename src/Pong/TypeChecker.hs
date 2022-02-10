@@ -59,9 +59,8 @@ mapsTo = Substitution <$$> Map.singleton
 tagLabel :: Name -> TypeChecker (Label Int)
 tagLabel name = (,) <$> tag <*> pure name
 
--- tagExpr?
-tagAst :: SourceExpr t -> TypeChecker (SourceExpr Int)
-tagAst =
+tagExpr :: SourceExpr t -> TypeChecker (SourceExpr Int)
+tagExpr =
   cata $ \case
     EVar (_, name) -> var <$> tagLabel name
     ELit prim -> pure (lit prim)
@@ -117,13 +116,14 @@ unifyM a b = do
 runCheck :: TypeEnv -> SourceExpr t -> Either TypeError TypedExpr 
 runCheck symtab ast = apply sub <$> res
   where
-    (res, (_, sub)) = runMonad (check =<< tagAst ast)
+    (res, (_, sub)) = runMonad (check =<< tagExpr ast)
     runMonad m =
       runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
 
 check :: SourceExpr Int -> TypeChecker TypedExpr
 check =
   cata $ \case
+    -- TODO: generalization?
     ELet _ (t, name) expr1 expr2 -> do
       let insertBound e = do
             ty <- applySubstitution (tVar t)
