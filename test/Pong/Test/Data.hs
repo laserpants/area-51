@@ -309,3 +309,33 @@ program1 =
            ( tInt32
            , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
   ]
+
+program2 :: [(Name, Definition (SourceExpr ()))]
+program2 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           ( tInt32
+           , let_
+               ((), "foo")
+               (app (var ((), "Nil")) [])
+               (case_
+                  (var ((), "foo"))
+                  [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]
+

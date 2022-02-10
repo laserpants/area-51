@@ -165,3 +165,4 @@ main =
     ---------------------------------------------------------------------------
     describe "End to end" $ do
       runEndToEndCompilerTest "#1" program1 "5\n"
+      runEndToEndCompilerTest "#2" program2 "9\n"
