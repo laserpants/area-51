@@ -870,3 +870,7 @@ testAbc558 = Text.putStrLn (ppll foo)
     foo = buildProgram "Main" prog
     prog = execCompiler (compileSource ds) (getEnv ds)
     ds = program4
+
+testAbc999 =
+    app (var (tVar 2 ~> tVar 2, "id"))
+        [var (tInt32 ~> tInt32, "f")]

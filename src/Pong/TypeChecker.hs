@@ -4,6 +4,7 @@
 
 module Pong.TypeChecker 
   ( runCheck
+--  , runCheck2 -- TODO: temp
   ) where
 
 import Debug.Trace
@@ -91,7 +92,10 @@ unify t1 t2 =
 --    (_, TOpaque) -> pure mempty
     _
       | t1 == t2 -> pure mempty
-      | otherwise -> throwError UnificationError
+      | otherwise -> do
+--        traceShowM t1
+--        traceShowM t2
+        throwError UnificationError
 
 applySubstitution ::
      (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
@@ -114,11 +118,22 @@ unifyM a b = do
   modify (second (sub1 <>))
 
 runCheck :: TypeEnv -> SourceExpr t -> Either TypeError TypedExpr 
-runCheck symtab ast = apply sub <$> res
+runCheck symtab ast = do
+--  let (Substitution x) = sub in flip mapM_ (Map.toList x) $ \(a, b) ->
+--    traceShowM (show a <> " :: " <> show b)
+  apply sub <$> res
   where
     (res, (_, sub)) = runMonad (check =<< tagExpr ast)
     runMonad m =
       runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
+
+---- TODO: temp
+----runCheck2 :: TypeEnv -> SourceExpr t -> Either TypeError TypedExpr 
+--runCheck2 symtab ast = res
+--  where
+--    (res, (_, sub)) = runMonad (tagExpr ast)
+--    runMonad m =
+--      runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
 
 check :: SourceExpr Int -> TypeChecker TypedExpr
 check =
@@ -136,7 +151,8 @@ check =
     EApp _ fun args -> do
       f <- fun
       as <- sequence args
-      let ps = zip (unwindType f) (typeOf <$> as)
+      t1 <- applySubstitution (typeOf f)
+      let ps = zip (unwindType t1) (typeOf <$> as)
       forM_ ps (uncurry unifyM)
       pure (app f as)
     ELam _ args expr -> do

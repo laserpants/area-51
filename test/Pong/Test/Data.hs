@@ -480,3 +480,24 @@ program7 =
            ( tInt32
            , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
   ]
+
+--
+-- let
+--   id =
+--     lam(x) => x
+--   in
+--     let 
+--       f =
+--         lam(y) => y + 1
+--       in
+--         (id(f))(id(5))
+--
+input170 :: SourceExpr ()
+input170 =
+  let_
+    ((), "id")
+    (lam [((), "x")] (var ((), "x")))
+    (let_
+      ((), "f")
+      (lam [((), "y")] (op2 OAddInt32 (var ((), "y")) (lit (LInt32 1))))
+      (app (app (var ((), "id")) [var ((), "f")]) [app (var ((), "id")) [lit (LInt32 5)]]))
