@@ -170,3 +170,4 @@ main =
       runEndToEndCompilerTest "#4" program4 "7\n"
       runEndToEndCompilerTest "#5" program5 "57\n"
       runEndToEndCompilerTest "#6" program6 "5\n"
+      runEndToEndCompilerTest "#7" program7 "5\n"

@@ -127,6 +127,7 @@ compileAst =
     EVar v -> pure (var v)
     ELit prim -> pure (lit prim)
     ECase e1 cs -> case_ <$> e1 <*> traverse clauses cs
+    EApp _ expr [] -> expr
     EApp _ expr args -> do
       e <- expr
       as <- sequence args

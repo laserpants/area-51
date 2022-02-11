@@ -440,6 +440,35 @@ program6 =
                ((), "abc")
                (app (var ((), "Cons")) [lit (LInt32 5)])
                (case_
+                  (app (var ((), "abc")) [app (var ((), "Nil")) []])
+                  [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]
+
+program7 :: [(Name, Definition (SourceExpr ()))]
+program7 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           ( tInt32
+           , let_
+               ((), "abc")
+               (app (var ((), "Cons")) [lit (LInt32 5)])
+               (case_
                   (app (var ((), "abc")) [var ((), "Nil")])
                   [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
                   , ([((), "Nil")], lit (LInt32 9))

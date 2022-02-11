@@ -2,19 +2,17 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE LambdaCase #-}
 
-{-# LANGUAGE FlexibleContexts #-}
-
 module Pong.Test.Drivers where
 
 import Control.Monad.Cont
 import Control.Monad.Except
 import Control.Monad.Reader
-import Debug.Trace
 import Control.Monad.State (gets, modify, put)
 import Data.Either (fromRight)
 import Data.Map.Strict ((!))
 import Data.Tuple.Extra (snd3)
 import Data.Void
+import Debug.Trace
 import LLVM.Context (Context, withContext)
 import LLVM.Module (File(..), withModuleFromAST, writeObjectToFile)
 import LLVM.Target (withHostTargetMachineDefault, withTargetOptions)
@@ -31,7 +29,6 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
-import GHC.IO.Handle.Types
 
 type TestCase input result = String -> input -> result -> SpecWith ()
 
