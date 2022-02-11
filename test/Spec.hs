@@ -166,3 +166,7 @@ main =
     describe "End to end" $ do
       runEndToEndCompilerTest "#1" program1 "5\n"
       runEndToEndCompilerTest "#2" program2 "9\n"
+      runEndToEndCompilerTest "#3" program3 "6\n"
+      runEndToEndCompilerTest "#4" program4 "7\n"
+      runEndToEndCompilerTest "#5" program5 "57\n"
+      runEndToEndCompilerTest "#6" program6 "5\n"

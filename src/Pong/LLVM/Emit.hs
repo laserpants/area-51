@@ -213,8 +213,9 @@ emitBody =
       emitOp2Instr op a b
     EVar (t, name) ->
       Env.askLookup name >>= \case
-        Just (t1, op) | isTCon ArrT t1 -> 
-          undefined -- TODO
+        Just (_, op) | isTCon ArrT t -> 
+          emitCall (t, name) []
+          -- ??? TODO
         Just (_, op) -> pure op
         _ -> error ("Not in scope: '" <> show name <> "'")
     ECase expr clss -> emitCase expr (sortOn fst clss)
@@ -261,16 +262,43 @@ emitCall (t, fun) args = do
   as <- sequence args
   Env.askLookup fun >>= \case
     Just (t0, op@(LocalReference PointerType {..} _)) -> do
-      undefined
-    Just (t0, op) ->
+      a <- bitcast op charPtr
+      h <- loadFromOffset 0 op
+      x <- inttoptr (ConstantOperand (Int 32 9991)) charPtr -- TODO: TEMP
+      -- TEMP
+      --zz <- inttoptr (ConstantOperand (Int 32 123)) charPtr
+      call h (zip (a : as) (repeat []))
+    Just (t0, op) -> do
+      as' <- traverse foo1 (zip3 as (unwindType t0) (unwindType t))
+      let tys = argTypes t
+          (ts1, ts2) = splitAt (length args) (llvmType <$> tys)
       case compare (arity t) (length args) of
         EQ -> do
-          as' <- traverse foo1 (zip3 as (unwindType t0) (unwindType t))
           r <- call op (zip as' (repeat []))
           foo2 (r, returnTypeOf t0, returnTypeOf t)
           -- TODO return?
-        GT -> do 
-          undefined
+        GT -> mdo 
+          let sty = StructureType False (LLVM.typeOf g : LLVM.typeOf op : ts1)
+          name <- freshName "fun"
+          g <- 
+            function
+              name
+              (zip (charPtr : ts2) (repeat "a"))
+              (llvmType (returnTypeOf t0))
+              (\(v:vs) -> do 
+                s <- bitcast v (ptr sty)
+                h <- loadFromOffset 1 s
+                an <-
+                  forM [2 .. length ts1 + 1] $ \n -> 
+                    loadFromOffset (fromIntegral n) s
+                r <- call h (zip (an <> vs) (repeat []))
+                ret r)
+          struct <- malloc sty
+          storeAtOffs 0 struct g
+          storeAtOffs 1 struct op
+          forM_ (as `zip` [2 ..]) $ \(a, i) -> 
+            storeAtOffs i struct a
+          bitcast struct (ptr (StructureType False [LLVM.typeOf g]))
         LT -> error "Implementation error"
     _ -> error ("Function not in scope: '" <> show fun <> "'")
 

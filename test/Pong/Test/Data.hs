@@ -204,11 +204,9 @@ input160 =
   , ("main", Function (Signature [] (tInt32, mainAst)))
   ]
   where
-    fooAst =
-      let_
-        undefined
-        undefined
-        undefined
+    fooAst = let_ undefined undefined undefined
+    mainAst = undefined -- app (var ((), "foo")) []
+
 --        ((), "xs")
 --        (app () (var ((), "Cons")) [lit (LInt32 5), app () (var ((), "Nil")) []])
 --        (let_
@@ -224,8 +222,6 @@ input160 =
 --                    , ([((), "Cons"), ((), "_"), ((), "_")], lit (LInt32 3))
 --                    ])
 --              ]))
-    mainAst = undefined -- app (var ((), "foo")) []
-
 input160Compiled :: [(Name, Definition Ast)]
 input160Compiled =
   [ ( "List"
@@ -339,3 +335,119 @@ program2 =
            , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
   ]
 
+program3 :: [(Name, Definition (SourceExpr ()))]
+program3 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           ( tInt32
+           , let_
+               ((), "foo")
+               (app
+                  (var ((), "Cons"))
+                  [lit (LInt32 5), app (var ((), "Nil")) []])
+               (case_
+                  (var ((), "foo"))
+                  [ ( [((), "Cons"), ((), "x"), ((), "xs")]
+                    , op2 OAddInt32 (var ((), "x")) (lit (LInt32 1)))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]
+
+program4 :: [(Name, Definition (SourceExpr ()))]
+program4 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "add"
+    , Function
+        (Signature
+           [(tInt32, "x"), (tInt32, "y")]
+           (tInt32, op2 OAddInt32 (var ((), "x")) (var ((), "y")))))
+  , ( "add5"
+    , Function
+        (Signature [] (tInt32 ~> tInt32, app (var ((), "add")) [lit (LInt32 5)])))
+  , ( "add5_2"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           (tInt32, app (var ((), "add5")) [lit (LInt32 2)])))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app
+               (var ((), "print_int32"))
+               [app (var ((), "add5_2")) [lit LUnit]])))
+  ]
+
+program5 :: [(Name, Definition (SourceExpr ()))]
+program5 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "add"
+    , Function
+        (Signature
+           [(tInt32, "x"), (tInt32, "y")]
+           (tInt32, op2 OAddInt32 (var ((), "x")) (var ((), "y")))))
+  , ( "add55"
+    , Function
+        (Signature
+           []
+           (tInt32 ~> tInt32, app (var ((), "add")) [lit (LInt32 55)])))
+  , ( "foo"
+    , Function
+        (Signature
+           [(tInt32 ~> tInt32, "f")]
+           (tInt32, app (var ((), "f")) [lit (LInt32 2)])))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app
+               (var ((), "print_int32"))
+               [app (var ((), "foo")) [var ((), "add55")]])))
+  ]
+
+program6 :: [(Name, Definition (SourceExpr ()))]
+program6 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           ( tInt32
+           , let_
+               ((), "abc")
+               (app (var ((), "Cons")) [lit (LInt32 5)])
+               (case_
+                  (app (var ((), "abc")) [var ((), "Nil")])
+                  [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]

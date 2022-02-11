@@ -5,6 +5,7 @@
 
 module Main where
 
+import Control.Monad.Cont
 import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.Reader
@@ -768,3 +769,104 @@ testAbc7 = Text.putStrLn (ppll foo)
 --              app (var (tOpaque ~> tData "List" ~> tData "List", "Cons")) [lit (LInt32 123), app (var (tData "List", "Nil")) []] )))
 --         , ("baz", Constant (LInt32 1223))
 --         ] :: [(Name, Definition TypedExpr)])
+--
+
+
+
+runProgram :: [(Name, Definition (SourceExpr ()))] -> IO String
+runProgram definitions = do
+  flip runContT id $ do
+    (file, _) <- ContT (withTempFile "." "obj" . curry)
+    context <- ContT withContext
+    module_ <- ContT (withModuleFromAST context (buildProgram "Main" program))
+    machine <- ContT withHostTargetMachineDefault
+    liftIO $ do
+      writeObjectToFile machine (File file) module_
+      callProcess "clang" ["-o", ".build/test-exec", "memory.c", file, "-lgc"]  
+      pure (snd3 <$> readProcessWithExitCode ".build/test-exec" [] [])
+  where
+    program = execCompiler (compileSource definitions) (getEnv definitions)
+
+
+program3 :: [(Name, Definition (SourceExpr ()))]
+program3 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           ( tInt32
+           , let_
+               ((), "foo")
+               (app
+                  (var ((), "Cons"))
+                  [lit (LInt32 5), app (var ((), "Nil")) []])
+               (case_
+                  (var ((), "foo"))
+                  [ ([((), "Cons"), ((), "x"), ((), "xs")], op2 OAddInt32 (var ((), "x")) (lit (LInt32 1)))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]
+
+
+program4 :: [(Name, Definition (SourceExpr ()))]
+program4 =
+  [ ("gc_malloc", External (Signature [tInt64] (tVar 0)))
+  , ("print_int32", External (Signature [tInt32] tInt32))
+  , ( "List"
+    , Data
+        "List"
+        [Constructor "Nil" [], Constructor "Cons" [tVar 0, tData "List"]])
+--  , ( "add"
+--    , Function
+--        (Signature
+--           [(tInt32, "x"), (tInt32, "y")]
+--           ( tInt32, op2 OAddInt32 (var ((), "x")) (var ((), "y")))))
+--  , ( "cons5"
+--    , Function
+--        (Signature
+--           []
+--           ( tInt32 ~> tInt32, app (var ((), "add")) [lit (LInt32 5)])))
+--  , ( "baz"
+--    , Function
+--        (Signature
+--           [(tInt32, "a"), (tData "List", "b")]
+--              (tInt32, lit (LInt32 7889)))
+--    )
+  , ( "foo"
+    , Function
+        (Signature
+           [(tUnit, "_")]
+           (tInt32, 
+             let_
+                ((), "abc")
+                (app (var ((), "Cons")) [lit (LInt32 5)])
+                (case_ (app (var ((), "abc")) [var ((), "Nil")])
+                  [ ([((), "Cons"), ((), "x"), ((), "xs")], var ((), "x"))
+                  , ([((), "Nil")], lit (LInt32 9))
+                  ]))
+           ))
+  , ( "main"
+    , Function
+        (Signature
+           []
+           ( tInt32
+           , app (var ((), "print_int32")) [app (var ((), "foo")) [lit LUnit]])))
+  ]
+
+testAbc558 = Text.putStrLn (ppll foo)
+  where
+    foo = buildProgram "Main" prog
+    prog = execCompiler (compileSource ds) (getEnv ds)
+    ds = program4
