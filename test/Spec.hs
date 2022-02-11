@@ -83,15 +83,15 @@ main =
       runUnwindTypeTest "i32" i32 [i32]
       runUnwindTypeTest "i32 ~> i32" (i32 ~> i32) [i32, i32]
       runUnwindTypeTest
-        "(i32 ~> i32 ~> i32"
+        "(i32 ~> i32) ~> i32"
         ((i32 ~> i32) ~> i32)
         [i32 ~> i32, i32]
       runUnwindTypeTest
-        "(i32 ~> i32 ~> (i32 ~> i32)"
+        "(i32 ~> i32) ~> (i32 ~> i32)"
         ((i32 ~> i32) ~> (i32 ~> i32))
         [i32 ~> i32, i32, i32]
       runUnwindTypeTest
-        "(i32 ~> i32 ~> i32 ~> i32"
+        "(i32 ~> i32) ~> i32 ~> i32"
         ((i32 ~> i32) ~> i32 ~> i32)
         [i32 ~> i32, i32, i32]
     ---------------------------------------------------------------------------
