@@ -501,3 +501,14 @@ input170 =
       ((), "f")
       (lam [((), "y")] (op2 OAddInt32 (var ((), "y")) (lit (LInt32 1))))
       (app (app (var ((), "id")) [var ((), "f")]) [app (var ((), "id")) [lit (LInt32 5)]]))
+
+input171 :: TypedExpr
+input171 =
+  let_
+    (tVar 0 ~> tVar 0, "id")
+    (lam [(tVar 0, "x")] (var (tVar 0, "x")))
+    (let_
+      (i32 ~> i32, "f")
+      (lam [(i32, "y")] (op2 OAddInt32 (var (i32, "y")) (lit (LInt32 1))))
+      (app (app (var ((i32 ~> i32) ~> i32 ~> i32, "id")) [var (i32 ~> i32, "f")]) [app (var (i32 ~> i32, "id")) [lit (LInt32 5)]]))
+

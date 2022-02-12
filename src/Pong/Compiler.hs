@@ -164,7 +164,7 @@ consTypes (name, def) =
   constructors def <#> \Constructor {..} ->
     (consName, foldType (tData name) (typeOf <$> consFields))
 
-getEnv :: [(Name, Definition (Expr t a0 a1 a2 a3))] -> Environment Type
+getEnv :: [(Name, Definition (Expr t a0 a1 a2 a3))] -> TypeEnv
 getEnv ds = Env.fromList $ (typeOf <$$> ds) <> (consTypes =<< ds)
 
 toProgram ::
