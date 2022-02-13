@@ -877,8 +877,25 @@ main = do
 --    app (var (tVar 2 ~> tVar 2, "id"))
 --        [var (tInt32 ~> tInt32, "f")]
 -- ////////////
---
 -- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- ==========================
+-- boo =
+--   lam(a) => lam(b) => b
+--
 -- plus(x, y) =
 --   x + y
 --
@@ -899,9 +916,13 @@ main = do
 --               lam(y) => y + h
 --             in
 --               g(f)(g(5)) + f(1)
---   
+--
 prog1_0 =
-  [ ( "plus"
+  [ ( "boo"
+    , XConstant
+        ( xtGen 0 ~~> xtGen 1 ~~> xtGen 1
+        , xeLam [(xtGen 0, "a")] (xeLam [(xtGen 1, "b")] (xeVar (xtGen 1, "b")))))
+  , ( "plus"
     , XFunction
         (fromList [(xtInt32, "x"), (xtInt32, "y")])
         (xeOp2 XOAddInt32 (xeVar (xtInt32, "x")) (xeVar (xtInt32, "y"))))
@@ -945,10 +966,15 @@ prog1_0 =
                        [xeLit (XLInt32 1)]))))))
   ]
 
--- * combine lambdasa <-- ??
+-- Step #2.
+--
+-- * combine lambdas 
 -- * convert closures
 -- * fill arguments (no functions returning functions)
 -- ==========================
+-- boo =
+--   lam[a, b] => b
+--
 -- plus(x, y) =
 --   x + y
 --
@@ -971,7 +997,11 @@ prog1_0 =
 --               g(f)(g(5)) + f(1)
 --
 prog1_1 =
-  [ ("plus", fromJust (lookup "plus" prog1_0))
+  [ ( "boo"
+    , XConstant
+        ( xtGen 0 ~~> xtGen 1 ~~> xtGen 1
+        , xeLam [(xtGen 0, "a"), (xtGen 1, "b")] (xeVar (xtGen 1, "b"))))
+  , ("plus", fromJust (lookup "plus" prog1_0))
   , ( "baz"
     , XFunction
         (fromList [(xtInt32, "x"), (xtInt32, "_v0")])
@@ -1014,8 +1044,13 @@ prog1_1 =
                        [xeLit (XLInt32 1)]))))))
   ]
 
+-- Step #3.
+--
 -- * lift lambdas
 -- ==========================
+-- boo(a, b) =
+--   b
+--
 -- plus(x, y) = x + y
 --
 -- baz(x, v_0) = plus(x, v_0)
@@ -1035,7 +1070,11 @@ prog1_1 =
 --         in
 --           g(f')(g(5)) + f'(1)
 prog1_2 =
-  [ ("plus", fromJust (lookup "plus" prog1_1))
+  [ ( "boo"
+    , XFunction
+        (fromList [(xtGen 0, "a"), (xtGen 1, "b")])
+        (xeVar (xtGen 1, "b")))
+  , ("plus", fromJust (lookup "plus" prog1_1))
   , ("baz", fromJust (lookup "baz" prog1_1))
   , ("g", XFunction (fromList [(xtGen 0, "x")]) (xeVar (xtGen 0, "x")))
   , ( "f"
@@ -1067,7 +1106,8 @@ prog1_2 =
                  (xeApp (xeVar (xtInt32 ~~> xtInt32, "f'")) [xeLit (XLInt32 1)])))))
   ]
 
-
+-- Step #4.
+--
 -- * elim. partial function applications
 -- ==========================
 -- plus(x, y) = x + y
@@ -1085,17 +1125,64 @@ prog1_2 =
 --     in
 --       f(h)(g(5)) + f(h, 1)  ===>   f(h, g(5)) + f(h, 1)
 prog1_3 =
-  [ ("plus", fromJust (lookup "plus" prog1_2))
+  [ ("boo", fromJust (lookup "boo" prog1_2))
+  , ("plus", fromJust (lookup "plus" prog1_2))
   , ("baz", fromJust (lookup "baz" prog1_2))
   , ("g", fromJust (lookup "g" prog1_2))
-  , ( "f", fromJust (lookup "f" prog1_2))
-  , ( "foo" 
+  , ("f", fromJust (lookup "f" prog1_2))
+  , ( "foo"
     , XFunction
         (fromList [(xtInt32, "z")])
         (xeLet
-         (xtInt32, "h")
-         (xeOp2 XOAddInt32 (xeVar (xtInt32, "z")) (xeLit (XLInt32 1)))
-         (xeOp2 XOAddInt32
-           (xeApp (xeVar (xtInt32 ~~> xtInt32 ~~> xtInt32, "f")) [xeVar (xtInt32, "h"), xeApp (xeVar (xtInt32 ~~> xtInt32, "g")) [xeLit (XLInt32 5)]])
-           (xeApp (xeVar (xtInt32 ~~> xtInt32 ~~> xtInt32, "f")) [xeVar (xtInt32, "h"), xeLit (XLInt32 1)]))))
+           (xtInt32, "h")
+           (xeOp2 XOAddInt32 (xeVar (xtInt32, "z")) (xeLit (XLInt32 1)))
+           (xeOp2
+              XOAddInt32
+              (xeApp
+                 (xeVar (xtInt32 ~~> xtInt32 ~~> xtInt32, "f"))
+                 [ xeVar (xtInt32, "h")
+                 , xeApp (xeVar (xtInt32 ~~> xtInt32, "g")) [xeLit (XLInt32 5)]
+                 ])
+              (xeApp
+                 (xeVar (xtInt32 ~~> xtInt32 ~~> xtInt32, "f"))
+                 [xeVar (xtInt32, "h"), xeLit (XLInt32 1)]))))
   ]
+
+--
+-- type List a = Nil | Cons a (List a)
+--
+-- 
+--
+prog2_0 = [("List", undefined)]
+
+-- Step #1.
+-- 
+-- * Lay out constructors 
+-- ==========================
+--
+-- type List a = Nil | Cons a (List a)
+--
+--
+-- Nil = Nil
+-- Cons(x, xs) = Cons(x, xs)
+-- 
+--
+prog2_1 = undefined
+
+-- Rows!
+--
+-- foo(_) =
+--   let
+--     r =
+--       { a = 1, b = "woo", a = True }
+--     in
+--       match r {
+--         | { a = x | r1 } =>
+--           match r1 with {
+--             | { a = x1 | r2 } =>
+--               match r2 with {
+--                 | { a = x2 | r3 } => x2
+--               }
+--           }
+--       }
+prog3_0 = undefined

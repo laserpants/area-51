@@ -28,10 +28,10 @@ data XTypeF a
   | XTDouble
   | XTChar
   | XTString
+  | XTCon Name
   | XTArr a a
   | XTVar Int
   | XTGen Int
-  | XTData Name
   | XTRow (XRow XType)
 
 type XType = Fix XTypeF 
@@ -64,6 +64,7 @@ type XLabel t = (t, Name)
 
 data XExprF t a0 a1 a2 a
   = XEVar (XLabel t)
+  | XECon (XLabel t)
   | XELit XLiteral
   | XEIf a a a
   | XELet (XLabel t) a a
@@ -76,24 +77,17 @@ data XExprF t a0 a1 a2 a
 
 type XExpr t a0 a1 a2 = Fix (XExprF t a0 a1 a2)
 
---data XSignature r a =
---  XSignature
---    { arguments :: NonEmpty r
---    , body :: a
---    }
-
---data XConstructor =
---  XConstructor
---    { consName :: Name
---    , consFields :: [XPolyType]
---    }
+data XConstructor =
+  XConstructor
+    { consName :: Name
+    , consFields :: [XType]
+    }
 
 data XDefinition r a
   = XFunction (NonEmpty r) a
---  = XFunction -- (XSignature (XLabel XPolyType) (XPolyType, a))
---  | XExternal 
---  | XConstant XLiteral 
---  | XData Name [XConstructor]
+  | XConstant (XType, a)
+  | XExternal [XType]
+  | XData Name [XConstructor]
 
 -- XRow
 deriving instance (Show r, Show a) => Show (XRowF r a)
@@ -165,6 +159,13 @@ deriving instance Functor (XExprF t a0 a1 a2)
 deriving instance Foldable (XExprF t a0 a1 a2)
 
 deriving instance Traversable (XExprF t a0 a1 a2)
+
+-- XConstructor
+deriving instance Show XConstructor
+
+deriving instance Eq XConstructor
+
+deriving instance Ord XConstructor
 
 -- XDefinition
 deriving instance (Show r, Show a) => Show (XDefinition r a)
