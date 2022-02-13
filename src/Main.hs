@@ -945,7 +945,7 @@ prog1_0 =
                        [xeLit (XLInt32 1)]))))))
   ]
 
--- * combine lambdas
+-- * combine lambdasa <-- ??
 -- * convert closures
 -- * fill arguments (no functions returning functions)
 -- ==========================
@@ -1031,7 +1031,7 @@ prog1_1 =
 --     in
 --       let 
 --         f' =
---           f(h)                    { f, apply_f, h }
+--           ^f(h)                    { f, apply_f, h }
 --         in
 --           g(f')(g(5)) + f'(1)
 prog1_2 =
@@ -1065,4 +1065,37 @@ prog1_2 =
                         [xeLit (XLInt32 5)]
                     ])
                  (xeApp (xeVar (xtInt32 ~~> xtInt32, "f'")) [xeLit (XLInt32 1)])))))
+  ]
+
+
+-- * elim. partial function applications
+-- ==========================
+-- plus(x, y) = x + y
+--
+-- baz(x, v_0) = plus(x, v_0)
+--
+-- g(x) = x
+--
+-- f(a_0, y) = y + a_0
+--
+-- foo(z) =
+--   let
+--     h =
+--       z + 1
+--     in
+--       f(h)(g(5)) + f(h, 1)  ===>   f(h, g(5)) + f(h, 1)
+prog1_3 =
+  [ ("plus", fromJust (lookup "plus" prog1_2))
+  , ("baz", fromJust (lookup "baz" prog1_2))
+  , ("g", fromJust (lookup "g" prog1_2))
+  , ( "f", fromJust (lookup "f" prog1_2))
+  , ( "foo" 
+    , XFunction
+        (fromList [(xtInt32, "z")])
+        (xeLet
+         (xtInt32, "h")
+         (xeOp2 XOAddInt32 (xeVar (xtInt32, "z")) (xeLit (XLInt32 1)))
+         (xeOp2 XOAddInt32
+           (xeApp (xeVar (xtInt32 ~~> xtInt32 ~~> xtInt32, "f")) [xeVar (xtInt32, "h"), xeApp (xeVar (xtInt32 ~~> xtInt32, "g")) [xeLit (XLInt32 5)]])
+           (xeApp (xeVar (xtInt32 ~~> xtInt32 ~~> xtInt32, "f")) [xeVar (xtInt32, "h"), xeLit (XLInt32 1)]))))
   ]
