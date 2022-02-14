@@ -1,10 +1,4 @@
--- {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
-
--- {-# LANGUAGE OverloadedStrings #-}
--- {-# LANGUAGE RecordWildCards #-}
--- {-# LANGUAGE TupleSections #-}
 module Pong.Compiler where
 
 import Data.List.NonEmpty (NonEmpty, fromList, toList)
@@ -55,7 +49,7 @@ hoistTopLambdas =
   where
     combine t as =
       project . combineLambdas >>> \case
-        ELam _ bs expr -> Function (fromList (as <> bs)) (t, expr)
+        ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
         _ -> error "Implementation error"
 
 -- from:

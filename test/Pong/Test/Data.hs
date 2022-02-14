@@ -2,11 +2,38 @@
 
 module Pong.Test.Data where
 
-import qualified Data.Map.Strict as Map
+import Data.List.NonEmpty (fromList, toList)
 import Data.Void
 import Pong.Data
 import Pong.Lang
+import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
+
+fragment1_0 :: Definition (Label Type) (Expr Type () () Void)
+fragment1_0 =
+  Function
+    (fromList [(tInt32, "x")])
+    ( tInt32 ~> tInt32
+    , eApp (eVar (tInt32 ~> tInt32 ~> tInt32, "plus")) [eVar (tInt32, "x")])
+
+fragment1_1 :: Definition (Label Type) (Expr Type () () Void)
+fragment1_1 =
+  Function
+    (fromList [(tInt32, "x"), (tInt32, ".v0")])
+    ( tInt32
+    , eApp
+        (eVar (tInt32 ~> tInt32 ~> tInt32, "plus"))
+        [eVar (tInt32, "x"), eVar (tInt32, ".v0")])
+
+fragment2_0 :: Definition (Label Type) (Expr Type () () Void)
+fragment2_0 =
+  Function (fromList [(tInt32, "x")]) 
+    (tInt32 ~> tInt32 ~> tInt32, eLam [(tInt32, "a")] (eLam [(tInt32, "b")] (eVar (tInt32, "b"))))
+
+fragment2_1 :: Definition (Label Type) (Expr Type () () Void)
+fragment2_1 =
+  Function (fromList [(tInt32, "x"), (tInt32, "a"), (tInt32, "b")]) 
+    (tInt32, eVar (tInt32, "b"))
 
 --i32 :: Type
 --i32 = tInt32

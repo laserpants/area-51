@@ -3,6 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module Pong.Data where
 
 import Data.Eq.Deriving (deriveEq1)
@@ -35,7 +36,7 @@ data TypeF a
   | TGen Int
   | TRow (Row Type)
 
-type Type = Fix TypeF 
+type Type = Fix TypeF
 
 data TCon
   = VarT
@@ -171,11 +172,15 @@ deriving instance Eq Op2
 deriving instance Ord Op2
 
 -- Expr
-deriving instance (Show t, Show a0, Show a1, Show a2, Show a) => Show (ExprF t a0 a1 a2 a)
+deriving instance
+         (Show t, Show a0, Show a1, Show a2, Show a) =>
+         Show (ExprF t a0 a1 a2 a)
 
-deriving instance (Eq t, Eq a0, Eq a1, Eq a2, Eq a) => Eq (ExprF t a0 a1 a2 a)
+deriving instance
+         (Eq t, Eq a0, Eq a1, Eq a2, Eq a) => Eq (ExprF t a0 a1 a2 a)
 
-deriving instance (Ord t, Ord a0, Ord a1, Ord a2, Ord a) => Ord (ExprF t a0 a1 a2 a)
+deriving instance
+         (Ord t, Ord a0, Ord a1, Ord a2, Ord a) => Ord (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
 

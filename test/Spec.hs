@@ -24,7 +24,11 @@ import qualified Pong.Util.Env as Env
 
 main :: IO ()
 main =
-  pure ()
+  hspec $ do
+    describe "fillParams" $ do
+      it "#1" (fillParams fragment1_0 == fragment1_1)
+    describe "hoistTopLambdas" $ do
+      it "#2" (hoistTopLambdas fragment2_0 == fragment2_1)
 
 --  hspec $
 --

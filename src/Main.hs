@@ -14,10 +14,14 @@ import Data.Bifunctor
 import Data.Either
 import Data.Function (on)
 import Data.List.NonEmpty hiding ((!!))
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
+import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (snd3)
 import Data.Void
+import qualified LLVM.AST as LLVM
+import qualified LLVM.AST.Type as LLVM
 import LLVM.Context (withContext)
 import LLVM.IRBuilder
 import LLVM.IRBuilder.Module
@@ -31,13 +35,9 @@ import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util
+import qualified Pong.Util.Env as Env
 import System.IO.Temp
 import System.Process
-import qualified Data.Map.Strict as Map
-import qualified Data.Text.Lazy.IO as Text
-import qualified LLVM.AST as LLVM
-import qualified LLVM.AST.Type as LLVM
-import qualified Pong.Util.Env as Env
 
 main :: IO ()
 main = do
@@ -81,41 +81,31 @@ prog1_0 =
   , ( "baz"
     , Function
         (fromList [(tInt32, "x")])
-        (tInt32 ~> tInt32, eApp
-           (eVar (tInt32 ~> tInt32 ~> tInt32, "plus"))
-           [eVar (tInt32, "x")]))
+        ( tInt32 ~> tInt32
+        , eApp (eVar (tInt32 ~> tInt32 ~> tInt32, "plus")) [eVar (tInt32, "x")]))
   , ( "foo"
     , Function
         (fromList [(tInt32, "z")])
-        (tInt32, eLet
-           (tInt32, "h")
-           (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
-           (eLet
-              (tVar 0 ~> tVar 0, "g")
-              (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
-              (eLet
-                 (tInt32 ~> tInt32, "f")
-                 (eLam
-                    [(tInt32, "y")]
-                    (eOp2
-                       OAddInt32
-                       (eVar (tInt32, "y"))
-                       (eVar (tInt32, "h"))))
-                 (eOp2
-                    OAddInt32
-                    (eApp
-                       (eApp
-                          (eVar
-                             ( (tInt32 ~> tInt32) ~> tInt32 ~> tInt32
-                             , "g"))
-                          [eVar (tInt32 ~> tInt32, "f")])
-                       [ eApp
-                           (eVar (tInt32 ~> tInt32, "g"))
-                           [eLit (LInt32 5)]
-                       ])
-                    (eApp
-                       (eVar (tInt32 ~> tInt32, "f"))
-                       [eLit (LInt32 1)]))))))
+        ( tInt32
+        , eLet
+            (tInt32, "h")
+            (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
+            (eLet
+               (tVar 0 ~> tVar 0, "g")
+               (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
+               (eLet
+                  (tInt32 ~> tInt32, "f")
+                  (eLam
+                     [(tInt32, "y")]
+                     (eOp2 OAddInt32 (eVar (tInt32, "y")) (eVar (tInt32, "h"))))
+                  (eOp2
+                     OAddInt32
+                     (eApp
+                        (eApp
+                           (eVar ((tInt32 ~> tInt32) ~> tInt32 ~> tInt32, "g"))
+                           [eVar (tInt32 ~> tInt32, "f")])
+                        [eApp (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]])
+                     (eApp (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))))
   ]
 
 -- Step #2.
@@ -157,43 +147,38 @@ prog1_1 =
   , ( "baz"
     , Function
         (fromList [(tInt32, "x"), (tInt32, "_v0")])
-        (tInt32, eApp
-           (eVar (tInt32 ~> tInt32 ~> tInt32, "plus"))
-           [eVar (tInt32, "x"), eVar (tInt32, "_v0")]))
+        ( tInt32
+        , eApp
+            (eVar (tInt32 ~> tInt32 ~> tInt32, "plus"))
+            [eVar (tInt32, "x"), eVar (tInt32, "_v0")]))
   , ( "foo"
     , Function
         (fromList [(tInt32, "z")])
-        (tInt32, eLet
-           (tInt32, "h")
-           (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
-           (eLet
-              (tVar 0 ~> tVar 0, "g")
-              (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
-              (eLet
-                 (tInt32 ~> tInt32, "f")
-                 (eApp
-                    (eLam
-                       [(tInt32, "a_0"), (tInt32, "y")]
-                       (eOp2
-                          OAddInt32
-                          (eVar (tInt32, "y"))
-                          (eVar (tInt32, "a_0"))))
-                    [eVar (tInt32, "h")])
-                 (eOp2
-                    OAddInt32
-                    (eApp
-                       (eApp
-                          (eVar
-                             ( (tInt32 ~> tInt32) ~> tInt32 ~> tInt32
-                             , "g"))
-                          [eVar (tInt32 ~> tInt32, "f")])
-                       [ eApp
-                           (eVar (tInt32 ~> tInt32, "g"))
-                           [eLit (LInt32 5)]
-                       ])
-                    (eApp
-                       (eVar (tInt32 ~> tInt32, "f"))
-                       [eLit (LInt32 1)]))))))
+        ( tInt32
+        , eLet
+            (tInt32, "h")
+            (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
+            (eLet
+               (tVar 0 ~> tVar 0, "g")
+               (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
+               (eLet
+                  (tInt32 ~> tInt32, "f")
+                  (eApp
+                     (eLam
+                        [(tInt32, "a_0"), (tInt32, "y")]
+                        (eOp2
+                           OAddInt32
+                           (eVar (tInt32, "y"))
+                           (eVar (tInt32, "a_0"))))
+                     [eVar (tInt32, "h")])
+                  (eOp2
+                     OAddInt32
+                     (eApp
+                        (eApp
+                           (eVar ((tInt32 ~> tInt32) ~> tInt32 ~> tInt32, "g"))
+                           [eVar (tInt32 ~> tInt32, "f")])
+                        [eApp (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]])
+                     (eApp (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))))
   ]
 
 -- Step #3.
@@ -236,26 +221,23 @@ prog1_2 =
   , ( "foo"
     , Function
         (fromList [(tInt32, "z")])
-        (tInt32, eLet
-           (tInt32, "h")
-           (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
-           (eLet
-              (tInt32 ~> tInt32, "f'")
-              (eApp
-                 (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
-                 [eVar (tInt32, "h")])
-              (eOp2
-                 OAddInt32
-                 (eApp
-                    (eApp
-                       (eVar
-                          ((tInt32 ~> tInt32) ~> tInt32 ~> tInt32, "g"))
-                       [eVar (tInt32 ~> tInt32, "f'")])
-                    [ eApp
-                        (eVar (tInt32 ~> tInt32, "g"))
-                        [eLit (LInt32 5)]
-                    ])
-                 (eApp (eVar (tInt32 ~> tInt32, "f'")) [eLit (LInt32 1)])))))
+        ( tInt32
+        , eLet
+            (tInt32, "h")
+            (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
+            (eLet
+               (tInt32 ~> tInt32, "f'")
+               (eApp
+                  (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
+                  [eVar (tInt32, "h")])
+               (eOp2
+                  OAddInt32
+                  (eApp
+                     (eApp
+                        (eVar ((tInt32 ~> tInt32) ~> tInt32 ~> tInt32, "g"))
+                        [eVar (tInt32 ~> tInt32, "f'")])
+                     [eApp (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]])
+                  (eApp (eVar (tInt32 ~> tInt32, "f'")) [eLit (LInt32 1)])))))
   ]
 
 -- Step #4.
@@ -285,19 +267,20 @@ prog1_3 =
   , ( "foo"
     , Function
         (fromList [(tInt32, "z")])
-        (tInt32, eLet
-           (tInt32, "h")
-           (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
-           (eOp2
-              OAddInt32
-              (eApp
-                 (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
-                 [ eVar (tInt32, "h")
-                 , eApp (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]
-                 ])
-              (eApp
-                 (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
-                 [eVar (tInt32, "h"), eLit (LInt32 1)]))))
+        ( tInt32
+        , eLet
+            (tInt32, "h")
+            (eOp2 OAddInt32 (eVar (tInt32, "z")) (eLit (LInt32 1)))
+            (eOp2
+               OAddInt32
+               (eApp
+                  (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
+                  [ eVar (tInt32, "h")
+                  , eApp (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]
+                  ])
+               (eApp
+                  (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
+                  [eVar (tInt32, "h"), eLit (LInt32 1)]))))
   ]
 
 --
@@ -338,22 +321,3 @@ prog2_1 = undefined
 --           }
 --       }
 prog3_0 = undefined
-
-fragment1_0 :: Definition (Label Type) (Expr Type () () a2)
-fragment1_0 = Function
-  (fromList [(tInt32, "x")])
-  (tInt32 ~> tInt32, eApp
-     (eVar (tInt32 ~> tInt32 ~> tInt32, "plus"))
-     [eVar (tInt32, "x")])
-
-fragment1_1 :: Definition (Label Type) (Expr Type () () a2)
-fragment1_1 = Function
-  (fromList [(tInt32, "x"), (tInt32, ".v0")])
-  (tInt32, eApp
-     (eVar (tInt32 ~> tInt32 ~> tInt32, "plus"))
-     [eVar (tInt32, "x"), eVar (tInt32, ".v0")])
-
-test1 = a == fragment1_1
-  where 
-    a :: Definition (Label Type) (Expr Type () () ())
-    a = fillParams fragment1_0
