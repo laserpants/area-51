@@ -14,12 +14,12 @@ import Data.Void (Void)
 import Pong.Util (Fix(..), Name, Text, embed, embed1, embed2, embed3, embed4)
 import Text.Show.Deriving (deriveShow1)
 
-data RowF r a
+data RowF r v a
   = RNil
-  | RVar Name
+  | RVar v
   | RExt Name r a
 
-type Row r = Fix (RowF r)
+type Row r v = Fix (RowF r v)
 
 data TypeF a
   = TUnit
@@ -34,7 +34,7 @@ data TypeF a
   | TArr a a
   | TVar Int
   | TGen Int
-  | TRow (Row Type)
+  | TRow (Row Type Name)
 
 type Type = Fix TypeF
 
@@ -79,14 +79,21 @@ data ExprF t a0 a1 a2 a
   | ECall a2 (Label t) [a]
   | EOp2 Op2 a a
   | ECase a [([Label t], a)]
-  | ERow (Row (Expr t a0 a1 a2))
+  | ERow (Row (Expr t a0 a1 a2) (Label t))
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
+
+type PreAst = Expr Type Void () Void
+
+type Ast = Expr Type Void Void ()
 
 data Con
   = VarE
   | LitE
   | LamE
+
+data Clause a =
+  Clause [a] [a]
 
 newtype Environment a =
   Env
@@ -106,11 +113,11 @@ data Definition r a
   | Data Name [Constructor]
 
 -- Row
-deriving instance (Show r, Show a) => Show (RowF r a)
+deriving instance (Show r, Show v, Show a) => Show (RowF r v a)
 
-deriving instance (Eq r, Eq a) => Eq (RowF r a)
+deriving instance (Eq r, Eq v, Eq a) => Eq (RowF r v a)
 
-deriving instance (Ord r, Ord a) => Ord (RowF r a)
+deriving instance (Ord r, Ord v, Ord a) => Ord (RowF r v a)
 
 deriveShow1 ''RowF
 
@@ -118,11 +125,11 @@ deriveEq1 ''RowF
 
 deriveOrd1 ''RowF
 
-deriving instance Functor (RowF r)
+deriving instance Functor (RowF r v)
 
-deriving instance Foldable (RowF r)
+deriving instance Foldable (RowF r v)
 
-deriving instance Traversable (RowF r)
+deriving instance Traversable (RowF r v)
 
 -- Type
 deriving instance (Show a) => Show (TypeF a)
@@ -200,6 +207,13 @@ deriving instance Show Constructor
 deriving instance Eq Constructor
 
 deriving instance Ord Constructor
+
+-- Clause
+deriving instance (Show a) => Show (Clause a)
+
+deriving instance (Eq a) => Eq (Clause a)
+
+deriving instance (Ord a) => Ord (Clause a)
 
 -- Environment
 deriving instance (Show a) => Show (Environment a)

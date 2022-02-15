@@ -29,6 +29,14 @@ main =
       it "#1" (fillParams fragment1_0 == fragment1_1)
     describe "hoistTopLambdas" $ do
       it "#2" (hoistTopLambdas fragment2_0 == fragment2_1)
+    describe "combineApps" $ do
+      it "#3" (combineApps fragment3_0 == fragment3_1)
+    describe "combineLambdas" $ do
+      it "#4" (combineLambdas fragment4_0 == fragment4_1)
+    describe "convertClosures" $ do
+      it "#5" (convertClosures fragment5_0 == fragment5_1)
+    describe "convertFunApps" $ do
+      it "#6" (convertFunApps fragment6_0 == fragment6_1)
 
 --  hspec $
 --
