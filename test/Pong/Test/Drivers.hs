@@ -1,13 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Pong.Test.Drivers where
 
+import Control.Monad.Writer
 import Control.Monad.Cont
 import Control.Monad.Except
 import Control.Monad.Reader
-import Control.Monad.State (gets, modify, put)
+import Control.Monad.State (State, gets, modify, put, evalStateT)
 import Data.Either (fromRight)
 import Data.Map.Strict ((!))
 import Data.Tuple.Extra (snd3)
@@ -30,7 +32,45 @@ import qualified Data.Set as Set
 import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
 
+-- let 
+--   plus3 = 
+--     lam(x, y, z) => x + y + z
+--   in
+--     let
+--       f = 
+--         plus3
+--       in
+--         let 
+--           g =
+--             f(5)
+--           in
+--             let
+--               h =
+--                 g(6)
+--               in
+--                 h(7)
+
+-- 
+-- plus3(x, y, z) = x + y + z
+--
+-- let
+--   f = 
+--     plus3
+--   in
+--     let 
+--       g =
+--         (\x y -> f(5, x, y))
+--       in
+--         let
+--           h =
+--             (\x -> g(6, x))
+--           in
+--             h(7)
+
 type TestCase input result = String -> input -> result -> SpecWith ()
+
+xx1 :: Expr Type () () a2 -> (Expr Type () () a2, [(Name, Definition (Label Type) (Expr Type () () a2))])
+xx1 input = runWriter (evalStateT (liftLambdas input) 0)
 
 --iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
 --iso xs ys = Set.fromList xs == Set.fromList ys

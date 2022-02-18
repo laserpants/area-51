@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Map.Strict ((!))
@@ -27,16 +28,63 @@ main =
   hspec $ do
     describe "fillParams" $ do
       it "#1" (fillParams fragment1_0 == fragment1_1)
+      it "#2" (fillParams fragment10_0 == fragment10_1)
+    describe "fillExprParams" $ do
+      it "#1" (fillExprParams fragment11_1 == fragment11_2)
+      it "#2" (fillExprParams fragment12_0 == fragment12_1)
     describe "hoistTopLambdas" $ do
-      it "#2" (hoistTopLambdas fragment2_0 == fragment2_1)
+      it "#1" (hoistTopLambdas fragment2_0 == fragment2_1)
     describe "combineApps" $ do
-      it "#3" (combineApps fragment3_0 == fragment3_1)
+      it "#1" (combineApps fragment3_0 == fragment3_1)
     describe "combineLambdas" $ do
-      it "#4" (combineLambdas fragment4_0 == fragment4_1)
+      it "#1" (combineLambdas fragment4_0 == fragment4_1)
     describe "convertClosures" $ do
-      it "#5" (convertClosures fragment5_0 == fragment5_1)
+      it "#1" (convertClosures fragment5_0 == fragment5_1)
+      it "#2" (convertClosures fragment7_0 == fragment7_1)
     describe "convertFunApps" $ do
-      it "#6" (convertFunApps fragment6_0 == fragment6_1)
+      it "#1" (convertFunApps fragment6_0 == fragment6_1)
+    describe "liftLambdas" $ do
+      it "#1" (runWriter (evalStateT (liftLambdas fragment8_0 ) 0) == fragment8_1)
+    describe "replaceVarLets" $ do
+      it "#1" (replaceVarLets fragment9_0 == fragment9_1)
+      it "#2" (replaceVarLets fragment11_0 == fragment11_1)
+
+
+-- foo(g) =
+--   let 
+--     f' =
+--       f(2)            
+--     in
+--       g(f')(g(5)) + f'(1)
+--
+
+-- foo(g) =
+--   let 
+--     f' =
+--       (lam(v0) => f(2, v0))
+--     in
+--       g(f')(g(5)) + f'(1)
+--
+
+-- f'(v0) = 
+--   f(2, v0)
+--
+-- foo : (a -> a) -> i32
+-- foo(g) =
+--   g(f')(g(5)) + f'(1)
+--
+
+--zzz :: (a -> a) -> (b -> b) -> Int
+--zzz f h = (f g) (h 5)
+--  where
+--    g x = x + 1
+
+-- fez : (a -> b -> c) -> b -> c
+-- fez(f) = f(5)
+--
+-- fez : (a -> b -> c) -> b -> c
+-- fez(f, x) = f(5, x)
+--
 
 --  hspec $
 --

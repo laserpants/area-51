@@ -181,19 +181,22 @@ instance (Typed t, Typed (Row (Expr t a0 a1 a2) (Label t))) => Typed (Expr t a0 
 --      External Signature {..} -> foldType body arguments
 --      Constant lit -> typeOf lit
 --      Data name _ -> tData name
---
---class HasArity a where
---  arity :: a -> Int
---
+
+class HasArity a where
+  arity :: a -> Int
+
+instance HasArity Type where
+  arity = pred <<< length <<< unwindType
+
+instance (Typed t) => HasArity (Expr t a0 a1 a2) where
+  arity = arity . typeOf
+
 --instance HasArity (Definition a) where
 --  arity =
 --    \case
 --      Function Signature {..} -> length arguments
 --      External Signature {..} -> length arguments
 --      _ -> 0
---
---instance HasArity Type where
---  arity = pred <<< length <<< unwindType
 
 isTCon :: TCon -> Type -> Bool
 isTCon con =
@@ -362,6 +365,8 @@ infixr 1 `tArr`
 
 {-# INLINE (~>) #-}
 (~>) = tArr
+
+infixr 1 ~>
 
 {-# INLINE tVar #-}
 tVar :: Int -> Type
