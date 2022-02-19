@@ -55,15 +55,25 @@ module Pong.Lang
 --import Data.Tuple (swap)
 --import Data.Tuple.Extra (first, dupe)
 --import Data.Void
+import Data.List (nub)
 import Pong.Data
 import Pong.Util
 --import TextShow
 --import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 import Data.Tuple (swap)
+import qualified Data.Map.Strict as Map
 
 class FreeIn t a where
   free :: a -> [Label t]
+
+instance (Eq t) => FreeIn t Type where
+  free = nub . cata (\case
+    TVar t -> undefined
+    _ -> [])
+
+instance FreeIn t a => FreeIn t [a] where
+  free = (free =<<)
 
 instance (Eq t) => FreeIn t (Row (Expr t a0 a1 a2) (Label t)) where
   free =
@@ -91,6 +101,11 @@ instance (Eq t) => FreeIn t (Clause (Label t)) where
   free =
     \case
       Clause (_:vs) expr -> expr `without` vs
+
+instance (FreeIn t e) => FreeIn t (Environment e) where
+  free = 
+    \case
+      Env env -> free (Map.elems env)
 
 --instance (FreeIn t a) => FreeIn t (Signature s (Type, a)) where
 --  free = free . snd . body
@@ -360,6 +375,10 @@ tDouble = embed TDouble
 {-# INLINE tArr #-}
 tArr :: Type -> Type -> Type
 tArr = embed2 TArr
+
+{-# INLINE tCon #-}
+tCon :: Name -> [Type] -> Type
+tCon = embed2 TCon
 
 infixr 1 `tArr`
 

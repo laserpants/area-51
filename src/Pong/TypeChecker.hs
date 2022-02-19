@@ -1,6 +1,10 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Pong.TypeChecker 
   where
@@ -8,116 +12,157 @@ module Pong.TypeChecker
 ----  , runCheck2 -- TODO: temp
 --  ) where
 --
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import Data.Void (Void)
+import Data.Foldable
 --import Debug.Trace
 --import Control.Arrow ((>>>))
 --import Control.Monad.Except
 --import Control.Monad.Reader
 --import Control.Monad.State
---import Data.Maybe (fromMaybe)
---import Data.Tuple.Extra (first, firstM, second)
---import Pong.Lang
+import Data.Maybe (fromMaybe)
+import Data.Tuple.Extra (first, firstM, second)
+import Pong.Data
+import Pong.Lang
+import Pong.Util
 --import qualified Data.Map.Strict as Map
 --import qualified Pong.Util.Env as Env
 --
---class Substitutable a where
---  apply :: Substitution -> a -> a
---
---instance Substitutable Type where
---  apply sub =
---    cata $ \case
---      TArr t1 t2 -> tArr t1 t2
---      TVar n -> fromMaybe (tVar n) (getSubstitution sub !? n)
---      t -> embed t
---
---instance Substitutable TypedExpr where
---  apply sub =
---    cata $ \case
---      EVar name -> var (subst name)
---      ELam _ args expr -> lam (subst <$> args) expr
---      ELet _ name expr1 expr2 -> let_ (subst name) expr1 expr2
---      EApp _ fun args -> app fun args
---      ECase expr cs -> case_ expr (first (fmap subst) <$> cs)
---      e -> embed e
---    where
---      subst = first (apply sub)
---
---instance (Functor f, Substitutable a) => Substitutable (f a) where
---  apply = fmap . apply
---
---instance Semigroup Substitution where
---  (<>) = compose
---
---instance Monoid Substitution where
---  mempty = Substitution mempty
---
---compose :: Substitution -> Substitution -> Substitution
---compose s1 s2 =
---  Substitution
---    (fmap (apply s1) (getSubstitution s2) `Map.union` getSubstitution s1)
---
---mapsTo :: Int -> Type -> Substitution
---mapsTo = Substitution <$$> Map.singleton
---
---tagLabel :: Name -> TypeChecker (Label Int)
---tagLabel name = (,) <$> tag <*> pure name
---
---tagExpr :: SourceExpr t -> TypeChecker (SourceExpr Int)
---tagExpr =
---  cata $ \case
---    EVar (_, name) -> var <$> tagLabel name
---    ELit prim -> pure (lit prim)
---    EIf e1 e2 e3 -> if_ <$> e1 <*> e2 <*> e3
---    ELam _ args expr -> lam <$> traverse (tagLabel . snd) args <*> expr
---    ELet _ (_, name) e1 e2 -> let_ <$> tagLabel name <*> e1 <*> e2
---    EApp _ fun args -> app <$> fun <*> sequence args
---    EOp2 op e1 e2 -> op2 op <$> e1 <*> e2
---    ECase e1 cs ->
---      case_ <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
---
---tag :: MonadState (Int, a) m => m Int
---tag = do
---  (s, a) <- get
---  put (succ s, a)
---  pure s
---
---unify :: (MonadError TypeError m) => Type -> Type -> m Substitution
---unify t1 t2 =
---  case (project t1, project t2) of
---    (TVar n, t) -> pure (n `mapsTo` embed t)
---    (t, TVar n) -> pure (n `mapsTo` embed t)
---    (TArr t1 t2, TArr u1 u2) -> do
+import qualified Data.Map.Strict as Map
+
+newtype Substitution =
+  Substitution
+    { getSubstitution :: Map Int Type
+    }
+
+newtype TypeChecker a =
+  TypeChecker
+    { getTypeChecker :: ExceptT TypeError (ReaderT (Environment Type) (State (Int, Substitution))) a
+    }
+
+data TypeError
+  = UnificationError
+  | NotInScope Name
+  | ConstructorNotInScope Name
+  | EmptyCaseStatement
+
+runTypeChecker :: Environment Type -> TypeChecker a -> Either TypeError a
+runTypeChecker env m = 
+  evalState (runReaderT (runExceptT (getTypeChecker m)) env) (1, mempty)
+
+class Substitutable a where
+  apply :: Substitution -> a -> a
+
+instance Substitutable Type where
+  apply sub =
+    cata $ \case
+      TArr t1 t2 -> tArr t1 t2
+      TVar n -> fromMaybe (tVar n) (getSubstitution sub !? n)
+      TCon c ts -> tCon c ts 
+      TRow r -> undefined -- TODO
+      t -> embed t
+
+instance (Substitutable t) => Substitutable (Expr t () () a2) where
+  apply sub =
+    cata $ \case
+      EVar name -> eVar (subst name)
+      ECon con -> eCon (subst con)
+      ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
+      ELam _ args expr -> eLam (subst <$> args) expr
+      EApp _ fun args -> eApp fun args
+      ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
+      e -> embed e
+    where
+      subst = first (apply sub)
+
+instance (Functor f, Substitutable a) => Substitutable (f a) where
+  apply = fmap . apply
+
+compose :: Substitution -> Substitution -> Substitution
+compose s1 s2 =
+  Substitution
+    (fmap (apply s1) (getSubstitution s2) `Map.union` getSubstitution s1)
+
+mapsTo :: Int -> Type -> Substitution
+mapsTo = Substitution <$$> Map.singleton
+
+tagLabel :: Name -> TypeChecker (Label Int)
+tagLabel name = (,) <$> tag <*> pure name
+
+tagExpr :: Expr t () () Void -> TypeChecker (Expr Int () () Void)
+tagExpr =
+  cata $ \case
+    EVar (_, name) -> eVar <$> tagLabel name
+    ECon (_, con) -> eCon <$> tagLabel con
+    ELit prim -> pure (eLit prim)
+    EIf e1 e2 e3 -> eIf <$> e1 <*> e2 <*> e3
+    ELet (_, name) e1 e2 -> eLet <$> tagLabel name <*> e1 <*> e2
+    ELam _ args expr -> eLam <$> traverse (tagLabel . snd) args <*> expr
+    EApp _ fun args -> eApp <$> fun <*> sequence args
+    EOp2 op e1 e2 -> eOp2 op <$> e1 <*> e2
+    ECase e1 cs ->
+      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
+    ERow row -> eRow <$> tagRow row
+
+tagRow :: Row (Expr t () () Void) (Label t) -> TypeChecker (Row (Expr Int () () Void) (Label Int))
+tagRow = cata $ \case
+  RNil -> pure rNil
+  RVar (_, var) -> rVar <$> tagLabel var
+  RExt name expr row -> rExt name <$> tagExpr expr <*> row
+
+tag :: MonadState (Int, a) m => m Int
+tag = do
+  (s, a) <- get
+  put (succ s, a)
+  pure s
+
+--typeCheck :: SourceExpr t -> Compiler (Either TypeError TypedExpr)
+--typeCheck ast = asks (`runCheck` ast)
+
+unifyAndCombine :: (MonadError TypeError m) => Type -> Type -> Substitution -> m Substitution
+unifyAndCombine t1 t2 sub1 = do
+  sub2 <- unify (apply sub1 t1) (apply sub1 t2)
+  pure (sub2 <> sub1)
+
+unifyTypes :: (MonadError TypeError m) => [Type] -> [Type] -> m Substitution
+unifyTypes ts1 ts2 = foldrM (uncurry unifyAndCombine) mempty (zip ts1 ts2)
+
+unify :: (MonadError TypeError m) => Type -> Type -> m Substitution
+unify t1 t2 =
+  case (project t1, project t2) of
+    (TVar n, t) -> pure (n `mapsTo` embed t)
+    (t, TVar n) -> pure (n `mapsTo` embed t)
+    (TCon c1 ts1, TCon c2 ts2) | c1 == c2 -> unifyTypes ts1 ts2
+    (TArr t1 t2, TArr u1 u2) -> unifyTypes [t1, t2] [u1, u2]
 --      sub1 <- unify t1 u1
 --      sub2 <- unify (apply sub1 t2) (apply sub1 u2)
 --      pure (sub2 <> sub1)
-----    (TOpaque, _) -> pure mempty
-----    (_, TOpaque) -> pure mempty
---    _
---      | t1 == t2 -> pure mempty
---      | otherwise -> do
-----        traceShowM t1
-----        traceShowM t2
---        throwError UnificationError
---
---applySubstitution ::
---     (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
---applySubstitution a = gets (apply . snd) <*> pure a
---
---unifyM ::
---     ( MonadError TypeError m
---     , MonadState (Int, Substitution) m
---     , Substitutable a
---     , Substitutable b
---     , Typed a
---     , Typed b
---     )
---  => a
---  -> b
---  -> m ()
---unifyM a b = do
---  sub <- gets snd
---  sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
---  modify (second (sub1 <>))
---
+    _
+      | t1 == t2 -> pure mempty
+      | otherwise -> throwError UnificationError
+
+applySubstitution ::
+     (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
+applySubstitution a = gets (apply . snd) <*> pure a
+
+unifyM ::
+     ( MonadError TypeError m
+     , MonadState (Int, Substitution) m
+     , Substitutable a
+     , Substitutable b
+     , Typed a
+     , Typed b
+     )
+  => a
+  -> b
+  -> m ()
+unifyM a b = do
+  sub <- gets snd
+  sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
+  modify (second (sub1 <>))
+
 --runCheck :: TypeEnv -> SourceExpr t -> Either TypeError TypedExpr 
 --runCheck symtab ast = do
 ----  let (Substitution x) = sub in flip mapM_ (Map.toList x) $ \(a, b) ->
@@ -135,7 +180,69 @@ module Pong.TypeChecker
 ----    (res, (_, sub)) = runMonad (tagExpr ast)
 ----    runMonad m =
 ----      runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
---
+
+checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
+checkName (t, var) err = do
+  Env env <- ask
+  case env !? var of
+    Just t1 -> do
+      unifyM (tVar t) t1
+      pure (t1, var)
+    _ ->
+      throwError (err var)
+
+generalize :: Type -> TypeChecker Type
+generalize t = do
+  env <- ask
+  t1 <- applySubstitution t
+  e1 <- applySubstitution env
+  let z = e1 :: Environment Type
+  let gg = free e1 :: [Label Type]
+  undefined
+
+check :: Expr Int () () Void -> TypeChecker (Expr Type () () Void)
+check = 
+  cata $ \case
+    EVar var -> eVar <$> checkName var NotInScope 
+    ECon con -> eCon <$> checkName con ConstructorNotInScope 
+    ELit prim -> pure (eLit prim)
+    EIf expr1 expr2 expr3 -> do
+      e1 <- expr1
+      e2 <- expr2
+      e3 <- expr3
+      unifyM e1 tBool
+      unifyM e2 e3
+      pure (eIf e1 e2 e3)
+    ELet var expr1 expr2 -> do
+      e1 <- expr1
+      s <- generalize (typeOf e1)
+      undefined
+    ELam _ args expr -> do
+      e <- local (insertArgs (first tVar <$> args)) expr
+      xs <- traverse (firstM (applySubstitution . tVar)) args
+      pure (eLam xs e)
+    EApp _ fun args -> do
+      f <- fun
+      as <- sequence args
+      t1 <- applySubstitution (typeOf f)
+      let ps = zip (argTypes t1) (typeOf <$> as)
+      forM_ ps (uncurry unifyM)
+      pure (eApp f as)
+    EOp2 op expr1 expr2 -> do
+      e1 <- expr1
+      e2 <- expr2
+      let [t1, t2] = argTypes op
+      unifyM e1 t1
+      unifyM e2 t2
+      pure (eOp2 op e1 e2)
+    ECase _ [] -> throwError EmptyCaseStatement
+    ECase expr clauses ->
+      undefined
+      -- TODO
+    ERow row ->
+      undefined
+      -- TODO
+
 --check :: SourceExpr Int -> TypeChecker TypedExpr
 --check =
 --  cata $ \case
@@ -202,3 +309,34 @@ module Pong.TypeChecker
 --      unifyM (tVar t) t1
 --      pure (tVar t, n)
 --  pure ((ty, con) : tvs, e)
+
+-- Substitution
+instance Semigroup Substitution where
+  (<>) = compose
+
+instance Monoid Substitution where
+  mempty = Substitution mempty
+
+deriving instance Show Substitution
+
+deriving instance Eq Substitution
+
+deriving instance Ord Substitution
+
+-- TypeChecker
+deriving instance Functor TypeChecker
+
+deriving instance Applicative TypeChecker
+
+deriving instance Monad TypeChecker
+
+deriving instance (MonadState (Int, Substitution)) TypeChecker
+
+deriving instance (MonadReader (Environment Type)) TypeChecker
+
+deriving instance (MonadError TypeError) TypeChecker
+
+-- TypeError
+deriving instance Show TypeError
+
+deriving instance Eq TypeError

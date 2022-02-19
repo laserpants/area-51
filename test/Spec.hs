@@ -48,6 +48,11 @@ main =
     describe "replaceVarLets" $ do
       it "#1" (replaceVarLets fragment9_0 == fragment9_1)
       it "#2" (replaceVarLets fragment11_0 == fragment11_1)
+    describe "typeCheck" $ do
+      it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
+    describe "unify" $ do
+      it "#1" (let Right sub = unify fragment14_0 fragment14_1 in let t = apply sub fragment14_0 in t == fragment14_1)
+
 
 
 -- foo(g) =
@@ -74,10 +79,43 @@ main =
 --   g(f')(g(5)) + f'(1)
 --
 
---zzz :: (a -> a) -> (b -> b) -> Int
---zzz f h = (f g) (h 5)
---  where
---    g x = x + 1
+zzz :: ((t -> t) -> t -> t) -> (t -> t) -> t -> t
+zzz f g b = f (\x -> x) (g b)
+
+test1 = zzz id id 1
+
+--
+-- let
+--   zzz : ((t -> t) -> t -> t) -> (t -> t) -> t -> t = 
+--     lam(f : (t -> t) -> t -> t) =>
+--       lam(g : t -> t) =>
+--         lam(b : t) =>
+--           (f(lam(x : t) => x : t))(g(b : t))
+--   in
+--     zzz(lam(x : t) => x : t, lam(x : t) => x : t, 1 : i32)
+
+
+--
+-- let
+--   zzz : ((t -> t) -> t -> t) -> (t -> t) -> t -> t = 
+--     lam[f : (t -> t) -> t -> t, g : t -> t, b : t] =>
+--       (f(lam(x : t) => x : t))(g(b : t))
+--   in
+--     zzz(lam(x : t) => x : t, lam(x : t) => x : t, 1)
+
+
+--
+-- f0(x : t) = x : t
+--
+-- zzz(f : (t -> t) -> t -> t, g : t -> t, b : t) = f(f0 : t -> t)(g(b : t))
+--
+-- f1(x) = x
+-- f2(x) = x
+--
+-- zzz(f1, f2, 1)
+
+
+
 
 -- fez : (a -> b -> c) -> b -> c
 -- fez(f) = f(5)

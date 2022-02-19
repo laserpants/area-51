@@ -357,6 +357,56 @@ fragment12_1 =
           (eVar (tInt32 ~> tInt32 ~> tInt32, "f"))
           [eLit (LInt32 1), eVar (tInt32, ".v0")]))
     (eApp (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 2)])
+
+
+-- 
+-- let
+--   z =
+--     lam(f) =>
+--       lam(g) =>
+--         lam(b) => 
+--           f(lam(x) => x)(g(b))
+--   in
+--     z(lam(x) => x, lam(x) => x, 1)
+fragment13_0 :: Expr () () () Void
+fragment13_0 = 
+  eLet
+    ((), "z")
+      (eLam [((), "f")] 
+        (eLam [((), "g")] 
+          (eLam [((), "b")] 
+            (eApp (eApp (eVar ((), "f")) [eLam [((), "x")] (eVar ((), "x"))]) 
+              [eApp (eVar ((), "g")) [eVar ((), "b")]]))))
+    (eApp (eVar ((), "z")) [eLam [((), "x")] (eVar ((), "x")), eLam [((), "x")] (eVar ((), "x")), eLit (LInt32 1)])
+
+fragment13_1 :: Expr Int () () Void
+fragment13_1 = 
+  eLet
+    (1, "z")
+      (eLam [(2, "f")] 
+        (eLam [(3, "g")] 
+          (eLam [(4, "b")] 
+            (eApp (eApp (eVar (5, "f")) [eLam [(6, "x")] (eVar (7, "x"))]) 
+              [eApp (eVar (8, "g")) [eVar (9, "b")]]))))
+    (eApp (eVar (10, "z")) [eLam [(11, "x")] (eVar (12, "x")), eLam [(13, "x")] (eVar (14, "x")), eLit (LInt32 1)])
+
+fragment13_2 :: Expr Type () () Void
+fragment13_2 = 
+  eLet
+    (undefined, "z")
+      (eLam [(undefined, "f")] 
+        (eLam [(undefined, "g")] 
+          (eLam [(undefined, "b")] 
+            (eApp (eApp (eVar (undefined, "f")) [eLam [(undefined, "x")] (eVar (undefined, "x"))]) 
+              [eApp (eVar (undefined, "g")) [eVar (undefined, "b")]]))))
+    (eApp (eVar (undefined, "z")) [eLam [(undefined, "x")] (eVar (undefined, "x")), eLam [(undefined, "x")] (eVar (undefined, "x")), eLit (LInt32 1)])
+
+fragment14_0 :: Type
+fragment14_0 = tCon "Cons" [tVar 0, tVar 1]
+
+fragment14_1 :: Type
+fragment14_1 = tCon "Cons" [tInt32 , tCon "Cons" [tInt32, tCon "Nil" []]]
+
 --i32 :: Type
 --i32 = tInt32
 --

@@ -30,7 +30,7 @@ data TypeF a
   | TDouble
   | TChar
   | TString
-  | TCon Name
+  | TCon Name [a]
   | TArr a a
   | TVar Int
   | TGen Int
