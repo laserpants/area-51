@@ -6,6 +6,7 @@ module Pong.Compiler where
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Function ((&))
+import Debug.Trace
 import Data.List.NonEmpty (NonEmpty, fromList, toList)
 import Data.Void (Void)
 import Pong.Data
@@ -29,10 +30,12 @@ combineLambdas =
 --
 -- to: 
 --   g(x, y)
-combineApps :: Expr t a0 () a2 -> Expr t a0 () a2
+combineApps :: Expr t a0 Type a2 -> Expr t a0 Type a2
 combineApps =
   cata $ \case
-    EApp _ (Fix (EApp _ expr xs)) ys -> eApp expr (xs <> ys)
+    EApp _ (Fix (EApp t expr xs)) ys -> 
+      let t1 = foldType1 (drop (length ys) (unwindType t))
+       in traceShow t $ embed3 EApp t1 expr (xs <> ys)
     e -> embed e
 
 -- from:
@@ -67,8 +70,8 @@ hoistTopLambdas =
 --   foo(x, v_0) = plus(x, v_0)
 --
 fillParams ::
-     Definition (Label Type) (Expr Type () () a2)
-  -> Definition (Label Type) (Expr Type () () a2)
+     Definition (Label Type) (Expr Type () Type a2)
+  -> Definition (Label Type) (Expr Type () Type a2)
 fillParams = hoistTopLambdas <<< fmap fillExprParams
 
 --
@@ -86,20 +89,22 @@ fillParams = hoistTopLambdas <<< fmap fillExprParams
 --   in
 --     g(2)
 --
-fillExprParams :: Expr Type () () a2 -> Expr Type () () a2
+fillExprParams :: Expr Type () Type a2 -> Expr Type () Type a2
 fillExprParams =
   replaceVarLets >>>
   cata
     (\case
-       EApp _ fun args
+       EApp t fun args
          | arity fun > n ->
            let extra = drop n (argTypes fun) `zip` names
-            in eLam extra (eApp fun (args <> (extra <#> eVar)))
+               t1 = foldType1 (drop (length extra) (unwindType t))
+            in eLam extra (embed3 EApp t1 fun (args <> (extra <#> eVar)))
          where n = length args
        e -> embed e)
   where
     names = [".v" <> showt n | n <- [0 :: Int ..]]
 
+--
 -- from:
 --   lam(x) => x + h
 --
@@ -110,11 +115,11 @@ convertClosures :: Expr Type () () a2 -> Expr Type () () a2
 convertClosures =
   cata $ \case
     ELam _ args expr -> do
-      let extra = free expr `without` args
+      let extra = freeVars expr `without` args
           lambda = eLam (extra <> args) expr
       case extra of
         [] -> lambda
-        _ -> eApp lambda (eVar <$> extra)
+        _ -> eApp () lambda (eVar <$> extra)
     expr -> embed expr
 
 --
@@ -137,11 +142,11 @@ replaceVarLets =
     e -> embed e
 
 liftLambdas ::
-     ( MonadWriter [(Name, Definition (Label Type) (Expr Type () () a2))] m
+     ( MonadWriter [(Name, Definition (Label Type) (Expr Type () Type a2))] m
      , MonadState Int m
      )
-  => Expr Type () () a2
-  -> m (Expr Type () () a2)
+  => Expr Type () Type a2
+  -> m (Expr Type () Type a2)
 liftLambdas =
   fmap replaceVarLets <<<
     cata

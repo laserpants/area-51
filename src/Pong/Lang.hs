@@ -62,47 +62,45 @@ import Pong.Util
 --import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 import Data.Tuple (swap)
+import Data.Function ((&))
+import Debug.Trace
 import qualified Data.Map.Strict as Map
 
-class FreeIn t a where
-  free :: a -> [Label t]
+class FreeIn a where
+  free :: a -> [Int]
 
-instance (Eq t) => FreeIn t Type where
+instance FreeIn (TypeT g) where
   free = nub . cata (\case
-    TVar t -> undefined
+    TVar n -> [n]
+    TCon _ ts -> concat ts
+    TArr t1 t2 -> t1 <> t2
+    TRow r -> free r
     _ -> [])
 
-instance FreeIn t a => FreeIn t [a] where
-  free = (free =<<)
+--instance FreeIn Type where
+--  free = nub . cata (\case
+--    TVar n -> [n]
+--    TCon _ ts -> concat ts
+--    TArr t1 t2 -> t1 <> t2
+--    TRow r -> free r
+--    _ -> [])
+--
+--instance FreeIn PolyType where
+--  free = undefined
 
-instance (Eq t) => FreeIn t (Row (Expr t a0 a1 a2) (Label t)) where
-  free =
+instance FreeIn (Row (TypeT g) a) where
+  free = 
     cata $ \case
-      RNil -> []
-      RVar v -> [v]
       RExt _ expr r -> free expr <> r
+      _ -> []
 
-instance (Eq t) => FreeIn t (Expr t a0 a1 a2) where
-  free =
-    cata $ \case
-      EVar v -> [v]
-      ECon c -> [c]
-      ELit lit -> []
-      EIf e1 e2 e3 -> e1 <> e2 <> e3
-      ELet bind e1 e2 -> (e1 <> e2) `without` [bind]
-      ELam _ args expr -> expr `without` args
-      EApp _ fun args -> fun <> concat args
-      ECall _ fun args -> fun : concat args
-      EOp2 op e1 e2 -> e1 <> e2
-      ECase e1 cs -> e1 <> (cs >>= free . uncurry Clause)
-      ERow row -> free row
+instance (FreeIn a) => FreeIn [a] where
+  free = concatMap free 
 
-instance (Eq t) => FreeIn t (Clause (Label t)) where
-  free =
-    \case
-      Clause (_:vs) expr -> expr `without` vs
+instance (Show t, Typed t) => FreeIn (Expr t a0 t a2) where
+  free = free . typeOf
 
-instance (FreeIn t e) => FreeIn t (Environment e) where
+instance (FreeIn e) => FreeIn (Environment e) where
   free = 
     \case
       Env env -> free (Map.elems env)
@@ -147,7 +145,7 @@ instance Typed Op2 where
       OSubDouble -> tDouble ~> tDouble ~> tDouble
       ODivDouble -> tDouble ~> tDouble ~> tDouble
 
-instance (Typed t) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
+instance (Show t, Typed t) => Typed (Row (Expr t a0 t a2) (Label t)) where
   typeOf =
     cata $ \case
       RNil -> tRow rNil
@@ -156,7 +154,7 @@ instance (Typed t) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
         let TRow row = project r 
          in tRow (rExt name (typeOf expr) row)
 
-instance (Typed t, Typed (Row (Expr t a0 a1 a2) (Label t))) => Typed (Expr t a0 a1 a2) where
+instance (Show t, Typed t, Typed (Row (Expr t a0 t a2) (Label t))) => Typed (Expr t a0 t a2) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -164,14 +162,17 @@ instance (Typed t, Typed (Row (Expr t a0 a1 a2) (Label t))) => Typed (Expr t a0 
       ELit lit -> typeOf lit
       EIf _ _ e3 -> e3
       ELam _ args expr -> foldType expr (typeOf . fst <$> args)
-      EApp _ fun as -> tapp fun as
-      ECall _ (t, _) as -> tapp t as
+      EApp t fun as -> typeOf t
+      ECall _ (t, _) as -> error "FOOO" ----tapp t as
       EOp2 op _ _ -> returnType op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
       ERow r -> typeOf r
-    where
-      tapp t as = foldType1 (drop (length as) (unwindType t))
+--    where
+--      tapp t as = foldType1 (drop (length as) (unwindType t))
+--      tapp t as = traceShow ">>>" $ traceShow t $ traceShow as $ foldType1 (drop (length as) ts)
+--        where
+--          ts = unwindType t
 
 --instance (Typed t) => Typed (Expr t a0 a1 a2 a3) where
 --  typeOf =
@@ -203,7 +204,7 @@ class HasArity a where
 instance HasArity Type where
   arity = pred <<< length <<< unwindType
 
-instance (Typed t) => HasArity (Expr t a0 a1 a2) where
+instance (Show t, Typed t) => HasArity (Expr t a0 t a2) where
   arity = arity . typeOf
 
 --instance HasArity (Definition a) where
@@ -264,6 +265,64 @@ argTypes = init <<< unwindType
 --    Data _ cs -> cs
 --    _ -> []
 
+freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
+freeVars = 
+  cata $ \case
+    EVar v -> [v]
+    ECon _ -> []
+    ELit _ -> []
+    EIf e1 e2 e3 -> e1 <> e2 <> e3
+    ELet bind e1 e2 -> (e1 <> e2) `without` [bind]
+    ELam _ args expr -> expr `without` args
+    EApp _ fun args -> fun <> concat args
+    ECall _ fun args -> fun : concat args
+    EOp2 op e1 e2 -> e1 <> e2
+    ECase e1 cs -> e1 <> (cs >>= \(_:vs, expr) -> expr `without` vs)
+    ERow row -> (`cata` row) $ \case
+      RNil -> []
+      RVar v -> [v]
+      RExt _ expr r -> freeVars expr <> r
+
+toPolyType :: Type -> PolyType
+toPolyType = cata $ \case
+  TUnit -> tUnit
+  TBool -> tBool
+  TInt32 -> tInt32
+  TInt64 -> tInt64
+  TFloat -> tFloat
+  TDouble -> tDouble
+--  TChar -> tChar  -- TODO
+--  TString -> tString  -- TODO
+  TCon con ts -> tCon con ts
+  TArr t1 t2 -> tArr t1 t2
+  TVar n -> tVar n
+  TRow row -> tRow $ row & 
+    cata (\case
+      RNil -> rNil
+      RVar v -> rVar v
+      RExt name ty row -> 
+        rExt name (toPolyType ty) row)
+
+fromPolyType :: [Type] -> PolyType -> Type  
+fromPolyType ts = cata $ \case
+  TGen n -> ts !! n
+  TUnit -> tUnit
+  TBool -> tBool
+  TInt32 -> tInt32
+  TInt64 -> tInt64
+  TFloat -> tFloat
+  TDouble -> tDouble
+--  TChar -> tChar
+--  TString -> tString
+  TCon con ts -> tCon con ts
+  TArr t1 t2 -> tArr t1 t2
+  TVar n -> tVar n
+  TRow row -> tRow $ row & 
+    cata (\case
+      RNil -> rNil
+      RVar v -> rVar v
+      RExt name ty row -> rExt name (fromPolyType ts ty) row)
+
 {-# INLINE foldType #-}
 foldType :: Type -> [Type] -> Type
 foldType = foldr tArr
@@ -273,7 +332,7 @@ foldType1 :: [Type] -> Type
 foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
-insertArgs :: [(Type, Name)] -> Environment Type -> Environment Type
+insertArgs :: [(PolyType, Name)] -> Environment PolyType -> Environment PolyType
 insertArgs = Env.inserts . (swap <$>)
 
 --{-# INLINE emptyProgram #-}
@@ -349,36 +408,32 @@ insertArgs = Env.inserts . (swap <$>)
 --case_ = embed2 ECase
 
 {-# INLINE tUnit #-}
-tUnit :: Type
+tUnit :: TypeT t
 tUnit = embed TUnit
 
 {-# INLINE tBool #-}
-tBool :: Type
+tBool :: TypeT t
 tBool = embed TBool
 
 {-# INLINE tInt32 #-}
-tInt32 :: Type
+tInt32 :: TypeT t
 tInt32 = embed TInt32
 
 {-# INLINE tInt64 #-}
-tInt64 :: Type
+tInt64 :: TypeT t
 tInt64 = embed TInt64
 
 {-# INLINE tFloat #-}
-tFloat :: Type
+tFloat :: TypeT t
 tFloat = embed TFloat
 
 {-# INLINE tDouble #-}
-tDouble :: Type
+tDouble :: TypeT t
 tDouble = embed TDouble
 
 {-# INLINE tArr #-}
-tArr :: Type -> Type -> Type
+tArr :: TypeT t -> TypeT t -> TypeT t
 tArr = embed2 TArr
-
-{-# INLINE tCon #-}
-tCon :: Name -> [Type] -> Type
-tCon = embed2 TCon
 
 infixr 1 `tArr`
 
@@ -387,17 +442,21 @@ infixr 1 `tArr`
 
 infixr 1 ~>
 
+{-# INLINE tCon #-}
+tCon :: Name -> [TypeT t] -> TypeT t
+tCon = embed2 TCon
+
 {-# INLINE tVar #-}
-tVar :: Int -> Type
+tVar :: Int -> TypeT t
 tVar = embed1 TVar
 
-{-# INLINE tGen #-}
-tGen :: Int -> Type
-tGen = embed1 TGen
-
 {-# INLINE tRow #-}
-tRow :: Row Type Name -> Type
+tRow :: Row (TypeT t) Name -> TypeT t
 tRow = embed1 TRow
+
+{-# INLINE tGen #-}
+tGen :: Int -> PolyType
+tGen = embed1 TGen
 
 {-# INLINE rNil #-}
 rNil :: Row r v
@@ -440,8 +499,8 @@ eLam :: [Label t] -> Expr t () a1 a2 -> Expr t () a1 a2
 eLam = embed3 ELam ()
 
 {-# INLINE eApp #-}
-eApp :: Expr t a0 () a2 -> [Expr t a0 () a2] -> Expr t a0 () a2
-eApp = embed3 EApp ()
+eApp :: t1 -> Expr t a0 t1 a2 -> [Expr t a0 t1 a2] -> Expr t a0 t1 a2
+eApp = embed3 EApp 
 
 {-# INLINE eCall #-}
 eCall :: Label t -> [Expr t a0 a1 ()] -> Expr t a0 a1 ()

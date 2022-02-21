@@ -14,14 +14,14 @@ import Data.Void (Void)
 import Pong.Util (Fix(..), Name, Text, embed, embed1, embed2, embed3, embed4)
 import Text.Show.Deriving (deriveShow1)
 
-data RowF r v a
+data RowF e v a
   = RNil
   | RVar v
-  | RExt Name r a
+  | RExt Name e a
 
-type Row r v = Fix (RowF r v)
+type Row e v = Fix (RowF e v)
 
-data TypeF a
+data TypeF g a
   = TUnit
   | TBool
   | TInt32
@@ -33,10 +33,14 @@ data TypeF a
   | TCon Name [a]
   | TArr a a
   | TVar Int
-  | TGen Int
-  | TRow (Row Type Name)
+  | TGen g
+  | TRow (Row (TypeT g) Name)
 
-type Type = Fix TypeF
+type TypeT t = Fix (TypeF t)
+
+type Type = TypeT Void
+
+type PolyType = TypeT Int
 
 data TCon
   = VarT
@@ -68,14 +72,15 @@ data Op2
 
 type Label t = (t, Name)
 
+-- TODO: Swap a0 and a1
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
   | ECon (Label t)
   | ELit Literal
   | EIf a a a
   | ELet (Label t) a a
-  | ELam a0 [Label t] a
   | EApp a1 a [a]
+  | ELam a0 [Label t] a
   | ECall a2 (Label t) [a]
   | EOp2 Op2 a a
   | ECase a [([Label t], a)]
@@ -83,7 +88,7 @@ data ExprF t a0 a1 a2 a
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
-type PreAst = Expr Type Void () Void
+type PreAst = Expr Type Void Type Void
 
 type Ast = Expr Type Void Void ()
 
@@ -91,9 +96,6 @@ data Con
   = VarE
   | LitE
   | LamE
-
-data Clause a =
-  Clause [a] [a]
 
 newtype Environment a =
   Env
@@ -113,11 +115,11 @@ data Definition r a
   | Data Name [Constructor]
 
 -- Row
-deriving instance (Show r, Show v, Show a) => Show (RowF r v a)
+deriving instance (Show e, Show v, Show a) => Show (RowF e v a)
 
-deriving instance (Eq r, Eq v, Eq a) => Eq (RowF r v a)
+deriving instance (Eq e, Eq v, Eq a) => Eq (RowF e v a)
 
-deriving instance (Ord r, Ord v, Ord a) => Ord (RowF r v a)
+deriving instance (Ord e, Ord v, Ord a) => Ord (RowF e v a)
 
 deriveShow1 ''RowF
 
@@ -125,18 +127,18 @@ deriveEq1 ''RowF
 
 deriveOrd1 ''RowF
 
-deriving instance Functor (RowF r v)
+deriving instance Functor (RowF e v)
 
-deriving instance Foldable (RowF r v)
+deriving instance Foldable (RowF e v)
 
-deriving instance Traversable (RowF r v)
+deriving instance Traversable (RowF e v)
 
 -- Type
-deriving instance (Show a) => Show (TypeF a)
+deriving instance (Show g, Show a) => Show (TypeF g a)
 
-deriving instance (Eq a) => Eq (TypeF a)
+deriving instance (Eq g, Eq a) => Eq (TypeF g a)
 
-deriving instance (Ord a) => Ord (TypeF a)
+deriving instance (Ord g, Ord a) => Ord (TypeF g a)
 
 deriveShow1 ''TypeF
 
@@ -144,11 +146,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor TypeF
+deriving instance Functor (TypeF g)
 
-deriving instance Foldable TypeF
+deriving instance Foldable (TypeF g)
 
-deriving instance Traversable TypeF
+deriving instance Traversable (TypeF g)
 
 -- TCon
 deriving instance Show TCon
@@ -207,13 +209,6 @@ deriving instance Show Constructor
 deriving instance Eq Constructor
 
 deriving instance Ord Constructor
-
--- Clause
-deriving instance (Show a) => Show (Clause a)
-
-deriving instance (Eq a) => Eq (Clause a)
-
-deriving instance (Ord a) => Ord (Clause a)
 
 -- Environment
 deriving instance (Show a) => Show (Environment a)
