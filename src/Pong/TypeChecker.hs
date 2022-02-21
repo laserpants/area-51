@@ -99,12 +99,12 @@ compose s1 s2 =
 mapsTo :: Int -> Type -> Substitution
 mapsTo = Substitution <$$> Map.singleton
 
-tagLabel :: Name -> TypeChecker (Label Type)
-tagLabel name = do -- (,) <$> tag <*> pure name
-  t <- tag
-  pure (tVar t, name)
+--tagLabel :: Name -> TypeChecker (Label Type)
+--tagLabel name = do -- (,) <$> tag <*> pure name
+--  t <- tag
+--  pure (tVar t, name)
 
-tagExpr = undefined
+--tagExpr = undefined
 
 --tagExpr :: Expr t () Type Void -> TypeChecker (Expr Type () Type Void)
 --tagExpr = 
@@ -127,17 +127,30 @@ tagExpr = undefined
 --      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
 --    ERow row -> eRow <$> tagRow row
 
-tagRow = undefined
-
 --tagRow :: Row (Expr t () Type Void) (Label t) -> TypeChecker (Row (Expr Type () Type Void) (Label Type))
 --tagRow = cata $ \case
 --  RNil -> pure rNil
 --  RVar (_, var) -> rVar <$> tagLabel var
 --  RExt name expr row -> rExt name <$> tagExpr expr <*> row
 
---tagLabel :: Name -> TypeChecker (Label Int)
---tagLabel name = (,) <$> tag <*> pure name
---
+tagLabel :: Name -> TypeChecker (Label Int)
+tagLabel name = (,) <$> tag <*> pure name
+
+tagExpr :: Expr t () () Void -> TypeChecker (Expr Int Int () Void)
+tagExpr = 
+  cata $ \case
+    EVar (_, name) -> eVar <$> tagLabel name
+    ECon (_, con) -> eCon <$> tagLabel con
+    ELit prim -> pure (eLit prim)
+    EIf e1 e2 e3 -> eIf <$> e1 <*> e2 <*> e3
+    ELet (_, name) e1 e2 -> eLet <$> tagLabel name <*> e1 <*> e2
+    EApp _ fun args -> eApp <$> tag <*> fun <*> sequence args
+    ELam _ args expr -> eLam <$> traverse (tagLabel . snd) args <*> expr
+    EOp2 op e1 e2 -> eOp2 op <$> e1 <*> e2
+    ECase e1 cs ->
+      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
+    ERow row -> eRow <$> tagRow row
+
 --tagExpr :: Expr t () () Void -> TypeChecker (Expr Int () () Void)
 --tagExpr =
 --  cata $ \case
@@ -152,13 +165,13 @@ tagRow = undefined
 --    ECase e1 cs ->
 --      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
 --    ERow row -> eRow <$> tagRow row
---
---tagRow :: Row (Expr t () () Void) (Label t) -> TypeChecker (Row (Expr Int () () Void) (Label Int))
---tagRow = cata $ \case
---  RNil -> pure rNil
---  RVar (_, var) -> rVar <$> tagLabel var
---  RExt name expr row -> rExt name <$> tagExpr expr <*> row
---
+
+tagRow :: Row (Expr t () () Void) (Label t) -> TypeChecker (Row (Expr Int Int () Void) (Label Int))
+tagRow = cata $ \case
+  RNil -> pure rNil
+  RVar (_, var) -> rVar <$> tagLabel var
+  RExt name expr row -> rExt name <$> tagExpr expr <*> row
+
 tag :: MonadState (Int, a) m => m Int
 tag = do
   (s, a) <- get

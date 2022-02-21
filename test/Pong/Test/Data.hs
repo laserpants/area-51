@@ -375,31 +375,22 @@ fragment13_0 =
       (eLam [((), "f")] 
         (eLam [((), "g")] 
           (eLam [((), "b")] 
-
             (eApp () (eApp () (eVar ((), "f")) [eLam [((), "x")] (eVar ((), "x"))]) 
               [eApp () (eVar ((), "g")) [eVar ((), "b")]]))))
-
---            (eApp (eVar ((), "f")) [eLam [((), "x")] (eVar ((), "x")), eApp (eVar ((), "g")) [eVar ((), "b")]]))))
-
     (eApp () (eVar ((), "z")) [eLam [((), "x")] (eVar ((), "x")), eLam [((), "x")] (eVar ((), "x")), eLit (LInt32 1)])
 
-fragment13_1 :: Expr Type () () Void
+fragment13_1 :: Expr Int Int () Void
 fragment13_1 =  
---  eLam [(1, "f")] (eApp (eApp (eVar (2, "f")) [eVar (3, "x")]) [eLit LUnit])
---  eLam [(1, "f")] (eApp (eVar (2, "f")) [eVar (4, "x"), eLit LUnit])
-
   eLet
-    (tVar 1, "z")
-      (eLam [(tVar 2, "f")] 
-        (eLam [(tVar 3, "g")] 
-          (eLam [(tVar 4, "b")] 
-
-            (eApp () (eApp () (eVar (tVar 5, "f")) [eLam [(tVar 8, "x")] (eVar (tVar 9, "x"))]) 
-              [eApp () (eVar (tVar 12, "g")) [eVar (tVar 15, "b")]]))))
-
---            (eApp (eVar (5, "f")) [eLam [(6, "x")] (eVar (7, "x")), eApp (eVar (8, "g")) [eVar (9, "b")]]))))
-
-    (eApp () (eVar (tVar 16, "z")) [eLam [(tVar 19, "x")] (eVar (tVar 20, "x")), eLam [(tVar 21, "x")] (eVar (tVar 22, "x")), eLit (LInt32 1)])
+    (1, "z")
+      (eLam [(2, "f")] 
+        (eLam [(3, "g")] 
+          (eLam [(4, "b")] 
+            (eApp 5 (eApp 6 (eVar (7, "f")) [eLam [(8, "x")] (eVar (9, "x"))]) 
+              [eApp 10 (eVar (11, "g")) [eVar (12, "b")]])
+          )))
+    (eApp 13 (eVar (14, "z")) 
+        [eLam [(15, "x")] (eVar (16, "x")), eLam [(17, "x")] (eVar (18, "x")), eLit (LInt32 1)])
 
 fragment15_0 :: Expr Int () () Void
 fragment15_0 =

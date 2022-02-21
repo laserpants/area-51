@@ -48,8 +48,8 @@ main =
     describe "replaceVarLets" $ do
       it "#1" (replaceVarLets fragment9_0 == fragment9_1)
       it "#2" (replaceVarLets fragment11_0 == fragment15_1)
---    describe "typeCheck" $ do
-----      it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
+    describe "typeCheck" $ do
+      it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
     describe "unify" $ do
       it "#1" (let Right sub = unify fragment14_0 fragment14_1 in let t = apply sub fragment14_0 in t == fragment14_1)
 
