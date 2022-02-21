@@ -69,7 +69,7 @@ import qualified Pong.Util.Env as Env
 
 type TestCase input result = String -> input -> result -> SpecWith ()
 
-xx1 :: Expr Type () Type a2 -> (Expr Type () Type a2, [(Name, Definition (Label Type) (Expr Type () Type a2))])
+xx1 :: Expr Type Type () a2 -> (Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))])
 xx1 input = runWriter (evalStateT (liftLambdas input) 0)
 
 --iso :: (Ord a, Eq a) => [a] -> [a] -> Bool

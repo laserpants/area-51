@@ -11,7 +11,7 @@ import Pong.Util
 import qualified Pong.Util.Env as Env
 
 -- (x) = plus(x)
-fragment1_0 :: Definition (Label Type) (Expr Type () Type Void)
+fragment1_0 :: Definition (Label Type) (Expr Type Type () Void)
 fragment1_0 =
   Function
     (fromList [(tInt32, "x")])
@@ -19,7 +19,7 @@ fragment1_0 =
     , eApp (tInt32 ~> tInt32) (eVar (tInt32 ~> tInt32 ~> tInt32, "plus")) [eVar (tInt32, "x")])
 
 -- (x, v0) = plus(x, v0)
-fragment1_1 :: Definition (Label Type) (Expr Type () Type Void)
+fragment1_1 :: Definition (Label Type) (Expr Type Type () Void)
 fragment1_1 =
   Function
     (fromList [(tInt32, "x"), (tInt32, ".v0")])
@@ -41,13 +41,13 @@ fragment2_1 =
     (fromList [(tInt32, "x"), (tInt32, "a"), (tInt32, "b")])
     (tInt32, eVar (tInt32, "b"))
 
-fragment3_0 :: Expr Type () Type Void
+fragment3_0 :: Expr Type Type () Void
 fragment3_0 =
   eApp tInt32
     (eApp (tInt32 ~> tInt32) (eVar (tInt32 ~> tInt32 ~> tInt32, "g")) [eVar (tInt32, "x")])
     [eVar (tInt32, "y")]
 
-fragment3_1 :: Expr Type () Type Void
+fragment3_1 :: Expr Type Type () Void
 fragment3_1 =
   eApp tInt32
     (eVar (tInt32 ~> tInt32 ~> tInt32, "g"))
@@ -140,7 +140,7 @@ fragment7_1 =
 --         in
 --           g(f)(g(5)) + f(1)
 --       
-fragment8_0 :: Expr Type () Type Void
+fragment8_0 :: Expr Type Type () Void
 fragment8_0 =
   eLet
     (tInt32, "h")
@@ -163,8 +163,8 @@ fragment8_0 =
              (eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))
 
 fragment8_1 ::
-     ( Expr Type () Type Void
-     , [(Name, Definition (Label Type) (Expr Type () Type a2))])
+     ( Expr Type Type () Void
+     , [(Name, Definition (Label Type) (Expr Type Type () a2))])
 fragment8_1 =
   ( eLet
       (tInt32, "h")
@@ -194,7 +194,7 @@ fragment9_0 =
 fragment9_1 :: Expr Type () () Void
 fragment9_1 = eOp2 OAddInt32 (eVar (tInt32, "y")) (eVar (tInt32, "z"))
 
-fragment10_0 :: Definition (Label Type) (Expr Type () Type Void)
+fragment10_0 :: Definition (Label Type) (Expr Type Type () Void)
 fragment10_0 =
   Constant
     ( tInt32
@@ -221,7 +221,7 @@ fragment10_0 =
                     [eLit (LInt32 6)])
                  (eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [eLit (LInt32 7)])))))
 
-fragment10_1 :: Definition (Label Type) (Expr Type () Type Void)
+fragment10_1 :: Definition (Label Type) (Expr Type Type () Void)
 fragment10_1 =
   Constant
     ( tInt32
@@ -272,7 +272,7 @@ fragment11_0 =
              (eApp () (eVar (tInt32 ~> tInt32 ~> tInt32, "g")) [eLit (LInt32 6)])
              (eApp () (eVar (tInt32 ~> tInt32, "h")) [eLit (LInt32 7)]))))
 
-fragment11_1 :: Expr Type () Type Void
+fragment11_1 :: Expr Type Type () Void
 fragment11_1 =
   eLet
     (tInt32 ~> tInt32 ~> tInt32 ~> tInt32, "add3")
@@ -303,7 +303,7 @@ fragment11_1 =
           (eApp (tInt32 ~> tInt32) (eVar (tInt32 ~> tInt32 ~> tInt32, "g")) [eLit (LInt32 6)])
           (eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [eLit (LInt32 7)])))
 
-fragment11_2 :: Expr Type () Type Void
+fragment11_2 :: Expr Type Type () Void
 fragment11_2 =
   eLet
     (tInt32 ~> tInt32 ~> tInt32 ~> tInt32, "add3")
@@ -340,14 +340,14 @@ fragment11_2 =
                 [eLit (LInt32 6), eVar (tInt32, ".v0")]))
           (eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [eLit (LInt32 7)])))
 
-fragment12_0 :: Expr Type () Type Void
+fragment12_0 :: Expr Type Type () Void
 fragment12_0 =
   eLet
     (tInt32 ~> tInt32, "g")
     (eApp (tInt32 ~> tInt32) (eVar (tInt32 ~> tInt32 ~> tInt32, "f")) [eLit (LInt32 1)])
     (eApp tInt32 (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 2)])
 
-fragment12_1 :: Expr Type () Type Void
+fragment12_1 :: Expr Type Type () Void
 fragment12_1 =
   eLet
     (tInt32 ~> tInt32, "g")

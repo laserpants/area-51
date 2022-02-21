@@ -19,7 +19,7 @@ import TextShow (showt)
 --
 -- to: 
 --   lamb[a, b] => b
-combineLambdas :: Expr t () a1 a2 -> Expr t () a1 a2
+combineLambdas :: Expr t a0 () a2 -> Expr t a0 () a2
 combineLambdas =
   cata $ \case
     ELam _ xs (Fix (ELam _ ys expr)) -> eLam (xs <> ys) expr
@@ -30,7 +30,7 @@ combineLambdas =
 --
 -- to: 
 --   g(x, y)
-combineApps :: Expr t a0 Type a2 -> Expr t a0 Type a2
+combineApps :: Expr t Type a1 a2 -> Expr t Type a1 a2
 combineApps =
   cata $ \case
     EApp _ (Fix (EApp t expr xs)) ys -> 
@@ -46,8 +46,8 @@ combineApps =
 --   foo(a, b) = b
 --   baz(x, a, b) = b
 hoistTopLambdas ::
-     Definition (Label t) (Expr t () a1 a2)
-  -> Definition (Label t) (Expr t () a1 a2)
+     Definition (Label t) (Expr t a1 () a2)
+  -> Definition (Label t) (Expr t a1 () a2)
 hoistTopLambdas =
   \case
     Function args (t, expr)
@@ -56,7 +56,7 @@ hoistTopLambdas =
       | isCon LamE expr -> combine t [] expr
     def -> def
   where
-    combine t as =
+    combine t as = 
       project . combineLambdas >>> \case
         ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
         _ -> error "Implementation error"
@@ -70,8 +70,8 @@ hoistTopLambdas =
 --   foo(x, v_0) = plus(x, v_0)
 --
 fillParams ::
-     Definition (Label Type) (Expr Type () Type a2)
-  -> Definition (Label Type) (Expr Type () Type a2)
+     Definition (Label Type) (Expr Type Type () a2)
+  -> Definition (Label Type) (Expr Type Type () a2)
 fillParams = hoistTopLambdas <<< fmap fillExprParams
 
 --
@@ -89,7 +89,7 @@ fillParams = hoistTopLambdas <<< fmap fillExprParams
 --   in
 --     g(2)
 --
-fillExprParams :: Expr Type () Type a2 -> Expr Type () Type a2
+fillExprParams :: Expr Type Type () a2 -> Expr Type Type () a2
 fillExprParams =
   replaceVarLets >>>
   cata
@@ -142,11 +142,11 @@ replaceVarLets =
     e -> embed e
 
 liftLambdas ::
-     ( MonadWriter [(Name, Definition (Label Type) (Expr Type () Type a2))] m
+     ( MonadWriter [(Name, Definition (Label Type) (Expr Type Type () a2))] m
      , MonadState Int m
      )
-  => Expr Type () Type a2
-  -> m (Expr Type () Type a2)
+  => Expr Type Type () a2
+  -> m (Expr Type Type () a2)
 liftLambdas =
   fmap replaceVarLets <<<
     cata

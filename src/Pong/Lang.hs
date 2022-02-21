@@ -97,7 +97,7 @@ instance FreeIn (Row (TypeT g) a) where
 instance (FreeIn a) => FreeIn [a] where
   free = concatMap free 
 
-instance (Show t, Typed t) => FreeIn (Expr t a0 t a2) where
+instance (Show t, Typed t) => FreeIn (Expr t t a1 a2) where
   free = free . typeOf
 
 instance (FreeIn e) => FreeIn (Environment e) where
@@ -145,7 +145,7 @@ instance Typed Op2 where
       OSubDouble -> tDouble ~> tDouble ~> tDouble
       ODivDouble -> tDouble ~> tDouble ~> tDouble
 
-instance (Show t, Typed t) => Typed (Row (Expr t a0 t a2) (Label t)) where
+instance (Show t, Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
   typeOf =
     cata $ \case
       RNil -> tRow rNil
@@ -154,7 +154,7 @@ instance (Show t, Typed t) => Typed (Row (Expr t a0 t a2) (Label t)) where
         let TRow row = project r 
          in tRow (rExt name (typeOf expr) row)
 
-instance (Show t, Typed t, Typed (Row (Expr t a0 t a2) (Label t))) => Typed (Expr t a0 t a2) where
+instance (Show t, Typed t, Typed (Row (Expr t t a1 a2) (Label t))) => Typed (Expr t t a1 a2) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -163,13 +163,13 @@ instance (Show t, Typed t, Typed (Row (Expr t a0 t a2) (Label t))) => Typed (Exp
       EIf _ _ e3 -> e3
       ELam _ args expr -> foldType expr (typeOf . fst <$> args)
       EApp t fun as -> typeOf t
-      ECall _ (t, _) as -> error "FOOO" ----tapp t as
+      ECall _ (t, _) as -> tapp t as
       EOp2 op _ _ -> returnType op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
       ERow r -> typeOf r
---    where
---      tapp t as = foldType1 (drop (length as) (unwindType t))
+    where
+      tapp t as = foldType1 (drop (length as) (unwindType t))
 --      tapp t as = traceShow ">>>" $ traceShow t $ traceShow as $ foldType1 (drop (length as) ts)
 --        where
 --          ts = unwindType t
@@ -204,7 +204,7 @@ class HasArity a where
 instance HasArity Type where
   arity = pred <<< length <<< unwindType
 
-instance (Show t, Typed t) => HasArity (Expr t a0 t a2) where
+instance (Show t, Typed t) => HasArity (Expr t t a1 a2) where
   arity = arity . typeOf
 
 --instance HasArity (Definition a) where
@@ -495,11 +495,11 @@ eLet :: Label t -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eLet = embed3 ELet 
 
 {-# INLINE eLam #-}
-eLam :: [Label t] -> Expr t () a1 a2 -> Expr t () a1 a2
+eLam :: [Label t] -> Expr t a0 () a2 -> Expr t a0 () a2
 eLam = embed3 ELam ()
 
 {-# INLINE eApp #-}
-eApp :: t1 -> Expr t a0 t1 a2 -> [Expr t a0 t1 a2] -> Expr t a0 t1 a2
+eApp :: t1 -> Expr t0 t1 a1 a2 -> [Expr t0 t1 a1 a2] -> Expr t0 t1 a1 a2
 eApp = embed3 EApp 
 
 {-# INLINE eCall #-}

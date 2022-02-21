@@ -72,15 +72,14 @@ data Op2
 
 type Label t = (t, Name)
 
--- TODO: Swap a0 and a1
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
   | ECon (Label t)
   | ELit Literal
   | EIf a a a
   | ELet (Label t) a a
-  | EApp a1 a [a]
-  | ELam a0 [Label t] a
+  | EApp a0 a [a]
+  | ELam a1 [Label t] a
   | ECall a2 (Label t) [a]
   | EOp2 Op2 a a
   | ECase a [([Label t], a)]
@@ -88,7 +87,7 @@ data ExprF t a0 a1 a2 a
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
-type PreAst = Expr Type Void Type Void
+type PreAst = Expr Type Type Void Void
 
 type Ast = Expr Type Void Void ()
 
