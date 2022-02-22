@@ -453,6 +453,16 @@ fragment16_1 =
       (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) 
       [eLit (LInt32 1)])
 
+fragment16_2 :: Expr Type Type () Void
+fragment16_2 =  
+  eLet
+    (tVar 2 ~> tVar 2, "id")
+    (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eApp tInt32
+      (eApp (tInt32 ~> tInt32) (eVar ((tInt32 ~> tInt32) ~> tInt32 ~> tInt32, "id")) [eVar (tInt32 ~> tInt32, "id")]) 
+      [eLit (LInt32 1)])
+
+
 --fragment16_1 :: Expr Int Int () Void
 --fragment16_1 =  
 --  eLet
