@@ -53,9 +53,12 @@ data TypeError
   | ConstructorNotInScope Name
   | EmptyCaseStatement
 
+runTypeChecker' :: Int -> Environment PolyType -> TypeChecker a -> Either TypeError a
+runTypeChecker' n env m = 
+  evalState (runReaderT (runExceptT (getTypeChecker m)) env) (n, mempty)
+
 runTypeChecker :: Environment PolyType -> TypeChecker a -> Either TypeError a
-runTypeChecker env m = 
-  evalState (runReaderT (runExceptT (getTypeChecker m)) env) (1, mempty)
+runTypeChecker = runTypeChecker' 1
 
 substitute :: Map Int (TypeT t) -> TypeT t -> TypeT t 
 substitute sub =
@@ -75,14 +78,14 @@ instance Substitutable Type where
 instance Substitutable PolyType where
   apply = substitute . (toPolyType <$>) . getSubstitution 
 
-instance (Substitutable t) => Substitutable (Expr t () () a2) where
+instance (Substitutable t) => Substitutable (Expr t t () a2) where
   apply sub =
     cata $ \case
       EVar name -> eVar (subst name)
       ECon con -> eCon (subst con)
       ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
       ELam _ args expr -> eLam (subst <$> args) expr
-      EApp _ fun args -> eApp () fun args
+      EApp t fun args -> eApp (apply sub t) fun args
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
       e -> embed e
     where
@@ -166,7 +169,9 @@ tagExpr =
 --      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
 --    ERow row -> eRow <$> tagRow row
 
-tagRow :: Row (Expr t () () Void) (Label t) -> TypeChecker (Row (Expr Int Int () Void) (Label Int))
+tagRow 
+  :: Row (Expr t () () Void) (Label t) 
+  -> TypeChecker (Row (Expr Int Int () Void) (Label Int))
 tagRow = cata $ \case
   RNil -> pure rNil
   RVar (_, var) -> rVar <$> tagLabel var
@@ -254,16 +259,17 @@ unifyM a b = do
 ----    runMonad m =
 ----      runState (runReaderT (runExceptT (getTypeChecker m)) symtab) (1, mempty)
 
-checkName :: (Type, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
-checkName (t, var) err = do
-  Env env <- ask
-  case env !? var of
-    Just s -> do
-      t1 <- instantiate s
-      unifyM t t1
-      pure (t1, var)
-    _ ->
-      throwError (err var)
+--checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
+--checkName (t, var) err = do
+--  Env env <- ask
+--  case env !? var of
+--    Just s -> do
+--      t1 <- instantiate s
+--      traceShowM t1
+----      unifyM (tVar t :: Type) t1
+--      pure (t1, var)
+--    _ ->
+--      throwError (err var)
 
 instantiate :: PolyType -> TypeChecker Type
 instantiate p = do
@@ -289,53 +295,56 @@ generalize t = do
       ixs = Map.fromList (zip names [0..])
   pure (substitute (tGen <$> ixs) (toPolyType t1))
 
-check :: Expr Type () Type Void -> TypeChecker (Expr Type () Type Void)
-check = 
-  cata $ \case
-    EVar var -> eVar <$> checkName var NotInScope 
+--check :: Expr Int Int () Void -> TypeChecker (Expr Type Type () Void)
+--check = 
+--  cata $ \case
+--    EVar var -> eVar <$> checkName var NotInScope 
 --    ECon con -> eCon <$> checkName con ConstructorNotInScope 
 --    ELit prim -> pure (eLit prim)
 --    EIf expr1 expr2 expr3 -> do
 --      e1 <- expr1
 --      e2 <- expr2
 --      e3 <- expr3
---      unifyM e1 (tBool :: Type)
---      unifyM e2 e3
+----      unifyM e1 (tBool :: Type)
+----      unifyM e2 e3
 --      pure (eIf e1 e2 e3)
 --    ELet (t, var) expr1 expr2 -> do
---      let insertBound e = do
---            ty <- applySubstitution t
---            local (Env.insert var (toPolyType ty)) e
---      e1 <- insertBound expr1
---      unifyM t e1
---      e2 <- insertBound expr2
---      t1 <- applySubstitution t
+--      s <- generalize (tVar t)
+--      traceShowM "*******************"
+--      traceShowM s
+--      ----q <- applySubstitution s 
+--      ----traceShowM q
+--
+--      e1 <- local (Env.insert var s) expr1
+--      e2 <- local (Env.insert var s) expr2
+--      --e1 <- local (Env.insert var s) expr1
+--      --unifyM (tVar t :: Type) e1
+--      --e2 <- local (Env.insert var s) expr2
+--      t1 <- applySubstitution (tVar t)
 --      pure (eLet (t1, var) e1 e2)
+--      --let insertBound e = do
+--      --      ty <- applySubstitution (tVar t)
+--      --      local (Env.insert var (toPolyType ty)) e
+--      --e1 <- insertBound expr1
+--      --unifyM (tVar t :: Type) e1
+--      --e2 <- insertBound expr2
+--      --t1 <- applySubstitution (tVar t)
+--      --pure (eLet (t1, var) e1 e2)
 --    ELam _ args expr -> do
---      e <- local (insertArgs (first toPolyType <$> args)) expr
---      xs <- traverse (firstM applySubstitution) args
+--      e <- local (insertArgs (first (toPolyType . tVar) <$> args)) expr
+--      xs <- traverse (firstM (applySubstitution . tVar)) args
 --      pure (eLam xs e)
---    EApp _ fun args -> do
+--    EApp t fun args -> do
 --      f <- fun
 --      as <- sequence args
---      --unifyM (tx ~> ty) f
---      t0 <- applySubstitution (typeOf f)
---      --traceShowM "////"
---      --traceShowM t0
---      --traceShowM (argTypes t0)
---      --unifyM tx (typeOf <$> as)
---      t1 <- applySubstitution t0
---      let ps = zip (argTypes t1) (typeOf <$> as)
---      --let ps = zip (argTypes t0) (typeOf <$> as)
---      --traceShowM ps
---      forM_ ps (uncurry unifyM)
---      pure (eApp f as)
+--      --unifyM f (foldType (tVar t) (typeOf <$> as))
+--      pure (eApp (tVar t) f as)
 --    EOp2 op expr1 expr2 -> do
 --      e1 <- expr1
 --      e2 <- expr2
 --      let [t1, t2] = argTypes op
---      unifyM e1 t1
---      unifyM e2 t2
+----      unifyM e1 t1
+----      unifyM e2 t2
 --      pure (eOp2 op e1 e2)
 --    ECase _ [] -> throwError EmptyCaseStatement
 --    ECase expr clauses ->
@@ -344,6 +353,49 @@ check =
 --    ERow row ->
 --      undefined
 --      -- TODO
+
+checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
+checkName (t, var) err = do
+  Env env <- ask
+  case env !? var of
+    Just s -> do
+      t1 <- instantiate s
+      unifyM (tVar t :: Type) t1
+      pure (t1, var)
+    _ ->
+      throwError (err var)
+
+check :: Expr Int Int () Void -> TypeChecker (Expr Type Type () Void)
+check = 
+  cata $ \case
+    EVar var -> eVar <$> checkName var NotInScope 
+    ECon con -> eCon <$> checkName con ConstructorNotInScope 
+    ELit prim -> pure (eLit prim)
+    EIf expr1 expr2 expr3 -> do
+      e1 <- expr1
+      unifyM (tBool :: Type) e1 
+      e2 <- expr2
+      e3 <- expr3
+      unifyM e2 e3
+      pure (eIf e1 e2 e3)
+    ELet (t, var) expr1 expr2 -> do
+      e1 <- expr1
+      s <- generalize (typeOf e1)
+      e2 <- local (Env.insert var s) expr2
+      unifyM (tVar t :: Type) e1
+      t0 <- applySubstitution (tVar t)
+      pure (eLet (t0, var) e1 e2)
+    EApp t fun args -> do
+      f <- fun
+      as <- sequence args
+      t0 <- applySubstitution (typeOf f)
+      t1 <- applySubstitution (tVar t)
+      unifyM t0 (foldType t1 (typeOf <$> as))
+      pure (eApp t1 f as)
+    ELam _ args expr -> do
+      xs <- traverse (pure . first tVar) args
+      e <- local (insertArgs (first (toPolyType . tVar) <$> args)) expr
+      pure (eLam xs e)
 
 --check :: SourceExpr Int -> TypeChecker TypedExpr
 --check =

@@ -444,6 +444,31 @@ fragment15_1 =
           (eApp () (eVar (tInt32 ~> tInt32 ~> tInt32, "g")) [eLit (LInt32 6)])
           (eApp () (eVar (tInt32 ~> tInt32, "h")) [eLit (LInt32 7)])))
 
+fragment16_1 :: Expr Int Int () Void
+fragment16_1 =  
+  eLet
+    (1, "id")
+    (eLam [(2, "x")] (eVar (3, "x")))
+    (eApp 4 
+      (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) 
+      [eLit (LInt32 1)])
+
+--fragment16_1 :: Expr Int Int () Void
+--fragment16_1 =  
+--  eLet
+--    (1, "f")
+--    (eLam [(2, "x")] (eVar (3, "x")))
+--    (eVar (1, "f"))
+
+
+--        (eLam [(3, "g")] 
+--          (eLam [(4, "b")] 
+--            (eApp 5 (eApp 6 (eVar (7, "f")) [eLam [(8, "x")] (eVar (9, "x"))]) 
+--              [eApp 10 (eVar (11, "g")) [eVar (12, "b")]])
+--          )))
+--    (eApp 13 (eVar (14, "z")) 
+--        [eLam [(15, "x")] (eVar (16, "x")), eLam [(17, "x")] (eVar (18, "x")), eLit (LInt32 1)])
+
 
 --i32 :: Type
 --i32 = tInt32
