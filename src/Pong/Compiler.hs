@@ -6,9 +6,10 @@ module Pong.Compiler where
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Function ((&))
-import Debug.Trace
 import Data.List.NonEmpty (NonEmpty, fromList, toList)
+import Data.Maybe (fromMaybe)
 import Data.Void (Void)
+import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Util
@@ -92,15 +93,25 @@ fillParams = hoistTopLambdas <<< fmap fillExprParams
 fillExprParams :: Expr Type Type () a2 -> Expr Type Type () a2
 fillExprParams =
   replaceVarLets >>>
-  cata
+  para
     (\case
-       EApp t fun args
-         | arity fun > n ->
-           let extra = drop n (argTypes fun) `zip` names
+       EVar (t, fun) | arity t > 0 ->
+         let extra = argTypes t `zip` names
+          in eLam extra (eApp (returnType t) (eVar (t, fun)) (extra <#> eVar))
+       EApp t (fun1, fun2) args 
+         | arity fun1 > n ->
+           let extra = drop n (argTypes fun1) `zip` names
                t1 = foldType1 (drop (length extra) (unwindType t))
-            in eLam extra (embed3 EApp t1 fun (args <> (extra <#> eVar)))
-         where n = length args
-       e -> embed e)
+            in eLam extra (eApp t1 (fromMaybe fun2 varCon) ((args <#> snd) <> (extra <#> eVar)))
+         | otherwise ->
+           eApp t (fromMaybe fun2 varCon) (args <#> snd)
+         where 
+           n = length args
+           varCon =
+             case project fun1 of
+               EVar v -> Just (eVar v)
+               _ -> Nothing
+       e -> embed (e <#> snd))
   where
     names = [".v" <> showt n | n <- [0 :: Int ..]]
 

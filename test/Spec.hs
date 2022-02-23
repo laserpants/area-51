@@ -23,6 +23,8 @@ import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
 
+foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
+
 main :: IO ()
 main =
   hspec $ do
