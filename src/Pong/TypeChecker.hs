@@ -396,6 +396,13 @@ check =
       xs <- traverse (pure . first tVar) args
       e <- local (insertArgs (first (toPolyType . tVar) <$> args)) expr
       pure (eLam xs e)
+    EOp2 op expr1 expr2 -> do
+      e1 <- expr1
+      e2 <- expr2
+      let [t1, t2] = argTypes op
+      unifyM e1 t1
+      unifyM e2 t2
+      pure (eOp2 op e1 e2)
 
 --check :: SourceExpr Int -> TypeChecker TypedExpr
 --check =

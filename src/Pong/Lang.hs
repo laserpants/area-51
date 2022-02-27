@@ -163,13 +163,11 @@ instance (Show t, Typed t, Typed (Row (Expr t t a1 a2) (Label t))) => Typed (Exp
       EIf _ _ e3 -> e3
       ELam _ args expr -> foldType expr (typeOf . fst <$> args)
       EApp t fun as -> typeOf t
-      ECall _ (t, _) as -> tapp t as
+      ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
       EOp2 op _ _ -> returnType op
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
       ERow r -> typeOf r
-    where
-      tapp t as = foldType1 (drop (length as) (unwindType t))
 --      tapp t as = traceShow ">>>" $ traceShow t $ traceShow as $ foldType1 (drop (length as) ts)
 --        where
 --          ts = unwindType t

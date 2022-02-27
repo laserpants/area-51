@@ -23,7 +23,7 @@ import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
 
-foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
+--foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 
 main :: IO ()
 main =
@@ -34,25 +34,29 @@ main =
     describe "fillExprParams" $ do
       it "#1" (fillExprParams fragment11_1 == fragment11_2)
       it "#2" (fillExprParams fragment12_0 == fragment12_1)
+      it "#3" (fillExprParams fragment17_3 == fragment17_4)
     describe "hoistTopLambdas" $ do
       it "#1" (hoistTopLambdas fragment2_0 == fragment2_1)
     describe "combineApps" $ do
       it "#1" (combineApps fragment3_0 == fragment3_1)
     describe "combineLambdas" $ do
       it "#1" (combineLambdas fragment4_0 == fragment4_1)
+      it "#2" (combineLambdas fragment17_2 == fragment17_3)
     describe "convertClosures" $ do
       it "#1" (convertClosures fragment5_0 == fragment5_1)
       it "#2" (convertClosures fragment7_0 == fragment7_1)
     describe "convertFunApps" $ do
       it "#1" (convertFunApps fragment6_0 == fragment6_1)
     describe "liftLambdas" $ do
-      it "#1" (runWriter (evalStateT (liftLambdas fragment8_0) 0) == fragment8_1)
+      it "#1" (liftLambdas fragment8_0 == fragment8_1)
+      it "#2" (liftLambdas fragment17_4 == fragment17_5)
     describe "replaceVarLets" $ do
-      it "#1" (replaceVarLets fragment9_0 == fragment9_1)
-      it "#2" (replaceVarLets fragment11_0 == fragment15_1)
+      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
+      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
     describe "typeCheck" $ do
       it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
       it "#2" (Right fragment16_2 == runTypeChecker' 8 mempty (applySubstitution =<< check fragment16_1))
+      it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
     describe "unify" $ do
       it "#1" (let Right sub = unify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
 
@@ -80,10 +84,10 @@ main =
 --   g(f')(g(5)) + f'(1)
 --
 
-zzz :: ((t -> t) -> t -> t) -> (t -> t) -> t -> t
-zzz f g b = f (\x -> x) (g b)
-
-test1 = zzz id id 1
+--zzz :: ((t -> t) -> t -> t) -> (t -> t) -> t -> t
+--zzz f g b = f (\x -> x) (g b)
+--
+--test1 = zzz id id 1
 
 --
 -- let

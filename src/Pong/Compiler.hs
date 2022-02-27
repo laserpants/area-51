@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Pong.Compiler where
 
@@ -34,9 +35,9 @@ combineLambdas =
 combineApps :: Expr t Type a1 a2 -> Expr t Type a1 a2
 combineApps =
   cata $ \case
-    EApp _ (Fix (EApp t expr xs)) ys -> 
+    EApp _ (Fix (EApp t expr xs)) ys ->
       let t1 = foldType1 (drop (length ys) (unwindType t))
-       in traceShow t $ embed3 EApp t1 expr (xs <> ys)
+       in embed3 EApp t1 expr (xs <> ys)
     e -> embed e
 
 -- from:
@@ -57,7 +58,7 @@ hoistTopLambdas =
       | isCon LamE expr -> combine t [] expr
     def -> def
   where
-    combine t as = 
+    combine t as =
       project . combineLambdas >>> \case
         ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
         _ -> error "Implementation error"
@@ -93,24 +94,29 @@ fillParams = hoistTopLambdas <<< fmap fillExprParams
 fillExprParams :: Expr Type Type () a2 -> Expr Type Type () a2
 fillExprParams =
   replaceVarLets >>>
+  fst >>>
   para
     (\case
-       EVar (t, fun) | arity t > 0 ->
-         let extra = argTypes t `zip` names
-          in eLam extra (eApp (returnType t) (eVar (t, fun)) (extra <#> eVar))
-       EApp t (fun1, fun2) args 
-         | arity fun1 > n ->
-           let extra = drop n (argTypes fun1) `zip` names
+       EVar (t, fun)
+         | arity t > 0 ->
+           let extra = argTypes t `zip` names
+            in eLam extra (eApp (returnType t) (eVar (t, fun)) (extra <#> eVar))
+       EApp t fun args
+         | arity (fst fun) > n ->
+           let extra = drop n (argTypes (fst fun)) `zip` names
                t1 = foldType1 (drop (length extra) (unwindType t))
-            in eLam extra (eApp t1 (fromMaybe fun2 varCon) ((args <#> snd) <> (extra <#> eVar)))
-         | otherwise ->
-           eApp t (fromMaybe fun2 varCon) (args <#> snd)
-         where 
-           n = length args
-           varCon =
-             case project fun1 of
-               EVar v -> Just (eVar v)
-               _ -> Nothing
+            in eLam
+                 extra
+                 (eApp t1 (varCon fun) ((args <#> varCon) <> (extra <#> eVar)))
+         | otherwise -> eApp t (varCon fun) (args <#> varCon)
+         where n = length args
+               varCon ::
+                    (Expr Type Type () a2, Expr Type Type () a2)
+                 -> Expr Type Type () a2
+               varCon (e1, e2) =
+                 case project e1 of
+                   EVar v -> eVar v
+                   _ -> e2
        e -> embed (e <#> snd))
   where
     names = [".v" <> showt n | n <- [0 :: Int ..]]
@@ -140,58 +146,79 @@ convertClosures =
 -- to:
 --   y + z
 --
-replaceVarLets :: Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
-replaceVarLets =
-  cata $ \case
-    ELet (t, name) (Fix (EVar (_, var))) expr ->
+replaceVarLets :: Expr Type a0 a1 a2 -> (Expr Type a0 a1 a2, [(Name, Name)])
+replaceVarLets expr = (substMany subs e, subs)
+  where
+    (e, subs) =
       expr &
-      cata
-        (\case
-           EVar (t, v)
-             | v == name -> eVar (t, var)
-           e -> embed e)
+      (runWriter <<<
+       cata
+         (\case
+            ELet (t, name) expr body ->
+              expr >>=
+              (project >>> \case
+                 EVar (_, var) -> do
+                   tell [(name, var)]
+                   body
+                 _ -> eLet (t, name) <$> expr <*> body)
+            e -> embed <$> sequence e))
+
+varSubst :: Name -> Name -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
+varSubst from to =
+  cata $ \case
+    EVar (t, v)
+      | v == from -> eVar (t, to)
     e -> embed e
 
-liftLambdas ::
-     ( MonadWriter [(Name, Definition (Label Type) (Expr Type Type () a2))] m
-     , MonadState Int m
-     )
-  => Expr Type Type () a2
-  -> m (Expr Type Type () a2)
-liftLambdas =
-  fmap replaceVarLets <<<
-    cata
-      (\case
-         ELam _ args expr -> do
-           name <- uniqueName
-           body <- expr
-           let t = typeOf body
-               signature = Function (fromList args) (t, body)
-           tell [(name, fillParams signature)]
-           pure (eVar (foldType t (args <#> fst), name))
-         expr -> embed <$> sequence expr)
-  where
-    uniqueName = do
-      n <- get
-      put (succ n)
-      pure (".x" <> showt n)
+substMany :: [(Name, Name)] -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
+substMany subs a = foldr (uncurry varSubst) a subs
 
--- g(x) = x
---
--- foo =
---   let 
---     f' =
---       f(2)            
---     in
---       g(f')(g(5)) + f'(1)
---
--- foo =
---   f(2)(g(5)) + f(2, 1)  
-elimPartials :: (Monad m) => PreAst -> m PreAst
-elimPartials =
-  cata $ \case
-    EApp _ fun args -> undefined
-    expr -> embed <$> sequence expr
+liftLambdas ::
+     Expr Type Type () a2
+  -> ( Expr Type Type () a2
+     , [(Name, Definition (Label Type) (Expr Type Type () a2))])
+liftLambdas input = (e2, fmap (substMany subs <$$>) defs)
+  where
+    (e1, defs) = runWriter (evalStateT (fun input) 0)
+    (e2, subs) = replaceVarLets e1
+    fun =
+      cata $ \case
+        ELam _ args expr -> do
+          name <- uniqueName
+          body <- expr
+          let t = typeOf body
+              signature = Function (fromList args) (t, body)
+          tell [(name, fillParams signature)]
+          pure (eVar (foldType t (args <#> fst), name))
+        expr -> embed <$> sequence expr
+      where
+        uniqueName = do
+          n <- get
+          put (succ n :: Int)
+          pure (".f" <> showt n)
+
+xyz1234 :: 
+  ( Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))] )
+  -> ( Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))] )
+xyz1234 =
+  undefined
+
+---- g(x) = x
+----
+---- foo =
+----   let 
+----     f' =
+----       f(2)            
+----     in
+----       g(f')(g(5)) + f'(1)
+----
+---- foo =
+----   f(2)(g(5)) + f(2, 1)  
+--elimPartials :: (Monad m) => PreAst -> m PreAst
+--elimPartials =
+--  cata $ \case
+--    EApp _ fun args -> undefined
+--    expr -> embed <$> sequence expr
 
 convertFunApps :: PreAst -> Ast
 convertFunApps =

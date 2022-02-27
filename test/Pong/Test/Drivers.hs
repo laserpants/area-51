@@ -2,6 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Pong.Test.Drivers where
 
@@ -12,7 +13,7 @@ import Control.Monad.Reader
 import Control.Monad.State (State, gets, modify, put, evalStateT)
 import Data.Either (fromRight)
 import Data.Map.Strict ((!))
-import Data.Tuple.Extra (snd3)
+import Data.Tuple.Extra (snd3, second)
 import Data.Void
 import Debug.Trace
 import LLVM.Context (Context, withContext)
@@ -67,11 +68,23 @@ import qualified Pong.Util.Env as Env
 --           in
 --             h(7)
 
+--class B a where
+--  gork :: [(Name, Name)] -> a -> a
+--
+--instance B (Expr Type Type () a2) where
+--  gork = undefined
+--
+--instance B (Definition (Label Type) (Expr Type Type () a2)) where
+--  gork = undefined
+--
+--instance B a => B [a] where
+--  gork = undefined
+
 type TestCase input result = String -> input -> result -> SpecWith ()
 
-xx1 :: Expr Type Type () a2 -> (Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))])
-xx1 input = runWriter (evalStateT (liftLambdas input) 0)
-
+--xx1 :: Expr Type Type () a2 -> (Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))])
+--xx1 input = runWriter (evalStateT (liftLambdas input) 0)
+--
 --iso :: (Ord a, Eq a) => [a] -> [a] -> Bool
 --iso xs ys = Set.fromList xs == Set.fromList ys
 --
