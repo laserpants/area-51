@@ -65,6 +65,7 @@ import Data.Tuple (swap)
 import Data.Function ((&))
 import Debug.Trace
 import qualified Data.Map.Strict as Map
+import Data.List.NonEmpty (toList)
 
 class FreeIn a where
   free :: a -> [Int]
@@ -171,6 +172,14 @@ instance (Show t, Typed t, Typed (Row (Expr t t a1 a2) (Label t))) => Typed (Exp
 --      tapp t as = traceShow ">>>" $ traceShow t $ traceShow as $ foldType1 (drop (length as) ts)
 --        where
 --          ts = unwindType t
+
+instance (Typed t) => Typed (Definition (Label t) a) where
+  typeOf = \case
+    Function args (t, _) -> foldType t (typeOf . fst <$> toList args)
+    Constant (t, _) -> typeOf t
+--    External _ -> undefined
+    Data _ _ -> undefined
+
 
 --instance (Typed t) => Typed (Expr t a0 a1 a2 a3) where
 --  typeOf =

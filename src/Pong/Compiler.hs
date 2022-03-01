@@ -1,20 +1,65 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Pong.Compiler where
 
+import GHC.Generics
+import Control.Newtype.Generics
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Function ((&))
-import Data.List.NonEmpty (NonEmpty, fromList, toList)
+import Data.List.NonEmpty (NonEmpty, fromList, toList, (!!))
+import Data.List (partition)
 import Data.Maybe (fromMaybe)
+import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
+import Pong.TypeChecker (Substitution, unify, apply)
 import Pong.Util
 import TextShow (showt)
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Control.Newtype.Generics as N
+import Prelude hiding ((!!))
+
+type DefinitionMap = Map Name (Definition (Label Type) (Expr Type Type () Void))
+
+newtype Program = Program { getProgram :: DefinitionMap }
+
+deriving instance Show Program
+
+deriving instance Eq Program
+
+deriving instance Generic Program 
+
+instance Newtype Program 
+
+emptyProgram :: Program
+emptyProgram = Program mempty
+
+modifyProgram :: (MonadState Program m) => (DefinitionMap -> DefinitionMap) -> m ()
+modifyProgram = modify . over Program
+
+insertDef :: (MonadState Program m) => Name -> Definition (Label Type) (Expr Type Type () Void) -> m ()
+insertDef = modifyProgram <$$> Map.insert
+
+forEachDef :: (MonadState Program m) => (Definition (Label Type) (Expr Type Type () Void) -> m (Definition (Label Type) (Expr Type Type () Void))) -> m ()
+forEachDef run = do
+  Program defs <- get
+  forM_ (Map.keys defs) $ \key -> do
+    def <- run (defs ! key)
+    insertDef key def
+
+lookupDef :: (MonadState Program m) => Name -> m (Definition (Label Type) (Expr Type Type () Void))
+lookupDef var = do
+  Program defs <- get
+  pure (defs ! var)
 
 -- from:
 --   lam(a) => lam(b) => b
@@ -173,35 +218,130 @@ varSubst from to =
 substMany :: [(Name, Name)] -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
 substMany subs a = foldr (uncurry varSubst) a subs
 
-liftLambdas ::
-     Expr Type Type () a2
-  -> ( Expr Type Type () a2
-     , [(Name, Definition (Label Type) (Expr Type Type () a2))])
-liftLambdas input = (e2, fmap (substMany subs <$$>) defs)
-  where
-    (e1, defs) = runWriter (evalStateT (fun input) 0)
-    (e2, subs) = replaceVarLets e1
-    fun =
+liftLambdas :: (MonadState Program m) => Expr Type Type () Void -> m (Expr Type Type () Void)
+liftLambdas input = do
+  (expr, subs) <- replaceVarLets <$> fun input
+  modifyProgram (substMany subs <$$>)
+  pure expr
+    where
+    fun = 
       cata $ \case
         ELam _ args expr -> do
-          name <- uniqueName
+          name <- uniqueName ".f"
           body <- expr
           let t = typeOf body
               signature = Function (fromList args) (t, body)
-          tell [(name, fillParams signature)]
+          insertDef name (fillParams signature)
           pure (eVar (foldType t (args <#> fst), name))
         expr -> embed <$> sequence expr
-      where
-        uniqueName = do
-          n <- get
-          put (succ n :: Int)
-          pure (".f" <> showt n)
 
-xyz1234 :: 
-  ( Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))] )
-  -> ( Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))] )
-xyz1234 =
-  undefined
+uniqueName :: (MonadState Program m) => Name -> m Name
+uniqueName prefix = do
+  Program defs <- get
+  pure (prefix <> showt (Map.size defs))
+
+--liftLambdas input = (e2, fmap (substMany subs <$$>) defs)
+--  where
+--    (e1, defs) = runWriter (evalStateT (fun input) 0)
+--    (e2, subs) = replaceVarLets e1
+
+--fun :: Expr Type Type () a2 -> Program (Expr Type Type () a2)
+--fun =
+--      cata $ \case
+--        ELam _ args expr -> do
+--          name <- uniqueName
+--          body <- expr
+--          let t = typeOf body
+--              signature = Function (fromList args) (t, body)
+--          insertDef name (fillParams signature)
+--          --tell [(name, fillParams signature)]
+--          pure (eVar (foldType t (args <#> fst), name))
+--        expr -> embed <$> sequence expr
+--      where
+--        uniqueName = do
+--          undefined
+--          --n <- get
+--          --put (succ n :: Int)
+--          --pure (".f" <> showt n)
+
+--liftLambdas ::
+--     Expr Type Type () a2
+--  -> ( Expr Type Type () a2
+--     , [(Name, Definition (Label Type) (Expr Type Type () a2))])
+--liftLambdas input = (e2, fmap (substMany subs <$$>) defs)
+--  where
+--    (e1, defs) = runWriter (evalStateT (fun input) 0)
+--    (e2, subs) = replaceVarLets e1
+--    fun =
+--      cata $ \case
+--        ELam _ args expr -> do
+--          name <- uniqueName
+--          body <- expr
+--          let t = typeOf body
+--              signature = Function (fromList args) (t, body)
+--          tell [(name, fillParams signature)]
+--          pure (eVar (foldType t (args <#> fst), name))
+--        expr -> embed <$> sequence expr
+--      where
+--        uniqueName = do
+--          n <- get
+--          put (succ n :: Int)
+--          pure (".f" <> showt n)
+
+--zzz1235 :: (MonadState Program m) => Name -> m (Definition (Label Type) (Expr Type Type () Void))
+--zzz1235 name = do
+--  Program p <- get
+--  pure (p ! name)
+--  let zz = x ! name
+--  pure (typeOf zz)
+
+alignCallSigns :: (MonadState Program m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+alignCallSigns = 
+  cata $ \case
+    EApp t fun args -> do
+      f <- fun
+      as <- sequence args
+      case project f of
+        EVar (t1, var) -> do
+          def <- lookupDef var
+          case unify (typeOf def) t1 of
+            Right sub | sub /= mempty -> do
+              name <- uniqueName ".g"
+              insertDef name (fillParams (apply sub def))
+              pure (eApp t (eVar (t1, name)) as)
+            _ -> pure (eApp t f as)
+        _ -> pure (eApp t f as)
+    e -> embed <$> sequence e
+
+xyz1234
+  :: (MonadState Program m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+xyz1234 = 
+  cata $ \case
+    EApp t fun args -> do
+      f <- fun
+      as <- sequence args
+      let (as1, as2) = partition (isTCon ArrT . typeOf . snd) (zip [0..] as)
+      case project f of
+        EVar (t1, var) | not (null as1) -> do
+          def <- lookupDef var
+          let Function ps (t2, e) = def
+          name <- uniqueName ".h"
+          let getVar i = let EVar v = project (as List.!! i) in snd v
+              subs = [(snd (ps !! i), getVar i) | i <- fst <$> as1]
+              def1 = Function (fromList [ps !! i | i <- fst <$> as2]) (t2, substMany subs e)
+          insertDef name def1
+          pure (eApp t (eVar (typeOf def1, name)) (snd <$> as2))
+        _ -> pure (eApp t f as)
+    e -> embed <$> sequence e
+
+--(!^) :: (Monad m, Ord k) => m (Map k a) -> m k -> m a
+--(!^) m k = (!) <$> m <*> k
+
+--alignCallSigns :: 
+--  ( Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))] )
+--  -> ( Expr Type Type () a2, [(Name, Definition (Label Type) (Expr Type Type () a2))] )
+--alignCallSigns =
+--  undefined
 
 ---- g(x) = x
 ----
@@ -232,6 +372,12 @@ convertFunApps =
        ELet a1 a2 a3 -> eLet a1 a2 a3
        EOp2 op a1 a2 -> eOp2 op a1 a2
        ECase a1 a2 -> eCase a1 a2
+       EApp _ expr args -> do
+         case project expr of
+           EVar var -> eCall var args
+           ECall _ fun as1 -> do
+             eCall fun (as1 <> args)
+           e -> error "Implementation error"
        ERow row ->
          eRow $
          row &
@@ -239,10 +385,4 @@ convertFunApps =
            (\case
               RNil -> rNil
               RVar v -> rVar v
-              RExt name expr r -> rExt name (convertFunApps expr) r)
-       EApp _ expr args -> do
-         case project expr of
-           EVar var -> eCall var args
-           ECall _ fun as1 -> do
-             eCall fun (as1 <> args)
-           e -> error "Implementation error")
+              RExt name expr r -> rExt name (convertFunApps expr) r))

@@ -1,13 +1,17 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
-import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Writer
 import Data.Map.Strict ((!))
+import Data.Void
 import Debug.Trace
 import LLVM.IRBuilder
 import LLVM.IRBuilder.Module
 import LLVM.Pretty
+import Data.Tuple.Extra (second)
 import Pong.Compiler
 import Pong.Data
 import Pong.LLVM.Emit
@@ -24,6 +28,20 @@ import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
 
 --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
+
+--fromProgram :: Program a -> (a, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+--fromProgram prog = second Map.toList (runState (getProgram prog) mempty)
+fromProgram :: State Program (Expr Type Type () Void) -> (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fromProgram prog = Map.toList . getProgram <$> runState prog emptyProgram
+
+--fromProgram2 :: State Program a -> [(Name, Definition (Label Type) (Expr Type Type () Void))]
+--fromProgram2 prog = Map.toList . execProgram <$> runState prog emptyProgram
+--
+--toProgram :: [(Name, Definition (Label Type) (Expr Type Type () Void))] -> State Program ()
+--toProgram = put . Program . Map.fromList
+
+toProgram :: [(Name, Definition (Label Type) (Expr Type Type () Void))] -> Program 
+toProgram = Program . Map.fromList
 
 main :: IO ()
 main =
@@ -48,8 +66,8 @@ main =
     describe "convertFunApps" $ do
       it "#1" (convertFunApps fragment6_0 == fragment6_1)
     describe "liftLambdas" $ do
-      it "#1" (liftLambdas fragment8_0 == fragment8_1)
-      it "#2" (liftLambdas fragment17_4 == fragment17_5)
+      it "#1" (fromProgram (liftLambdas fragment8_0) == fragment8_1)
+      it "#2" (fromProgram (liftLambdas fragment17_4) == fragment17_5)
     describe "replaceVarLets" $ do
       it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
       it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
@@ -59,6 +77,46 @@ main =
       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
     describe "unify" $ do
       it "#1" (let Right sub = unify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
+    describe "alignCallSigns" $ do
+      it "#1" (fooz fragment17_5 == fragment17_6)
+    describe "xyz1234" $ do
+      it "#1" (gooz fragment17_6 == fragment17_7)
+
+--gork123 :: (MonadState Program m) => (Expr Type Type () Void -> m (Expr Type Type () Void)) -> m ()
+gork123 f =
+  forEachDef $ \case
+    Function as (t, expr) -> do
+      e <- f expr
+      pure (Function as (t, e))
+    def -> pure def
+
+--fooz2 :: (MonadState Program m) => Expr Type Type () Void -> m (Expr Type Type () Void)
+fooz2 e = gork123 alignCallSigns >> alignCallSigns e
+
+--fooz :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))]) 
+--     -> (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fooz (e, ds) = Map.toList . getProgram <$> runState (fooz2 e) (toProgram ds)
+
+--
+
+--gooz2 :: (MonadState Program m) => Expr Type Type () Void -> m (Expr Type Type () Void)
+gooz2 e = gork123 xyz1234 >> xyz1234 e
+
+--gooz :: (PreAst, [(Name, Definition (Label Type) PreAst)]) 
+--     -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+gooz (e, ds) = Map.toList . getProgram <$> runState (gooz2 e) (toProgram ds)
+
+--
+
+--hooz2 :: (MonadState Program m) => Expr Type Type () Void -> m (Expr Type Void () ())
+--hooz2 e = gork123 undefined >> undefined e
+--
+--hooz :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))]) 
+--     -> (Expr Type Void () (), [(Name, Definition (Label Type) (Expr Type Void () ()))])
+--hooz (e, ds) = Map.toList . getProgram <$> runState (hooz2 e) (toProgram ds)
+
+
+
 
 -- foo(g) =
 --   let 

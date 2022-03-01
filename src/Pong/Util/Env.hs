@@ -30,6 +30,7 @@ import qualified Data.Map.Strict as Map
 {-# INLINE empty #-}
 empty :: Environment a
 empty = mempty
+-- TODO: use Newtype generics
 
 insert :: Name -> a -> Environment a -> Environment a
 insert key val (Env envMap) = Env (Map.insert key val envMap)

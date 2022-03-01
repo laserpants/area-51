@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -15,33 +16,29 @@ module Pong.TypeChecker
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
-import Data.List (nub)
-import Data.Void (Void)
+import Control.Newtype.Generics
 import Data.Foldable
-import Data.Set (Set)
-import Debug.Trace
---import Debug.Trace
---import Control.Arrow ((>>>))
---import Control.Monad.Except
---import Control.Monad.Reader
---import Control.Monad.State
+import Data.List (nub)
 import Data.Maybe (fromMaybe)
+import Data.Set (Set)
 import Data.Tuple.Extra (first, firstM, second)
+import Data.Void (Void)
+import Debug.Trace
+import GHC.Generics
 import Pong.Data
 import Pong.Lang
 import Pong.Util
---import qualified Data.Map.Strict as Map
---import qualified Pong.Util.Env as Env
---
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Pong.Util.Env as Env
 
+-- TODO: use Newtype generics
 newtype Substitution =
   Substitution
     { getSubstitution :: Map Int Type
     }
 
+-- TODO: use Newtype generics
 newtype TypeChecker a =
   TypeChecker
     { getTypeChecker :: ExceptT TypeError (ReaderT (Environment PolyType) (State (Int, Substitution))) a
@@ -91,13 +88,23 @@ instance (Substitutable t) => Substitutable (Expr t t () a2) where
     where
       subst = first (apply sub)
 
-instance (Functor f, Substitutable a) => Substitutable (f a) where
+instance Substitutable (Map k Type) where
   apply = fmap . apply
 
+instance Substitutable (Environment PolyType) where
+  apply = fmap . apply
+
+instance (Substitutable t) => Substitutable (Definition (Label t) (Expr t t () a2)) where
+  apply sub = \case
+    Function args (t, body) ->
+      Function (first (apply sub) <$> args) (apply sub t, apply sub body)
+    Constant (t, a) ->
+      Constant (apply sub t, apply sub a)
+    def -> def
+
 compose :: Substitution -> Substitution -> Substitution
-compose s1 s2 =
-  Substitution
-    (fmap (apply s1) (getSubstitution s2) `Map.union` getSubstitution s1)
+compose = over2 Substitution fun where
+  fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
 
 mapsTo :: Int -> Type -> Substitution
 mapsTo = Substitution <$$> Map.singleton
@@ -153,6 +160,21 @@ tagExpr =
     ECase e1 cs ->
       eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
     ERow row -> eRow <$> tagRow row
+  where
+--      tagRow 
+--        :: Row (Expr t () () Void) (Label t) 
+--        -> TypeChecker (Row (Expr Int Int () Void) (Label Int))
+    tagRow = 
+      cata $ \case
+        RNil -> pure rNil
+        RVar (_, var) -> rVar <$> tagLabel var
+        RExt name expr row -> rExt name <$> tagExpr expr <*> row
+
+tag :: MonadState (Int, a) m => m Int
+tag = do
+  (s, a) <- get
+  put (succ s, a)
+  pure s
 
 --tagExpr :: Expr t () () Void -> TypeChecker (Expr Int () () Void)
 --tagExpr =
@@ -168,20 +190,6 @@ tagExpr =
 --    ECase e1 cs ->
 --      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
 --    ERow row -> eRow <$> tagRow row
-
-tagRow 
-  :: Row (Expr t () () Void) (Label t) 
-  -> TypeChecker (Row (Expr Int Int () Void) (Label Int))
-tagRow = cata $ \case
-  RNil -> pure rNil
-  RVar (_, var) -> rVar <$> tagLabel var
-  RExt name expr row -> rExt name <$> tagExpr expr <*> row
-
-tag :: MonadState (Int, a) m => m Int
-tag = do
-  (s, a) <- get
-  put (succ s, a)
-  pure s
 
 --xx1 :: Expr Int () () Void -> TypeChecker (Expr Type () () Void)
 --xx1 = 
@@ -475,14 +483,17 @@ check =
 instance Semigroup Substitution where
   (<>) = compose
 
-instance Monoid Substitution where
-  mempty = Substitution mempty
+deriving instance Monoid Substitution 
 
 deriving instance Show Substitution
 
 deriving instance Eq Substitution
 
 deriving instance Ord Substitution
+
+deriving instance Generic Substitution
+
+instance Newtype Substitution
 
 -- TypeChecker
 deriving instance Functor TypeChecker
@@ -496,6 +507,10 @@ deriving instance (MonadState (Int, Substitution)) TypeChecker
 deriving instance (MonadReader (Environment PolyType)) TypeChecker
 
 deriving instance (MonadError TypeError) TypeChecker
+
+deriving instance Generic (TypeChecker a)
+
+instance Newtype (TypeChecker a)
 
 -- TypeError
 deriving instance Show TypeError

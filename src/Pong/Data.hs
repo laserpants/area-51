@@ -1,16 +1,20 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Pong.Data where
 
+import Control.Newtype.Generics
 import Data.Eq.Deriving (deriveEq1)
 import Data.List.NonEmpty
 import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Void (Void)
+import GHC.Generics (Generic)
 import Pong.Util (Fix(..), Name, Text, embed, embed1, embed2, embed3, embed4)
 import Text.Show.Deriving (deriveShow1)
 
@@ -110,7 +114,7 @@ data Constructor =
 data Definition r a
   = Function (NonEmpty r) (Type, a)
   | Constant (Type, a)
-  | External [Type]
+--  | External [Type] (Label t)
   | Data Name [Constructor]
 
 -- Row
@@ -222,11 +226,13 @@ deriving instance Foldable Environment
 
 deriving instance Traversable Environment
 
-instance Semigroup (Environment a) where
-  Env a <> Env b = Env (a <> b)
+deriving instance Semigroup (Environment a) 
 
-instance Monoid (Environment a) where
-  mempty = Env mempty
+deriving instance Monoid (Environment a)
+
+deriving instance Generic (Environment a)
+
+instance Newtype (Environment a)
 
 -- Definition
 deriving instance (Show r, Show a) => Show (Definition r a)
