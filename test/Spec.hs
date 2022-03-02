@@ -34,7 +34,13 @@ import qualified Pong.Util.Env as Env
 --fromProgram :: State (Program (Expr Type Type () Void)) (Expr Type Type () Void) -> (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
 fromProgram prog = Map.toList . getProgram <$> runState prog emptyProgram
 
---toProgram :: [(Name, Definition (Label Type) (Expr Type Type () a2))] -> Program (Expr Type Type () a2)
+fromProgram2 :: State (Program (Expr Type Type () Void)) (Expr Type Type Void Void) -> (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
+fromProgram2 prog = undefined -- Map.toList . getProgram <$> runState prog emptyProgram
+  where
+    xx :: (Expr Type Type Void Void, Map Name (Definition (Label Type) (Expr Type Type () Void)))
+    xx = getProgram <$> runState prog emptyProgram
+
+toProgram :: [(Name, Definition (Label Type) a)] -> Program a
 toProgram = Program . Map.fromList
 
 main :: IO ()
@@ -78,7 +84,7 @@ main =
     describe "zooz" $ do
       it "#1" (zooz fragment17_7 == fragment17_8)
 
-gork123 :: (MonadState (Program (Expr Type Type () Void)) m) => (Expr Type Type () Void -> m (Expr Type Type () Void)) -> m ()
+gork123 :: (MonadState (Program (Expr Type Type a1 a2)) m) => (Expr Type Type a1 a2 -> m (Expr Type Type a1 a2)) -> m ()
 gork123 f =
   forEachDef $ \case
     Function as (t, expr) -> do
@@ -86,21 +92,25 @@ gork123 f =
       pure (Function as (t, e))
     def -> pure def
 
-fooz2 :: (MonadState (Program (Expr Type Type () Void)) m) => Expr Type Type () Void -> m (Expr Type Type () Void)
+fooz2 :: (MonadState (Program (Expr Type Type Void Void)) m) => Expr Type Type Void Void -> m (Expr Type Type Void Void)
 fooz2 e = gork123 alignCallSigns >> alignCallSigns e
+--fooz2= undefined
 
-fooz :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))]) 
-     -> (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fooz :: -- (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))]) 
+        (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
+     -> (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
+--fooz = undefined
 fooz (e, ds) = Map.toList . getProgram <$> runState (fooz2 e) (toProgram ds)
 
 --
 
-gooz2 :: (MonadState (Program (Expr Type Type () Void)) m) => Expr Type Type () Void -> m (Expr Type Type () Void)
+gooz2 :: (MonadState (Program (Expr Type Type Void Void)) m) => Expr Type Type Void Void -> m (Expr Type Type Void Void)
 gooz2 e = gork123 xyz1234 >> xyz1234 e
 
-gooz :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))]) 
-     -> (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+gooz :: (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))]) 
+     -> (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
 gooz (e, ds) = Map.toList . getProgram <$> runState (gooz2 e) (toProgram ds)
+--gooz = undefined
 
 --
 

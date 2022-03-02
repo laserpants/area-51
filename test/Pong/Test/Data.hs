@@ -157,7 +157,7 @@ fragment7_1 =
 --         in
 --           g(f)(g(5)) + f(1)
 --       
-fragment8_0 :: Expr Type Type () Void
+--fragment8_0 :: Expr Type Type () Void
 fragment8_0 =
   eLet
     (tInt32, "h")
@@ -182,8 +182,8 @@ fragment8_0 =
              (eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))
 
 fragment8_1 ::
-     ( Expr Type Type () Void
-     , [(Name, Definition (Label Type) (Expr Type Type () a2))])
+     ( Expr Type Type Void Void
+     , [(Name, Definition (Label Type) (Expr Type Type Void Void))])
 fragment8_1 =
   ( eLet
       (tInt32, "h")
@@ -450,30 +450,30 @@ fragment13_1 =
 fragment15_0 :: Expr Int () () Void
 fragment15_0 = eApp () (eVar (1, "f")) [eLit (LInt32 1)]
 
-fragment13_2 :: Expr Type () () Void
-fragment13_2 =
-  eLet
-    (undefined, "z")
-    (eLam
-       [(undefined, "f")]
-       (eLam
-          [(undefined, "g")]
-          (eLam
-             [(undefined, "b")]
-             (eApp
-                undefined
-                (eApp
-                   undefined
-                   (eVar (undefined, "f"))
-                   [eLam [(undefined, "x")] (eVar (undefined, "x"))])
-                [eApp undefined (eVar (undefined, "g")) [eVar (undefined, "b")]]))))
-    (eApp
-       undefined
-       (eVar (undefined, "z"))
-       [ eLam [(undefined, "x")] (eVar (undefined, "x"))
-       , eLam [(undefined, "x")] (eVar (undefined, "x"))
-       , eLit (LInt32 1)
-       ])
+--fragment13_2 :: Expr Type () () Void
+--fragment13_2 =
+--  eLet
+--    (undefined, "z")
+--    (eLam
+--       [(undefined, "f")]
+--       (eLam
+--          [(undefined, "g")]
+--          (eLam
+--             [(undefined, "b")]
+--             (eApp
+--                undefined
+--                (eApp
+--                   undefined
+--                   (eVar (undefined, "f"))
+--                   [eLam [(undefined, "x")] (eVar (undefined, "x"))])
+--                [eApp undefined (eVar (undefined, "g")) [eVar (undefined, "b")]]))))
+--    (eApp
+--       undefined
+--       (eVar (undefined, "z"))
+--       [ eLam [(undefined, "x")] (eVar (undefined, "x"))
+--       , eLam [(undefined, "x")] (eVar (undefined, "x"))
+--       , eLit (LInt32 1)
+--       ])
 
 fragment14_0 :: Type
 fragment14_0 = tCon "Cons" [tVar 0, tVar 1]
@@ -673,7 +673,7 @@ fragment17_4 =
 --
 -- .f3(.f0(3)) + .f1(4, 5)
 --
-fragment17_5 :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fragment17_5 :: (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
 fragment17_5 = 
   ( eOp2 OAddInt32 
       (eApp tInt32 (eVar (tInt32 ~> tInt32, ".f3")) [eApp tInt32 (eVar (tInt32 ~> tInt32, ".f0")) [eLit (LInt32 3)]]) 
@@ -699,7 +699,7 @@ fragment17_5 =
 --
 -- .f3(.g5(3)) + .f1(4, 5)
 --
-fragment17_6 :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fragment17_6 :: (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
 fragment17_6 = 
   ( eOp2 OAddInt32 
       (eApp tInt32 (eVar (tInt32 ~> tInt32, ".f3")) [eApp tInt32 (eVar (tInt32 ~> tInt32, ".g5")) [eLit (LInt32 3)]]) 

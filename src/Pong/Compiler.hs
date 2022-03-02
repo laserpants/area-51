@@ -119,6 +119,11 @@ fillParams ::
   -> Definition (Label Type) (Expr Type Type () a2)
 fillParams = hoistTopLambdas <<< fmap fillExprParams
 
+--fillParams2 ::
+--     Definition (Label Type) (Expr Type Type Void Void)
+--  -> Definition (Label Type) (Expr Type Type () a2)
+--fillParams2 = undefined -- hoistTopLambdas <<< fmap fillExprParams
+
 --
 -- from:
 --   let
@@ -216,7 +221,9 @@ varSubst from to =
 substMany :: [(Name, Name)] -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
 substMany subs a = foldr (uncurry varSubst) a subs
 
-liftLambdas :: (MonadState (Program (Expr Type Type () a2)) m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+liftLambdas :: (MonadState (Program (Expr Type Type Void Void)) m) 
+            => Expr Type Type () Void
+         -> m (Expr Type Type Void Void)
 liftLambdas input = do
   (expr, subs) <- replaceVarLets <$> fun input
   modifyProgram (substMany subs <$$>)
@@ -229,9 +236,22 @@ liftLambdas input = do
           body <- expr
           let t = typeOf body
               signature = Function (fromList args) (t, body)
-          insertDef name (fillParams signature)
+          insertDef name signature
           pure (eVar (foldType t (args <#> fst), name))
-        expr -> embed <$> sequence expr
+        EVar v -> pure (eVar v)
+        ECon c -> pure (eCon c)
+        ELit l -> pure (eLit l)
+        EIf a1 a2 a3 -> eIf <$> a1 <*> a2 <*> a3
+        ELet a1 a2 a3 -> eLet a1 <$> a2 <*> a3
+        EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
+        ECase a1 a2 -> eCase <$> a1 <*> traverse sequence a2
+        EApp t expr args -> eApp t <$> expr <*> sequence args
+        ERow row -> 
+         eRow <$> (`cata` row)
+           (\case
+              RNil -> pure rNil
+              RVar v -> pure (rVar v)
+              RExt name expr r -> rExt name <$> liftLambdas expr <*> r)
 
 uniqueName :: (MonadState (Program a) m) => Name -> m Name
 uniqueName prefix = do
@@ -293,7 +313,11 @@ uniqueName prefix = do
 --  let zz = x ! name
 --  pure (typeOf zz)
 
-alignCallSigns :: (MonadState (Program (Expr Type Type () a2)) m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+
+alignCallSigns 
+  :: (MonadState (Program (Expr Type Type Void Void)) m) 
+  => Expr Type Type Void Void 
+  -> m (Expr Type Type Void Void)
 alignCallSigns = 
   cata $ \case
     EApp t fun args -> do
@@ -305,14 +329,38 @@ alignCallSigns =
           case unify (typeOf def) t1 of
             Right sub | sub /= mempty -> do
               name <- uniqueName ".g"
-              insertDef name (fillParams (apply sub def))
+              insertDef name =<< rx123 (apply sub def)
               pure (eApp t (eVar (t1, name)) as)
             _ -> pure (eApp t f as)
         _ -> pure (eApp t f as)
     e -> embed <$> sequence e
 
+rx123
+  :: (MonadState (Program (Expr Type Type Void Void)) m) 
+  => Definition (Label Type) (Expr Type Type a1 a2)
+  -> m (Definition (Label Type) (Expr Type Type Void Void))
+rx123 def = do
+  let fooz3 = fillParams (abcx <$> def)
+  traverse liftLambdas fooz3
+    where
+    abcx = cata $ \case
+      EVar v -> eVar v
+      ECon c -> eCon c
+      ELit l -> eLit l
+      EIf a1 a2 a3 -> eIf a1 a2 a3
+      ELet a1 a2 a3 -> eLet a1 a2 a3
+      EApp a1 a2 a3 -> eApp a1 a2 a3
+      EOp2 op a1 a2 -> eOp2 op a1 a2
+      ECase a1 a2 -> eCase a1 a2
+      ERow row -> eRow $ (`cata` row) $ 
+        \case
+          RNil -> rNil
+          RVar v -> rVar v
+          RExt name expr r -> rExt name (abcx expr) r
+
+
 xyz1234
-  :: (MonadState (Program (Expr Type Type () a2)) m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+  :: (MonadState (Program (Expr Type Type Void Void)) m) => Expr Type Type Void Void -> m (Expr Type Type Void Void)
 xyz1234 = 
   cata $ \case
     EApp t fun args -> do
@@ -327,7 +375,7 @@ xyz1234 =
           let getVar i = let EVar v = project (as List.!! i) in snd v
               subs = [(snd (ps !! i), getVar i) | i <- fst <$> as1]
               def1 = Function (fromList [ps !! i | i <- fst <$> as2]) (t2, substMany subs e)
-          insertDef name def1
+          insertDef name =<< rx123 def1
           pure (eApp t (eVar (typeOf def1, name)) (snd <$> as2))
         _ -> pure (eApp t f as)
     e -> embed <$> sequence e
@@ -378,9 +426,7 @@ convertFunApps =
              eCall fun (as1 <> args)
            e -> error "Implementation error"
        ERow row ->
-         eRow $
-         row &
-         cata
+         eRow $ (`cata` row)
            (\case
               RNil -> rNil
               RVar v -> rVar v

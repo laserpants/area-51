@@ -61,8 +61,8 @@ substitute :: Map Int (TypeT t) -> TypeT t -> TypeT t
 substitute sub =
   cata $ \case
     TVar n -> fromMaybe (embed1 TVar n) (sub !? n)
-    TCon c ts -> embed2 TCon c ts 
-    TArr t1 t2 -> embed2 TArr t1 t2
+    TCon c ts -> tCon c ts 
+    TArr t1 t2 -> tArr t1 t2
     TRow r -> undefined -- TODO
     t -> embed t
 
@@ -75,13 +75,13 @@ instance Substitutable Type where
 instance Substitutable PolyType where
   apply = substitute . (toPolyType <$>) . getSubstitution 
 
-instance (Substitutable t) => Substitutable (Expr t t () a2) where
+instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
   apply sub =
     cata $ \case
       EVar name -> eVar (subst name)
       ECon con -> eCon (subst con)
       ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
-      ELam _ args expr -> eLam (subst <$> args) expr
+      ELam t args expr -> eLam_ t (subst <$> args) expr
       EApp t fun args -> eApp (apply sub t) fun args
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
       e -> embed e
@@ -94,7 +94,7 @@ instance Substitutable (Map k Type) where
 instance Substitutable (Environment PolyType) where
   apply = fmap . apply
 
-instance (Substitutable t) => Substitutable (Definition (Label t) (Expr t t () a2)) where
+instance (Substitutable t) => Substitutable (Definition (Label t) (Expr t t a1 a2)) where
   apply sub = \case
     Function args (t, body) ->
       Function (first (apply sub) <$> args) (apply sub t, apply sub body)

@@ -505,6 +505,10 @@ eLet = embed3 ELet
 eLam :: [Label t] -> Expr t a0 () a2 -> Expr t a0 () a2
 eLam = embed3 ELam ()
 
+{-# INLINE eLam_ #-}
+eLam_ :: a1 -> [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eLam_ = embed3 ELam 
+
 {-# INLINE eApp #-}
 eApp :: t1 -> Expr t0 t1 a1 a2 -> [Expr t0 t1 a1 a2] -> Expr t0 t1 a1 a2
 eApp = embed3 EApp 
