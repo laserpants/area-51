@@ -119,12 +119,10 @@ fragment5_1 =
                 [eApp () (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]])
              (eApp () (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))
 
---fragment6_0 :: PreAst
-fragment6_0 :: Expr Type Type Void Void
+fragment6_0 :: PreAst
 fragment6_0 = eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eVar (tInt32, "x")]
 
---fragment6_1 :: Ast
-fragment6_1 :: Expr Type Void () ()
+fragment6_1 :: Ast
 fragment6_1 = eCall (tInt32 ~> tInt32, "f") [eVar (tInt32, "x")]
 
 fragment7_0 :: Expr Type () () Void
@@ -182,8 +180,8 @@ fragment8_0 =
              (eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))
 
 fragment8_1 ::
-     ( Expr Type Type Void Void
-     , [(Name, Definition (Label Type) (Expr Type Type Void Void))])
+     ( PreAst
+     , [(Name, Definition (Label Type) PreAst)])
 fragment8_1 =
   ( eLet
       (tInt32, "h")
@@ -673,7 +671,7 @@ fragment17_4 =
 --
 -- .f3(.f0(3)) + .f1(4, 5)
 --
-fragment17_5 :: (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
+fragment17_5 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
 fragment17_5 = 
   ( eOp2 OAddInt32 
       (eApp tInt32 (eVar (tInt32 ~> tInt32, ".f3")) [eApp tInt32 (eVar (tInt32 ~> tInt32, ".f0")) [eLit (LInt32 3)]]) 
@@ -699,7 +697,7 @@ fragment17_5 =
 --
 -- .f3(.g5(3)) + .f1(4, 5)
 --
-fragment17_6 :: (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))])
+fragment17_6 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
 fragment17_6 = 
   ( eOp2 OAddInt32 
       (eApp tInt32 (eVar (tInt32 ~> tInt32, ".f3")) [eApp tInt32 (eVar (tInt32 ~> tInt32, ".g5")) [eLit (LInt32 3)]]) 
@@ -718,7 +716,6 @@ fragment17_6 =
       )
     ]
   )
-
 
 --
 -- .f0(x) = x
@@ -754,7 +751,7 @@ fragment17_7 =
   )
 
 
-fragment17_8 :: (Expr Type Void () (), [(Name, Definition (Label Type) (Expr Type Void () ()))])
+fragment17_8 :: (Ast, [(Name, Definition (Label Type) Ast)])
 fragment17_8 = 
   ( eOp2 OAddInt32 
       (eCall (tInt32 ~> tInt32, ".f3") [eCall (tInt32 ~> tInt32, ".g5") [eLit (LInt32 3)]]) 

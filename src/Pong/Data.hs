@@ -91,9 +91,9 @@ data ExprF t a0 a1 a2 a
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
---type PreAst = Expr Type Type Void Void
---
---type Ast = Expr Type Void Void ()
+type PreAst = Expr Type Type Void Void
+
+type Ast = Expr Type Void Void ()
 
 data Con
   = VarE
