@@ -319,11 +319,11 @@ rx123 def = do
       EApp a1 a2 a3 -> eApp a1 a2 a3
       EOp2 op a1 a2 -> eOp2 op a1 a2
       ECase a1 a2 -> eCase a1 a2
-      ERow row -> eRow $ (`cata` row) $ 
-        \case
+      ERow row -> eRow $ (`cata` row)  
+        (\case
           RNil -> rNil
           RVar v -> rVar v
-          RExt name expr r -> rExt name (abcx expr) r
+          RExt name expr r -> rExt name (abcx expr) r)
 
 
 xyz1234

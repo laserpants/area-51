@@ -60,10 +60,14 @@ runTypeChecker = runTypeChecker' 1
 substitute :: Map Int (TypeT t) -> TypeT t -> TypeT t 
 substitute sub =
   cata $ \case
-    TVar n -> fromMaybe (embed1 TVar n) (sub !? n)
+    TVar n -> fromMaybe (tVar n) (sub !? n)
     TCon c ts -> tCon c ts 
     TArr t1 t2 -> tArr t1 t2
-    TRow r -> undefined -- TODO
+    TRow row -> tRow $ 
+      (`cata` row) (\case
+        RVar v -> rVar v
+        RNil -> rNil
+        RExt name t row -> rExt name (substitute sub t) row)
     t -> embed t
 
 class Substitutable a where
@@ -161,9 +165,6 @@ tagExpr =
       eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
     ERow row -> eRow <$> tagRow row
   where
---      tagRow 
---        :: Row (Expr t () () Void) (Label t) 
---        -> TypeChecker (Row (Expr Int Int () Void) (Label Int))
     tagRow = 
       cata $ \case
         RNil -> pure rNil

@@ -80,17 +80,6 @@ instance FreeIn (TypeT g) where
     TRow r -> free r
     _ -> [])
 
---instance FreeIn Type where
---  free = nub . cata (\case
---    TVar n -> [n]
---    TCon _ ts -> concat ts
---    TArr t1 t2 -> t1 <> t2
---    TRow r -> free r
---    _ -> [])
---
---instance FreeIn PolyType where
---  free = undefined
-
 instance FreeIn (Row (TypeT g) a) where
   free = 
     cata $ \case
@@ -108,12 +97,6 @@ instance (FreeIn e) => FreeIn (Environment e) where
     \case
       Env env -> free (Map.elems env)
 
---instance (FreeIn t a) => FreeIn t (Signature s (Type, a)) where
---  free = free . snd . body
---
---instance (FreeIn t a) => FreeIn t (Map Name (Signature s (Type, a))) where
---  free = concatMap free . Map.elems
-
 class Typed a where
   typeOf :: a -> Type
 
@@ -128,8 +111,8 @@ instance Typed Literal where
       LInt64 {} -> tInt64
       LFloat {} -> tFloat
       LDouble {} -> tDouble
---      LChar {} -> tChar
---      LString {} -> tString
+      LChar {} -> tChar
+      LString {} -> tString
       LUnit -> tUnit
 
 instance Typed Op2 where
@@ -157,7 +140,7 @@ instance (Show t, Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
         let TRow row = project r 
          in tRow (rExt name (typeOf expr) row)
 
-instance (Show t, Typed t, Typed (Row (Expr t t a1 a2) (Label t))) => Typed (Expr t t a1 a2) where
+instance (Show t, Typed t) => Typed (Expr t t a1 a2) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -171,41 +154,13 @@ instance (Show t, Typed t, Typed (Row (Expr t t a1 a2) (Label t))) => Typed (Exp
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
       ERow r -> typeOf r
---      tapp t as = traceShow ">>>" $ traceShow t $ traceShow as $ foldType1 (drop (length as) ts)
---        where
---          ts = unwindType t
 
 instance (Typed t) => Typed (Definition (Label t) a) where
   typeOf = \case
     Function args (t, _) -> foldType t (typeOf . fst <$> toList args)
     Constant (t, _) -> typeOf t
 --    External _ -> undefined
-    Data _ _ -> undefined
-
-
---instance (Typed t) => Typed (Expr t a0 a1 a2 a3) where
---  typeOf =
---    cata $ \case
---      EVar (t, _) -> typeOf t
---      ELit lit -> typeOf lit
---      EIf _ _ e3 -> e3
---      ELam _ args expr -> foldType expr (typeOf . fst <$> args)
---      ELet _ _ _ e2 -> e2
---      EApp _ fun as -> tapp fun as
---      ECall _ (t, _) as -> tapp t as
---      EOp2 op _ _ -> returnTypeOf op
---      ECase _ [] -> error "Empty case statement"
---      ECase _ cs -> head (snd <$> cs)
---    where
---      tapp t as = foldType1 (drop (length as) (unwindType t))
---
---instance Typed (Definition a) where
---  typeOf =
---    \case
---      Function Signature {..} -> foldType (fst body) (fst <$> arguments)
---      External Signature {..} -> foldType body arguments
---      Constant lit -> typeOf lit
---      Data name _ -> tData name
+--    Data _ _ -> undefined
 
 class HasArity a where
   arity :: a -> Int
@@ -216,12 +171,12 @@ instance HasArity Type where
 instance (Show t, Typed t) => HasArity (Expr t t a1 a2) where
   arity = arity . typeOf
 
---instance HasArity (Definition a) where
---  arity =
---    \case
---      Function Signature {..} -> length arguments
---      External Signature {..} -> length arguments
---      _ -> 0
+instance HasArity (Definition r a) where
+  arity =
+    \case
+      Function args _ -> length args
+--      External args _ -> length args
+      _ -> 0
 
 isTCon :: TCon -> Type -> Bool
 isTCon con =
@@ -243,9 +198,6 @@ isCon con =
       | LamE == con -> True
     _ -> False
 
---annotate :: (Typed a) => a -> (Type, a)
---annotate = first typeOf . dupe
-
 unwindType :: (Typed t) => t -> [Type]
 unwindType =
   typeOf >>> 
@@ -260,19 +212,6 @@ returnType = last <<< unwindType
 {-# INLINE argTypes #-}
 argTypes :: (Typed t) => t -> [Type]
 argTypes = init <<< unwindType
-
---funArgs :: Definition a -> [Label Type]
---funArgs =
---  \case
---    Function Signature {..} -> arguments
---    External Signature {..} -> showt <$$> zip arguments [0 :: Int ..]
---    _ -> []
---
---constructors :: Definition a -> [Constructor]
---constructors =
---  \case
---    Data _ cs -> cs
---    _ -> []
 
 freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
 freeVars = 
@@ -300,13 +239,12 @@ toPolyType = cata $ \case
   TInt64 -> tInt64
   TFloat -> tFloat
   TDouble -> tDouble
---  TChar -> tChar  -- TODO
---  TString -> tString  -- TODO
+  TChar -> tChar
+  TString -> tString
   TCon con ts -> tCon con ts
   TArr t1 t2 -> tArr t1 t2
   TVar n -> tVar n
-  TRow row -> tRow $ row & 
-    cata (\case
+  TRow row -> tRow $ (`cata` row) (\case
       RNil -> rNil
       RVar v -> rVar v
       RExt name t row -> 
@@ -321,13 +259,13 @@ fromPolyType ts = cata $ \case
   TInt64 -> tInt64
   TFloat -> tFloat
   TDouble -> tDouble
---  TChar -> tChar
---  TString -> tString
+  TChar -> tChar
+  TString -> tString
   TCon con ts -> tCon con ts
   TArr t1 t2 -> tArr t1 t2
   TVar n -> tVar n
-  TRow row -> tRow $ row & 
-    cata (\case
+  TRow row -> tRow $ 
+    (`cata` row) (\case
       RNil -> rNil
       RVar v -> rVar v
       RExt name ty row -> rExt name (fromPolyType ts ty) row)
@@ -484,6 +422,14 @@ tVar = embed1 TVar
 {-# INLINE tRow #-}
 tRow :: Row (TypeT t) Name -> TypeT t
 tRow = embed1 TRow
+
+{-# INLINE tChar #-}
+tChar :: TypeT t
+tChar = embed TChar
+
+{-# INLINE tString #-}
+tString :: TypeT t
+tString = embed TString
 
 {-# INLINE tGen #-}
 tGen :: Int -> PolyType
