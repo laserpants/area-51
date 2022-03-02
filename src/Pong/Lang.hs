@@ -1,14 +1,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
--- {-# LANGUAGE NamedFieldPuns #-}
--- {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Pong.Lang
-  where
+-- {-# LANGUAGE NamedFieldPuns #-}
+-- {-# LANGUAGE RecordWildCards #-}
+module Pong.Lang where
+
+import Control.Monad.State
 --  ( module Pong.Data
 --  , module Pong.Util
 --  , FreeIn(..)
@@ -56,44 +57,61 @@ module Pong.Lang
 --import Data.Tuple.Extra (first, dupe)
 --import Data.Void
 import Control.Newtype.Generics
-import Control.Monad.State
 import Data.List (nub)
 import Pong.Data
 import Pong.Util
+
+import Data.Function ((&))
+import Data.List.NonEmpty (toList)
+import qualified Data.Map.Strict as Map
+import Data.Tuple (swap)
+import Debug.Trace
 --import TextShow
 --import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
-import Data.Tuple (swap)
-import Data.Function ((&))
-import Debug.Trace
-import qualified Data.Map.Strict as Map
-import Data.List.NonEmpty (toList)
+
+mapRow :: (a -> b) -> Row a v -> Row b v
+mapRow f = 
+  cata $ \case
+    RNil -> rNil
+    RVar v -> rVar v
+    RExt name expr row -> rExt name (f expr) row
+
+mapRowM :: (Monad m) => (a -> m b) -> Row a v -> m (Row b v)
+mapRowM f = 
+  cata $ \case
+    RNil -> pure rNil
+    RVar v -> pure (rVar v)
+    RExt name expr row -> rExt name <$> f expr <*> row
 
 class FreeIn a where
   free :: a -> [Int]
 
 instance FreeIn (TypeT g) where
-  free = nub . cata (\case
-    TVar n -> [n]
-    TCon _ ts -> concat ts
-    TArr t1 t2 -> t1 <> t2
-    TRow r -> free r
-    _ -> [])
+  free =
+    nub .
+    cata
+      (\case
+         TVar n -> [n]
+         TCon _ ts -> concat ts
+         TArr t1 t2 -> t1 <> t2
+         TRow r -> free r
+         _ -> [])
 
 instance FreeIn (Row (TypeT g) a) where
-  free = 
+  free =
     cata $ \case
       RExt _ expr r -> free expr <> r
       _ -> []
 
 instance (FreeIn a) => FreeIn [a] where
-  free = concatMap free 
+  free = concatMap free
 
 instance (Show t, Typed t) => FreeIn (Expr t t a1 a2) where
   free = free . typeOf
 
 instance (FreeIn e) => FreeIn (Environment e) where
-  free = 
+  free =
     \case
       Env env -> free (Map.elems env)
 
@@ -137,7 +155,7 @@ instance (Show t, Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
       RNil -> tRow rNil
       RVar (t, _) -> typeOf t
       RExt name expr r ->
-        let TRow row = project r 
+        let TRow row = project r
          in tRow (rExt name (typeOf expr) row)
 
 instance (Show t, Typed t) => Typed (Expr t t a1 a2) where
@@ -156,11 +174,12 @@ instance (Show t, Typed t) => Typed (Expr t t a1 a2) where
       ERow r -> typeOf r
 
 instance (Typed t) => Typed (Definition (Label t) a) where
-  typeOf = \case
-    Function args (t, _) -> foldType t (typeOf . fst <$> toList args)
-    Constant (t, _) -> typeOf t
---    External _ -> undefined
---    Data _ _ -> undefined
+  typeOf =
+    \case
+      Function args (t, _) -> foldType t (typeOf . fst <$> toList args)
+      External args (t, _) -> foldType t args
+      Constant (t, _) -> typeOf t
+      Data {} -> error "Implementation error" 
 
 class HasArity a where
   arity :: a -> Int
@@ -175,7 +194,7 @@ instance HasArity (Definition r a) where
   arity =
     \case
       Function args _ -> length args
---      External args _ -> length args
+      External args _ -> length args
       _ -> 0
 
 isTCon :: TCon -> Type -> Bool
@@ -200,21 +219,22 @@ isCon con =
 
 unwindType :: (Typed t) => t -> [Type]
 unwindType =
-  typeOf >>> 
-    para (\case
-      TArr (t, _) (_, u) -> t : u
-      t -> [embed (fst <$> t)])
+  typeOf >>>
+  para
+    (\case
+       TArr (t, _) (_, u) -> t : u
+       t -> [embed (fst <$> t)])
 
 {-# INLINE returnType #-}
 returnType :: (Typed t) => t -> Type
-returnType = last <<< unwindType 
+returnType = last <<< unwindType
 
 {-# INLINE argTypes #-}
 argTypes :: (Typed t) => t -> [Type]
 argTypes = init <<< unwindType
 
 freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
-freeVars = 
+freeVars =
   cata $ \case
     EVar v -> [v]
     ECon _ -> []
@@ -226,49 +246,44 @@ freeVars =
     ECall _ fun args -> fun : concat args
     EOp2 op e1 e2 -> e1 <> e2
     ECase e1 cs -> e1 <> (cs >>= \(_:vs, expr) -> expr `without` vs)
-    ERow row -> (`cata` row) $ \case
-      RNil -> []
-      RVar v -> [v]
-      RExt _ expr r -> freeVars expr <> r
+    ERow row ->
+      (`cata` row) $ \case
+        RNil -> []
+        RVar v -> [v]
+        RExt _ expr r -> freeVars expr <> r
 
 toPolyType :: Type -> PolyType
-toPolyType = cata $ \case
-  TUnit -> tUnit
-  TBool -> tBool
-  TInt32 -> tInt32
-  TInt64 -> tInt64
-  TFloat -> tFloat
-  TDouble -> tDouble
-  TChar -> tChar
-  TString -> tString
-  TCon con ts -> tCon con ts
-  TArr t1 t2 -> tArr t1 t2
-  TVar n -> tVar n
-  TRow row -> tRow $ (`cata` row) (\case
-      RNil -> rNil
-      RVar v -> rVar v
-      RExt name t row -> 
-        rExt name (toPolyType t) row)
+toPolyType =
+  cata $ \case
+    TUnit -> tUnit
+    TBool -> tBool
+    TInt32 -> tInt32
+    TInt64 -> tInt64
+    TFloat -> tFloat
+    TDouble -> tDouble
+    TChar -> tChar
+    TString -> tString
+    TCon con ts -> tCon con ts
+    TArr t1 t2 -> tArr t1 t2
+    TVar n -> tVar n
+    TRow row -> tRow (mapRow toPolyType row)
 
-fromPolyType :: [Type] -> PolyType -> Type  
-fromPolyType ts = cata $ \case
-  TGen n -> ts !! n
-  TUnit -> tUnit
-  TBool -> tBool
-  TInt32 -> tInt32
-  TInt64 -> tInt64
-  TFloat -> tFloat
-  TDouble -> tDouble
-  TChar -> tChar
-  TString -> tString
-  TCon con ts -> tCon con ts
-  TArr t1 t2 -> tArr t1 t2
-  TVar n -> tVar n
-  TRow row -> tRow $ 
-    (`cata` row) (\case
-      RNil -> rNil
-      RVar v -> rVar v
-      RExt name ty row -> rExt name (fromPolyType ts ty) row)
+fromPolyType :: [Type] -> PolyType -> Type
+fromPolyType ts =
+  cata $ \case
+    TGen n -> ts !! n
+    TUnit -> tUnit
+    TBool -> tBool
+    TInt32 -> tInt32
+    TInt64 -> tInt64
+    TFloat -> tFloat
+    TDouble -> tDouble
+    TChar -> tChar
+    TString -> tString
+    TCon con ts -> tCon con ts
+    TArr t1 t2 -> tArr t1 t2
+    TVar n -> tVar n
+    TRow row -> tRow (mapRow (fromPolyType ts) row)
 
 {-# INLINE foldType #-}
 foldType :: Type -> [Type] -> Type
@@ -286,13 +301,20 @@ insertArgs = Env.inserts . (swap <$>)
 emptyProgram :: Program a
 emptyProgram = Program mempty
 
-modifyProgram :: (MonadState (Program a) m) => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a)) -> m ()
+modifyProgram ::
+     (MonadState (Program a) m)
+  => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a))
+  -> m ()
 modifyProgram = modify . over Program
 
-insertDef :: (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
+insertDef ::
+     (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
 insertDef = modifyProgram <$$> Map.insert
 
-forEachDef :: (MonadState (Program a) m) => (Definition (Label Type) a -> m (Definition (Label Type) a)) -> m ()
+forEachDef ::
+     (MonadState (Program a) m)
+  => (Definition (Label Type) a -> m (Definition (Label Type) a))
+  -> m ()
 forEachDef run = do
   Program defs <- get
   forM_ (Map.keys defs) $ \key -> do
@@ -316,7 +338,6 @@ lookupDef var = do
 --
 ----printProgram :: Program -> IO ()
 ----printProgram Program {..} = sequence_ (Map.mapWithKey (curry print) definitions)
-
 --{-# INLINE tVar #-}
 --tVar :: Int -> Type
 --tVar = embed1 TVar
@@ -375,7 +396,6 @@ lookupDef var = do
 --{-# INLINE case_ #-}
 --case_ :: Expr t a0 a1 a2 a3 -> [([Label t], Expr t a0 a1 a2 a3)] -> Expr t a0 a1 a2 a3
 --case_ = embed2 ECase
-
 {-# INLINE tUnit #-}
 tUnit :: TypeT t
 tUnit = embed TUnit
@@ -460,16 +480,16 @@ eCon :: Label t -> Expr t a0 a1 a2
 eCon = embed1 ECon
 
 {-# INLINE eLit #-}
-eLit :: Literal -> Expr t a0 a1 a2 
-eLit = embed1 ELit 
+eLit :: Literal -> Expr t a0 a1 a2
+eLit = embed1 ELit
 
 {-# INLINE eIf #-}
-eIf :: Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 
+eIf :: Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eIf = embed3 EIf
 
 {-# INLINE eLet #-}
-eLet :: Label t -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 
-eLet = embed3 ELet 
+eLet :: Label t -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eLet = embed3 ELet
 
 {-# INLINE eLam #-}
 eLam :: [Label t] -> Expr t a0 () a2 -> Expr t a0 () a2
@@ -477,20 +497,20 @@ eLam = embed3 ELam ()
 
 {-# INLINE eLam_ #-}
 eLam_ :: a1 -> [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-eLam_ = embed3 ELam 
+eLam_ = embed3 ELam
 
 {-# INLINE eApp #-}
 eApp :: t1 -> Expr t0 t1 a1 a2 -> [Expr t0 t1 a1 a2] -> Expr t0 t1 a1 a2
-eApp = embed3 EApp 
+eApp = embed3 EApp
 
 {-# INLINE eCall #-}
 eCall :: Label t -> [Expr t a0 a1 ()] -> Expr t a0 a1 ()
 eCall = embed3 ECall ()
 
 {-# INLINE eCase #-}
-eCase :: Expr t a0 a1 a2 -> [([Label t], Expr t a0 a1 a2)] -> Expr t a0 a1 a2 
+eCase :: Expr t a0 a1 a2 -> [([Label t], Expr t a0 a1 a2)] -> Expr t a0 a1 a2
 eCase = embed2 ECase
 
 {-# INLINE eRow #-}
-eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2 
+eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
 eRow = embed1 ERow

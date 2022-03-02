@@ -63,11 +63,7 @@ substitute sub =
     TVar n -> fromMaybe (tVar n) (sub !? n)
     TCon c ts -> tCon c ts 
     TArr t1 t2 -> tArr t1 t2
-    TRow row -> tRow $ 
-      (`cata` row) (\case
-        RVar v -> rVar v
-        RNil -> rNil
-        RExt name t row -> rExt name (substitute sub t) row)
+    TRow row -> tRow (mapRow (substitute sub) row)
     t -> embed t
 
 class Substitutable a where

@@ -114,7 +114,7 @@ data Constructor =
 data Definition r a
   = Function (NonEmpty r) (Type, a)
   | Constant (Type, a)
---  | External [Type] (Label t)
+  | External [Type] (Label Type)
   | Data Name [Constructor]
 
 newtype Program a = Program { getProgram :: Map Name (Definition (Label Type) a) }

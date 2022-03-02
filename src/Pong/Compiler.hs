@@ -118,16 +118,14 @@ fillExprParams =
                  (eApp t1 (varCon fun) ((args <#> varCon) <> (extra <#> eVar)))
          | otherwise -> eApp t (varCon fun) (args <#> varCon)
          where n = length args
-               varCon ::
-                    (Expr Type Type () a2, Expr Type Type () a2)
-                 -> Expr Type Type () a2
-               varCon (e1, e2) =
-                 case project e1 of
-                   EVar v -> eVar v
-                   _ -> e2
        e -> embed (e <#> snd))
   where
     names = [".v" <> showt n | n <- [0 :: Int ..]]
+    varCon :: (Expr Type Type () a2, Expr Type Type () a2) -> Expr Type Type () a2
+    varCon (e1, e2) =
+      case project e1 of
+        EVar v -> eVar v
+        _ -> e2
 
 --
 -- from:
@@ -194,8 +192,7 @@ liftLambdas input = do
           name <- uniqueName ".f"
           body <- expr
           let t = typeOf body
-              signature = Function (fromList args) (t, body)
-          insertDef name signature
+          insertDef name (Function (fromList args) (t, body))
           pure (eVar (foldType t (args <#> fst), name))
         EVar v -> pure (eVar v)
         ECon c -> pure (eCon c)
@@ -205,13 +202,7 @@ liftLambdas input = do
         EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
         ECase a1 a2 -> eCase <$> a1 <*> traverse sequence a2
         EApp t expr args -> eApp t <$> expr <*> sequence args
-        ERow row ->
-          eRow <$>
-          (`cata` row)
-            (\case
-               RNil -> pure rNil
-               RVar v -> pure (rVar v)
-               RExt name expr r -> rExt name <$> liftLambdas expr <*> r)
+        ERow row -> eRow <$> mapRowM liftLambdas row
 
 uniqueName :: (MonadState (Program a) m) => Name -> m Name
 uniqueName prefix = do
@@ -299,13 +290,7 @@ preprocess def = do
         EApp a1 a2 a3 -> eApp a1 a2 a3
         EOp2 op a1 a2 -> eOp2 op a1 a2
         ECase a1 a2 -> eCase a1 a2
-        ERow row ->
-          eRow $
-          (`cata` row)
-            (\case
-               RNil -> rNil
-               RVar v -> rVar v
-               RExt name expr r -> rExt name (convert expr) r)
+        ERow row -> eRow (mapRow convert row)
 
 replaceFunArgs :: (MonadState (Program PreAst) m) => PreAst -> m PreAst
 replaceFunArgs =
@@ -351,10 +336,4 @@ convertFunApps =
            ECall _ fun as1 -> do
              eCall fun (as1 <> args)
            e -> error "Implementation error"
-       ERow row ->
-         eRow $
-         (`cata` row)
-           (\case
-              RNil -> rNil
-              RVar v -> rVar v
-              RExt name expr r -> rExt name (convertFunApps expr) r))
+       ERow row -> eRow (mapRow convertFunApps row))
