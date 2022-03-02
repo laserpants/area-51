@@ -81,7 +81,7 @@ main =
       it "#1" (alignCallSigns_ fragment17_5 == fragment17_6)
     describe "replaceFunArgs" $ do
       it "#1" (replaceFunArgs_ fragment17_6 == fragment17_7)
-    describe "zooz" $ do
+    describe "convertFunApps" $ do
       it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
 
 applyToFuns 
