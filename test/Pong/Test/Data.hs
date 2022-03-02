@@ -119,10 +119,12 @@ fragment5_1 =
                 [eApp () (eVar (tInt32 ~> tInt32, "g")) [eLit (LInt32 5)]])
              (eApp () (eVar (tInt32 ~> tInt32, "f")) [eLit (LInt32 1)]))))
 
-fragment6_0 :: PreAst
+--fragment6_0 :: PreAst
+fragment6_0 :: Expr Type Type Void Void
 fragment6_0 = eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eVar (tInt32, "x")]
 
-fragment6_1 :: Ast
+--fragment6_1 :: Ast
+fragment6_1 :: Expr Type Void () ()
 fragment6_1 = eCall (tInt32 ~> tInt32, "f") [eVar (tInt32, "x")]
 
 fragment7_0 :: Expr Type () () Void
@@ -729,7 +731,7 @@ fragment17_6 =
 --
 -- .f3(.g5(3)) + .f1(4, 5)
 --
-fragment17_7 :: (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fragment17_7 :: (Expr Type Type a1 a2, [(Name, Definition (Label Type) (Expr Type Type a1 a2))])
 fragment17_7 = 
   ( eOp2 OAddInt32 
       (eApp tInt32 (eVar (tInt32 ~> tInt32, ".f3")) [eApp tInt32 (eVar (tInt32 ~> tInt32, ".g5")) [eLit (LInt32 3)]]) 

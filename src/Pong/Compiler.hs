@@ -28,35 +28,33 @@ import qualified Data.Map.Strict as Map
 import qualified Control.Newtype.Generics as N
 import Prelude hiding ((!!))
 
-type DefinitionMap = Map Name (Definition (Label Type) (Expr Type Type () Void))
+newtype Program a = Program { getProgram :: Map Name (Definition (Label Type) a) }
 
-newtype Program = Program { getProgram :: DefinitionMap }
+deriving instance (Show a) => Show (Program a)
 
-deriving instance Show Program
+deriving instance (Eq a) => Eq (Program a)
 
-deriving instance Eq Program
+deriving instance Generic (Program a)
 
-deriving instance Generic Program 
+instance Newtype (Program a)
 
-instance Newtype Program 
-
-emptyProgram :: Program
+emptyProgram :: Program a
 emptyProgram = Program mempty
 
-modifyProgram :: (MonadState Program m) => (DefinitionMap -> DefinitionMap) -> m ()
+modifyProgram :: (MonadState (Program a) m) => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a)) -> m ()
 modifyProgram = modify . over Program
 
-insertDef :: (MonadState Program m) => Name -> Definition (Label Type) (Expr Type Type () Void) -> m ()
+insertDef :: (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
 insertDef = modifyProgram <$$> Map.insert
 
-forEachDef :: (MonadState Program m) => (Definition (Label Type) (Expr Type Type () Void) -> m (Definition (Label Type) (Expr Type Type () Void))) -> m ()
+forEachDef :: (MonadState (Program a) m) => (Definition (Label Type) a -> m (Definition (Label Type) a)) -> m ()
 forEachDef run = do
   Program defs <- get
   forM_ (Map.keys defs) $ \key -> do
     def <- run (defs ! key)
     insertDef key def
 
-lookupDef :: (MonadState Program m) => Name -> m (Definition (Label Type) (Expr Type Type () Void))
+lookupDef :: (MonadState (Program a) m) => Name -> m (Definition (Label Type) a)
 lookupDef var = do
   Program defs <- get
   pure (defs ! var)
@@ -93,8 +91,8 @@ combineApps =
 --   foo(a, b) = b
 --   baz(x, a, b) = b
 hoistTopLambdas ::
-     Definition (Label t) (Expr t a1 () a2)
-  -> Definition (Label t) (Expr t a1 () a2)
+     Definition (Label t) (Expr t a0 () a2)
+  -> Definition (Label t) (Expr t a0 () a2)
 hoistTopLambdas =
   \case
     Function args (t, expr)
@@ -218,7 +216,7 @@ varSubst from to =
 substMany :: [(Name, Name)] -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
 substMany subs a = foldr (uncurry varSubst) a subs
 
-liftLambdas :: (MonadState Program m) => Expr Type Type () Void -> m (Expr Type Type () Void)
+liftLambdas :: (MonadState (Program (Expr Type Type () a2)) m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
 liftLambdas input = do
   (expr, subs) <- replaceVarLets <$> fun input
   modifyProgram (substMany subs <$$>)
@@ -235,7 +233,7 @@ liftLambdas input = do
           pure (eVar (foldType t (args <#> fst), name))
         expr -> embed <$> sequence expr
 
-uniqueName :: (MonadState Program m) => Name -> m Name
+uniqueName :: (MonadState (Program a) m) => Name -> m Name
 uniqueName prefix = do
   Program defs <- get
   pure (prefix <> showt (Map.size defs))
@@ -295,7 +293,7 @@ uniqueName prefix = do
 --  let zz = x ! name
 --  pure (typeOf zz)
 
-alignCallSigns :: (MonadState Program m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+alignCallSigns :: (MonadState (Program (Expr Type Type () a2)) m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
 alignCallSigns = 
   cata $ \case
     EApp t fun args -> do
@@ -314,7 +312,7 @@ alignCallSigns =
     e -> embed <$> sequence e
 
 xyz1234
-  :: (MonadState Program m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
+  :: (MonadState (Program (Expr Type Type () a2)) m) => Expr Type Type () a2 -> m (Expr Type Type () a2)
 xyz1234 = 
   cata $ \case
     EApp t fun args -> do
@@ -360,7 +358,8 @@ xyz1234 =
 --    EApp _ fun args -> undefined
 --    expr -> embed <$> sequence expr
 
-convertFunApps :: PreAst -> Ast
+--convertFunApps :: PreAst -> Ast
+convertFunApps :: Expr Type Type Void a2 -> Expr Type Void () ()
 convertFunApps =
   combineApps >>>
   cata
