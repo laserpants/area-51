@@ -55,6 +55,8 @@ module Pong.Lang
 --import Data.Tuple (swap)
 --import Data.Tuple.Extra (first, dupe)
 --import Data.Void
+import Control.Newtype.Generics
+import Control.Monad.State
 import Data.List (nub)
 import Pong.Data
 import Pong.Util
@@ -307,8 +309,8 @@ toPolyType = cata $ \case
     cata (\case
       RNil -> rNil
       RVar v -> rVar v
-      RExt name ty row -> 
-        rExt name (toPolyType ty) row)
+      RExt name t row -> 
+        rExt name (toPolyType t) row)
 
 fromPolyType :: [Type] -> PolyType -> Type  
 fromPolyType ts = cata $ \case
@@ -341,6 +343,28 @@ foldType1 = foldr1 tArr
 {-# INLINE insertArgs #-}
 insertArgs :: [(PolyType, Name)] -> Environment PolyType -> Environment PolyType
 insertArgs = Env.inserts . (swap <$>)
+
+{-# INLINE emptyProgram #-}
+emptyProgram :: Program a
+emptyProgram = Program mempty
+
+modifyProgram :: (MonadState (Program a) m) => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a)) -> m ()
+modifyProgram = modify . over Program
+
+insertDef :: (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
+insertDef = modifyProgram <$$> Map.insert
+
+forEachDef :: (MonadState (Program a) m) => (Definition (Label Type) a -> m (Definition (Label Type) a)) -> m ()
+forEachDef run = do
+  Program defs <- get
+  forM_ (Map.keys defs) $ \key -> do
+    def <- run (defs ! key)
+    insertDef key def
+
+lookupDef :: (MonadState (Program a) m) => Name -> m (Definition (Label Type) a)
+lookupDef var = do
+  Program defs <- get
+  pure (defs ! var)
 
 --{-# INLINE emptyProgram #-}
 --emptyProgram :: Program

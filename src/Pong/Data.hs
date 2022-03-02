@@ -117,6 +117,8 @@ data Definition r a
 --  | External [Type] (Label t)
   | Data Name [Constructor]
 
+newtype Program a = Program { getProgram :: Map Name (Definition (Label Type) a) }
+
 -- Row
 deriving instance (Show e, Show v, Show a) => Show (RowF e v a)
 
@@ -244,3 +246,13 @@ deriving instance Functor (Definition r)
 deriving instance Foldable (Definition r)
 
 deriving instance Traversable (Definition r)
+
+-- Program
+
+deriving instance (Show a) => Show (Program a)
+
+deriving instance (Eq a) => Eq (Program a)
+
+deriving instance Generic (Program a)
+
+instance Newtype (Program a)

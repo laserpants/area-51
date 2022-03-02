@@ -7,8 +7,6 @@
 
 module Pong.Compiler where
 
-import GHC.Generics
-import Control.Newtype.Generics
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Function ((&))
@@ -27,37 +25,6 @@ import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Control.Newtype.Generics as N
 import Prelude hiding ((!!))
-
-newtype Program a = Program { getProgram :: Map Name (Definition (Label Type) a) }
-
-deriving instance (Show a) => Show (Program a)
-
-deriving instance (Eq a) => Eq (Program a)
-
-deriving instance Generic (Program a)
-
-instance Newtype (Program a)
-
-emptyProgram :: Program a
-emptyProgram = Program mempty
-
-modifyProgram :: (MonadState (Program a) m) => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a)) -> m ()
-modifyProgram = modify . over Program
-
-insertDef :: (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
-insertDef = modifyProgram <$$> Map.insert
-
-forEachDef :: (MonadState (Program a) m) => (Definition (Label Type) a -> m (Definition (Label Type) a)) -> m ()
-forEachDef run = do
-  Program defs <- get
-  forM_ (Map.keys defs) $ \key -> do
-    def <- run (defs ! key)
-    insertDef key def
-
-lookupDef :: (MonadState (Program a) m) => Name -> m (Definition (Label Type) a)
-lookupDef var = do
-  Program defs <- get
-  pure (defs ! var)
 
 -- from:
 --   lam(a) => lam(b) => b
