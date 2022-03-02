@@ -105,7 +105,7 @@ replaceFunArgs_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (PreAst
 replaceFunArgs_ (e, ds) = runProgramState (applyToFuns replaceFunArgs >> replaceFunArgs e) ds
 
 convertFunApps_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (Ast, [(Name, Definition (Label Type) Ast)])
-convertFunApps_ (a, b) = (convertFunApps a, fmap convertFunApps <$$> b)
+convertFunApps_ (e, ds) = (convertFunApps e, fmap convertFunApps <$$> ds)
 
 
 -- foo(g) =
