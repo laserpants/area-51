@@ -359,7 +359,7 @@ xyz1234 =
 --    expr -> embed <$> sequence expr
 
 --convertFunApps :: PreAst -> Ast
-convertFunApps :: Expr Type Type Void a2 -> Expr Type Void () ()
+convertFunApps :: Expr Type Type Void Void -> Expr Type Void () ()
 convertFunApps =
   combineApps >>>
   cata

@@ -104,7 +104,7 @@ gooz (e, ds) = Map.toList . getProgram <$> runState (gooz2 e) (toProgram ds)
 
 --
 
-zooz :: (Expr Type Type Void a2, [(Name, Definition (Label Type) (Expr Type Type Void a2))]) -> (Expr Type Void () (), [(Name, Definition (Label Type) (Expr Type Void () ()))])
+zooz :: (Expr Type Type Void Void, [(Name, Definition (Label Type) (Expr Type Type Void Void))]) -> (Expr Type Void () (), [(Name, Definition (Label Type) (Expr Type Void () ()))])
 zooz (a, b) = (convertFunApps a, fmap convertFunApps <$$> b)
 
 --hooz2 :: (MonadState (Program (Expr Type Void () ())) m) => Expr Type Type () Void -> m (Expr Type Void () ())
