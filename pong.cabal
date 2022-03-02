@@ -42,6 +42,7 @@ executable pong
     , llvm-hs-pretty
     , llvm-hs-pure
     , mtl
+    , newtype-generics
     , process
     , recursion-schemes
     , temporary
@@ -72,6 +73,7 @@ test-suite pong-test
     , llvm-hs-pretty
     , llvm-hs-pure
     , mtl
+    , newtype-generics
     , pong
     , process
     , recursion-schemes

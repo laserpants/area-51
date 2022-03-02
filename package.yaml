@@ -28,6 +28,7 @@ dependencies:
   - transformers
   - process
   - temporary
+  - newtype-generics
 
 executables:
   pong:
