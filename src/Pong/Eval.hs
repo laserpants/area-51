@@ -1,6 +1,6 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Pong.Eval where
 
@@ -48,16 +48,30 @@ eval = cata $ \case
         as <- sequence args
         localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
       _ -> error "Runtime error"
-  EOp2 op a b -> evalOp2 op <$> a <*> b
-  ECase expr cs -> undefined
+  EOp2 op a b -> LitValue <$> (evalOp2 op <$> (getLiteral <$> a) <*> (getLiteral <$> b))
+  ECase expr cs -> evalCase <$> expr <*> traverse sequence cs
   ERow row -> undefined
 
-evalOp2 :: Op2 -> Value -> Value -> Value
-evalOp2 OAddInt32 (LitValue (LInt32 m)) (LitValue (LInt32 n)) =
-  LitValue (LInt32 (m + n))
-evalOp2 _ _ _ =
-  error "Runtime error"
+getLiteral :: Value -> Literal
+getLiteral (LitValue lit) = lit
+getLiteral _ = error "Runtime error"
 
+evalOp2 :: Op2 -> Literal -> Literal -> Literal
+evalOp2 OEqInt32 (LInt32 m) (LInt32 n) = LBool (m == n)
+evalOp2 OAddInt32 (LInt32 m) (LInt32 n) = LInt32 (m + n)
+evalOp2 OSubInt32 (LInt32 m) (LInt32 n) = LInt32 (m - n)
+evalOp2 OMulInt32 (LInt32 m) (LInt32 n) = LInt32 (m * n)
+evalOp2 OAddFloat (LFloat p) (LFloat q) = LFloat (p + q)
+evalOp2 OMulFloat (LFloat p) (LFloat q) = LFloat (p * q)
+evalOp2 OSubFloat (LFloat p) (LFloat q) = LFloat (p - q)
+evalOp2 ODivFloat (LFloat p) (LFloat q) = LFloat (p / q)
+evalOp2 OAddDouble (LDouble p) (LDouble q) = LDouble (p + q)
+evalOp2 OMulDouble (LDouble p) (LDouble q) = LDouble (p * q)
+evalOp2 OSubDouble (LDouble p) (LDouble q) = LDouble (p - q)
+evalOp2 ODivDouble (LDouble p) (LDouble q) = LDouble (p / q)
+evalOp2 _ _ _ = error "Runtime error"
+
+evalCase :: Value -> [([Label Type], Value)] -> Value
 evalCase =
   undefined
 
