@@ -107,7 +107,7 @@ instance FreeIn (Row (TypeT g) a) where
 instance (FreeIn a) => FreeIn [a] where
   free = concatMap free
 
-instance (Show t, Typed t) => FreeIn (Expr t t a1 a2) where
+instance (Typed t) => FreeIn (Expr t t a1 a2) where
   free = free . typeOf
 
 instance (FreeIn e) => FreeIn (Environment e) where
@@ -149,7 +149,7 @@ instance Typed Op2 where
       OSubDouble -> tDouble ~> tDouble ~> tDouble
       ODivDouble -> tDouble ~> tDouble ~> tDouble
 
-instance (Show t, Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
+instance (Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
   typeOf =
     cata $ \case
       RNil -> tRow rNil
@@ -158,7 +158,7 @@ instance (Show t, Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
         let TRow row = project r
          in tRow (rExt name (typeOf expr) row)
 
-instance (Show t, Typed t) => Typed (Expr t t a1 a2) where
+instance (Typed t) => Typed (Expr t t a1 a2) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -188,7 +188,7 @@ class HasArity a where
 instance HasArity Type where
   arity = pred <<< length <<< unwindType
 
-instance (Show t, Typed t) => HasArity (Expr t t a1 a2) where
+instance (Typed t) => HasArity (Expr t t a1 a2) where
   arity = arity . typeOf
 
 instance HasArity (Definition r a) where
