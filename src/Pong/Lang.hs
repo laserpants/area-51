@@ -165,6 +165,7 @@ instance (Show t, Typed t) => Typed (Expr t t a1 a2) where
       ECon (t, _) -> typeOf t
       ELit lit -> typeOf lit
       EIf _ _ e3 -> e3
+      ELet _ _ e3 -> e3
       ELam _ args expr -> foldType expr (typeOf . fst <$> args)
       EApp t fun as -> typeOf t
       ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))

@@ -384,7 +384,7 @@ check =
       unifyM e2 e3
       pure (eIf e1 e2 e3)
     ELet (t, var) expr1 expr2 -> do
-      e1 <- expr1
+      e1 <- local (Env.insert var (tGen 0)) expr1 -- TODO: ???
       s <- generalize (typeOf e1)
       e2 <- local (Env.insert var s) expr2
       unifyM (tVar t :: Type) e1
@@ -504,6 +504,8 @@ deriving instance (MonadState (Int, Substitution)) TypeChecker
 deriving instance (MonadReader (Environment PolyType)) TypeChecker
 
 deriving instance (MonadError TypeError) TypeChecker
+
+deriving instance MonadFix TypeChecker
 
 deriving instance Generic (TypeChecker a)
 

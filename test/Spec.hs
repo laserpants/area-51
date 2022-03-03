@@ -30,16 +30,14 @@ import qualified Pong.Util.Env as Env
 
 --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 
---fromProgram :: Program a -> (a, [(Name, Definition (Label Type) (Expr Type Type () Void))])
---fromProgram prog = second Map.toList (runState (getProgram prog) mempty)
---fromProgram :: State (Program (Expr Type Type () Void)) (Expr Type Type () Void) -> (Expr Type Type () Void, [(Name, Definition (Label Type) (Expr Type Type () Void))])
+fromProgram :: State (Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
 fromProgram prog = Map.toList . getProgram <$> runState prog emptyProgram
 
-fromProgram2 :: State (Program (Expr Type Type () Void)) PreAst -> (PreAst, [(Name, Definition (Label Type) PreAst)])
-fromProgram2 prog = undefined -- Map.toList . getProgram <$> runState prog emptyProgram
-  where
-    xx :: (PreAst, Map Name (Definition (Label Type) (Expr Type Type () Void)))
-    xx = getProgram <$> runState prog emptyProgram
+--fromProgram2 :: State (Program (Expr Type Type () Void)) PreAst -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+--fromProgram2 prog = undefined -- Map.toList . getProgram <$> runState prog emptyProgram
+--  where
+--    xx :: (PreAst, Map Name (Definition (Label Type) (Expr Type Type () Void)))
+--    xx = getProgram <$> runState prog emptyProgram
 
 toProgram :: [(Name, Definition (Label Type) a)] -> Program a
 toProgram = Program . Map.fromList
@@ -69,6 +67,7 @@ main =
     describe "liftLambdas" $ do
       it "#1" (fromProgram (liftLambdas fragment8_0) == fragment8_1)
       it "#2" (fromProgram (liftLambdas fragment17_4) == fragment17_5)
+      it "#3" (fromProgram (liftLambdas fragment18_2) == fragment18_3)
     describe "replaceVarLets" $ do
       it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
       it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
@@ -76,6 +75,7 @@ main =
       it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
       it "#2" (Right fragment16_2 == runTypeChecker' 8 mempty (applySubstitution =<< check fragment16_1))
       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
+      it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment18_1))
     describe "unify" $ do
       it "#1" (let Right sub = unify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
     describe "alignCallSigns" $ do
@@ -84,8 +84,10 @@ main =
       it "#1" (replaceFunArgs_ fragment17_6 == fragment17_7)
     describe "convertFunApps" $ do
       it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
+      it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
     describe "evalProgram_" $ do
       it "#1" (evalProgram_ fragment17_8 == LitValue (LInt32 14))
+      it "#2" (evalProgram_ fragment18_4 == LitValue (LInt32 120))
 
 applyToFuns 
   :: (MonadState (Program (Expr Type Type a1 a2)) m) 
