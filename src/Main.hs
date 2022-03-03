@@ -20,6 +20,7 @@ import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (snd3)
 import Data.Void
+import Pong.Eval
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.Type as LLVM
 import LLVM.Context (withContext)

@@ -16,6 +16,7 @@ import Pong.Compiler
 import Pong.Data
 import Pong.LLVM.Emit
 import Pong.Lang
+import Pong.Eval
 import Pong.Test.Data
 import Pong.Test.Drivers
 import Pong.TypeChecker
@@ -83,6 +84,8 @@ main =
       it "#1" (replaceFunArgs_ fragment17_6 == fragment17_7)
     describe "convertFunApps" $ do
       it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
+    describe "evalProgram_" $ do
+      it "#1" (evalProgram_ fragment17_8 == LitValue (LInt32 14))
 
 applyToFuns 
   :: (MonadState (Program (Expr Type Type a1 a2)) m) 
