@@ -979,6 +979,41 @@ fragment18_4 =
                     [eOp2 OSubInt32 (eVar (tInt32, "n")) (eLit (LInt32 1))]))))
     ])
 
+--
+-- f(x) = x
+-- g(y) = y + 1
+-- z(h, n, j) = h(j(n))
+--
+-- z(f, 5, g)
+--
+fragment19_2 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment19_2 = 
+  ( eApp tInt32 (eVar (tInt32, "z")) [eVar (tInt32 ~> tInt32, "f"), eLit (LInt32 5), eVar (tInt32 ~> tInt32, "g")]
+  , [ ( "f" , Function (fromList [(tInt32, "x")]) (tInt32, eVar (tInt32, "x")))
+    , ( "g" , Function (fromList [(tInt32, "y")]) (tInt32, eOp2 OAddInt32 (eVar (tInt32, "y")) (eLit (LInt32 1))))
+    , ( "z" , Function (fromList [(tInt32 ~> tInt32, "h"), (tInt32, "n"), (tInt32 ~> tInt32, "j")]) (tInt32, eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [ eApp tInt32 (eVar (tInt32 ~> tInt32, "j")) [eVar (tInt32, "n")]]))
+    ]
+  )
+
+--
+-- f(x) = x
+-- g(y) = y + 1
+-- z(h, n, j) = h(j(n))
+-- .h0(n) = f(g(n))
+--
+-- .h0(5)
+--
+fragment19_3 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment19_3 = 
+  ( eApp tInt32 (eVar (tInt32 ~> tInt32, ".h3")) [eLit (LInt32 5)]
+  , [ ( ".h3", Function (fromList [(tInt32, "n")]) (tInt32, eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eApp tInt32 (eVar (tInt32 ~> tInt32, "g")) [eVar (tInt32, "n")]]))
+    , ( "f" , Function (fromList [(tInt32, "x")]) (tInt32, eVar (tInt32, "x")))
+    , ( "g" , Function (fromList [(tInt32, "y")]) (tInt32, eOp2 OAddInt32 (eVar (tInt32, "y")) (eLit (LInt32 1))))
+    , ( "z" , Function (fromList [(tInt32 ~> tInt32, "h"), (tInt32, "n"), (tInt32 ~> tInt32, "j")]) (tInt32, eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [ eApp tInt32 (eVar (tInt32 ~> tInt32, "j")) [eVar (tInt32, "n")]]))
+    ]
+  )
+
+
 
 --fragment16_1 :: Expr Int Int () Void
 --fragment16_1 =  
