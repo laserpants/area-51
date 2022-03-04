@@ -61,6 +61,8 @@ import Data.List (nub)
 import Pong.Data
 import Pong.Util
 
+-- { id = 1, id = True, name = "Bob" }
+
 import Data.Function ((&))
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map

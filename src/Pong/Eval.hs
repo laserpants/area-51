@@ -65,7 +65,7 @@ eval = cata $ \case
   ECase expr cs -> do
     e <- expr
     evalCase e cs
-  ERow row -> undefined
+  ERow row -> error "TODO"
 
 getLiteral :: Value -> Literal
 getLiteral (LitValue lit) = lit
