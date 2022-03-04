@@ -95,7 +95,8 @@ main =
       it "#3" (runReader fragment20_2 mempty == LitValue (LInt32 100))
       it "#4" (evalProgram_ fragment20_3 == LitValue (LInt32 5))
       it "#5" (evalProgram_ fragment20_4 == LitValue (LInt32 5))
-      it "#6" (evalProgram_ fragment20_5 == LitValue (LInt32 0))
+      it "#6" (evalProgram_ fragment20_5 == LitValue (LInt32 5))
+      it "#7" (evalProgram_ fragment20_6 == LitValue (LInt32 0))
 
 applyToFuns 
   :: (MonadState (Program (Expr Type Type a1 a2)) m) 

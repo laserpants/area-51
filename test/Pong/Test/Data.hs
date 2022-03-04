@@ -1101,6 +1101,22 @@ fragment20_4 =
 fragment20_5 :: (Ast, [(Name, Definition (Label Type) Ast)])
 fragment20_5 =
   ( eCase
+      (eCall
+         (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+         [eLit (LInt32 5), eCall (tCon "List" [tInt32], "Nil") []])
+      [ ([(tCon "List" [tInt32], "Nil")], eLit (LInt32 0))
+      , ( [ (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+          , (tInt32, "x")
+          , (tCon "List" [tInt32], "xs")
+          ]
+        , eVar (tInt32, "x"))
+      ]
+  , [])
+
+
+fragment20_6 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_6 =
+  ( eCase
       (eCall (tCon "List" [tInt32], "Nil") [])
       [ ( [ (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
           , (tInt32, "x")
