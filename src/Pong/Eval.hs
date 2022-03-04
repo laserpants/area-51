@@ -4,10 +4,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
 module Pong.Eval where
 
+import Data.Char (isUpper)
 import Data.List.NonEmpty (fromList, toList)
 import Control.Monad.Reader
 import Pong.Data
 import Pong.Util
+import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 data Value 
@@ -41,6 +43,9 @@ eval = cata $ \case
     let insertVar = localSecond (Env.insert var val)
     val <- insertVar body
     insertVar expr
+  ECall _ (_, con) args | isUpper (Text.head con) -> do
+    as <- sequence args
+    pure (ConValue con as)
   ECall _ (_, fun) args -> do
     (env, _) <- ask
     case Env.lookup fun env of
@@ -48,8 +53,18 @@ eval = cata $ \case
         as <- sequence args
         localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
       _ -> error "Runtime error"
+  EOp2 OLogicOr a b -> 
+    a >>= \case 
+      LitValue (LBool True) -> a
+      _ -> b
+  EOp2 OLogicAnd a b -> 
+    a >>= \case 
+      LitValue (LBool False) -> a
+      _ -> b
   EOp2 op a b -> LitValue <$> (evalOp2 op <$> (getLiteral <$> a) <*> (getLiteral <$> b))
-  ECase expr cs -> evalCase <$> expr <*> traverse sequence cs
+  ECase expr cs -> do
+    e <- expr
+    evalCase e cs
   ERow row -> undefined
 
 getLiteral :: Value -> Literal
@@ -71,9 +86,15 @@ evalOp2 OSubDouble (LDouble p) (LDouble q) = LDouble (p - q)
 evalOp2 ODivDouble (LDouble p) (LDouble q) = LDouble (p / q)
 evalOp2 _ _ _ = error "Runtime error"
 
-evalCase :: Value -> [([Label Type], Value)] -> Value
-evalCase =
-  undefined
+evalCase
+  :: (MonadFix m, MonadReader (Environment (Definition (Label Type) Ast), Environment Value) m) 
+  => Value 
+  -> [([Label Type], m Value)] 
+  -> m Value
+evalCase _ [] = error "Runtime error: No matching clause"
+evalCase (ConValue name fields) (((_, con):vars, value):clauses) 
+  | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
+  | otherwise = evalCase (ConValue name fields) clauses
 
 evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value
 evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)

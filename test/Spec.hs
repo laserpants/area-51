@@ -30,6 +30,9 @@ import qualified Pong.Util.Env as Env
 
 --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 
+foo :: Value
+foo = ConValue "Cons" [LitValue (LInt32 5), ConValue "Nil" []]
+
 fromProgram :: State (Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
 fromProgram prog = Map.toList . getProgram <$> runState prog emptyProgram
 
@@ -89,6 +92,10 @@ main =
     describe "evalProgram_" $ do
       it "#1" (evalProgram_ fragment17_8 == LitValue (LInt32 14))
       it "#2" (evalProgram_ fragment18_4 == LitValue (LInt32 120))
+      it "#3" (runReader fragment20_2 mempty == LitValue (LInt32 100))
+      it "#4" (evalProgram_ fragment20_3 == LitValue (LInt32 5))
+      it "#5" (evalProgram_ fragment20_4 == LitValue (LInt32 5))
+      it "#6" (evalProgram_ fragment20_5 == LitValue (LInt32 0))
 
 applyToFuns 
   :: (MonadState (Program (Expr Type Type a1 a2)) m) 

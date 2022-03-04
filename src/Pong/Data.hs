@@ -73,6 +73,8 @@ data Op2
   | OMulDouble
   | OSubDouble
   | ODivDouble
+  | OLogicOr
+  | OLogicAnd
 
 type Label t = (t, Name)
 

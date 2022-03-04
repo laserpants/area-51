@@ -1,11 +1,15 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pong.Test.Data where
 
+import Control.Monad.Fix
+import Control.Monad.Reader
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import Data.Void
 import Pong.Data
+import Pong.Eval
 import Pong.Lang
 import Pong.Util
 import qualified Pong.Util.Env as Env
@@ -987,13 +991,29 @@ fragment18_4 =
 -- z(f, 5, g)
 --
 fragment19_2 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
-fragment19_2 = 
-  ( eApp tInt32 (eVar (tInt32, "z")) [eVar (tInt32 ~> tInt32, "f"), eLit (LInt32 5), eVar (tInt32 ~> tInt32, "g")]
-  , [ ( "f" , Function (fromList [(tInt32, "x")]) (tInt32, eVar (tInt32, "x")))
-    , ( "g" , Function (fromList [(tInt32, "y")]) (tInt32, eOp2 OAddInt32 (eVar (tInt32, "y")) (eLit (LInt32 1))))
-    , ( "z" , Function (fromList [(tInt32 ~> tInt32, "h"), (tInt32, "n"), (tInt32 ~> tInt32, "j")]) (tInt32, eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [ eApp tInt32 (eVar (tInt32 ~> tInt32, "j")) [eVar (tInt32, "n")]]))
-    ]
-  )
+fragment19_2 =
+  ( eApp
+      tInt32
+      (eVar (tInt32, "z"))
+      [ eVar (tInt32 ~> tInt32, "f")
+      , eLit (LInt32 5)
+      , eVar (tInt32 ~> tInt32, "g")
+      ]
+  , [ ("f", Function (fromList [(tInt32, "x")]) (tInt32, eVar (tInt32, "x")))
+    , ( "g"
+      , Function
+          (fromList [(tInt32, "y")])
+          (tInt32, eOp2 OAddInt32 (eVar (tInt32, "y")) (eLit (LInt32 1))))
+    , ( "z"
+      , Function
+          (fromList
+             [(tInt32 ~> tInt32, "h"), (tInt32, "n"), (tInt32 ~> tInt32, "j")])
+          ( tInt32
+          , eApp
+              tInt32
+              (eVar (tInt32 ~> tInt32, "h"))
+              [eApp tInt32 (eVar (tInt32 ~> tInt32, "j")) [eVar (tInt32, "n")]]))
+    ])
 
 --
 -- f(x) = x
@@ -1004,17 +1024,97 @@ fragment19_2 =
 -- .h0(5)
 --
 fragment19_3 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
-fragment19_3 = 
+fragment19_3 =
   ( eApp tInt32 (eVar (tInt32 ~> tInt32, ".h3")) [eLit (LInt32 5)]
-  , [ ( ".h3", Function (fromList [(tInt32, "n")]) (tInt32, eApp tInt32 (eVar (tInt32 ~> tInt32, "f")) [eApp tInt32 (eVar (tInt32 ~> tInt32, "g")) [eVar (tInt32, "n")]]))
-    , ( "f" , Function (fromList [(tInt32, "x")]) (tInt32, eVar (tInt32, "x")))
-    , ( "g" , Function (fromList [(tInt32, "y")]) (tInt32, eOp2 OAddInt32 (eVar (tInt32, "y")) (eLit (LInt32 1))))
-    , ( "z" , Function (fromList [(tInt32 ~> tInt32, "h"), (tInt32, "n"), (tInt32 ~> tInt32, "j")]) (tInt32, eApp tInt32 (eVar (tInt32 ~> tInt32, "h")) [ eApp tInt32 (eVar (tInt32 ~> tInt32, "j")) [eVar (tInt32, "n")]]))
+  , [ ( ".h3"
+      , Function
+          (fromList [(tInt32, "n")])
+          ( tInt32
+          , eApp
+              tInt32
+              (eVar (tInt32 ~> tInt32, "f"))
+              [eApp tInt32 (eVar (tInt32 ~> tInt32, "g")) [eVar (tInt32, "n")]]))
+    , ("f", Function (fromList [(tInt32, "x")]) (tInt32, eVar (tInt32, "x")))
+    , ( "g"
+      , Function
+          (fromList [(tInt32, "y")])
+          (tInt32, eOp2 OAddInt32 (eVar (tInt32, "y")) (eLit (LInt32 1))))
+    , ( "z"
+      , Function
+          (fromList
+             [(tInt32 ~> tInt32, "h"), (tInt32, "n"), (tInt32 ~> tInt32, "j")])
+          ( tInt32
+          , eApp
+              tInt32
+              (eVar (tInt32 ~> tInt32, "h"))
+              [eApp tInt32 (eVar (tInt32 ~> tInt32, "j")) [eVar (tInt32, "n")]]))
+    ])
+
+fragment20_1 :: Value
+fragment20_1 = ConValue "Cons" [LitValue (LInt32 5), ConValue "Nil" []]
+
+fragment20_2 ::
+     ( MonadFix m
+     , MonadReader ( Environment (Definition (Label Type) Ast)
+                   , Environment Value) m
+     )
+  => m Value
+fragment20_2 =
+  evalCase
+    fragment20_1
+    [ ( [ (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+        , (tInt32, "x")
+        , (tCon "List" [tInt32], "xs")
+        ]
+      , pure (LitValue (LInt32 100)))
     ]
-  )
 
+fragment20_3 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_3 =
+  ( eCase
+      (eCall
+         (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+         [eLit (LInt32 5), eCall (tCon "List" [tInt32], "Nil") []])
+      [ ( [ (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+          , (tInt32, "x")
+          , (tCon "List" [tInt32], "xs")
+          ]
+        , eVar (tInt32, "x"))
+      ]
+  , [])
 
+fragment20_4 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_4 =
+  ( eCase
+      (eCall
+         (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+         [eLit (LInt32 5), eCall (tCon "List" [tInt32], "Nil") []])
+      [ ( [ (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+          , (tInt32, "x")
+          , (tCon "List" [tInt32], "xs")
+          ]
+        , eVar (tInt32, "x"))
+      , ([(tCon "List" [tInt32], "Nil")], eLit (LInt32 0))
+      ]
+  , [])
 
+fragment20_5 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_5 =
+  ( eCase
+      (eCall (tCon "List" [tInt32], "Nil") [])
+      [ ( [ (tInt32 ~> tCon "List" [tInt32] ~> tCon "List" [tInt32], "Cons")
+          , (tInt32, "x")
+          , (tCon "List" [tInt32], "xs")
+          ]
+        , eVar (tInt32, "x"))
+      , ([(tCon "List" [tInt32], "Nil")], eLit (LInt32 0))
+      ]
+  , [])
+
+--test456 = runReader fragment20_2 mempty == LitValue (LInt32 1)
+--test457 = runReader fragment20_3 mempty == LitValue (LInt32 5)
+--fragment20_1 :: Value
+--fragment20_1 = ConValue "Cons" [LitValue (LInt32 5), ConValue "Nil" []]
 --fragment16_1 :: Expr Int Int () Void
 --fragment16_1 =  
 --  eLet
