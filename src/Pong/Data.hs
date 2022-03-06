@@ -112,8 +112,8 @@ newtype Environment a =
 
 data Constructor =
   Constructor
-    { consName :: Name
-    , consFields :: [Type]
+    { conName :: Name
+    , conFields :: [Type]
     }
 
 data Definition d a

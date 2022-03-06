@@ -22,7 +22,6 @@ import Data.Set (Set)
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import Data.Void (Void)
-import Debug.Trace
 import GHC.Generics
 import Pong.Data
 import Pong.Lang
@@ -136,12 +135,13 @@ tagExpr =
     ECase e1 cs ->
       eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
     ERow row -> eRow <$> tagRow row
-  where
-    tagRow = 
-      cata $ \case
-        RNil -> pure rNil
-        RVar (_, var) -> rVar <$> tagLabel var
-        RExt name expr row -> rExt name <$> tagExpr expr <*> row
+
+tagRow :: Row (Expr t () () Void) (Label t) -> TypeChecker (Row TaggedExpr (Label Int))
+tagRow = 
+  cata $ \case
+    RNil -> pure rNil
+    RVar (_, var) -> rVar <$> tagLabel var
+    RExt name expr row -> rExt name <$> tagExpr expr <*> row
 
 tag :: MonadState (Int, a) m => m Int
 tag = do
