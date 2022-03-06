@@ -5,22 +5,23 @@
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
+import Control.Newtype.Generics
 import Data.Map.Strict ((!))
+import Data.Tuple.Extra (second)
 import Data.Void
 import Debug.Trace
 import LLVM.IRBuilder
 import LLVM.IRBuilder.Module
 import LLVM.Pretty
-import Data.Tuple.Extra (second)
 import Pong.Compiler
 import Pong.Data
+import Pong.Eval
 import Pong.LLVM.Emit
 import Pong.Lang
-import Pong.Eval
 import Pong.Test.Data
 import Pong.Test.Drivers
 import Pong.TypeChecker
-import Pong.Util
+import Pong.Util (Name, (<$$>))
 import Test.Hspec
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy.IO as Text
@@ -34,13 +35,13 @@ foo :: Value
 foo = ConValue "Cons" [LitValue (LInt32 5), ConValue "Nil" []]
 
 fromProgram :: State (Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
-fromProgram prog = Map.toList . getProgram <$> runState prog emptyProgram
+fromProgram prog = Map.toList . unpack <$> runState prog emptyProgram
 
 --fromProgram2 :: State (Program (Expr Type Type () Void)) PreAst -> (PreAst, [(Name, Definition (Label Type) PreAst)])
---fromProgram2 prog = undefined -- Map.toList . getProgram <$> runState prog emptyProgram
+--fromProgram2 prog = undefined -- Map.toList . unpack <$> runState prog emptyProgram
 --  where
 --    xx :: (PreAst, Map Name (Definition (Label Type) (Expr Type Type () Void)))
---    xx = getProgram <$> runState prog emptyProgram
+--    xx = unpack <$> runState prog emptyProgram
 
 toProgram :: [(Name, Definition (Label Type) a)] -> Program a
 toProgram = Program . Map.fromList
@@ -134,7 +135,7 @@ applyToFuns f =
     def -> pure def
 
 runProgramState :: State (Program a) s -> [(Name, Definition (Label Type) a)] -> (s, [(Name, Definition (Label Type) a)])
-runProgramState a p = Map.toList . getProgram <$> runState a (toProgram p)
+runProgramState a p = Map.toList . unpack <$> runState a (toProgram p)
 
 alignCallSigns_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (PreAst, [(Name, Definition (Label Type) PreAst)])
 alignCallSigns_ (e, ds) = runProgramState (applyToFuns alignCallSigns >> alignCallSigns e) ds

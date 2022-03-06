@@ -80,21 +80,21 @@ import Debug.Trace
 --import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 
-mapRow :: (a -> b) -> Row a v -> Row b v
+mapRow :: (e -> f) -> Row e r -> Row f r
 mapRow f = 
   cata $ \case
     RNil -> rNil
     RVar v -> rVar v
     RExt name expr row -> rExt name (f expr) row
 
-mapRowM :: (Monad m) => (a -> m b) -> Row a v -> m (Row b v)
+mapRowM :: (Monad m) => (e -> m f) -> Row e r -> m (Row f r)
 mapRowM f = 
   cata $ \case
     RNil -> pure rNil
     RVar v -> pure (rVar v)
     RExt name expr row -> rExt name <$> f expr <*> row
 
-canonRow :: Row a v -> Row a v 
+canonRow :: Row e r -> Row e r 
 canonRow = uncurry (flip foldRow) . unwindRow
 
 canonRows :: TypeT t -> TypeT t
@@ -103,20 +103,20 @@ canonRows =
     TRow r -> tRow (canonRow r)
     t -> embed t
 
-foldRow :: Row a v -> Map Name [a] -> Row a v
+foldRow :: Row e r -> Map Name [e] -> Row e r
 foldRow = Map.foldrWithKey (flip . foldr . rExt)
 
-unwindRow :: Row a v -> (Map Name [a], Row a v)
+unwindRow :: Row e r -> (Map Name [e], Row e r)
 unwindRow row = (toMap row, leaf row)
   where
-    toMap :: Row a v -> Map Name [a]
+    toMap :: Row e r -> Map Name [e]
     toMap row = foldr (uncurry (Map.insertWith (<>))) mempty fields
       where
         fields =
           (`para` row) $ \case
             RExt label ty (_, rest) -> (label, [ty]):rest
             _ -> []
-    leaf :: Row a v -> Row a v
+    leaf :: Row e r -> Row e r
     leaf = cata $ \case
       RExt _ _ r -> r
       t -> embed t 
@@ -133,7 +133,7 @@ splitRow a row = (e, canonRow
 class FreeIn a where
   free :: a -> [Int]
 
-instance FreeIn (TypeT g) where
+instance FreeIn (TypeT t) where
   free =
     nub .
     cata
@@ -144,7 +144,7 @@ instance FreeIn (TypeT g) where
          TRow r -> free r
          _ -> [])
 
-instance FreeIn (Row (TypeT g) Int) where
+instance FreeIn (Row (TypeT t) Int) where
   free =
     cata $ \case
       RVar v -> [v]
@@ -235,7 +235,7 @@ class HasArity a where
 instance (Typed t) => HasArity t where
   arity = pred <<< length <<< unwindType
 
-instance HasArity (Definition r a) where
+instance HasArity (Definition d a) where
   arity =
     \case
       Function args _ -> length args
@@ -379,76 +379,6 @@ lookupDef var = do
   Program defs <- get
   pure (defs ! var)
 
---{-# INLINE emptyProgram #-}
---emptyProgram :: Program
---emptyProgram = Program 0 mempty
---
---insertDefinition :: Name -> Definition Ast -> Program -> Program
---insertDefinition name def =
---  \case
---    Program {definitions, ..} ->
---      Program {definitions = Map.insert name def definitions, ..}
---
-----printProgram :: Program -> IO ()
-----printProgram Program {..} = sequence_ (Map.mapWithKey (curry print) definitions)
---{-# INLINE tVar #-}
---tVar :: Int -> Type
---tVar = embed1 TVar
---
---{-# INLINE tArr #-}
---tArr :: Type -> Type -> Type
---tArr = embed2 TArr
---
---infixr 1 `tArr`
---
---{-# INLINE (~>) #-}
---(~>) = tArr
---
---infixr 1 ~>
---
---{-# INLINE tData #-}
---tData :: Name -> Type
---tData = embed1 TData
---
-----{-# INLINE tOpaque #-}
-----tOpaque :: Type
-----tOpaque = embed TOpaque
---
---{-# INLINE var #-}
---var :: Label t -> Expr t a0 a1 a2 a3
---var = embed1 EVar
---
---{-# INLINE lit #-}
---lit :: Literal -> Expr t a0 a1 a2 a3
---lit = embed1 ELit
---
---{-# INLINE if_ #-}
---if_ :: Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3
---if_ = embed3 EIf
---
---{-# INLINE lam #-}
---lam :: [Label t] -> Expr t a0 () a2 a3 -> Expr t a0 () a2 a3
---lam = embed3 ELam () 
---
---{-# INLINE let_ #-}
---let_ :: Label t -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3 -> Expr t () a1 a2 a3
---let_ = embed4 ELet ()
---
---{-# INLINE app #-}
---app :: Expr t a0 a1 () a3 -> [Expr t a0 a1 () a3] -> Expr t a0 a1 () a3
---app = embed3 EApp ()
---
---{-# INLINE call_ #-}
---call_ :: Label t -> [Expr t a0 a1 a2 ()] -> Expr t a0 a1 a2 ()
---call_ = embed3 ECall ()
---
---{-# INLINE op2 #-}
---op2 :: Op2 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3 -> Expr t a0 a1 a2 a3
---op2 = embed3 EOp2
---
---{-# INLINE case_ #-}
---case_ :: Expr t a0 a1 a2 a3 -> [([Label t], Expr t a0 a1 a2 a3)] -> Expr t a0 a1 a2 a3
---case_ = embed2 ECase
 {-# INLINE tUnit #-}
 tUnit :: TypeT t
 tUnit = embed TUnit
@@ -509,15 +439,15 @@ tGen :: Int -> PolyType
 tGen = embed1 TGen
 
 {-# INLINE rNil #-}
-rNil :: Row r v
+rNil :: Row e r
 rNil = embed RNil
 
 {-# INLINE rVar #-}
-rVar :: v -> Row r v
+rVar :: r -> Row e r
 rVar = embed1 RVar
 
 {-# INLINE rExt #-}
-rExt :: Name -> r -> Row r v -> Row r v
+rExt :: Name -> e -> Row e r -> Row e r
 rExt = embed3 RExt
 
 {-# INLINE eOp2 #-}

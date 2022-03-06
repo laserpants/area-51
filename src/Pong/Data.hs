@@ -93,7 +93,7 @@ data ExprF t a0 a1 a2 a
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
---type TaggedExpr = Expr Int Int () Void
+type TaggedExpr = Expr Int Int () Void
 
 type TypedExpr = Expr Type Type () Void
 
@@ -107,10 +107,8 @@ data Con
   | LamE
   | RowE
 
-newtype Environment a =
-  Environment
-    { getEnvironment :: Map Name a
-    }
+newtype Environment a = 
+  Environment (Map Name a)
 
 data Constructor =
   Constructor
@@ -118,13 +116,14 @@ data Constructor =
     , consFields :: [Type]
     }
 
-data Definition r a
-  = Function (NonEmpty r) (Type, a)
+data Definition d a
+  = Function (NonEmpty d) (Type, a)
   | Constant (Type, a)
   | External [Type] (Label Type)
   | Data Name [Constructor]
 
-newtype Program a = Program { getProgram :: Map Name (Definition (Label Type) a) }
+newtype Program a = 
+  Program (Map Name (Definition (Label Type) a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -244,15 +243,15 @@ deriving instance Generic (Environment a)
 instance Newtype (Environment a)
 
 -- Definition
-deriving instance (Show r, Show a) => Show (Definition r a)
+deriving instance (Show d, Show a) => Show (Definition d a)
 
-deriving instance (Eq r, Eq a) => Eq (Definition r a)
+deriving instance (Eq d, Eq a) => Eq (Definition d a)
 
-deriving instance Functor (Definition r)
+deriving instance Functor (Definition d)
 
-deriving instance Foldable (Definition r)
+deriving instance Foldable (Definition d)
 
-deriving instance Traversable (Definition r)
+deriving instance Traversable (Definition d)
 
 -- Program
 
