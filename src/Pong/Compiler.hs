@@ -19,7 +19,7 @@ import Data.Void (Void)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
-import Pong.TypeChecker (Substitution, apply, unify)
+import Pong.TypeChecker (Substitution, apply, unify, runTypeChecker')
 import Pong.Util
 import Prelude hiding ((!!))
 import TextShow (showt)
@@ -263,7 +263,8 @@ alignCallSigns =
       case project f of
         EVar (t1, var) -> do
           def <- lookupDef var
-          case unify (typeOf def) t1 of
+          let tdef = typeOf def
+          case runTypeChecker' (leastFree [tdef, t1]) mempty (unify tdef t1) of
             Right sub
               | sub /= mempty -> do
                 name <- uniqueName ".g"

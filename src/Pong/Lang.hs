@@ -63,6 +63,14 @@ import Pong.Util
 
 -- { id = 1, id = True, name = "Bob" }
 
+-- { name = "Bob", id = 1, id = True}
+
+-- {name}("Bob", {id}(1, {id}(True, {})))
+
+
+-- {name}(String, {id}(Int, {id}(Bool, {})))
+-- {id}(Int, {id}(Bool, {name}(String, {})))
+--
 import Data.Function ((&))
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
@@ -86,6 +94,33 @@ mapRowM f =
     RVar v -> pure (rVar v)
     RExt name expr row -> rExt name <$> f expr <*> row
 
+canonRow :: Row a v -> Row a v 
+canonRow = uncurry (flip foldRow) . unwindRow
+
+canonRows :: TypeT t -> TypeT t
+canonRows = 
+  cata $ \case
+    TRow r -> tRow (canonRow r)
+    t -> embed t
+
+foldRow :: Row a v -> Map Name [a] -> Row a v
+foldRow = Map.foldrWithKey (flip . foldr . rExt)
+
+unwindRow :: Row a v -> (Map Name [a], Row a v)
+unwindRow row = (toMap row, leaf row)
+  where
+    toMap :: Row a v -> Map Name [a]
+    toMap row = foldr (uncurry (Map.insertWith (<>))) mempty fields
+      where
+        fields =
+          (`para` row) $ \case
+            RExt label ty (_, rest) -> (label, [ty]):rest
+            _ -> []
+    leaf :: Row a v -> Row a v
+    leaf = cata $ \case
+      RExt _ _ r -> r
+      t -> embed t 
+
 class FreeIn a where
   free :: a -> [Int]
 
@@ -100,9 +135,10 @@ instance FreeIn (TypeT g) where
          TRow r -> free r
          _ -> [])
 
-instance FreeIn (Row (TypeT g) a) where
+instance FreeIn (Row (TypeT g) Int) where
   free =
     cata $ \case
+      RVar v -> [v]
       RExt _ expr r -> free expr <> r
       _ -> []
 
@@ -115,7 +151,7 @@ instance (Typed t) => FreeIn (Expr t t a1 a2) where
 instance (FreeIn e) => FreeIn (Environment e) where
   free =
     \case
-      Env env -> free (Map.elems env)
+      Environment env -> free (Map.elems env)
 
 class Typed a where
   typeOf :: a -> Type
@@ -199,6 +235,12 @@ instance HasArity (Definition r a) where
       Function args _ -> length args
       External args _ -> length args
       _ -> 0
+
+leastFree :: (FreeIn t) => [t] -> Int
+leastFree ts =
+  case free =<< ts of
+    [] -> 0
+    vs -> succ (maximum vs)
 
 isTCon :: TCon -> Type -> Bool
 isTCon con =
@@ -443,7 +485,7 @@ tVar :: Int -> TypeT t
 tVar = embed1 TVar
 
 {-# INLINE tRow #-}
-tRow :: Row (TypeT t) Name -> TypeT t
+tRow :: Row (TypeT t) Int -> TypeT t
 tRow = embed1 TRow
 
 {-# INLINE tChar #-}

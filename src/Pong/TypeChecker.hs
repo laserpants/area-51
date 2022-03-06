@@ -27,7 +27,7 @@ import Debug.Trace
 import GHC.Generics
 import Pong.Data
 import Pong.Lang
-import Pong.Util
+import Pong.Util (Fix(..), Name, Map, cata, embed, project, (!?), (<$$>))
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Pong.Util.Env as Env
@@ -63,17 +63,33 @@ substitute sub =
     TVar n -> fromMaybe (tVar n) (sub !? n)
     TCon c ts -> tCon c ts 
     TArr t1 t2 -> tArr t1 t2
-    TRow row -> tRow (mapRow (substitute sub) row)
+    TRow row -> tRow (substRow sub row)
     t -> embed t
+
+substRow :: Map Int (TypeT t) -> Row (TypeT t) Int -> Row (TypeT t) Int
+substRow sub = 
+  cata $ \case
+    RNil -> rNil
+    RExt name t row -> rExt name (substitute sub t) row
+    RVar n -> 
+      case project <$> (sub !? n) of
+        Just (TRow r) -> r
+        _ -> rVar n
 
 class Substitutable a where
   apply :: Substitution -> a -> a
 
+instance Substitutable (Row Type Int) where
+  apply = substRow . unpack 
+
+instance Substitutable (Row PolyType Int) where
+  apply = substRow . (toPolyType <$>) . unpack 
+
 instance Substitutable Type where
-  apply = substitute . getSubstitution 
+  apply = substitute . unpack
 
 instance Substitutable PolyType where
-  apply = substitute . (toPolyType <$>) . getSubstitution 
+  apply = substitute . (toPolyType <$>) . unpack
 
 instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
   apply sub =
@@ -107,7 +123,7 @@ compose = over2 Substitution fun where
   fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
 
 mapsTo :: Int -> Type -> Substitution
-mapsTo = Substitution <$$> Map.singleton
+mapsTo = pack <$$> Map.singleton
 
 --tagLabel :: Name -> TypeChecker (Label Type)
 --tagLabel name = do -- (,) <$> tag <*> pure name
@@ -204,43 +220,155 @@ tag = do
 --typeCheck :: SourceExpr t -> Compiler (Either TypeError TypedExpr)
 --typeCheck ast = asks (`runCheck` ast)
 
-unifyAndCombine :: (MonadError TypeError m) => Type -> Type -> Substitution -> m Substitution
+--unifyAndCombine :: (MonadState (Int, Substitution) m, MonadError TypeError m) => Type -> Type -> Substitution -> m Substitution
+unifyAndCombine :: Type -> Type -> Substitution -> TypeChecker Substitution
 unifyAndCombine t1 t2 sub1 = do
   sub2 <- unify (apply sub1 t1) (apply sub1 t2)
   pure (sub2 <> sub1)
 
-unifyTypes :: (MonadError TypeError m) => [Type] -> [Type] -> m Substitution
+--unifyTypes :: (MonadState (Int, Substitution) m, MonadError TypeError m) => [Type] -> [Type] -> m Substitution
+unifyTypes :: [Type] -> [Type] -> TypeChecker Substitution
 unifyTypes ts1 ts2 = foldrM (uncurry unifyAndCombine) mempty (zip ts1 ts2)
 
-unify :: (MonadError TypeError m) => Type -> Type -> m Substitution
+--unifyRows :: (MonadState (Int, Substitution) m, MonadError TypeError m) => Row Type Int -> Row Type Int -> m Substitution
+unifyRows :: Row Type Int -> Row Type Int -> TypeChecker Substitution
+unifyRows r1 r2 =
+  case (unwindRow r1, unwindRow r2) of
+    ((m1, Fix RNil), (m2, Fix RNil)) 
+      | Map.null m1 && Map.null m2 -> pure mempty
+    ((m1, Fix (RVar r)), (m2, k)) 
+      | Map.null m1 && not (Map.null m2) && k == rVar r -> throwError UnificationError
+      | Map.null m1 -> pure (r `mapsTo` tRow r2)
+    ((m1, j), (m2, Fix (RVar r))) 
+      | Map.null m2 && not (Map.null m1) && j == rVar r -> throwError UnificationError
+      | Map.null m2 -> pure (r `mapsTo` tRow r1)
+
+--    ((m1, Fix (RVar r)), (m2, k)) | Map.null m1 -> 
+--      if not (Map.null m2) && k == rVar r
+--         then throwError UnificationError
+--         else pure (r `mapsTo` tRow r2)
+--    ((m1, j), (m2, Fix (RVar r))) | Map.null m2 -> 
+--      if not (Map.null m1) && j == rVar r
+--         then throwError UnificationError
+--         else pure (r `mapsTo` tRow r1)
+
+    ((m1, j), (m2, k)) 
+      | Map.null m1 -> unifyRows r2 r1
+      | otherwise ->
+        case Map.lookup a m2 of
+          Just (u:us) -> do
+            let r1 = foldRow j (updateMap m1 ts)
+                r2 = foldRow k (updateMap m2 us)
+            unifyTypes [tRow r1, t] [tRow r2, u]
+          _ | k == j -> throwError UnificationError
+            | otherwise -> do
+              p <- rVar <$> tag
+              let r1 = foldRow j (updateMap m1 ts)
+                  r2 = foldRow p m2
+              unifyTypes [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
+        where
+          (a, t:ts) = Map.elemAt 0 m1
+          updateMap m = 
+            \case
+              [] -> Map.delete a m
+              ts -> Map.insert a ts m
+
+--  case (project r1, project r2) of
+--    (RNil, RNil) -> pure mempty
+--    (RVar r, row) -> pure (r `mapsTo` tRow r2) 
+--    (row, RVar r) -> pure (r `mapsTo` tRow r1)
+--    _ -> foo (unwindRow r1, unwindRow r2)
+--  where
+--    foo = \case 
+--      (q1@(m1, _), q2) | Map.null m1 -> foo (q2, q1)
+--      ((m1, j), (m2, k)) -> do
+--        case Map.lookup a m2 of
+--          Just (u:us) -> do
+--            let r1 = foldRow j (updateMap m1 ts)
+--                r2 = foldRow k (updateMap m2 us)
+--            unifyTypes [tRow r1, t] [tRow r2, u]
+--          _ | j == k -> throwError UnificationError
+--            | otherwise -> 
+--              undefined
+--                --unifyTypes [foldRow j (updateMap m1 ts), t] [foldRow k (updateMap m2 us), u]
+--        where
+--          (a, t:ts) = Map.elemAt 0 m1
+--          updateMap m = 
+--            \case
+--              [] -> Map.delete a m
+--              ts -> Map.insert a ts m
+
+
+--unifyRows r1 r2 =
+--  case (unwindRow r1, unwindRow r2) of
+--    ((m1, j), (m2, k)) | Map.null m1 && Map.null m2 -> 
+--      case (project j, project k) of
+--        (RNil, RNil) -> pure mempty
+--        (RVar r, row) -> pure (r `mapsTo` tRow r2) 
+--        (row, RVar r) -> pure (r `mapsTo` tRow r1)
+--    ((m1, _), _) | Map.null m1 -> unifyRows r2 r1
+--    ((m1, j), (m2, k)) -> do
+--      traceShowM a
+--      traceShowM (j, k)
+--      case Map.lookup a m2 of
+--        Just (u:us) -> unifyTypes [foldRow j (updateMap m1 ts), t] [foldRow k (updateMap m2 us), u]
+--        _ | j == k -> throwError UnificationError
+--          | otherwise -> 
+--            undefined
+--              --unifyTypes [foldRow j (updateMap m1 ts), t] [foldRow k (updateMap m2 us), u]
+--      where
+--        (a, t:ts) = Map.elemAt 0 m1
+--        updateMap m = 
+--          \case
+--            [] -> Map.delete a m
+--            ts -> Map.insert a ts m
+
+--                    combinePairs
+--                        (foldRow j (updateMap m1 ts), t)
+--                        (foldRow k (updateMap m2 us), u)
+--
+--                    s <- supply
+--                    let tv = tVar kRow ("$r" <> showt s)
+--                    combinePairs
+--                        (foldRow j (updateMap m1 ts), k)
+--                        (foldRow tv m2, tRow a t tv)
+
+--unifyRows r1 r2 = 
+--  case (unwindRow r1, unwindRow r2) of
+--    ((m1, j), (m2, k)) 
+--      | Map.null m1 && Map.null m2 -> unifyRows j k
+--      | otherwise ->
+--        undefined
+
+--unify :: (MonadState (Int, Substitution) m, MonadError TypeError m) => Type -> Type -> m Substitution
+unify :: Type -> Type -> TypeChecker Substitution
 unify t1 t2 =
   case (project t1, project t2) of
     (TVar n, t) -> pure (n `mapsTo` embed t)
     (t, TVar n) -> pure (n `mapsTo` embed t)
     (TCon c1 ts1, TCon c2 ts2) | c1 == c2 -> unifyTypes ts1 ts2
     (TArr t1 t2, TArr u1 u2) -> unifyTypes [t1, t2] [u1, u2]
---      sub1 <- unify t1 u1
---      sub2 <- unify (apply sub1 t2) (apply sub1 u2)
---      pure (sub2 <> sub1)
-    _
-      | t1 == t2 -> pure mempty
+    (TRow r, TRow s) -> unifyRows r s
+    _ | t1 == t2 -> pure mempty
       | otherwise -> throwError UnificationError
 
-applySubstitution ::
-     (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
+--applySubstitution ::
+--     (MonadState (Int, Substitution) m, Substitutable a) => a -> m a
+applySubstitution :: (Substitutable a) => a -> TypeChecker a
 applySubstitution a = gets (apply . snd) <*> pure a
 
-unifyM ::
-     ( MonadError TypeError m
-     , MonadState (Int, Substitution) m
-     , Substitutable a
-     , Substitutable b
-     , Typed a
-     , Typed b
-     )
-  => a
-  -> b
-  -> m ()
+--unifyM ::
+--     ( MonadError TypeError m
+--     , MonadState (Int, Substitution) m
+--     , Substitutable a
+--     , Substitutable b
+--     , Typed a
+--     , Typed b
+--     )
+--  => a
+--  -> b
+--  -> m ()
+unifyM :: (Substitutable a, Substitutable b, Typed a, Typed b) => a -> b -> TypeChecker ()
 unifyM a b = do
   sub <- gets snd
   sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
@@ -361,7 +489,7 @@ generalize t = do
 
 checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
 checkName (t, var) err = do
-  Env env <- ask
+  Environment env <- ask
   case env !? var of
     Just s -> do
       t1 <- instantiate s

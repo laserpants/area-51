@@ -159,7 +159,7 @@ fragment7_1 =
 --         in
 --           g(f)(g(5)) + f(1)
 --       
---fragment8_0 :: Expr Type Type () Void
+fragment8_0 :: Expr Type Type () Void
 fragment8_0 =
   eLet
     (tInt32, "h")
@@ -449,6 +449,76 @@ fragment13_1 =
 
 fragment15_0 :: Expr Int () () Void
 fragment15_0 = eApp () (eVar (1, "f")) [eLit (LInt32 1)]
+
+row_0, row_1, row_0_1, row_1_1, row_2, row_3, row_4, row_5, row_6, row_7, row_8, row_9, row_10, row_11, row_12, row_13, row_14, row_15, row_16, row_17, row_20, row_21, row_22, row_23, row_24, row_25, row_26, row_27, row_28, row_29, row_30, row_31, row_32, row_33, row_34, row_35, row_36, row_37, row_38, row_39, row_40, row_41 :: Row Type Int
+row_0 = rExt "name" (tVar 0) (rVar 1)
+row_1 = rExt "id" tInt32 (rExt "name" tString rNil)
+
+row_0_1 = rVar 1
+row_1_1 = rExt "id" tInt32 rNil
+
+row_2 = rExt "name" tString (rExt "id" tInt32 rNil)
+row_3 = rExt "id" tString (rExt "name" tInt32 rNil)
+
+row_4 = rExt "name" tString (rExt "id" tInt32 rNil)
+row_5 = rExt "id" tInt32 (rExt "name" tString rNil)
+
+row_6 = rExt "name" tString (rVar 0)
+row_7 = rExt "name" tString (rVar 0)
+
+row_8 = rExt "a" tString (rVar 0)
+row_9 = rExt "b" tString (rVar 0)
+
+row_10 = rExt "name" tString (rVar 0)
+row_11 = rExt "name" tString (rVar 1)
+
+row_12 = rExt "id" tInt32 (rExt "pw" tString (rExt "name" tString rNil))
+row_13 = rExt "id" tInt32 (rVar 0)
+
+row_14 = rExt "pw" tString (rExt "name" tString (rVar 0))
+row_15 = rVar 0
+
+row_16 = rExt "id" tInt32 (rExt "pw" tString (rExt "name" tString (rVar 0)))
+row_17 = rExt "id" tInt32 (rVar 0)
+
+row_20 = rExt "name" tString (rExt "id" tInt32 (rExt "shoeSize" tFloat rNil))
+row_21 = rExt "shoeSize" tFloat (rExt "id" tInt32 (rExt "name" tString rNil))
+
+row_22 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
+row_23 = rExt "shoeSize" tFloat (rVar 0)
+
+row_24 = rExt "name" tString (rExt "id" tInt32 (rExt "shoeSize" tFloat rNil))
+row_25 = rExt "shoeSize" tFloat (rExt "id" tInt32 (rVar 0))
+
+row_26 = rExt "name" tString (rExt "id" tInt32 (rExt "shoeSize" tFloat rNil))
+row_27 = rVar 0
+
+row_28 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt32 rNil))
+row_29 = rExt "shoeSize" tFloat (rExt "id" tInt32 (rVar 0))
+
+row_30 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt32 rNil))
+row_31 = rExt "shoeSize" tFloat (rExt "id" tInt32 (rVar 0))
+
+row_32 = rVar 0
+row_33 = rVar 1
+
+row_34 = rExt "a" tInt32 (rVar 0)
+row_35 = rExt "a" tInt32 (rVar 0)
+
+row_36 = rExt "a" tInt32 (rVar 0)
+row_37 = rExt "a" tInt32 (rVar 1)
+
+row_38 = rExt "a" tInt32 rNil
+row_39 = rExt "a" tInt32 (rVar 1)
+
+row_40 = rExt "a" tInt32 rNil
+row_41 = rExt "a" tInt32 rNil
+
+type_0, type_1, type_2, type_3 :: Type
+type_0 = tRow (rExt "name" (tVar 0) (rVar 1))
+type_1 = tRow (rExt "id" tInt32 (rExt "name" tString rNil))
+type_2 = tRow (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
+type_3 = tRow (rExt "id" tInt32 (rExt "name" tString rNil)) ~> tInt32
 
 --fragment13_2 :: Expr Type () () Void
 --fragment13_2 =

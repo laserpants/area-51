@@ -34,14 +34,14 @@ empty = mempty
 
 {-# INLINE insert #-}
 insert :: Name -> a -> Environment a -> Environment a
-insert = over Env <$$> Map.insert 
+insert = over Environment <$$> Map.insert 
 
 {-# INLINE inserts #-}
 inserts :: [(Name, a)] -> Environment a -> Environment a
 inserts = flip (foldr (uncurry insert))
 
 insertWith :: (a -> a -> a) -> Name -> a -> Environment a -> Environment a
-insertWith f key val = over Env (Map.insertWith f key val)
+insertWith f key val = over Environment (Map.insertWith f key val)
 
 {-# INLINE fromList #-}
 fromList :: [(Name, a)] -> Environment a
@@ -85,19 +85,19 @@ isMember name = Map.member name . unpack
 
 {-# INLINE update #-}
 update :: (a -> Maybe a) -> Name -> Environment a -> Environment a
-update = over Env <$$> Map.update 
+update = over Environment <$$> Map.update 
 
 {-# INLINE alter #-}
 alter :: (Maybe a -> Maybe a) -> Name -> Environment a -> Environment a
-alter = over Env <$$> Map.alter
+alter = over Environment <$$> Map.alter
 
 {-# INLINE delete #-}
 delete :: Name -> Environment a -> Environment a
-delete = over Env . Map.delete
+delete = over Environment . Map.delete
 
 {-# INLINE map #-}
 map :: (a -> b) -> Environment a -> Environment b
-map = over Env . Map.map 
+map = over Environment . Map.map 
 
 {-# INLINE askLookup #-}
 askLookup :: (MonadReader (Environment a) m) => Name -> m (Maybe a)

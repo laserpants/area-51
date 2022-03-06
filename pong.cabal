@@ -21,6 +21,7 @@ executable pong
   other-modules:
       Pong.Compiler
       Pong.Data
+      Pong.Eval
       Pong.Lang
       Pong.LLVM
       Pong.LLVM.Emit

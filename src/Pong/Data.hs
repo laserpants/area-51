@@ -38,7 +38,7 @@ data TypeF g a
   | TArr a a
   | TVar Int
   | TGen g
-  | TRow (Row (TypeT g) Name)
+  | TRow (Row (TypeT g) Int)
 
 type TypeT t = Fix (TypeF t)
 
@@ -103,7 +103,7 @@ data Con
   | LamE
 
 newtype Environment a =
-  Env
+  Environment
     { getEnvironment :: Map Name a
     }
 
