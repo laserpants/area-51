@@ -79,30 +79,31 @@ main =
       it "#2" (Right fragment16_2 == runTypeChecker' 8 mempty (applySubstitution =<< check fragment16_1))
       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment18_1))
+      it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment21_0))
     describe "unify" $ do
-      it "#1" (let Right sub = xnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
-      it "#2" (let Right sub = xnifyRows row_0  row_1 in canonRow (apply sub row_0 :: Row Type Int) == row_1)
-      it "#3" (let Right sub = xnify type_0 type_1 in canonRows (apply sub type_0 :: Type) == type_1)
-      it "#4" (let Right sub = xnify type_2 type_3; u = apply sub type_2 :: Type in canonRows u == type_3)
-      it "#5" (let Left e = xnifyRows row_2 row_3 in UnificationError == e)
-      it "#6" (let Right sub = xnifyRows row_4 row_5; q = apply sub row_4 :: Row Type Int in canonRow q == row_5)
-      it "#7" (let Right sub = xnifyRows row_6 row_7; q = apply sub row_6 :: Row Type Int in canonRow q == row_7)
-      it "#8" (let Left e = xnifyRows row_8 row_9 in UnificationError == e)
-      it "#9" (let Right sub = xnifyRows row_10 row_11 ; q = apply sub row_10 :: Row Type Int ; s = apply sub row_11 :: Row Type Int in canonRow q == canonRow s)
-      it "#10" (let Right sub = xnifyRows row_12 row_13; q = apply sub row_13 :: Row Type Int in canonRow q == canonRow row_12)
-      it "#11" (let Left e = xnifyRows row_14 row_15 in UnificationError == e)
-      it "#12" (let Left e = xnifyRows row_16 row_17 in UnificationError == e)
-      it "#13" (let Right sub = xnifyRows row_20 row_21 in canonRow (apply sub row_20 :: Row Type Int) == canonRow (apply sub row_21))
-      it "#14" (let Right sub = xnifyRows row_22 row_23 in canonRow (apply sub row_22 :: Row Type Int) == canonRow (apply sub row_23))
-      it "#15" (let Right sub = xnifyRows row_24 row_25 in canonRow (apply sub row_24 :: Row Type Int) == canonRow (apply sub row_25))
-      it "#16" (let Right sub = xnifyRows row_26 row_27 in canonRow (apply sub row_26 :: Row Type Int) == canonRow (apply sub row_27))
-      it "#17" (let Right sub = xnifyRows row_28 row_29 in canonRow (apply sub row_28 :: Row Type Int) == canonRow (apply sub row_29))
-      it "#18" (let Left e = xnifyRows row_30 row_31 in UnificationError == e)
-      it "#19" (let Right sub = xnifyRows row_32 row_33 in canonRow (apply sub row_32 :: Row Type Int) == canonRow (apply sub row_33))
-      it "#20" (let Right sub = xnifyRows row_34 row_35 in canonRow (apply sub row_34 :: Row Type Int) == canonRow (apply sub row_35))
-      it "#21" (let Right sub = xnifyRows row_36 row_37 in canonRow (apply sub row_36 :: Row Type Int) == canonRow (apply sub row_37))
-      it "#22" (let Right sub = xnifyRows row_38 row_39 in canonRow (apply sub row_38 :: Row Type Int) == canonRow (apply sub row_39))
-      it "#23" (let Right sub = xnifyRows row_40 row_41 in canonRow (apply sub row_40 :: Row Type Int) == canonRow (apply sub row_41))
+      it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
+      it "#2" (let Right sub = runUnifyRows row_0  row_1 in canonRow (apply sub row_0 :: Row Type Int) == row_1)
+      it "#3" (let Right sub = runUnify type_0 type_1 in canonRows (apply sub type_0 :: Type) == type_1)
+      it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: Type in canonRows u == type_3)
+      it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
+      it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row Type Int in canonRow q == row_5)
+      it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row Type Int in canonRow q == row_7)
+      it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
+      it "#9" (let Right sub = runUnifyRows row_10 row_11 ; q = apply sub row_10 :: Row Type Int ; s = apply sub row_11 :: Row Type Int in canonRow q == canonRow s)
+      it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row Type Int in canonRow q == canonRow row_12)
+      it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
+      it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
+      it "#13" (let Right sub = runUnifyRows row_20 row_21 in canonRow (apply sub row_20 :: Row Type Int) == canonRow (apply sub row_21))
+      it "#14" (let Right sub = runUnifyRows row_22 row_23 in canonRow (apply sub row_22 :: Row Type Int) == canonRow (apply sub row_23))
+      it "#15" (let Right sub = runUnifyRows row_24 row_25 in canonRow (apply sub row_24 :: Row Type Int) == canonRow (apply sub row_25))
+      it "#16" (let Right sub = runUnifyRows row_26 row_27 in canonRow (apply sub row_26 :: Row Type Int) == canonRow (apply sub row_27))
+      it "#17" (let Right sub = runUnifyRows row_28 row_29 in canonRow (apply sub row_28 :: Row Type Int) == canonRow (apply sub row_29))
+      it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
+      it "#19" (let Right sub = runUnifyRows row_32 row_33 in canonRow (apply sub row_32 :: Row Type Int) == canonRow (apply sub row_33))
+      it "#20" (let Right sub = runUnifyRows row_34 row_35 in canonRow (apply sub row_34 :: Row Type Int) == canonRow (apply sub row_35))
+      it "#21" (let Right sub = runUnifyRows row_36 row_37 in canonRow (apply sub row_36 :: Row Type Int) == canonRow (apply sub row_37))
+      it "#22" (let Right sub = runUnifyRows row_38 row_39 in canonRow (apply sub row_38 :: Row Type Int) == canonRow (apply sub row_39))
+      it "#23" (let Right sub = runUnifyRows row_40 row_41 in canonRow (apply sub row_40 :: Row Type Int) == canonRow (apply sub row_41))
     describe "alignCallSigns" $ do
       it "#1" (alignCallSigns_ fragment17_5 == fragment17_6)
     describe "replaceFunArgs" $ do
@@ -119,6 +120,7 @@ main =
       it "#5" (evalProgram_ fragment20_4 == LitValue (LInt32 5))
       it "#6" (evalProgram_ fragment20_5 == LitValue (LInt32 5))
       it "#7" (evalProgram_ fragment20_6 == LitValue (LInt32 0))
+      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (LInt32 2))
 
 applyToFuns 
   :: (MonadState (Program (Expr Type Type a1 a2)) m) 
@@ -144,13 +146,16 @@ convertFunApps_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (Ast, [
 convertFunApps_ (e, ds) = (convertFunApps e, fmap convertFunApps <$$> ds)
 
 
-xnify t1 t2 =  runTypeChecker' (leastFree [t1, t2]) mempty (unify t1 t2)
+runUnify t1 t2 =  runTypeChecker' (leastFree [t1, t2]) mempty (unify t1 t2)
 
-xnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
-
-
+runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
 
 
+
+
+
+--testx444 =
+--  runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment21_0)
 
 
 

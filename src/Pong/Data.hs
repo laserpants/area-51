@@ -80,7 +80,7 @@ type Label t = (t, Name)
 
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
-  | ECon (Label t)
+  | ECon (Label a0)
   | ELit Literal
   | EIf a a a
   | ELet (Label t) a a
@@ -93,6 +93,10 @@ data ExprF t a0 a1 a2 a
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
+--type TaggedExpr = Expr Int Int () Void
+
+type TypedExpr = Expr Type Type () Void
+
 type PreAst = Expr Type Type Void Void
 
 type Ast = Expr Type Void Void ()
@@ -101,6 +105,7 @@ data Con
   = VarE
   | LitE
   | LamE
+  | RowE
 
 newtype Environment a =
   Environment

@@ -325,7 +325,6 @@ convertFunApps =
   cata
     (\case
        EVar a -> eVar a
-       ECon a -> eCon a
        ELit a -> eLit a
        EIf a1 a2 a3 -> eIf a1 a2 a3
        ELet a1 a2 a3 -> eLet a1 a2 a3

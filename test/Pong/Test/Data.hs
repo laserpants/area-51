@@ -1197,6 +1197,51 @@ fragment20_6 =
       ]
   , [])
 
+-- 
+-- match ( a = 1, b = 2, c = 3 } {
+--   | { b = x | r } =>
+--     x
+-- }
+--
+-- match ( a = 1, b = 2, c = 3 } {
+--   | {b} x r =>
+--     x
+-- }
+--
+--
+fragment21_0 :: Expr () a0 a1 a2
+fragment21_0 = 
+  eCase 
+      (eRow (rExt "a" (eLit LUnit) (rExt "b" (eLit (LInt32 2)) (rExt "c" (eLit (LBool True)) rNil))))
+        [ ([((), "{b}"), ((), "x"), ((), "r")], eVar ((), "x")) 
+        ]
+
+fragment21_1 :: TypedExpr
+fragment21_1 = 
+  eCase 
+      (eRow (rExt "a" (eLit LUnit) (rExt "b" (eLit (LInt32 2)) (rExt "c" (eLit (LBool True)) rNil))))
+        [ ([(tInt32 ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt32 (rExt "c" tBool rNil))), "{b}"), (tInt32, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt32, "x")) 
+        ]
+
+fragment21_2 :: Ast
+fragment21_2 = 
+  eCase 
+      (eRow (rExt "a" (eLit LUnit) (rExt "b" (eLit (LInt32 2)) (rExt "c" (eLit (LBool True)) rNil))))
+        [ ([(tInt32 ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt32 (rExt "c" tBool rNil))), "{b}"), (tInt32, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt32, "x")) 
+        ]
+
+
+--frag22 = rExt "a" (eLit (LInt32 1)) (rExt "b" (eLit (LInt32 2)) (rExt "c" (eLit (LInt32 3)) rNil))
+
+
+--testx123 = evalProgram_
+--  ( eCase 
+--      (eRow (rExt "a" (eLit (LInt32 1)) (rExt "b" (eLit (LInt32 2)) (rExt "c" (eLit (LInt32 3)) rNil))))
+--        [ ([(undefined, "{b}"), (tInt32, "x"), (undefined, "r")], undefined) 
+--        ]
+--  , [])
+
+
 --test456 = runReader fragment20_2 mempty == LitValue (LInt32 1)
 --test457 = runReader fragment20_3 mempty == LitValue (LInt32 5)
 --fragment20_1 :: Value

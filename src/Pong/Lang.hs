@@ -121,6 +121,15 @@ unwindRow row = (toMap row, leaf row)
       RExt _ _ r -> r
       t -> embed t 
 
+splitRow :: Name -> Row e v -> (e, Row e v)
+splitRow a row = (e, canonRow 
+    (foldRow k $ case es of
+        [] -> Map.delete a m
+        _  -> Map.insert a es m))
+  where
+    Just (e:es) = Map.lookup a m
+    (m, k) = unwindRow row
+
 class FreeIn a where
   free :: a -> [Int]
 
@@ -223,11 +232,8 @@ instance (Typed t) => Typed (Definition (Label t) a) where
 class HasArity a where
   arity :: a -> Int
 
-instance HasArity Type where
+instance (Typed t) => HasArity t where
   arity = pred <<< length <<< unwindType
-
-instance (Typed t) => HasArity (Expr t t a1 a2) where
-  arity = arity . typeOf
 
 instance HasArity (Definition r a) where
   arity =
@@ -260,6 +266,8 @@ isCon con =
       | LitE == con -> True
     ELam {}
       | LamE == con -> True
+    ERow {}
+      | RowE == con -> True
     _ -> False
 
 unwindType :: (Typed t) => t -> [Type]
@@ -521,8 +529,8 @@ eVar :: Label t -> Expr t a0 a1 a2
 eVar = embed1 EVar
 
 {-# INLINE eCon #-}
-eCon :: Label t -> Expr t a0 a1 a2
-eCon = embed1 ECon
+eCon :: Label a0 -> Expr t a0 a1 a2
+eCon = embed1 ECon 
 
 {-# INLINE eLit #-}
 eLit :: Literal -> Expr t a0 a1 a2

@@ -22,6 +22,7 @@ module Pong.Util
   , asksFirst
   , localSecond
   , asksSecond
+  , trimLabel
   ) where
 
 import Control.Arrow ((***), (<<<), (>>>))
@@ -32,6 +33,7 @@ import Data.Map.Strict (Map, (!), (!?))
 import qualified Data.Map.Strict as Map
 import Data.Text (Text, pack, unpack)
 import Data.Tuple.Extra
+import qualified Data.Text as Text
 
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
@@ -107,3 +109,7 @@ localSecond = local . second
 {-# INLINE asksSecond #-}
 asksSecond :: MonadReader (q, r) m => (r -> a) -> m a
 asksSecond = asks . (snd >>>)
+
+{-# INLINE trimLabel #-}
+trimLabel :: Name -> Name
+trimLabel = Text.tail . Text.init 
