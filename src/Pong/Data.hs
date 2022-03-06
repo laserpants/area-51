@@ -18,14 +18,14 @@ import GHC.Generics (Generic)
 import Pong.Util (Fix(..), Name, Text, embed, embed1, embed2, embed3, embed4)
 import Text.Show.Deriving (deriveShow1)
 
-data RowF e v a
+data RowF e r a
   = RNil
-  | RVar v
+  | RVar r
   | RExt Name e a
 
-type Row e v = Fix (RowF e v)
+type Row e r = Fix (RowF e r)
 
-data TypeF g a
+data TypeF t a
   = TUnit
   | TBool
   | TInt32
@@ -37,8 +37,8 @@ data TypeF g a
   | TCon Name [a]
   | TArr a a
   | TVar Int
-  | TGen g
-  | TRow (Row (TypeT g) Int)
+  | TGen t
+  | TRow (Row (TypeT t) Int)
 
 type TypeT t = Fix (TypeF t)
 
@@ -127,11 +127,11 @@ data Definition r a
 newtype Program a = Program { getProgram :: Map Name (Definition (Label Type) a) }
 
 -- Row
-deriving instance (Show e, Show v, Show a) => Show (RowF e v a)
+deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
 
-deriving instance (Eq e, Eq v, Eq a) => Eq (RowF e v a)
+deriving instance (Eq e, Eq r, Eq a) => Eq (RowF e r a)
 
-deriving instance (Ord e, Ord v, Ord a) => Ord (RowF e v a)
+deriving instance (Ord e, Ord r, Ord a) => Ord (RowF e r a)
 
 deriveShow1 ''RowF
 
@@ -139,18 +139,18 @@ deriveEq1 ''RowF
 
 deriveOrd1 ''RowF
 
-deriving instance Functor (RowF e v)
+deriving instance Functor (RowF e r)
 
-deriving instance Foldable (RowF e v)
+deriving instance Foldable (RowF e r)
 
-deriving instance Traversable (RowF e v)
+deriving instance Traversable (RowF e r)
 
 -- Type
-deriving instance (Show g, Show a) => Show (TypeF g a)
+deriving instance (Show t, Show a) => Show (TypeF t a)
 
-deriving instance (Eq g, Eq a) => Eq (TypeF g a)
+deriving instance (Eq t, Eq a) => Eq (TypeF t a)
 
-deriving instance (Ord g, Ord a) => Ord (TypeF g a)
+deriving instance (Ord t, Ord a) => Ord (TypeF t a)
 
 deriveShow1 ''TypeF
 
@@ -158,11 +158,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor (TypeF g)
+deriving instance Functor (TypeF t)
 
-deriving instance Foldable (TypeF g)
+deriving instance Foldable (TypeF t)
 
-deriving instance Traversable (TypeF g)
+deriving instance Traversable (TypeF t)
 
 -- TCon
 deriving instance Show TCon

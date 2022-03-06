@@ -121,7 +121,7 @@ unwindRow row = (toMap row, leaf row)
       RExt _ _ r -> r
       t -> embed t 
 
-splitRow :: Name -> Row e v -> (e, Row e v)
+splitRow :: Name -> Row e r -> (e, Row e r)
 splitRow a row = (e, canonRow 
     (foldRow k $ case es of
         [] -> Map.delete a m
