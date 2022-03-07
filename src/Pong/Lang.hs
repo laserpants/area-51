@@ -5,100 +5,39 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- {-# LANGUAGE NamedFieldPuns #-}
--- {-# LANGUAGE RecordWildCards #-}
 module Pong.Lang where
 
 import Control.Monad.State
---  ( module Pong.Data
---  , module Pong.Util
---  , FreeIn(..)
---  , Typed
---  , HasArity
---  , annotate
---  , unwindType
---  , insertArgs
---  , typeOf
---  , foldType
---  , isCon
---  , isTCon
---  , arity
---  , returnTypeOf
---  , argTypes
---  , funArgs
---  , constructors
---  , insertDefinition
---  , emptyProgram
-----  , printProgram
---  , tUnit
---  , tBool
---  , tInt32
---  , tInt64
---  , tFloat
---  , tDouble
---  , tVar
---  , tArr
---  , tData
-----  , tOpaque
---  , (~>)
---  , var
---  , lit
---  , if_
---  , lam
---  , let_
---  , app
---  , call_
---  , op2
---  , case_
---  ) where
---
---import Data.Map.Strict (Map)
---import Data.Tuple (swap)
---import Data.Tuple.Extra (first, dupe)
---import Data.Void
 import Control.Newtype.Generics
-import Data.List (nub)
-import Pong.Data
-import Pong.Util
-
--- { id = 1, id = True, name = "Bob" }
-
--- { name = "Bob", id = 1, id = True}
-
--- {name}("Bob", {id}(1, {id}(True, {})))
-
-
--- {name}(String, {id}(Int, {id}(Bool, {})))
--- {id}(Int, {id}(Bool, {name}(String, {})))
---
 import Data.Function ((&))
+import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
 import Debug.Trace
---import TextShow
---import qualified Data.Map.Strict as Map
+import Pong.Data
+import Pong.Util
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
-mapRow f = 
+mapRow f =
   cata $ \case
     RNil -> rNil
     RVar v -> rVar v
     RExt name expr row -> rExt name (f expr) row
 
 mapRowM :: (Monad m) => (e -> m f) -> Row e r -> m (Row f r)
-mapRowM f = 
+mapRowM f =
   cata $ \case
     RNil -> pure rNil
     RVar v -> pure (rVar v)
     RExt name expr row -> rExt name <$> f expr <*> row
 
-canonRow :: Row e r -> Row e r 
+canonRow :: Row e r -> Row e r
 canonRow = uncurry (flip foldRow) . unwindRow
 
-canonRows :: TypeT t -> TypeT t
-canonRows = 
+canonTypeRows :: TypeT t -> TypeT t
+canonTypeRows =
   cata $ \case
     TRow r -> tRow (canonRow r)
     t -> embed t
@@ -107,25 +46,25 @@ foldRow :: Row e r -> Map Name [e] -> Row e r
 foldRow = Map.foldrWithKey (flip . foldr . rExt)
 
 unwindRow :: Row e r -> (Map Name [e], Row e r)
-unwindRow row = (toMap row, leaf row)
+unwindRow row = (foldr (uncurry (Map.insertWith (<>))) mempty fields, leaf)
   where
-    toMap :: Row e r -> Map Name [e]
-    toMap row = foldr (uncurry (Map.insertWith (<>))) mempty fields
-      where
-        fields =
-          (`para` row) $ \case
-            RExt label ty (_, rest) -> (label, [ty]):rest
-            _ -> []
-    leaf :: Row e r -> Row e r
-    leaf = cata $ \case
-      RExt _ _ r -> r
-      t -> embed t 
+    fields =
+      (`para` row) $ \case
+        RExt label ty (_, rest) -> (label, [ty]) : rest
+        _ -> []
+    leaf =
+      (`cata` row) $ \case
+        RExt _ _ r -> r
+        t -> embed t
 
 splitRow :: Name -> Row e r -> (e, Row e r)
-splitRow a row = (e, canonRow 
-    (foldRow k $ case es of
-        [] -> Map.delete a m
-        _  -> Map.insert a es m))
+splitRow a row =
+  ( e
+  , canonRow
+      (foldRow k $
+       case es of
+         [] -> Map.delete a m
+         _ -> Map.insert a es m))
   where
     Just (e:es) = Map.lookup a m
     (m, k) = unwindRow row
@@ -227,7 +166,7 @@ instance (Typed t) => Typed (Definition (Label t) a) where
       Function args (t, _) -> foldType t (typeOf . fst <$> toList args)
       External args (t, _) -> foldType t args
       Constant (t, _) -> typeOf t
-      Data {} -> error "Implementation error" 
+      Data {} -> error "Implementation error"
 
 class HasArity a where
   arity :: a -> Int
@@ -354,15 +293,37 @@ insertArgs = Env.inserts . (swap <$>)
 emptyProgram :: Program a
 emptyProgram = Program mempty
 
+modifyM :: (MonadState s m) => (s -> m s) -> m ()
+modifyM f = get >>= f >>= put
+
 modifyProgram ::
      (MonadState (Program a) m)
   => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a))
   -> m ()
 modifyProgram = modify . over Program
 
+modifyProgramM ::
+     (MonadState (Program a) m)
+  => (Map Name (Definition (Label Type) a) -> m (Map Name (Definition (Label Type) a)))
+  -> m ()
+modifyProgramM f = do
+  Program p <- get
+  x <- f p
+  put (Program x)
+  --p <- Control.Newtype.Generics.unpack <$> get
+  --let zzz = modify f p
+  -- modify . over Program
+
 insertDef ::
      (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
 insertDef = modifyProgram <$$> Map.insert
+
+--updateDef ::
+--     (MonadState (Program a) m)
+--  => (Definition (Label Type) a -> Maybe (Definition (Label Type) a))
+--  -> Name
+--  -> m ()
+--updateDef = modifyProgram <$$> Map.update 
 
 forEachDef ::
      (MonadState (Program a) m)
@@ -371,13 +332,14 @@ forEachDef ::
 forEachDef run = do
   Program defs <- get
   forM_ (Map.keys defs) $ \key -> do
+    Program defs <- get
     def <- run (defs ! key)
     insertDef key def
 
 lookupDef :: (MonadState (Program a) m) => Name -> m (Definition (Label Type) a)
-lookupDef var = do
+lookupDef key = do
   Program defs <- get
-  pure (defs ! var)
+  pure (defs ! key)
 
 {-# INLINE tUnit #-}
 tUnit :: TypeT t
@@ -460,7 +422,7 @@ eVar = embed1 EVar
 
 {-# INLINE eCon #-}
 eCon :: Label a0 -> Expr t a0 a1 a2
-eCon = embed1 ECon 
+eCon = embed1 ECon
 
 {-# INLINE eLit #-}
 eLit :: Literal -> Expr t a0 a1 a2

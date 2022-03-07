@@ -84,8 +84,8 @@ main =
     describe "unify" $ do
       it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
       it "#2" (let Right sub = runUnifyRows row_0  row_1 in canonRow (apply sub row_0 :: Row Type Int) == row_1)
-      it "#3" (let Right sub = runUnify type_0 type_1 in canonRows (apply sub type_0 :: Type) == type_1)
-      it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: Type in canonRows u == type_3)
+      it "#3" (let Right sub = runUnify type_0 type_1 in canonTypeRows (apply sub type_0 :: Type) == type_1)
+      it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: Type in canonTypeRows u == type_3)
       it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
       it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row Type Int in canonRow q == row_5)
       it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row Type Int in canonRow q == row_7)

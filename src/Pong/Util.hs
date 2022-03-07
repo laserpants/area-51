@@ -32,8 +32,8 @@ import Data.Functor.Foldable
 import Data.Map.Strict (Map, (!), (!?))
 import qualified Data.Map.Strict as Map
 import Data.Text (Text, pack, unpack)
-import Data.Tuple.Extra
 import qualified Data.Text as Text
+import Data.Tuple.Extra
 
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
@@ -112,4 +112,4 @@ asksSecond = asks . (snd >>>)
 
 {-# INLINE trimLabel #-}
 trimLabel :: Name -> Name
-trimLabel = Text.tail . Text.init 
+trimLabel = Text.tail . Text.init

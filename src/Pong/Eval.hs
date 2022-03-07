@@ -92,7 +92,7 @@ evalRow =
       case Env.lookup var env of
         Just (RowValue val) -> pure val
         _ -> error "Runtime error"
-    RExt name v row -> do
+    RExt name v row ->
       rExt name <$> eval v <*> row
 
 getLiteral :: Value -> Literal
