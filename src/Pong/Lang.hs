@@ -14,7 +14,6 @@ import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
-import Debug.Trace
 import Pong.Data
 import Pong.Util
 import qualified Pong.Util.Env as Env
