@@ -19,6 +19,7 @@ import Data.Foldable
 import Data.List (nub)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
+import Debug.Trace
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import Data.Void (Void)
@@ -96,6 +97,9 @@ instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
       e -> embed e
     where
       subst = first (apply sub)
+
+instance (Substitutable t) => Substitutable (Row (Expr t t a1 a2) (Label t)) where
+  apply = mapRow . apply 
 
 instance Substitutable (Map k Type) where
   apply = fmap . apply
@@ -296,29 +300,34 @@ checkCases :: TypedExpr -> [([Label Int], TypeChecker TypedExpr)] -> TypeChecker
 checkCases (Fix (ERow row)) [clause] = do
   c <- checkRowCase row clause
   pure [c]
-checkCases _ clauses = do
+checkCases expr clauses = do
   cs <- traverse (secondM applySubstitution <=< checkCase) clauses
   let t:ts = snd <$> cs
   forM_ ts (unifyM t)
   pure cs
 
-checkRowCase :: Row TypedExpr (Label Type) -> ([Label Int], TypeChecker TypedExpr) -> TypeChecker ([Label Type], TypedExpr)
--- TODO: use case
-checkRowCase (Fix RNil) ([], expr) = do
-  e <- expr
-  pure ([], e)
-checkRowCase (Fix (RVar v)) ([(_, _)], expr) = do
-  undefined -- TODO
-checkRowCase row ([(t1, label), (t2, v), (t3, r)], expr) = do
-  let a = trimLabel label
-      (e, q) = splitRow a row
-      vars =
-        [ (typeOf e ~> typeOf q ~> typeOf row, label)
-        , (typeOf e, v)
-        , (typeOf q, r)
-        ]
-  xx <- local (Env.inserts (toPolyType <$$> swap <$> vars)) expr
-  pure (vars, xx)
+checkRowCase 
+  :: Row TypedExpr (Label Type) 
+  -> ([Label Int], TypeChecker TypedExpr) 
+  -> TypeChecker ([Label Type], TypedExpr)
+checkRowCase row (args, expr) = do
+  case args of
+    [(t, "{}")] -> do
+      unifyM (tVar t :: Type) (tRow rNil :: Type)
+      e <- expr
+      pure ([(tRow rNil, "{}")], e)
+    [(u0, label), (u1, v1), (u2, v2)] -> do
+      let (e1, q) = splitRow (trimLabel label) row
+          [_, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
+      unifyM t1 e1
+      unifyM t2 q
+      t0 <- applySubstitution (t1 ~> t2 ~> typeOf row)
+      e <- local (Env.inserts (toPolyType <$$> [(label, t0), (v1, t1), (v2, t2)])) expr
+      pure ([(t0, label), (t1, v1), (t2, v2)], e)
+    [(t, v)] -> do
+      unifyM (tVar t :: Type) (typeOf row)
+      e <- expr
+      pure ([(tVar t, v)], e)
 
 checkCase 
   :: ([Label Int], TypeChecker TypedExpr) 
@@ -329,9 +338,9 @@ checkCase (con:vs, expr) = do
       ps = (snd <$> vs) `zip` (toPolyType <$> ts)
   e <- local (Env.inserts ps) expr
   tvs <-
-    forM (zip vs ts) $ \((t, n), t1) -> do
-      unifyM (tVar t :: Type) t1
-      pure (tVar t, n)
+    forM (zip vs ts) $ \((t0, n), t1) -> do
+      unifyM (tVar t0 :: Type) t1
+      pure (tVar t0, n)
   pure ((t, snd con) : tvs, e)
 
 checkRow 
