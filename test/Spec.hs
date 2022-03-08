@@ -32,7 +32,7 @@ import qualified Pong.Util.Env as Env
 --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 
 foo :: Value
-foo = ConValue "Cons" [LitValue (LInt32 5), ConValue "Nil" []]
+foo = ConValue "Cons" [LitValue (PInt32 5), ConValue "Nil" []]
 
 fromProgram :: State (Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
 fromProgram prog = Map.toList . unpack <$> runState prog emptyProgram
@@ -90,7 +90,7 @@ main =
       it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row Type Int in canonRow q == row_5)
       it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row Type Int in canonRow q == row_7)
       it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
-      it "#9" (let Right sub = runUnifyRows row_10 row_11 ; q = apply sub row_10 :: Row Type Int ; s = apply sub row_11 :: Row Type Int in canonRow q == canonRow s)
+      it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row Type Int; s = apply sub row_11 :: Row Type Int in canonRow q == canonRow s)
       it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row Type Int in canonRow q == canonRow row_12)
       it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
       it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
@@ -114,14 +114,14 @@ main =
       it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
       it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
     describe "evalProgram_" $ do
-      it "#1" (evalProgram_ fragment17_8 == LitValue (LInt32 14))
-      it "#2" (evalProgram_ fragment18_4 == LitValue (LInt32 120))
-      it "#3" (runReader fragment20_2 mempty == LitValue (LInt32 100))
-      it "#4" (evalProgram_ fragment20_3 == LitValue (LInt32 5))
-      it "#5" (evalProgram_ fragment20_4 == LitValue (LInt32 5))
-      it "#6" (evalProgram_ fragment20_5 == LitValue (LInt32 5))
-      it "#7" (evalProgram_ fragment20_6 == LitValue (LInt32 0))
-      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (LInt32 2))
+      it "#1" (evalProgram_ fragment17_8 == LitValue (PInt32 14))
+      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt32 120))
+      it "#3" (runReader fragment20_2 mempty == LitValue (PInt32 100))
+      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt32 5))
+      it "#5" (evalProgram_ fragment20_4 == LitValue (PInt32 5))
+      it "#6" (evalProgram_ fragment20_5 == LitValue (PInt32 5))
+      it "#7" (evalProgram_ fragment20_6 == LitValue (PInt32 0))
+      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt32 2))
 
 applyToFuns 
   :: (MonadState (Program (Expr Type Type a1 a2)) m) 
@@ -261,7 +261,7 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --    describe "free" $ do
 --      describe "Expr" $ do
 --        runFreeTest "x                                       >>  [x]"     (var (i32, "x")) [(tInt32, "x")]
---        runFreeTest "5                                       >>  []"      (lit (LInt32 5) :: Ast) []
+--        runFreeTest "5                                       >>  []"      (lit (PInt32 5) :: Ast) []
 --        runFreeTest "lam(x) => x                             >>  []"      (lam [((), "x")] (var ((), "x"))) []
 --        runFreeTest "lam(x) => y                             >>  [y]"     (lam [((), "x")] (var ((), "y"))) [((), "y")]
 --        runFreeTest "lam(x) => f y                           >>  [f, y]"  (lam [((), "x")] (app (var ((), "f")) [var ((), "y")])) [((), "f"), ((), "y")]
@@ -272,11 +272,11 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --        runFreeTest "match xs { Cons x ys => y }             >>  [xs, y]" input4 [((), "xs"), ((), "y")]
 --        runFreeTest "match xs { Cons x ys => x | Nil => y }  >>  [xs, y]" input5 [((), "xs"), ((), "y")]
 --        runFreeTest "if x then y else z                      >>  [x, y, z]" (if_ (var ((), "x")) (var ((), "y")) (var ((), "z"))) [((), "x"), ((), "y"), ((), "z")]
---        runFreeTest "f(5)                                    >>  f"         (call_ ((), "f") [lit (LInt32 5)]) [((), "f")]
+--        runFreeTest "f(5)                                    >>  f"         (call_ ((), "f") [lit (PInt32 5)]) [((), "f")]
 --      describe "Signature" $ do runIO $ print "TODO"
 --    ---------------------------------------------------------------------------
 --    describe "typeOf" $ do
---      describe "Literal" $ do runTypeOfTest "True" (LBool True) tBool
+--      describe "Prim" $ do runTypeOfTest "True" (PBool True) tBool
 --      describe "Op2" $ do
 --        runTypeOfTest "OEqInt32" OEqInt32 (i32 ~> i32 ~> tBool)
 --      describe "Ast" $ do runIO $ print "TODO"
@@ -284,9 +284,9 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --        runTypeOfTest
 --          "#1"
 --          (Function
---             (Signature [(i32, "x"), (tUnit, "y")] (tBool, lit (LBool True))))
+--             (Signature [(i32, "x"), (tUnit, "y")] (tBool, lit (PBool True))))
 --          (i32 ~> tUnit ~> tBool)
---        runTypeOfTest "#2" (Constant (LBool True)) tBool
+--        runTypeOfTest "#2" (Constant (PBool True)) tBool
 --    ---------------------------------------------------------------------------
 --    describe "arity" $ do
 --      describe "Definition" $ do runIO $ print "TODO"
@@ -304,8 +304,8 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --    describe "isCon" $ do
 --      runIsConTest "x          == Var" (VarE, var ((), "x")) True
 --      runIsConTest "x          /= Lit" (LitE, var ((), "x")) False
---      runIsConTest "()         == Lit" (LitE, lit LUnit) True
---      runIsConTest "()         /= Var" (VarE, lit LUnit) False
+--      runIsConTest "()         == Lit" (LitE, lit PUnit) True
+--      runIsConTest "()         /= Var" (VarE, lit PUnit) False
 --    ---------------------------------------------------------------------------
 --    describe "unwindType" $ do
 --      runUnwindTypeTest "i32" i32 [i32]
@@ -367,7 +367,7 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --    describe "preprocess" $ do runIO $ print "TODO"
 --    describe "modifyFunDefs" $ do
 --      runModifyFunDefsTest1 "#1" input10 ["foo", "baz", "new"]
---      runModifyFunDefsTest2 "#2" input10 (lit (LInt32 1))
+--      runModifyFunDefsTest2 "#2" input10 (lit (PInt32 1))
 --    describe "uniqueName" $ do runUniqueNameTest "#1"
 --    describe "compileFunction" $ do runIO $ print "TODO"
 ----    describe "compileAst" $ do

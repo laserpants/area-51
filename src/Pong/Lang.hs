@@ -107,17 +107,17 @@ class Typed a where
 instance Typed Type where
   typeOf = id
 
-instance Typed Literal where
+instance Typed Prim where
   typeOf =
     \case
-      LBool {} -> tBool
-      LInt32 {} -> tInt32
-      LInt64 {} -> tInt64
-      LFloat {} -> tFloat
-      LDouble {} -> tDouble
-      LChar {} -> tChar
-      LString {} -> tString
-      LUnit -> tUnit
+      PBool {} -> tBool
+      PInt32 {} -> tInt32
+      PInt64 {} -> tInt64
+      PFloat {} -> tFloat
+      PDouble {} -> tDouble
+      PChar {} -> tChar
+      PString {} -> tString
+      PUnit -> tUnit
 
 instance Typed Op2 where
   typeOf =
@@ -425,7 +425,7 @@ eCon :: Label a0 -> Expr t a0 a1 a2
 eCon = embed1 ECon
 
 {-# INLINE eLit #-}
-eLit :: Literal -> Expr t a0 a1 a2
+eLit :: Prim -> Expr t a0 a1 a2
 eLit = embed1 ELit
 
 {-# INLINE eIf #-}

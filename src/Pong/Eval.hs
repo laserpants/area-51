@@ -17,7 +17,7 @@ import Pong.Util
 import qualified Pong.Util.Env as Env
 
 data Value
-  = LitValue Literal
+  = LitValue Prim
   | ConValue Name [Value]
   | RowValue (Row Value Void)
 
@@ -44,8 +44,8 @@ eval =
     ELit lit -> pure (LitValue lit)
     EIf cond true false ->
       cond >>= \case
-        LitValue (LBool True) -> true
-        LitValue (LBool False) -> false
+        LitValue (PBool True) -> true
+        LitValue (PBool False) -> false
         _ -> error "Runtime error"
     ELet (_, var) body expr ->
       mdo let insertVar = localSecond (Env.insert var val)
@@ -64,14 +64,14 @@ eval =
         _ -> error "Runtime error"
     EOp2 OLogicOr a b ->
       a >>= \case
-        LitValue (LBool True) -> a
+        LitValue (PBool True) -> a
         _ -> b
     EOp2 OLogicAnd a b ->
       a >>= \case
-        LitValue (LBool False) -> a
+        LitValue (PBool False) -> a
         _ -> b
     EOp2 op a b ->
-      LitValue <$> (evalOp2 op <$> (getLiteral <$> a) <*> (getLiteral <$> b))
+      LitValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     ECase expr cs -> do
       e <- expr
       evalCase e cs
@@ -95,23 +95,23 @@ evalRow =
     RExt name v row ->
       rExt name <$> eval v <*> row
 
-getLiteral :: Value -> Literal
-getLiteral (LitValue lit) = lit
-getLiteral _ = error "Runtime error"
+getPrim :: Value -> Prim
+getPrim (LitValue lit) = lit
+getPrim _ = error "Runtime error"
 
-evalOp2 :: Op2 -> Literal -> Literal -> Literal
-evalOp2 OEqInt32 (LInt32 m) (LInt32 n) = LBool (m == n)
-evalOp2 OAddInt32 (LInt32 m) (LInt32 n) = LInt32 (m + n)
-evalOp2 OSubInt32 (LInt32 m) (LInt32 n) = LInt32 (m - n)
-evalOp2 OMulInt32 (LInt32 m) (LInt32 n) = LInt32 (m * n)
-evalOp2 OAddFloat (LFloat p) (LFloat q) = LFloat (p + q)
-evalOp2 OMulFloat (LFloat p) (LFloat q) = LFloat (p * q)
-evalOp2 OSubFloat (LFloat p) (LFloat q) = LFloat (p - q)
-evalOp2 ODivFloat (LFloat p) (LFloat q) = LFloat (p / q)
-evalOp2 OAddDouble (LDouble p) (LDouble q) = LDouble (p + q)
-evalOp2 OMulDouble (LDouble p) (LDouble q) = LDouble (p * q)
-evalOp2 OSubDouble (LDouble p) (LDouble q) = LDouble (p - q)
-evalOp2 ODivDouble (LDouble p) (LDouble q) = LDouble (p / q)
+evalOp2 :: Op2 -> Prim -> Prim -> Prim
+evalOp2 OEqInt32 (PInt32 m) (PInt32 n) = PBool (m == n)
+evalOp2 OAddInt32 (PInt32 m) (PInt32 n) = PInt32 (m + n)
+evalOp2 OSubInt32 (PInt32 m) (PInt32 n) = PInt32 (m - n)
+evalOp2 OMulInt32 (PInt32 m) (PInt32 n) = PInt32 (m * n)
+evalOp2 OAddFloat (PFloat p) (PFloat q) = PFloat (p + q)
+evalOp2 OMulFloat (PFloat p) (PFloat q) = PFloat (p * q)
+evalOp2 OSubFloat (PFloat p) (PFloat q) = PFloat (p - q)
+evalOp2 ODivFloat (PFloat p) (PFloat q) = PFloat (p / q)
+evalOp2 OAddDouble (PDouble p) (PDouble q) = PDouble (p + q)
+evalOp2 OMulDouble (PDouble p) (PDouble q) = PDouble (p * q)
+evalOp2 OSubDouble (PDouble p) (PDouble q) = PDouble (p - q)
+evalOp2 ODivDouble (PDouble p) (PDouble q) = PDouble (p / q)
 evalOp2 _ _ _ = error "Runtime error"
 
 evalCase ::

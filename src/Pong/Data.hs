@@ -50,15 +50,15 @@ data TCon
   = VarT
   | ArrT
 
-data Literal
-  = LBool Bool
-  | LInt32 Int
-  | LInt64 Int
-  | LFloat Float
-  | LDouble Double
-  | LChar Char
-  | LString Text
-  | LUnit
+data Prim
+  = PBool Bool
+  | PInt32 Int
+  | PInt64 Int
+  | PFloat Float
+  | PDouble Double
+  | PChar Char
+  | PString Text
+  | PUnit
 
 data Op2
   = OEqInt32
@@ -81,7 +81,7 @@ type Label t = (t, Name)
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
   | ECon (Label a0)
-  | ELit Literal
+  | ELit Prim
   | EIf a a a
   | ELet (Label t) a a
   | EApp a0 a [a]
@@ -177,12 +177,12 @@ deriving instance Eq Con
 
 deriving instance Ord Con
 
--- Literal
-deriving instance Show Literal
+-- Prim
+deriving instance Show Prim
 
-deriving instance Eq Literal
+deriving instance Eq Prim
 
-deriving instance Ord Literal
+deriving instance Ord Prim
 
 -- Op2
 deriving instance Show Op2
