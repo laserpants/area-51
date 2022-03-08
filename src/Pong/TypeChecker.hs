@@ -17,26 +17,38 @@ import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Foldable
 import Data.List (nub)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-import Debug.Trace
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import Data.Void (Void)
+import Debug.Trace
 import GHC.Generics
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Fix(..), Name, Map, cata, embed, project, trimLabel, (!?), (<$$>))
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import qualified Data.Text as Text
+import Pong.Util
+  ( Fix(..)
+  , Map
+  , Name
+  , (!?)
+  , (<$$>)
+  , cata
+  , embed
+  , project
+  , trimLabel
+  )
 import qualified Pong.Util.Env as Env
 
 newtype Substitution =
   Substitution (Map Int Type)
 
 newtype TypeChecker a =
-  TypeChecker (ExceptT TypeError (ReaderT (Environment PolyType) (State (Int, Substitution))) a)
+  TypeChecker
+    (ExceptT TypeError (ReaderT (Environment PolyType) (State ( Int
+                                                              , Substitution))) a)
 
 data TypeError
   = UnificationError
@@ -44,28 +56,29 @@ data TypeError
   | ConstructorNotInScope Name
   | EmptyCaseStatement
 
-runTypeChecker' :: Int -> Environment PolyType -> TypeChecker a -> Either TypeError a
-runTypeChecker' n env m = 
+runTypeChecker' ::
+     Int -> Environment PolyType -> TypeChecker a -> Either TypeError a
+runTypeChecker' n env m =
   evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
 
 runTypeChecker :: Environment PolyType -> TypeChecker a -> Either TypeError a
 runTypeChecker = runTypeChecker' 1
 
-substitute :: Map Int (TypeT t) -> TypeT t -> TypeT t 
+substitute :: Map Int (TypeT t) -> TypeT t -> TypeT t
 substitute sub =
   cata $ \case
     TVar n -> fromMaybe (tVar n) (sub !? n)
-    TCon c ts -> tCon c ts 
+    TCon c ts -> tCon c ts
     TArr t1 t2 -> tArr t1 t2
     TRow row -> tRow (rowSubstitute sub row)
     t -> embed t
 
 rowSubstitute :: Map Int (TypeT t) -> Row (TypeT t) Int -> Row (TypeT t) Int
-rowSubstitute sub = 
+rowSubstitute sub =
   cata $ \case
     RNil -> rNil
     RExt name t row -> rExt name (substitute sub t) row
-    RVar n -> 
+    RVar n ->
       case project <$> (sub !? n) of
         Just (TRow r) -> r
         _ -> rVar n
@@ -74,10 +87,10 @@ class Substitutable a where
   apply :: Substitution -> a -> a
 
 instance Substitutable (Row Type Int) where
-  apply = rowSubstitute . unpack 
+  apply = rowSubstitute . unpack
 
 instance Substitutable (Row PolyType Int) where
-  apply = rowSubstitute . (toPolyType <$>) . unpack 
+  apply = rowSubstitute . (toPolyType <$>) . unpack
 
 instance Substitutable Type where
   apply = substitute . unpack
@@ -98,8 +111,9 @@ instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
     where
       subst = first (apply sub)
 
-instance (Substitutable t) => Substitutable (Row (Expr t t a1 a2) (Label t)) where
-  apply = mapRow . apply 
+instance (Substitutable t) =>
+         Substitutable (Row (Expr t t a1 a2) (Label t)) where
+  apply = mapRow . apply
 
 instance Substitutable (Map k Type) where
   apply = fmap . apply
@@ -107,17 +121,19 @@ instance Substitutable (Map k Type) where
 instance Substitutable (Environment PolyType) where
   apply = fmap . apply
 
-instance (Substitutable t) => Substitutable (Definition (Label t) (Expr t t a1 a2)) where
-  apply sub = \case
-    Function args (t, body) ->
-      Function (first (apply sub) <$> args) (apply sub t, apply sub body)
-    Constant (t, expr) ->
-      Constant (apply sub t, apply sub expr)
-    def -> def
+instance (Substitutable t) =>
+         Substitutable (Definition (Label t) (Expr t t a1 a2)) where
+  apply sub =
+    \case
+      Function args (t, body) ->
+        Function (first (apply sub) <$> args) (apply sub t, apply sub body)
+      Constant (t, expr) -> Constant (apply sub t, apply sub expr)
+      def -> def
 
 compose :: Substitution -> Substitution -> Substitution
-compose = over2 Substitution fun where
-  fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
+compose = over2 Substitution fun
+  where
+    fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
 
 mapsTo :: Int -> Type -> Substitution
 mapsTo = pack <$$> Map.singleton
@@ -126,7 +142,7 @@ tagLabel :: Name -> TypeChecker (Label Int)
 tagLabel name = (,) <$> tag <*> pure name
 
 tagExpr :: Expr t () () Void -> TypeChecker TaggedExpr
-tagExpr = 
+tagExpr =
   cata $ \case
     EVar (_, name) -> eVar <$> tagLabel name
     ECon (_, con) -> eCon <$> tagLabel con
@@ -137,11 +153,14 @@ tagExpr =
     ELam _ args expr -> eLam <$> traverse (tagLabel . snd) args <*> expr
     EOp2 op e1 e2 -> eOp2 op <$> e1 <*> e2
     ECase e1 cs ->
-      eCase <$> e1 <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
+      eCase <$> e1 <*>
+      traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
     ERow row -> eRow <$> tagRow row
 
-tagRow :: Row (Expr t () () Void) (Label t) -> TypeChecker (Row TaggedExpr (Label Int))
-tagRow = 
+tagRow ::
+     Row (Expr t () () Void) (Label t)
+  -> TypeChecker (Row TaggedExpr (Label Int))
+tagRow =
   cata $ \case
     RNil -> pure rNil
     RVar (_, var) -> rVar <$> tagLabel var
@@ -164,15 +183,17 @@ unifyTypes ts us = foldrM (uncurry unifyAndCombine) mempty (zip ts us)
 unifyRows :: Row Type Int -> Row Type Int -> TypeChecker Substitution
 unifyRows r1 r2 =
   case (unwindRow r1, unwindRow r2) of
-    ((m1, Fix RNil), (m2, Fix RNil)) 
+    ((m1, Fix RNil), (m2, Fix RNil))
       | Map.null m1 && Map.null m2 -> pure mempty
-    ((m1, Fix (RVar r)), (m2, k)) 
-      | Map.null m1 && not (Map.null m2) && k == rVar r -> throwError UnificationError
+    ((m1, Fix (RVar r)), (m2, k))
+      | Map.null m1 && not (Map.null m2) && k == rVar r ->
+        throwError UnificationError
       | Map.null m1 -> pure (r `mapsTo` tRow r2)
-    ((m1, j), (m2, Fix (RVar r))) 
-      | Map.null m2 && not (Map.null m1) && j == rVar r -> throwError UnificationError
+    ((m1, j), (m2, Fix (RVar r)))
+      | Map.null m2 && not (Map.null m1) && j == rVar r ->
+        throwError UnificationError
       | Map.null m2 -> pure (r `mapsTo` tRow r1)
-    ((m1, j), (m2, k)) 
+    ((m1, j), (m2, k))
       | Map.null m1 -> unifyRows r2 r1
       | otherwise ->
         case Map.lookup a m2 of
@@ -180,36 +201,40 @@ unifyRows r1 r2 =
             let r1 = foldRow j (updateMap m1 ts)
                 r2 = foldRow k (updateMap m2 us)
             unifyTypes [tRow r1, t] [tRow r2, u]
-          _ 
+          _
             | k == j -> throwError UnificationError
             | otherwise -> do
               p <- rVar <$> tag
               let r1 = foldRow j (updateMap m1 ts)
                   r2 = foldRow p m2
               unifyTypes [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
-        where
-          (a, t:ts) = Map.elemAt 0 m1
-          updateMap m = 
-            \case
-              [] -> Map.delete a m
-              ts -> Map.insert a ts m
+      where (a, t:ts) = Map.elemAt 0 m1
+            updateMap m =
+              \case
+                [] -> Map.delete a m
+                ts -> Map.insert a ts m
 
 unify :: Type -> Type -> TypeChecker Substitution
 unify t1 t2 =
   case (project t1, project t2) of
     (TVar n, t) -> pure (n `mapsTo` embed t)
     (t, TVar n) -> pure (n `mapsTo` embed t)
-    (TCon c1 ts1, TCon c2 ts2) | c1 == c2 -> unifyTypes ts1 ts2
+    (TCon c1 ts1, TCon c2 ts2)
+      | c1 == c2 -> unifyTypes ts1 ts2
     (TArr t1 t2, TArr u1 u2) -> unifyTypes [t1, t2] [u1, u2]
     (TRow r, TRow s) -> unifyRows r s
-    _ 
+    _
       | t1 == t2 -> pure mempty
       | otherwise -> throwError UnificationError
 
 applySubstitution :: (Substitutable a) => a -> TypeChecker a
 applySubstitution a = gets (apply . snd) <*> pure a
 
-unifyM :: (Substitutable a, Substitutable b, Typed a, Typed b) => a -> b -> TypeChecker ()
+unifyM ::
+     (Substitutable a, Substitutable b, Typed a, Typed b)
+  => a
+  -> b
+  -> TypeChecker ()
 unifyM a b = do
   sub <- gets snd
   sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
@@ -221,14 +246,17 @@ instantiate p = do
   pure (fromPolyType (tVar <$> ts) p)
   where
     bound :: PolyType -> Set Int
-    bound = cata $ \case
-      TGen n -> Set.singleton n
-      TCon _ ts -> Set.unions ts
-      TArr t1 t2 -> Set.union t1 t2
-      TRow r -> (`cata` r) (\case
-        RExt _ r a -> Set.union (bound r) a
-        _ -> mempty)
-      _ -> mempty
+    bound =
+      cata $ \case
+        TGen n -> Set.singleton n
+        TCon _ ts -> Set.unions ts
+        TArr t1 t2 -> Set.union t1 t2
+        TRow r ->
+          (`cata` r)
+            (\case
+               RExt _ r a -> Set.union (bound r) a
+               _ -> mempty)
+        _ -> mempty
 
 generalize :: Type -> TypeChecker PolyType
 generalize t = do
@@ -236,7 +264,7 @@ generalize t = do
   t1 <- applySubstitution t
   e1 <- applySubstitution env
   let names = filter (`notElem` free e1) (free t1)
-      ixs = Map.fromList (zip names [0..])
+      ixs = Map.fromList (zip names [0 ..])
   pure (substitute (tGen <$> ixs) (toPolyType t1))
 
 checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
@@ -247,18 +275,17 @@ checkName (t, var) toErr = do
       t1 <- instantiate s
       unifyM (tVar t :: Type) t1
       pure (t1, var)
-    _ ->
-      throwError (toErr var)
+    _ -> throwError (toErr var)
 
 check :: TaggedExpr -> TypeChecker TypedExpr
-check = 
+check =
   cata $ \case
-    EVar var -> eVar <$> checkName var NotInScope 
-    ECon con -> eCon <$> checkName con ConstructorNotInScope 
+    EVar var -> eVar <$> checkName var NotInScope
+    ECon con -> eCon <$> checkName con ConstructorNotInScope
     ELit prim -> pure (eLit prim)
     EIf expr1 expr2 expr3 -> do
       e1 <- expr1
-      unifyM (tBool :: Type) e1 
+      unifyM (tBool :: Type) e1
       e2 <- expr2
       e3 <- expr3
       unifyM e2 e3
@@ -288,15 +315,16 @@ check =
       unifyM e1 t1
       unifyM e2 t2
       pure (eOp2 op e1 e2)
-    ECase _ [] -> 
-      throwError EmptyCaseStatement
+    ECase _ [] -> throwError EmptyCaseStatement
     ECase expr clauses -> do
       e <- expr
       eCase e <$> checkCases e clauses
-    ERow row -> 
-      eRow <$> checkRow row
+    ERow row -> eRow <$> checkRow row
 
-checkCases :: TypedExpr -> [([Label Int], TypeChecker TypedExpr)] -> TypeChecker [([Label Type], TypedExpr)]
+checkCases ::
+     TypedExpr
+  -> [([Label Int], TypeChecker TypedExpr)]
+  -> TypeChecker [([Label Type], TypedExpr)]
 checkCases (Fix (ERow row)) [clause] = do
   c <- checkRowCase row clause
   pure [c]
@@ -306,9 +334,9 @@ checkCases expr clauses = do
   forM_ ts (unifyM t)
   pure cs
 
-checkRowCase 
-  :: Row TypedExpr (Label Type) 
-  -> ([Label Int], TypeChecker TypedExpr) 
+checkRowCase ::
+     Row TypedExpr (Label Type)
+  -> ([Label Int], TypeChecker TypedExpr)
   -> TypeChecker ([Label Type], TypedExpr)
 checkRowCase row (args, expr) = do
   case args of
@@ -318,22 +346,25 @@ checkRowCase row (args, expr) = do
       pure ([(tRow rNil, "{}")], e)
     [(u0, label), (u1, v1), (u2, v2)] -> do
       let (e1, q) = splitRow (trimLabel label) row
-          [_, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
+          [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
       unifyM t1 e1
       unifyM t2 q
-      t0 <- applySubstitution (t1 ~> t2 ~> typeOf row)
-      e <- local (Env.inserts (toPolyType <$$> [(label, t0), (v1, t1), (v2, t2)])) expr
+      applySubstitution (t1 ~> t2 ~> typeOf row) >>= unifyM t0 
+      e <-
+        local
+          (Env.inserts (toPolyType <$$> [(label, t0), (v1, t1), (v2, t2)]))
+          expr
       pure ([(t0, label), (t1, v1), (t2, v2)], e)
     [(t, v)] -> do
       unifyM (tVar t :: Type) (typeOf row)
       e <- expr
       pure ([(tVar t, v)], e)
 
-checkCase 
-  :: ([Label Int], TypeChecker TypedExpr) 
+checkCase ::
+     ([Label Int], TypeChecker TypedExpr)
   -> TypeChecker ([Label Type], TypedExpr)
 checkCase (con:vs, expr) = do
-  (t, _) <- checkName con ConstructorNotInScope 
+  (t, _) <- checkName con ConstructorNotInScope
   let ts = unwindType t
       ps = (snd <$> vs) `zip` (toPolyType <$> ts)
   e <- local (Env.inserts ps) expr
@@ -343,19 +374,20 @@ checkCase (con:vs, expr) = do
       pure (tVar t0, n)
   pure ((t, snd con) : tvs, e)
 
-checkRow 
-  :: Row (Expr Int Int () Void) (Label Int) 
+checkRow ::
+     Row (Expr Int Int () Void) (Label Int)
   -> TypeChecker (Row TypedExpr (Label Type))
-checkRow = cata $ \case
-  RNil -> pure rNil 
-  RVar var -> rVar <$> checkName var NotInScope
-  RExt name expr row -> rExt name <$> check expr <*> row
+checkRow =
+  cata $ \case
+    RNil -> pure rNil
+    RVar var -> rVar <$> checkName var NotInScope
+    RExt name expr row -> rExt name <$> check expr <*> row
 
 -- Substitution
 instance Semigroup Substitution where
   (<>) = compose
 
-deriving instance Monoid Substitution 
+deriving instance Monoid Substitution
 
 deriving instance Show Substitution
 
