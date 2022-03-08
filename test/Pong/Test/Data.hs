@@ -1216,6 +1216,20 @@ fragment21_0 =
         [ ([((), "{b}"), ((), "x"), ((), "r")], eVar ((), "x")) 
         ]
 
+-- match ( a = 1, b = 2, c = 3 } {
+--   | q =>
+--     1
+-- }
+--
+--
+fragment22_0 :: Expr () a0 a1 a2
+fragment22_0 = 
+  eCase 
+      (eRow (rExt "a" (eLit LUnit) (rExt "b" (eLit (LInt32 2)) (rExt "c" (eLit (LBool True)) rNil))))
+        [ ([((), "q")], eLit (LInt32 1)) 
+        ]
+
+
 fragment21_1 :: TypedExpr
 fragment21_1 = 
   eCase 
