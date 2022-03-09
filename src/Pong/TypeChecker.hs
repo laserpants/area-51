@@ -268,14 +268,14 @@ generalize t = do
   pure (substitute (tGen <$> ixs) (toPolyType t1))
 
 checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
-checkName (t, var) toErr = do
-  Environment env <- ask
-  case env !? var of
-    Just s -> do
-      t1 <- instantiate s
-      unifyM (tVar t :: Type) t1
-      pure (t1, var)
-    _ -> throwError (toErr var)
+checkName (t, var) toErr = 
+  asks (Env.lookup var) >>= 
+    \case
+      Just s -> do
+        t1 <- instantiate s
+        unifyM (tVar t :: Type) t1
+        pure (t1, var)
+      _ -> throwError (toErr var)
 
 check :: TaggedExpr -> TypeChecker TypedExpr
 check =

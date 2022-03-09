@@ -5,6 +5,7 @@
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
+import Text.Megaparsec (runParser)
 import Control.Newtype.Generics
 import Data.Map.Strict ((!))
 import Data.Tuple.Extra (second)
@@ -16,6 +17,7 @@ import LLVM.Pretty
 import Pong.Compiler
 import Pong.Data
 import Pong.Eval
+import Pong.Parser
 import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Test.Data
@@ -399,3 +401,13 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --      runEndToEndCompilerTest "#5" program5 "57\n"
 --      runEndToEndCompilerTest "#6" program6 "5\n"
 --      runEndToEndCompilerTest "#7" program7 "5\n"
+--
+
+foox123 = runParser expr "" 
+    --"(let z = Nil() in (let x = 3 in x)(4))"
+    --"let z = Nil() in (let x = 3 in x)(4)"
+    "let z = Nil() in match xs { Cons(x, ys) => match ys { Cons(z, zs) => 2 } | Nil => 4 }"
+    --"let xs = Cons(5 , Cons(3, Nil())) in match xs { | Cons(x, ys) => x | Nil => 4 }"
+    --"let xs = Cons(5 , Cons(3, Nil)) in 3" -- match xs { | Cons(x, ys) => x | Nil => 4 }"
+    --"let xs = \"foo\" in 3" -- match xs { | Cons(x, ys) => x | Nil => 4 }"
+

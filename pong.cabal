@@ -25,6 +25,7 @@ executable pong
       Pong.Lang
       Pong.LLVM
       Pong.LLVM.Emit
+      Pong.Parser
       Pong.TypeChecker
       Pong.Util
       Pong.Util.Env
@@ -42,8 +43,10 @@ executable pong
     , llvm-hs
     , llvm-hs-pretty
     , llvm-hs-pure
+    , megaparsec
     , mtl
     , newtype-generics
+    , parser-combinators
     , process
     , recursion-schemes
     , temporary
@@ -73,8 +76,10 @@ test-suite pong-test
     , llvm-hs
     , llvm-hs-pretty
     , llvm-hs-pure
+    , megaparsec
     , mtl
     , newtype-generics
+    , parser-combinators
     , pong
     , process
     , recursion-schemes

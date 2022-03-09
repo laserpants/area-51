@@ -21,14 +21,16 @@ dependencies:
   - llvm-hs
   - llvm-hs-pretty
   - llvm-hs-pure
+  - megaparsec
   - mtl
+  - newtype-generics
+  - parser-combinators
+  - process
   - recursion-schemes
+  - temporary
   - text
   - text-show
   - transformers
-  - process
-  - temporary
-  - newtype-generics
 
 executables:
   pong:
