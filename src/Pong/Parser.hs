@@ -112,13 +112,13 @@ operator :: [[Operator Parser SourceExpr]]
 operator
     -- 7
  =
-  [ [InfixL (eOp2 OMulInt32 <$ symbol "*")]
+  [ [InfixL (eOp2 OMulInt <$ symbol "*")]
       -- 6
-  , [ InfixL (eOp2 OAddInt32 <$ try (symbol "+" <* notFollowedBy (symbol "+")))
-    , InfixL (eOp2 OSubInt32 <$ symbol "-")
+  , [ InfixL (eOp2 OAddInt <$ try (symbol "+" <* notFollowedBy (symbol "+")))
+    , InfixL (eOp2 OSubInt <$ symbol "-")
     ]
       -- 4
-  , [InfixN (eOp2 OEqInt32 <$ symbol "==")]
+  , [InfixN (eOp2 OEqInt <$ symbol "==")]
       -- 3
   , [InfixR (eOp2 OLogicAnd <$ symbol "&&")]
       -- 2
@@ -215,5 +215,5 @@ prim =
     primChar = PChar <$> surroundedBy (symbol "'") printChar
     primString = lexeme (PString . pack <$> chars)
     primFloat = undefined -- TDouble <$> lexeme Lexer.float
-    primIntegral = PInt32 <$> lexeme Lexer.decimal -- TODO
+    primIntegral = PInt <$> lexeme Lexer.decimal -- TODO
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')

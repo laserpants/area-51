@@ -100,10 +100,10 @@ getPrim (LitValue lit) = lit
 getPrim _ = error "Runtime error"
 
 evalOp2 :: Op2 -> Prim -> Prim -> Prim
-evalOp2 OEqInt32 (PInt32 m) (PInt32 n) = PBool (m == n)
-evalOp2 OAddInt32 (PInt32 m) (PInt32 n) = PInt32 (m + n)
-evalOp2 OSubInt32 (PInt32 m) (PInt32 n) = PInt32 (m - n)
-evalOp2 OMulInt32 (PInt32 m) (PInt32 n) = PInt32 (m * n)
+evalOp2 OEqInt (PInt m) (PInt n) = PBool (m == n)
+evalOp2 OAddInt (PInt m) (PInt n) = PInt (m + n)
+evalOp2 OSubInt (PInt m) (PInt n) = PInt (m - n)
+evalOp2 OMulInt (PInt m) (PInt n) = PInt (m * n)
 evalOp2 OAddFloat (PFloat p) (PFloat q) = PFloat (p + q)
 evalOp2 OMulFloat (PFloat p) (PFloat q) = PFloat (p * q)
 evalOp2 OSubFloat (PFloat p) (PFloat q) = PFloat (p - q)

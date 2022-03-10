@@ -110,8 +110,7 @@ instance Typed Prim where
   typeOf =
     \case
       PBool {} -> tBool
-      PInt32 {} -> tInt32
-      PInt64 {} -> tInt64
+      PInt {} -> tInt
       PFloat {} -> tFloat
       PDouble {} -> tDouble
       PChar {} -> tChar
@@ -121,10 +120,10 @@ instance Typed Prim where
 instance Typed Op2 where
   typeOf =
     \case
-      OEqInt32 -> tInt32 ~> tInt32 ~> tBool
-      OAddInt32 -> tInt32 ~> tInt32 ~> tInt32
-      OSubInt32 -> tInt32 ~> tInt32 ~> tInt32
-      OMulInt32 -> tInt32 ~> tInt32 ~> tInt32
+      OEqInt -> tInt ~> tInt ~> tBool
+      OAddInt -> tInt ~> tInt ~> tInt
+      OSubInt -> tInt ~> tInt ~> tInt
+      OMulInt -> tInt ~> tInt ~> tInt
       OAddFloat -> tFloat ~> tFloat ~> tFloat
       OMulFloat -> tFloat ~> tFloat ~> tFloat
       OSubFloat -> tFloat ~> tFloat ~> tFloat
@@ -248,8 +247,7 @@ toPolyType =
   cata $ \case
     TUnit -> tUnit
     TBool -> tBool
-    TInt32 -> tInt32
-    TInt64 -> tInt64
+    TInt -> tInt
     TFloat -> tFloat
     TDouble -> tDouble
     TChar -> tChar
@@ -265,8 +263,7 @@ fromPolyType ts =
     TGen n -> ts !! n
     TUnit -> tUnit
     TBool -> tBool
-    TInt32 -> tInt32
-    TInt64 -> tInt64
+    TInt -> tInt
     TFloat -> tFloat
     TDouble -> tDouble
     TChar -> tChar
@@ -348,13 +345,9 @@ tUnit = embed TUnit
 tBool :: TypeT t
 tBool = embed TBool
 
-{-# INLINE tInt32 #-}
-tInt32 :: TypeT t
-tInt32 = embed TInt32
-
-{-# INLINE tInt64 #-}
-tInt64 :: TypeT t
-tInt64 = embed TInt64
+{-# INLINE tInt #-}
+tInt :: TypeT t
+tInt = embed TInt
 
 {-# INLINE tFloat #-}
 tFloat :: TypeT t

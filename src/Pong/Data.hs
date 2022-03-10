@@ -28,8 +28,7 @@ type Row e r = Fix (RowF e r)
 data TypeF t a
   = TUnit
   | TBool
-  | TInt32
-  | TInt64
+  | TInt
   | TFloat
   | TDouble
   | TChar
@@ -52,8 +51,7 @@ data TCon
 
 data Prim
   = PBool Bool
-  | PInt32 Int
-  | PInt64 Int
+  | PInt Int
   | PFloat Float
   | PDouble Double
   | PChar Char
@@ -61,10 +59,10 @@ data Prim
   | PUnit
 
 data Op2
-  = OEqInt32
-  | OAddInt32
-  | OSubInt32
-  | OMulInt32
+  = OEqInt
+  | OAddInt
+  | OSubInt
+  | OMulInt
   | OAddFloat
   | OMulFloat
   | OSubFloat
