@@ -112,17 +112,17 @@ operator :: [[Operator Parser SourceExpr]]
 operator
     -- 7
  =
-  [ [InfixL (eOp2 OMulInt <$ symbol "*")]
+  [ [InfixL (eOp2 (Op2 OMul ()) <$ symbol "*")]
       -- 6
-  , [ InfixL (eOp2 OAddInt <$ try (symbol "+" <* notFollowedBy (symbol "+")))
-    , InfixL (eOp2 OSubInt <$ symbol "-")
+  , [ InfixL (eOp2 (Op2 OAdd ()) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
+    , InfixL (eOp2 (Op2 OSub ()) <$ symbol "-")
     ]
       -- 4
-  , [InfixN (eOp2 OEqInt <$ symbol "==")]
+  , [InfixN (eOp2 (Op2 OEq ()) <$ symbol "==")]
       -- 3
-  , [InfixR (eOp2 OLogicAnd <$ symbol "&&")]
+  , [InfixR (eOp2 (Op2 OLogicAnd ()) <$ symbol "&&")]
       -- 2
-  , [InfixR (eOp2 OLogicOr <$ symbol "||")]
+  , [InfixR (eOp2 (Op2 OLogicOr ()) <$ symbol "||")]
   ]
 
 varExpr :: Parser SourceExpr

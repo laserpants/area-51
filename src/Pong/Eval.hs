@@ -62,11 +62,11 @@ eval =
           as <- sequence args
           localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
         _ -> error "Runtime error"
-    EOp2 OLogicOr a b ->
+    EOp2 (Op2 OLogicOr _) a b ->
       a >>= \case
         LitValue (PBool True) -> a
         _ -> b
-    EOp2 OLogicAnd a b ->
+    EOp2 (Op2 OLogicAnd _) a b ->
       a >>= \case
         LitValue (PBool False) -> a
         _ -> b
@@ -99,19 +99,19 @@ getPrim :: Value -> Prim
 getPrim (LitValue lit) = lit
 getPrim _ = error "Runtime error"
 
-evalOp2 :: Op2 -> Prim -> Prim -> Prim
-evalOp2 OEqInt (PInt m) (PInt n) = PBool (m == n)
-evalOp2 OAddInt (PInt m) (PInt n) = PInt (m + n)
-evalOp2 OSubInt (PInt m) (PInt n) = PInt (m - n)
-evalOp2 OMulInt (PInt m) (PInt n) = PInt (m * n)
-evalOp2 OAddFloat (PFloat p) (PFloat q) = PFloat (p + q)
-evalOp2 OMulFloat (PFloat p) (PFloat q) = PFloat (p * q)
-evalOp2 OSubFloat (PFloat p) (PFloat q) = PFloat (p - q)
-evalOp2 ODivFloat (PFloat p) (PFloat q) = PFloat (p / q)
-evalOp2 OAddDouble (PDouble p) (PDouble q) = PDouble (p + q)
-evalOp2 OMulDouble (PDouble p) (PDouble q) = PDouble (p * q)
-evalOp2 OSubDouble (PDouble p) (PDouble q) = PDouble (p - q)
-evalOp2 ODivDouble (PDouble p) (PDouble q) = PDouble (p / q)
+evalOp2 :: Op2 Type -> Prim -> Prim -> Prim
+evalOp2 (Op2 OAdd _) (PFloat p) (PFloat q) = PFloat (p + q)
+evalOp2 (Op2 OMul _) (PFloat p) (PFloat q) = PFloat (p * q)
+evalOp2 (Op2 OSub _) (PFloat p) (PFloat q) = PFloat (p - q)
+evalOp2 (Op2 ODiv _) (PFloat p) (PFloat q) = PFloat (p / q)
+evalOp2 (Op2 OAdd _) (PDouble p) (PDouble q) = PDouble (p + q)
+evalOp2 (Op2 OMul _) (PDouble p) (PDouble q) = PDouble (p * q)
+evalOp2 (Op2 OSub _) (PDouble p) (PDouble q) = PDouble (p - q)
+evalOp2 (Op2 ODiv _) (PDouble p) (PDouble q) = PDouble (p / q)
+evalOp2 (Op2 OEq _) (PInt m) (PInt n) = PBool (m == n)
+evalOp2 (Op2 OAdd _) (PInt m) (PInt n) = PInt (m + n)
+evalOp2 (Op2 OSub _) (PInt m) (PInt n) = PInt (m - n)
+evalOp2 (Op2 OMul _) (PInt m) (PInt n) = PInt (m * n)
 evalOp2 _ _ _ = error "Runtime error"
 
 evalCase ::

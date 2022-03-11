@@ -117,21 +117,10 @@ instance Typed Prim where
       PString {} -> tString
       PUnit -> tUnit
 
-instance Typed Op2 where
+instance (Typed t) => Typed (Op2 t) where
   typeOf =
     \case
-      OEqInt -> tInt ~> tInt ~> tBool
-      OAddInt -> tInt ~> tInt ~> tInt
-      OSubInt -> tInt ~> tInt ~> tInt
-      OMulInt -> tInt ~> tInt ~> tInt
-      OAddFloat -> tFloat ~> tFloat ~> tFloat
-      OMulFloat -> tFloat ~> tFloat ~> tFloat
-      OSubFloat -> tFloat ~> tFloat ~> tFloat
-      ODivFloat -> tFloat ~> tFloat ~> tFloat
-      OAddDouble -> tDouble ~> tDouble ~> tDouble
-      OMulDouble -> tDouble ~> tDouble ~> tDouble
-      OSubDouble -> tDouble ~> tDouble ~> tDouble
-      ODivDouble -> tDouble ~> tDouble ~> tDouble
+      Op2 _ t -> typeOf t
 
 instance (Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
   typeOf =
@@ -405,7 +394,7 @@ rExt :: Name -> e -> Row e r -> Row e r
 rExt = embed3 RExt
 
 {-# INLINE eOp2 #-}
-eOp2 :: Op2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eOp2 :: Op2 t -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eOp2 = embed3 EOp2
 
 {-# INLINE eVar #-}
@@ -451,3 +440,15 @@ eCase = embed2 ECase
 {-# INLINE eRow #-}
 eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
 eRow = embed1 ERow
+
+oAddInt :: Op2 Type
+oAddInt = Op2 OAdd (tInt ~> tInt ~> tInt)
+
+oSubInt :: Op2 Type
+oSubInt = Op2 OSub (tInt ~> tInt ~> tInt)
+
+oMulInt :: Op2 Type
+oMulInt = Op2 OMul (tInt ~> tInt ~> tInt)
+
+oEqInt :: Op2 Type
+oEqInt = Op2 OEq (tInt ~> tInt ~> tBool)

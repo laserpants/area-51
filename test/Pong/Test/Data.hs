@@ -76,7 +76,7 @@ fragment5_0 :: Expr Type () () Void
 fragment5_0 =
   eLet
     (tInt, "h")
-    (eOp2 OAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
+    (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
     (eLet
        (tVar 0 ~> tVar 0, "g")
        (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
@@ -84,9 +84,9 @@ fragment5_0 =
           (tInt ~> tInt, "f")
           (eLam
              [(tInt, "y")]
-             (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
+             (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
           (eOp2
-             OAddInt
+             oAddInt
              (eApp
                 ()
                 (eApp
@@ -100,7 +100,7 @@ fragment5_1 :: Expr Type () () Void
 fragment5_1 =
   eLet
     (tInt, "h")
-    (eOp2 OAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
+    (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
     (eLet
        (tVar 0 ~> tVar 0, "g")
        (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
@@ -110,10 +110,10 @@ fragment5_1 =
              ()
              (eLam
                 [(tInt, "h"), (tInt, "y")]
-                (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
+                (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
              [eVar (tInt, "h")])
           (eOp2
-             OAddInt
+             oAddInt
              (eApp
                 ()
                 (eApp
@@ -133,7 +133,7 @@ fragment7_0 :: Expr Type () () Void
 fragment7_0 =
   eLam
     [(tInt, "x")]
-    (eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "h")))
+    (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "h")))
 
 fragment7_1 :: Expr Type () () Void
 fragment7_1 =
@@ -141,7 +141,7 @@ fragment7_1 =
     ()
     (eLam
        [(tInt, "h"), (tInt, "x")]
-       (eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "h"))))
+       (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "h"))))
     [eVar (tInt, "h")]
 
 -- let
@@ -163,7 +163,7 @@ fragment8_0 :: Expr Type Type () Void
 fragment8_0 =
   eLet
     (tInt, "h")
-    (eOp2 OAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
+    (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
     (eLet
        (tVar 0 ~> tVar 0, "g")
        (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
@@ -171,9 +171,9 @@ fragment8_0 =
           (tInt ~> tInt, "f")
           (eLam
              [(tInt, "y")]
-             (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
+             (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
           (eOp2
-             OAddInt
+             oAddInt
              (eApp
                 tInt
                 (eApp
@@ -187,9 +187,9 @@ fragment8_1 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
 fragment8_1 =
   ( eLet
       (tInt, "h")
-      (eOp2 OAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
+      (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
       (eOp2
-         OAddInt
+         oAddInt
          (eApp
             tInt
             (eApp
@@ -202,7 +202,7 @@ fragment8_1 =
     , ( ".f1"
       , Function
           (fromList [(tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
     ])
 
 fragment9_0 :: Expr Type () () Void
@@ -210,10 +210,10 @@ fragment9_0 =
   eLet
     (tInt, "x")
     (eVar (tInt, "y"))
-    (eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "z")))
+    (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "z")))
 
 fragment9_1 :: Expr Type () () Void
-fragment9_1 = eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z"))
+fragment9_1 = eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z"))
 
 fragment10_0 :: Definition (Label Type) (Expr Type Type () Void)
 fragment10_0 =
@@ -224,9 +224,9 @@ fragment10_0 =
         (eLam
            [(tInt, "x"), (tInt, "y"), (tInt, "z")]
            (eOp2
-              OAddInt
+              oAddInt
               (eVar (tInt, "x"))
-              (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
+              (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
         (eLet
            (tInt ~> tInt ~> tInt ~> tInt, "f")
            (eVar (tInt ~> tInt ~> tInt ~> tInt, "add3"))
@@ -253,9 +253,9 @@ fragment10_1 =
         (eLam
            [(tInt, "x"), (tInt, "y"), (tInt, "z")]
            (eOp2
-              OAddInt
+              oAddInt
               (eVar (tInt, "x"))
-              (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
+              (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
         (eLet
            (tInt ~> tInt ~> tInt, "g")
            (eLam
@@ -281,9 +281,9 @@ fragment11_0 =
     (eLam
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
-          OAddInt
+          oAddInt
           (eVar (tInt, "x"))
-          (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
+          (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
     (eLet
        (tInt ~> tInt ~> tInt ~> tInt, "f")
        (eVar (tInt ~> tInt ~> tInt ~> tInt, "add3"))
@@ -305,9 +305,9 @@ fragment11_1 =
     (eLam
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
-          OAddInt
+          oAddInt
           (eVar (tInt, "x"))
-          (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
+          (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
         --
         -- let
         --   g =
@@ -340,9 +340,9 @@ fragment11_2 =
     (eLam
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
-          OAddInt
+          oAddInt
           (eVar (tInt, "x"))
-          (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
+          (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
         --
         -- let
         --   g =
@@ -557,9 +557,9 @@ fragment15_1 =
     (eLam
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
-          OAddInt
+          oAddInt
           (eVar (tInt, "x"))
-          (eOp2 OAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
+          (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
         --
         -- let
         --   g =
@@ -629,12 +629,12 @@ fragment17_1 =
        ((), "f")
        (eLam
           [((), "x")]
-          (eLam [((), "y")] (eOp2 OAddInt (eVar ((), "x")) (eVar ((), "y")))))
+          (eLam [((), "y")] (eOp2 (Op2 OAdd ()) (eVar ((), "x")) (eVar ((), "y")))))
        (eLet
           ((), "g")
           (eApp () (eVar ((), "f")) [eLit (PInt 2)])
           (eOp2
-             OAddInt
+             (Op2 OAdd ())
              (eApp
                 ()
                 (eApp () (eVar ((), "id")) [eVar ((), "g")])
@@ -647,12 +647,12 @@ fragment17_2 =
     (tVar 2 ~> tVar 2, "id")
     (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eLet
-       (tInt ~> tInt ~> tInt, "f")
+       (tVar 22 ~> tVar 22 ~> tVar 22, "f")
        (eLam
-          [(tInt, "x")]
+          [(tVar 22, "x")]
           (eLam
-             [(tInt, "y")]
-             (eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y")))))
+             [(tVar 22, "y")]
+             (eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y")))))
        (eLet
           (tInt ~> tInt, "g")
           (eApp
@@ -660,7 +660,7 @@ fragment17_2 =
              (eVar (tInt ~> tInt ~> tInt, "f"))
              [eLit (PInt 2)])
           (eOp2
-             OAddInt
+             oAddInt
              (eApp
                 tInt
                 (eApp
@@ -696,10 +696,10 @@ fragment17_3 =
     (tVar 2 ~> tVar 2, "id")
     (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eLet
-       (tInt ~> tInt ~> tInt, "f")
+       (tVar 22 ~> tVar 22 ~> tVar 22, "f")
        (eLam
-          [(tInt, "x"), (tInt, "y")]
-          (eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          [(tVar 22, "x"), (tVar 22, "y")]
+          (eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
        (eLet
           (tInt ~> tInt, "g")
           (eApp
@@ -707,7 +707,7 @@ fragment17_3 =
              (eVar (tInt ~> tInt ~> tInt, "f"))
              [eLit (PInt 2)])
           (eOp2
-             OAddInt
+             oAddInt
              (eApp
                 tInt
                 (eApp
@@ -743,10 +743,10 @@ fragment17_4 =
     (tVar 2 ~> tVar 2, "id")
     (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eLet
-       (tInt ~> tInt ~> tInt, "f")
+       (tVar 22 ~> tVar 22 ~> tVar 22, "f")
        (eLam
-          [(tInt, "x"), (tInt, "y")]
-          (eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          [(tVar 22, "x"), (tVar 22, "y")]
+          (eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
        (eLet
           (tInt ~> tInt, "g")
           (eLam
@@ -756,7 +756,7 @@ fragment17_4 =
                 (eVar (tInt ~> tInt ~> tInt, "f"))
                 [eLit (PInt 2), eVar (tInt, ".v0")]))
           (eOp2
-             OAddInt
+             oAddInt
              (eApp
                 tInt
                 (eLam
@@ -782,7 +782,7 @@ fragment17_4 =
 fragment17_5 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
 fragment17_5 =
   ( eOp2
-      OAddInt
+      oAddInt
       (eApp
          tInt
          (eVar (tInt ~> tInt, ".f3"))
@@ -794,8 +794,8 @@ fragment17_5 =
   , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
     , ( ".f1"
       , Function
-          (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (fromList [(tVar 22, "x"), (tVar 22, "y")])
+          (tVar 22, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
     , ( ".f2"
       , Function
           (fromList [(tInt, ".v0")])
@@ -814,40 +814,43 @@ fragment17_5 =
               [eVar (tInt ~> tInt, ".f2"), eVar (tInt, ".v0")]))
     ])
 
+
 --
 -- .f0(x) = x
 -- .f1(x, y) = x + y
--- .f2(.v0) = .f1(2, .v0)
--- .f3(.v0) = .g4(.f2, .v0)
--- .g4(x, .v0) = x(.v0)
--- .g5(x) = x
+-- .f2(.v0) = .g4(2, .v0)
+-- .f3(.v0) = .g5(.f2, .v0)
+-- .g4(x, y) = x + y
+-- .g5(x, .v0) = x(.v0)
+-- .g6(x) = x
+-- .g7(x, y) = x + y
 --
--- .f3(.g5(3)) + .f1(4, 5)
+-- .f3(.g6(3)) + .g7(4, 5)
 --
 fragment17_6 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
 fragment17_6 =
   ( eOp2
-      OAddInt
+      oAddInt
       (eApp
          tInt
          (eVar (tInt ~> tInt, ".f3"))
-         [eApp tInt (eVar (tInt ~> tInt, ".g5")) [eLit (PInt 3)]])
+         [eApp tInt (eVar (tInt ~> tInt, ".g6")) [eLit (PInt 3)]])
       (eApp
          tInt
-         (eVar (tInt ~> tInt ~> tInt, ".f1"))
+         (eVar (tInt ~> tInt ~> tInt, ".g7"))
          [eLit (PInt 4), eLit (PInt 5)])
   , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
     , ( ".f1"
       , Function
-          (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (fromList [(tVar 22, "x"), (tVar 22, "y")])
+          (tVar 22, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
     , ( ".f2"
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
           , eApp
               tInt
-              (eVar (tInt ~> tInt ~> tInt, ".f1"))
+              (eVar (tInt ~> tInt ~> tInt, ".g4"))
               [eLit (PInt 2), eVar (tInt, ".v0")]))
     , ( ".f3"
       , Function
@@ -855,108 +858,141 @@ fragment17_6 =
           ( tInt
           , eApp
               tInt
-              (eVar ((tInt ~> tInt) ~> tInt ~> tInt, ".g4"))
+              (eVar ((tInt ~> tInt) ~> tInt ~> tInt, ".g5"))
               [eVar (tInt ~> tInt, ".f2"), eVar (tInt, ".v0")]))
     , ( ".g4"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".g5"
       , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
           ( tInt
           , eApp tInt (eVar (tInt ~> tInt, "x")) [eVar (tInt, ".v0")]))
-    , (".g5", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
+    , (".g6", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
+    , ( ".g7"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
     ])
 
---
 -- .f0(x) = x
 -- .f1(x, y) = x + y
--- .f2(.v0) = .f1(2, .v0)
--- .f3(.v0) = .h6(.v0)
--- .g4(x, .v0) = x(.v0)
--- .g5(x) = x
--- .h6(.v0) = .f2(.v0)
+-- .f2(.v0) = .g4(2, .v0)
+-- .f3(.v0) = .g5(.f2, .v0)
+-- .g4(x, y) = x + y
+-- .g5(x, .v0) = x(.v0)
+-- .g6(x) = x
+-- .g7(x, y) = x + y
+-- .h8(.v0) = .f2(.v0)
 --
--- .f3(.g5(3)) + .f1(4, 5)
---
+-- .f3(.g6(3)) + .g7(4, 5)
 fragment17_7 ::
      ( Expr Type Type a1 a2
      , [(Name, Definition (Label Type) (Expr Type Type a1 a2))])
 fragment17_7 =
   ( eOp2
-      OAddInt
+      oAddInt
       (eApp
          tInt
          (eVar (tInt ~> tInt, ".f3"))
-         [eApp tInt (eVar (tInt ~> tInt, ".g5")) [eLit (PInt 3)]])
+         [eApp tInt (eVar (tInt ~> tInt, ".g6")) [eLit (PInt 3)]])
       (eApp
          tInt
-         (eVar (tInt ~> tInt ~> tInt, ".f1"))
+         (eVar (tInt ~> tInt ~> tInt, ".g7"))
          [eLit (PInt 4), eLit (PInt 5)])
   , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
     , ( ".f1"
       , Function
-          (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (fromList [(tVar 22, "x"), (tVar 22, "y")])
+          (tVar 22, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
     , ( ".f2"
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
           , eApp
               tInt
-              (eVar (tInt ~> tInt ~> tInt, ".f1"))
+              (eVar (tInt ~> tInt ~> tInt, ".g4"))
               [eLit (PInt 2), eVar (tInt, ".v0")]))
     , ( ".f3"
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
-          , eApp tInt (eVar (tInt ~> tInt, ".h6")) [eVar (tInt, ".v0")]))
+          , eApp
+              tInt
+              (eVar ((tInt ~> tInt), ".h8"))
+              [eVar (tInt, ".v0")]))
     , ( ".g4"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".g5"
       , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
           ( tInt
           , eApp tInt (eVar (tInt ~> tInt, "x")) [eVar (tInt, ".v0")]))
-    , (".g5", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
-    , ( ".h6"
+    , (".g6", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
+    , ( ".g7"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".h8"
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
           , eApp tInt (eVar (tInt ~> tInt, ".f2")) [eVar (tInt, ".v0")]))
     ])
 
+
 fragment17_8 :: (Ast, [(Name, Definition (Label Type) Ast)])
 fragment17_8 =
   ( eOp2
-      OAddInt
+      oAddInt
+      (eCall (tInt ~> tInt, ".f3")
+         [eCall (tInt ~> tInt, ".g6") [eLit (PInt 3)]])
       (eCall
-         (tInt ~> tInt, ".f3")
-         [eCall (tInt ~> tInt, ".g5") [eLit (PInt 3)]])
-      (eCall
-         (tInt ~> tInt ~> tInt, ".f1")
+         (tInt ~> tInt ~> tInt, ".g7")
          [eLit (PInt 4), eLit (PInt 5)])
   , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
     , ( ".f1"
       , Function
-          (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (fromList [(tVar 22, "x"), (tVar 22, "y")])
+          (tVar 22, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
     , ( ".f2"
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
           , eCall
-              (tInt ~> tInt ~> tInt, ".f1")
+              (tInt ~> tInt ~> tInt, ".g4")
               [eLit (PInt 2), eVar (tInt, ".v0")]))
     , ( ".f3"
       , Function
           (fromList [(tInt, ".v0")])
-          (tInt, eCall (tInt ~> tInt, ".h6") [eVar (tInt, ".v0")]))
+          ( tInt
+          , eCall
+              ((tInt ~> tInt), ".h8")
+              [eVar (tInt, ".v0")]))
     , ( ".g4"
       , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".g5"
+      , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
-          (tInt, eCall (tInt ~> tInt, "x") [eVar (tInt, ".v0")]))
-    , (".g5", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
-    , ( ".h6"
+          ( tInt
+          , eCall (tInt ~> tInt, "x") [eVar (tInt, ".v0")]))
+    , (".g6", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
+    , ( ".g7"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".h8"
       , Function
           (fromList [(tInt, ".v0")])
-          (tInt, eCall (tInt ~> tInt, ".f2") [eVar (tInt, ".v0")]))
+          ( tInt
+          , eCall (tInt ~> tInt, ".f2") [eVar (tInt, ".v0")]))
     ])
+
 
 -- let
 --   f =
@@ -976,15 +1012,15 @@ fragment18_1 =
     (eLam
        [((), "n")]
        (eIf
-          (eOp2 OEqInt (eLit (PInt 0)) (eVar ((), "n")))
+          (eOp2 (Op2 OEq ()) (eLit (PInt 0)) (eVar ((), "n")))
           (eLit (PInt 1))
           (eOp2
-             OMulInt
+             (Op2 OMul ())
              (eVar ((), "n"))
              (eApp
                 ()
                 (eVar ((), "f"))
-                [eOp2 OSubInt (eVar ((), "n")) (eLit (PInt 1))]))))
+                [eOp2 (Op2 OSub ()) (eVar ((), "n")) (eLit (PInt 1))]))))
     (eApp () (eVar ((), "f")) [eLit (PInt 5)])
 
 -- let
@@ -1005,15 +1041,15 @@ fragment18_2 =
     (eLam
        [(tInt, "n")]
        (eIf
-          (eOp2 OEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+          (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
           (eLit (PInt 1))
           (eOp2
-             OMulInt
+             oMulInt
              (eVar (tInt, "n"))
              (eApp
                 tInt
                 (eVar (tInt ~> tInt, "f"))
-                [eOp2 OSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+                [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
     (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
 
 fragment18_3 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
@@ -1024,15 +1060,15 @@ fragment18_3 =
           (fromList [(tInt, "n")])
           ( tInt
           , eIf
-              (eOp2 OEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+              (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
               (eLit (PInt 1))
               (eOp2
-                 OMulInt
+                 oMulInt
                  (eVar (tInt, "n"))
                  (eApp
                     tInt
                     (eVar (tInt ~> tInt, ".f0"))
-                    [eOp2 OSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
     ])
 
 fragment18_4 :: (Ast, [(Name, Definition (Label Type) Ast)])
@@ -1043,14 +1079,14 @@ fragment18_4 =
           (fromList [(tInt, "n")])
           ( tInt
           , eIf
-              (eOp2 OEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+              (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
               (eLit (PInt 1))
               (eOp2
-                 OMulInt
+                 oMulInt
                  (eVar (tInt, "n"))
                  (eCall
                     (tInt ~> tInt, ".f0")
-                    [eOp2 OSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
     ])
 
 --
@@ -1073,7 +1109,7 @@ fragment19_2 =
     , ( "g"
       , Function
           (fromList [(tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "y")) (eLit (PInt 1))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "y")) (eLit (PInt 1))))
     , ( "z"
       , Function
           (fromList
@@ -1108,7 +1144,7 @@ fragment19_3 =
     , ( "g"
       , Function
           (fromList [(tInt, "y")])
-          (tInt, eOp2 OAddInt (eVar (tInt, "y")) (eLit (PInt 1))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "y")) (eLit (PInt 1))))
     , ( "z"
       , Function
           (fromList
@@ -1291,10 +1327,10 @@ fragment21_2 =
 --    (lam [(i32, "x")] (app (var (i32 ~> i32, "f")) [var (i32, "x")]))
 --
 --input2 :: Expr () a0 a1 a2 a3
---input2 = op2 OAddInt (var ((), "x")) (var ((), "y"))
+--input2 = op2 oAddInt (var ((), "x")) (var ((), "y"))
 --
 --input2Typed :: Expr Type () () () Void
---input2Typed = op2 OAddInt (var (i32, "x")) (var (i32, "y"))
+--input2Typed = op2 oAddInt (var (i32, "x")) (var (i32, "y"))
 --
 --input3 :: Expr () () a1 a2 a3
 --input3 =
@@ -1328,8 +1364,8 @@ fragment21_2 =
 --          (lam
 --             [(i32, "n")]
 --             (op2
---                OAddInt
---                (op2 OAddInt (var (i32, "m")) (var (i32, "n")))
+--                oAddInt
+--                (op2 oAddInt (var (i32, "m")) (var (i32, "n")))
 --                (var (i32, "p"))))))
 --    (var (i32 ~> i32 ~> i32, "sum"))
 --
@@ -1340,8 +1376,8 @@ fragment21_2 =
 --    (lam
 --       [(i32, "n")]
 --       (op2
---          OAddInt
---          (op2 OAddInt (var (i32, "m")) (var (i32, "n")))
+--          oAddInt
+--          (op2 oAddInt (var (i32, "m")) (var (i32, "n")))
 --          (lit (PInt 3))))
 --
 --input7 :: Expr Type () () () a3
@@ -1349,12 +1385,12 @@ fragment21_2 =
 --  let_
 --    (i32, "x")
 --    (app (var (i32 ~> i32, "foo")) [var (i32, "x")])
---    (op2 OAddInt (var (i32, "x")) (lit (PInt 3)))
+--    (op2 oAddInt (var (i32, "x")) (lit (PInt 3)))
 --
 --input7NoLetBindings :: Expr Type a0 () () a3
 --input7NoLetBindings =
 --  app
---    (lam [(i32, "x")] (op2 OAddInt (var (i32, "x")) (lit (PInt 3))))
+--    (lam [(i32, "x")] (op2 oAddInt (var (i32, "x")) (lit (PInt 3))))
 --    [app (var (i32 ~> i32, "foo")) [var (i32, "x")]]
 --
 --input8 :: Expr Type a0 () () a3
@@ -1364,8 +1400,8 @@ fragment21_2 =
 --    (lam
 --       [(i32, "n")]
 --       (op2
---          OAddInt
---          (op2 OAddInt (var (i32, "m")) (var (i32, "n")))
+--          oAddInt
+--          (op2 oAddInt (var (i32, "m")) (var (i32, "n")))
 --          (lit (PInt 3))))
 --
 --input8Converted :: Expr Type a0 () () a3
@@ -1373,8 +1409,8 @@ fragment21_2 =
 --  lam
 --    [(i32, "m"), (i32, "n")]
 --    (op2
---       OAddInt
---       (op2 OAddInt (var (i32, "m")) (var (i32, "n")))
+--       oAddInt
+--       (op2 oAddInt (var (i32, "m")) (var (i32, "n")))
 --       (lit (PInt 3)))
 --
 --input9 :: Expr Type a0 () () a3
@@ -1407,7 +1443,7 @@ fragment21_2 =
 ----            , Function
 ----                (Signature
 ----                   [(i32, "x"), (i32, "y")]
-----                   (i32, bOp2 OAddInt (bVar "x") (bVar "y"))))
+----                   (i32, bOp2 oAddInt (bVar "x") (bVar "y"))))
 ----          , ( "fun"
 ----            , Function
 ----                (Signature [(i32, "x")] (i32 ~> i32, bCall "plus" [bVar "x"])))
@@ -1425,7 +1461,7 @@ fragment21_2 =
 --input15 =
 --  lam
 --    [(i32, "x")]
---    (lam [(i32, "y")] (op2 OAddInt (var (i32, "x")) (var (i32, "y"))))
+--    (lam [(i32, "y")] (op2 oAddInt (var (i32, "x")) (var (i32, "y"))))
 --
 --input15ClosuresConverted :: Expr Type a0 () () a3
 --input15ClosuresConverted =
@@ -1434,7 +1470,7 @@ fragment21_2 =
 --    (app
 --       (lam
 --          [(i32, "x"), (i32, "y")]
---          (op2 OAddInt (var (i32, "x")) (var (i32, "y"))))
+--          (op2 oAddInt (var (i32, "x")) (var (i32, "y"))))
 --       [var (i32, "x")])
 --
 ---- (\xs : List -> foo(xs))(Cons(5, Nil))
@@ -1621,7 +1657,7 @@ fragment21_2 =
 --               (case_
 --                  (var ((), "foo"))
 --                  [ ( [((), "Cons"), ((), "x"), ((), "xs")]
---                    , op2 OAddInt (var ((), "x")) (lit (PInt 1)))
+--                    , op2 oAddInt (var ((), "x")) (lit (PInt 1)))
 --                  , ([((), "Nil")], lit (PInt 9))
 --                  ]))))
 --  , ( "main"
@@ -1640,7 +1676,7 @@ fragment21_2 =
 --    , Function
 --        (Signature
 --           [(tInt, "x"), (tInt, "y")]
---           (tInt, op2 OAddInt (var ((), "x")) (var ((), "y")))))
+--           (tInt, op2 oAddInt (var ((), "x")) (var ((), "y")))))
 --  , ( "add5"
 --    , Function
 --        (Signature [] (tInt ~> tInt, app (var ((), "add")) [lit (PInt 5)])))
@@ -1667,7 +1703,7 @@ fragment21_2 =
 --    , Function
 --        (Signature
 --           [(tInt, "x"), (tInt, "y")]
---           (tInt, op2 OAddInt (var ((), "x")) (var ((), "y")))))
+--           (tInt, op2 oAddInt (var ((), "x")) (var ((), "y")))))
 --  , ( "add55"
 --    , Function
 --        (Signature
@@ -1765,7 +1801,7 @@ fragment21_2 =
 --    (lam [((), "x")] (var ((), "x")))
 --    (let_
 --      ((), "f")
---      (lam [((), "y")] (op2 OAddInt (var ((), "y")) (lit (PInt 1))))
+--      (lam [((), "y")] (op2 oAddInt (var ((), "y")) (lit (PInt 1))))
 --      (app (app (var ((), "id")) [var ((), "f")]) [app (var ((), "id")) [lit (PInt 5)]]))
 --
 --input171 :: TypedExpr
@@ -1775,6 +1811,6 @@ fragment21_2 =
 --    (lam [(tVar 0, "x")] (var (tVar 0, "x")))
 --    (let_
 --      (i32 ~> i32, "f")
---      (lam [(i32, "y")] (op2 OAddInt (var (i32, "y")) (lit (PInt 1))))
+--      (lam [(i32, "y")] (op2 oAddInt (var (i32, "y")) (lit (PInt 1))))
 --      (app (app (var ((i32 ~> i32) ~> i32 ~> i32, "id")) [var (i32 ~> i32, "f")]) [app (var (i32 ~> i32, "id")) [lit (PInt 5)]]))
 --

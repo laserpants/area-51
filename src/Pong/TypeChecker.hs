@@ -151,11 +151,14 @@ tagExpr =
     ELet (_, name) e1 e2 -> eLet <$> tagLabel name <*> e1 <*> e2
     EApp _ fun args -> eApp <$> tag <*> fun <*> sequence args
     ELam _ args expr -> eLam <$> traverse (tagLabel . snd) args <*> expr
-    EOp2 op e1 e2 -> eOp2 op <$> e1 <*> e2
+    EOp2 op e1 e2 -> eOp2 <$> tagOp op <*> e1 <*> e2
     ECase e1 cs ->
       eCase <$> e1 <*>
       traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
     ERow row -> eRow <$> tagRow row
+
+tagOp :: Op2 t -> TypeChecker (Op2 Int)
+tagOp (Op2 op _) = Op2 op <$> tag
 
 tagRow ::
      Row (Expr t () () Void) (Label t)
@@ -300,7 +303,7 @@ check =
     EApp t fun args -> do
       f <- fun
       as <- sequence args
-      t0 <- applySubstitution (typeOf f)
+      t0 <- applySubstitution (typeOf f)  -- ????
       t1 <- applySubstitution (tVar t)
       unifyM t0 (foldType t1 (typeOf <$> as))
       pure (eApp t1 f as)
@@ -308,18 +311,30 @@ check =
       as <- traverse (pure . first tVar) args
       e <- local (insertArgs (first (toPolyType . tVar) <$> args)) expr
       pure (eLam as e)
-    EOp2 op expr1 expr2 -> do
+    EOp2 (Op2 op t) expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
-      let [t1, t2] = argTypes op
+      t0 <- instantiate (binopType op)
+      let [t1, t2] = argTypes t0
       unifyM e1 t1
       unifyM e2 t2
-      pure (eOp2 op e1 e2)
+      t1 <- applySubstitution t0
+      pure (eOp2 (Op2 op t1) e1 e2)
     ECase _ [] -> throwError EmptyCaseStatement
     ECase expr clauses -> do
       e <- expr
       eCase e <$> checkCases e clauses
     ERow row -> eRow <$> checkRow row
+
+binopType :: Binop -> PolyType
+binopType = \case
+  OEq        -> tGen 0 ~> tGen 0 ~> tBool
+  OAdd       -> tGen 0 ~> tGen 0 ~> tGen 0
+  OSub       -> tGen 0 ~> tGen 0 ~> tGen 0
+  OMul       -> tGen 0 ~> tGen 0 ~> tGen 0
+  ODiv       -> tGen 0 ~> tGen 0 ~> tGen 0
+  OLogicOr   -> tBool ~> tBool ~> tBool
+  OLogicAnd  -> tBool ~> tBool ~> tBool
 
 checkCases ::
      TypedExpr

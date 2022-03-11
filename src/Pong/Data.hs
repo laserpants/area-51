@@ -58,23 +58,18 @@ data Prim
   | PString Text
   | PUnit
 
-data Op2
-  = OEqInt
-  | OAddInt
-  | OSubInt
-  | OMulInt
-  | OAddFloat
-  | OMulFloat
-  | OSubFloat
-  | ODivFloat
-  | OAddDouble
-  | OMulDouble
-  | OSubDouble
-  | ODivDouble
+data Binop
+  = OEq
+  | OAdd
+  | OSub
+  | OMul
+  | ODiv
   | OLogicOr
   | OLogicAnd
 
 type Label t = (t, Name)
+
+data Op2 t = Op2 Binop t
 
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
@@ -85,7 +80,7 @@ data ExprF t a0 a1 a2 a
   | EApp a0 a [a]
   | ELam a1 [Label t] a
   | ECall a2 (Label t) [a]
-  | EOp2 Op2 a a
+  | EOp2 (Op2 t) a a
   | ECase a [([Label t], a)]
   | ERow (Row (Expr t a0 a1 a2) (Label t))
 
@@ -182,12 +177,19 @@ deriving instance Eq Prim
 
 deriving instance Ord Prim
 
+-- Binop
+deriving instance Show Binop
+
+deriving instance Eq Binop
+
+deriving instance Ord Binop
+
 -- Op2
-deriving instance Show Op2
+deriving instance (Show t) => Show (Op2 t)
 
-deriving instance Eq Op2
+deriving instance (Eq t) => Eq (Op2 t)
 
-deriving instance Ord Op2
+deriving instance (Ord t) => Ord (Op2 t)
 
 -- Expr
 deriving instance
