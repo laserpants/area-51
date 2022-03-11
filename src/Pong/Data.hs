@@ -254,7 +254,6 @@ deriving instance Foldable (Definition d)
 deriving instance Traversable (Definition d)
 
 -- Program
-
 deriving instance (Show a) => Show (Program a)
 
 deriving instance (Eq a) => Eq (Program a)

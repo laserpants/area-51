@@ -863,7 +863,7 @@ fragment17_6 =
     , ( ".g4"
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
     , ( ".g5"
       , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
@@ -873,7 +873,7 @@ fragment17_6 =
     , ( ".g7"
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
     ])
 
 -- .f0(x) = x
@@ -925,7 +925,7 @@ fragment17_7 =
     , ( ".g4"
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
     , ( ".g5"
       , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
@@ -935,7 +935,7 @@ fragment17_7 =
     , ( ".g7"
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
     , ( ".h8"
       , Function
           (fromList [(tInt, ".v0")])
@@ -970,12 +970,12 @@ fragment17_8 =
           (fromList [(tInt, ".v0")])
           ( tInt
           , eCall
-              ((tInt ~> tInt), ".h8")
+              (tInt ~> tInt, ".h8")
               [eVar (tInt, ".v0")]))
     , ( ".g4"
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
     , ( ".g5"
       , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
@@ -985,7 +985,7 @@ fragment17_8 =
     , ( ".g7"
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
-          (tInt, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tInt, "x")) (eVar (tInt, "y"))))
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
     , ( ".h8"
       , Function
           (fromList [(tInt, ".v0")])

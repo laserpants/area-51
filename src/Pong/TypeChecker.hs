@@ -107,6 +107,7 @@ instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
       ELam t args expr -> eLam_ t (subst <$> args) expr
       EApp t fun args -> eApp (apply sub t) fun args
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
+      EOp2 (Op2 op t) a b -> eOp2 (Op2 op (apply sub t)) a b
       e -> embed e
     where
       subst = first (apply sub)

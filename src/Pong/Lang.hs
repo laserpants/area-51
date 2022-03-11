@@ -142,7 +142,7 @@ instance (Typed t) => Typed (Expr t t a1 a2) where
       ELam _ args expr -> foldType expr (typeOf . fst <$> args)
       EApp t fun as -> typeOf t
       ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
-      EOp2 op _ _ -> returnType op
+      EOp2 (Op2 _ t) _ _ -> returnType t
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
       ERow r -> typeOf r
