@@ -11,11 +11,12 @@ import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Function ((&))
 import Data.List (nub)
+import Debug.Trace
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
 import Pong.Data
-import Pong.Util
+import Pong.Util (Name, Map, (!), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -278,6 +279,9 @@ insertArgs = Env.inserts . (swap <$>)
 emptyProgram :: Program a
 emptyProgram = Program mempty
 
+programToTypeEnv :: Program p -> Environment PolyType
+programToTypeEnv p = Env.fromList (toPolyType . typeOf <$$> Map.toList (unpack p))
+
 modifyM :: (MonadState s m) => (s -> m s) -> m ()
 modifyM f = get >>= f >>= put
 
@@ -418,12 +422,8 @@ eLet :: Label t -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eLet = embed3 ELet
 
 {-# INLINE eLam #-}
-eLam :: [Label t] -> Expr t a0 () a2 -> Expr t a0 () a2
-eLam = embed3 ELam ()
-
-{-# INLINE eLam_ #-}
-eLam_ :: a1 -> [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-eLam_ = embed3 ELam
+eLam :: a1 -> [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eLam = embed3 ELam
 
 {-# INLINE eApp #-}
 eApp :: t1 -> Expr t0 t1 a1 a2 -> [Expr t0 t1 a1 a2] -> Expr t0 t1 a1 a2
@@ -441,14 +441,18 @@ eCase = embed2 ECase
 eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
 eRow = embed1 ERow
 
+{-# INLINE oAddInt #-}
 oAddInt :: Op2 Type
 oAddInt = Op2 OAdd (tInt ~> tInt ~> tInt)
 
+{-# INLINE oSubInt #-}
 oSubInt :: Op2 Type
 oSubInt = Op2 OSub (tInt ~> tInt ~> tInt)
 
+{-# INLINE oMulInt #-}
 oMulInt :: Op2 Type
 oMulInt = Op2 OMul (tInt ~> tInt ~> tInt)
 
+{-# INLINE oEqInt #-}
 oEqInt :: Op2 Type
 oEqInt = Op2 OEq (tInt ~> tInt ~> tBool)

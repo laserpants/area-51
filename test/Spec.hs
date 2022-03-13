@@ -2,13 +2,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 
+import Data.List.NonEmpty (toList, fromList)
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
 import Text.Megaparsec (runParser)
 import Control.Newtype.Generics
-import Data.Map.Strict ((!))
-import Data.Tuple.Extra (second)
+import Data.Map.Strict (Map, (!))
+import Data.Tuple.Extra (swap, second)
 import Data.Void
 import Debug.Trace
 import LLVM.IRBuilder
@@ -68,6 +69,7 @@ main =
     describe "convertClosures" $ do
       it "#1" (convertClosures fragment5_0 == fragment5_1)
       it "#2" (convertClosures fragment7_0 == fragment7_1)
+      it "#3" (convertClosuresT fragment5_2 == fragment5_3)
     describe "convertFunApps" $ do
       it "#1" (convertFunApps fragment6_0 == fragment6_1)
     describe "liftLambdas" $ do
@@ -147,6 +149,10 @@ replaceFunArgs_ (e, ds) = runProgramState (applyToFuns replaceFunArgs >> replace
 
 convertFunApps_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (Ast, [(Name, Definition (Label Type) Ast)])
 convertFunApps_ (e, ds) = (convertFunApps e, fmap convertFunApps <$$> ds)
+
+
+--preprocess_ :: (TypedExpr, [(Name, Definition (Label Type) TypedExpr)]) -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 
 
 runUnify t1 t2 =  runTypeChecker' (leastFree [t1, t2]) mempty (unify t1 t2)
@@ -403,11 +409,168 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --      runEndToEndCompilerTest "#7" program7 "5\n"
 --
 
+
+compileDef1
+  :: (MonadState (Program PreAst) m) 
+  => Definition (Label Type) TypedExpr 
+  -> m (Definition (Label Type) PreAst)
+compileDef1 def = preprocess (convertClosuresT . combineLambdas <$> def)
+
+compileDef2 
+  :: (MonadState (Program PreAst) m) 
+  => Definition (Label Type) PreAst
+  -> m (Definition (Label Type) Ast)
+compileDef2 = traverse (pure . convertFunApps <=< replaceFunArgs <=< alignCallSigns)
+
+compileDef 
+  :: (MonadState (Program PreAst) m) 
+  => Definition (Label Type) TypedExpr 
+  -> m (Definition (Label Type) Ast)
+compileDef def = do
+  d2 <- preprocess (convertClosuresT . combineLambdas <$> def)
+  --d3 <- traverse (replaceFunArgs <=< alignCallSigns) d2
+  d3 <- traverse (alignCallSigns) d2
+  pure (convertFunApps <$> d3)
+
+overDefs :: (MonadState (Program PreAst) m) => (Definition (Label Type) a -> m (Definition (Label Type) b)) -> Program a -> m (Program b)
+overDefs f (Program p) = Program <$> traverse f p
+
+abcx456 :: (MonadState (Program PreAst) m) => Program TypedExpr -> m (Program Ast)
+abcx456 = overDefs compileDef 
+
+abcx555 :: Program Ast
+abcx555 = flip evalState emptyProgram $ do
+  overDefs compileDef pirog1
+
+abcx888 :: [(Name, Definition (Label Type) Ast)]
+abcx888 = let Program p = abcx555 in Map.toList p
+
+abcx999 :: (Ast, [(Name, Definition (Label Type) Ast)])
+abcx999 = (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], abcx888)
+
+pirog0 :: Program Ast
+pirog0 = xx2 -- flip evalState emptyProgram $ do
+  where
+    xx1 :: Program PreAst
+    xx1 = evalState (overDefs compileDef1 q) emptyProgram 
+    xx2 = evalState (overDefs compileDef2 xx1) xx1
+    q = over Program (rtcx2 <$>) p
+    te = programToTypeEnv p
+    rtcx2 :: Definition (Label Type) SourceExpr -> Definition (Label Type) TypedExpr
+    rtcx2 (Function args (t, e)) =
+              case runTypeChecker (Env.inserts (toPolyType <$$> swap <$> toList args) te) (applySubstitution =<< check =<< tagExpr e) of
+                Left err -> error (show err)
+                Right r -> Function args (t, r)
+    rtcx2 _ = error "TODO"
+    --Right p = runParser program "" "def fact(n : int) : int = 5 def main(a : int) : int = fact(1)"
+    Right p = runParser program "" "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) def main(a : int) : int = fact(5)"
+
+runp = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
+  where
+    Program p = pirog0
+
+--[(Name, Definition (Label Type) a)]
+pirog1 :: Program TypedExpr
+pirog1 =
+  toProgram 
+    [ ( "fact", Function (fromList [(tInt, "n")]) 
+            (tInt, 
+              eIf 
+                (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+                (eLit (PInt 1))
+                (eOp2 oMulInt
+                    (eVar (tInt, "n"))
+                    (eApp 
+                        tInt
+                        (eVar (tInt ~> tInt, "fact"))
+                        [ eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1)) ]
+                    ))
+            ))
+    , ( "main", Function (fromList [(tInt, "a")]) 
+            (tInt, 
+              eApp
+                tInt
+                (eVar (tInt ~> tInt, "fact"))
+                [eLit (PInt 5)]
+            ))
+    ]
+
+
 foox123 = runParser expr "" 
     --"(let z = Nil() in (let x = 3 in x)(4))"
     --"let z = Nil() in (let x = 3 in x)(4)"
-    "let z = Nil() in match xs { Cons(x, ys) => match ys { Cons(z, zs) => 2 } | Nil => 4 }"
+    "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
     --"let xs = Cons(5 , Cons(3, Nil())) in match xs { | Cons(x, ys) => x | Nil => 4 }"
     --"let xs = Cons(5 , Cons(3, Nil)) in 3" -- match xs { | Cons(x, ys) => x | Nil => 4 }"
     --"let xs = \"foo\" in 3" -- match xs { | Cons(x, ys) => x | Nil => 4 }"
+
+foox124 = do
+  undefined
+  where
+    --q = flip runState p $ preprocess (Function (fromList []) (undefined, undefined))
+    --p = Program (Map.fromList [ ("foo1", Function (fromList [(undefined, "a")]) (undefined, a2)) ])
+    --a3 = preprocess (Function (fromList []) (typeOf a2, a2))
+    Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< check =<< tagExpr a1)
+    Right a1 = runParser expr "" 
+         "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
+
+--foox125 
+--  :: (MonadState (Program PreAst) m) 
+--  => m ()
+--foox125 p =
+--  undefined
+
+--p444 :: (MonadState (Program PreAst) m) => Program TypedExpr -> m () -- (Program PreAst)
+--p444 p = undefined
+--  where
+--    xx = flip runState p (forEachDef preprocess)
+
+xxx0 :: (a -> b) -> Program a -> Program b
+xxx0 f = xxx1 (fmap f)
+
+xxx1 :: (Definition (Label Type) a -> Definition (Label Type) b) -> Program a -> Program b
+xxx1 = over Program . fmap 
+
+xxx2 :: (Monad m) => (Definition (Label Type) a -> m (Definition (Label Type) b)) -> Program a -> m (Program b)
+xxx2 f (Program p) = Program <$> traverse f p
+
+p123 :: Program TypedExpr
+p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf a2, a2))])
+    where
+    Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< check =<< tagExpr a1)
+    Right a1 = runParser expr "" 
+         "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
+
+p124 :: Program Ast
+p124 = (`evalState` emptyProgram) abc
+  where
+--    xyz = xxx0 convertClosures p123
+
+    abc :: (MonadState (Program PreAst) m) => m (Program Ast)
+    abc = xxx2 (def <=< preprocess) p123
+
+    def :: (MonadState (Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
+    def = pure . (convertFunApps <$>)
+
+--    ghi :: (MonadState (Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
+--    ghi = pure . (convertClosures <$>)
+
+
+--  foox125 p123
+
+--foox124 = do
+--  case a2 of
+--    Left e -> error (show e)
+--    Right te -> do
+--      --let a3 = Function (fromList [(tInt, "x")]) (returnType te, te)
+--      undefined
+----      let a4 = flip runState emptyProgram $ 
+----                  preprocess a3
+----      --let a5 = fromProgram <$$> a4
+----      a4
+--  where
+--    Right a1 = foox123
+--    a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< check =<< tagExpr a1)
+
+
 

@@ -4,9 +4,10 @@
 
 module Pong.Parser where
 
+import Data.List.NonEmpty (fromList)
 import Control.Monad.Combinators.Expr
 import Data.Functor (($>))
-import Data.Maybe (fromMaybe)
+import Data.Maybe (isJust, fromMaybe)
 import Data.Text (Text)
 import Data.Void
 import Pong.Data
@@ -16,6 +17,7 @@ import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
+import qualified Data.Map.Strict as Map
 
 type Parser = Parsec Void Text
 
@@ -60,7 +62,7 @@ args1 :: Parser a -> Parser [a]
 args1 = parens . commaSep1
 
 keywords :: [Text]
-keywords = ["if", "then", "else", "case", "let", "in", "lam", "true", "false"]
+keywords = ["if", "then", "else", "match", "let", "in", "lam", "true", "false", "def"]
 
 keyword :: Text -> Parser ()
 keyword tok = Megaparsec.string tok *> notFollowedBy alphaNumChar *> spaces
@@ -99,7 +101,7 @@ expr = makeExprParser apps operator
   where
     apps = do
       f <- parens item <|> item
-      optional (args item) >>= (fromMaybe [] >>> pure <<< \case
+      optional (args expr) >>= (fromMaybe [] >>> pure <<< \case
         [] -> f
         as -> eApp () f as)
     item =
@@ -153,7 +155,7 @@ lamExpr = do
   keyword "lam"
   var <- parens identifier
   e <- symbol "=>" *> expr
-  pure (eLam [toLabel var] e)
+  pure (eLam () [toLabel var] e)
 
 caseExpr :: Parser SourceExpr
 caseExpr = do
@@ -205,15 +207,55 @@ rowExpr =
 prim :: Parser Prim
 prim =
   primUnit <|> primTrue <|> primFalse <|> primChar <|>
-  primString -- <|> try parseFloat
-   <|>
-  primIntegral
+  primString <|> try primFloat <|> primIntegral
   where
     primUnit = symbol "()" $> PUnit
     primTrue = keyword "true" $> PBool True
     primFalse = keyword "false" $> PBool False
     primChar = PChar <$> surroundedBy (symbol "'") printChar
     primString = lexeme (PString . pack <$> chars)
-    primFloat = undefined -- TDouble <$> lexeme Lexer.float
-    primIntegral = PInt <$> lexeme Lexer.decimal -- TODO
+    primFloat = do
+      d <- lexeme Lexer.float
+      f <- optional (char 'f' <|> char 'F')
+      pure $ if isJust f then PFloat (realToFrac d) else PDouble d
+    primIntegral = PInt <$> lexeme Lexer.decimal
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
+
+type_ :: Parser Type
+type_ = keyword "unit" $> tUnit
+  <|> keyword "bool" $> tBool
+  <|> keyword "int" $> tInt
+  <|> keyword "float" $> tFloat
+  <|> keyword "double" $> tDouble
+  <|> keyword "char" $> tChar
+  <|> keyword "string" $> tString
+--  <|> conType
+--  <|> arrType
+--  <|> varType
+--  <|> genType
+
+label_ :: Parser (Label Type)
+label_ = do
+  name <- identifier
+  symbol ":"
+  t <- type_
+  pure (t, name)
+
+def :: Parser (Name, Definition (Label Type) SourceExpr)
+def = 
+  functionDef -- <|> constantDef <|> externalDef <|> dataDef
+    where 
+      functionDef = do
+        keyword "def"
+        name <- identifier
+        args <- parens (some label_)
+        symbol ":"
+        t <- type_
+        symbol "="
+        e <- expr
+        pure (name, Function (fromList args) (t, e))
+
+program :: Parser (Program SourceExpr)
+program = do
+  defs <- many def
+  pure (Program (Map.fromList defs))

@@ -41,7 +41,7 @@ fragment2_0 =
   Function
     (fromList [(tInt, "x")])
     ( tInt ~> tInt ~> tInt
-    , eLam [(tInt, "a")] (eLam [(tInt, "b")] (eVar (tInt, "b"))))
+    , eLam () [(tInt, "a")] (eLam () [(tInt, "b")] (eVar (tInt, "b"))))
 
 fragment2_1 :: Definition (Label Type) (Expr Type () () Void)
 fragment2_1 =
@@ -67,10 +67,10 @@ fragment3_1 =
     [eVar (tInt, "x"), eVar (tInt, "y")]
 
 fragment4_0 :: Expr Type () () Void
-fragment4_0 = eLam [(tInt, "a")] (eLam [(tInt, "b")] (eVar (tInt, "b")))
+fragment4_0 = eLam () [(tInt, "a")] (eLam () [(tInt, "b")] (eVar (tInt, "b")))
 
 fragment4_1 :: Expr Type () () Void
-fragment4_1 = eLam [(tInt, "a"), (tInt, "b")] (eVar (tInt, "b"))
+fragment4_1 = eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "b"))
 
 fragment5_0 :: Expr Type () () Void
 fragment5_0 =
@@ -79,10 +79,10 @@ fragment5_0 =
     (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
     (eLet
        (tVar 0 ~> tVar 0, "g")
-       (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
+       (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
        (eLet
           (tInt ~> tInt, "f")
-          (eLam
+          (eLam ()
              [(tInt, "y")]
              (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
           (eOp2
@@ -103,12 +103,12 @@ fragment5_1 =
     (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
     (eLet
        (tVar 0 ~> tVar 0, "g")
-       (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
+       (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
        (eLet
           (tInt ~> tInt, "f")
           (eApp
              ()
-             (eLam
+             (eLam ()
                 [(tInt, "h"), (tInt, "y")]
                 (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
              [eVar (tInt, "h")])
@@ -123,6 +123,57 @@ fragment5_1 =
                 [eApp () (eVar (tInt ~> tInt, "g")) [eLit (PInt 5)]])
              (eApp () (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]))))
 
+fragment5_2 :: TypedExpr
+fragment5_2 =
+  eLet
+    (tInt, "h")
+    (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
+    (eLet
+       (tVar 0 ~> tVar 0, "g")
+       (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+       (eLet
+          (tInt ~> tInt, "f")
+          (eLam ()
+             [(tInt, "y")]
+             (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
+          (eOp2
+             oAddInt
+             (eApp
+                tInt
+                (eApp
+                   (tInt ~> tInt)
+                   (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "g"))
+                   [eVar (tInt ~> tInt, "f")])
+                [eApp tInt (eVar (tInt ~> tInt, "g")) [eLit (PInt 5)]])
+             (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]))))
+
+fragment5_3 :: TypedExpr
+fragment5_3 =
+  eLet
+    (tInt, "h")
+    (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
+    (eLet
+       (tVar 0 ~> tVar 0, "g")
+       (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+       (eLet
+          (tInt ~> tInt, "f")
+          (eApp
+             (tInt ~> tInt)
+             (eLam ()
+                [(tInt, "h"), (tInt, "y")]
+                (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
+             [eVar (tInt, "h")])
+          (eOp2
+             oAddInt
+             (eApp
+                tInt
+                (eApp
+                   (tInt ~> tInt)
+                   (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "g"))
+                   [eVar (tInt ~> tInt, "f")])
+                [eApp tInt (eVar (tInt ~> tInt, "g")) [eLit (PInt 5)]])
+             (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]))))
+
 fragment6_0 :: PreAst
 fragment6_0 = eApp tInt (eVar (tInt ~> tInt, "f")) [eVar (tInt, "x")]
 
@@ -131,7 +182,7 @@ fragment6_1 = eCall (tInt ~> tInt, "f") [eVar (tInt, "x")]
 
 fragment7_0 :: Expr Type () () Void
 fragment7_0 =
-  eLam
+  eLam ()
     [(tInt, "x")]
     (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "h")))
 
@@ -139,7 +190,7 @@ fragment7_1 :: Expr Type () () Void
 fragment7_1 =
   eApp
     ()
-    (eLam
+    (eLam ()
        [(tInt, "h"), (tInt, "x")]
        (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "h"))))
     [eVar (tInt, "h")]
@@ -166,10 +217,10 @@ fragment8_0 =
     (eOp2 oAddInt (eVar (tInt, "z")) (eLit (PInt 1)))
     (eLet
        (tVar 0 ~> tVar 0, "g")
-       (eLam [(tVar 0, "x")] (eVar (tVar 0, "x")))
+       (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
        (eLet
           (tInt ~> tInt, "f")
-          (eLam
+          (eLam ()
              [(tInt, "y")]
              (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "h"))))
           (eOp2
@@ -221,7 +272,7 @@ fragment10_0 =
     ( tInt
     , eLet
         (tInt ~> tInt ~> tInt ~> tInt, "add3")
-        (eLam
+        (eLam ()
            [(tInt, "x"), (tInt, "y"), (tInt, "z")]
            (eOp2
               oAddInt
@@ -250,7 +301,7 @@ fragment10_1 =
     ( tInt
     , eLet
         (tInt ~> tInt ~> tInt ~> tInt, "add3")
-        (eLam
+        (eLam ()
            [(tInt, "x"), (tInt, "y"), (tInt, "z")]
            (eOp2
               oAddInt
@@ -258,7 +309,7 @@ fragment10_1 =
               (eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z")))))
         (eLet
            (tInt ~> tInt ~> tInt, "g")
-           (eLam
+           (eLam ()
               [(tInt, ".v0"), (tInt, ".v1")]
               (eApp
                  tInt
@@ -266,7 +317,7 @@ fragment10_1 =
                  [eLit (PInt 5), eVar (tInt, ".v0"), eVar (tInt, ".v1")]))
            (eLet
               (tInt ~> tInt, "h")
-              (eLam
+              (eLam ()
                  [(tInt, ".v0")]
                  (eApp
                     tInt
@@ -278,7 +329,7 @@ fragment11_0 :: Expr Type () () Void
 fragment11_0 =
   eLet
     (tInt ~> tInt ~> tInt ~> tInt, "add3")
-    (eLam
+    (eLam ()
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
           oAddInt
@@ -302,7 +353,7 @@ fragment11_1 :: Expr Type Type () Void
 fragment11_1 =
   eLet
     (tInt ~> tInt ~> tInt ~> tInt, "add3")
-    (eLam
+    (eLam ()
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
           oAddInt
@@ -337,7 +388,7 @@ fragment11_2 :: Expr Type Type () Void
 fragment11_2 =
   eLet
     (tInt ~> tInt ~> tInt ~> tInt, "add3")
-    (eLam
+    (eLam ()
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
           oAddInt
@@ -356,7 +407,7 @@ fragment11_2 =
         --
     (eLet
        (tInt ~> tInt ~> tInt, "g")
-       (eLam
+       (eLam ()
           [(tInt, ".v0"), (tInt, ".v1")]
           (eApp
              tInt
@@ -364,7 +415,7 @@ fragment11_2 =
              [eLit (PInt 5), eVar (tInt, ".v0"), eVar (tInt, ".v1")]))
        (eLet
           (tInt ~> tInt, "h")
-          (eLam
+          (eLam ()
              [(tInt, ".v0")]
              (eApp
                 tInt
@@ -386,7 +437,7 @@ fragment12_1 :: Expr Type Type () Void
 fragment12_1 =
   eLet
     (tInt ~> tInt, "g")
-    (eLam
+    (eLam ()
        [(tInt, ".v0")]
        (eApp
           tInt
@@ -407,21 +458,21 @@ fragment13_0 :: Expr () () () Void
 fragment13_0 =
   eLet
     ((), "z")
-    (eLam
+    (eLam ()
        [((), "f")]
-       (eLam
+       (eLam ()
           [((), "g")]
-          (eLam
+          (eLam ()
              [((), "b")]
              (eApp
                 ()
-                (eApp () (eVar ((), "f")) [eLam [((), "x")] (eVar ((), "x"))])
+                (eApp () (eVar ((), "f")) [eLam () [((), "x")] (eVar ((), "x"))])
                 [eApp () (eVar ((), "g")) [eVar ((), "b")]]))))
     (eApp
        ()
        (eVar ((), "z"))
-       [ eLam [((), "x")] (eVar ((), "x"))
-       , eLam [((), "x")] (eVar ((), "x"))
+       [ eLam () [((), "x")] (eVar ((), "x"))
+       , eLam () [((), "x")] (eVar ((), "x"))
        , eLit (PInt 1)
        ])
 
@@ -429,21 +480,21 @@ fragment13_1 :: Expr Int Int () Void
 fragment13_1 =
   eLet
     (1, "z")
-    (eLam
+    (eLam ()
        [(2, "f")]
-       (eLam
+       (eLam ()
           [(3, "g")]
-          (eLam
+          (eLam ()
              [(4, "b")]
              (eApp
                 5
-                (eApp 6 (eVar (7, "f")) [eLam [(8, "x")] (eVar (9, "x"))])
+                (eApp 6 (eVar (7, "f")) [eLam () [(8, "x")] (eVar (9, "x"))])
                 [eApp 10 (eVar (11, "g")) [eVar (12, "b")]]))))
     (eApp
        13
        (eVar (14, "z"))
-       [ eLam [(15, "x")] (eVar (16, "x"))
-       , eLam [(17, "x")] (eVar (18, "x"))
+       [ eLam () [(15, "x")] (eVar (16, "x"))
+       , eLam () [(17, "x")] (eVar (18, "x"))
        , eLit (PInt 1)
        ])
 
@@ -554,7 +605,7 @@ fragment15_1 :: Expr Type () () Void
 fragment15_1 =
   eLet
     (tInt ~> tInt ~> tInt ~> tInt, "add3")
-    (eLam
+    (eLam ()
        [(tInt, "x"), (tInt, "y"), (tInt, "z")]
        (eOp2
           oAddInt
@@ -586,14 +637,14 @@ fragment16_1 :: Expr Int Int () Void
 fragment16_1 =
   eLet
     (1, "id")
-    (eLam [(2, "x")] (eVar (3, "x")))
+    (eLam () [(2, "x")] (eVar (3, "x")))
     (eApp 4 (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) [eLit (PInt 1)])
 
 fragment16_2 :: Expr Type Type () Void
 fragment16_2 =
   eLet
     (tVar 2 ~> tVar 2, "id")
-    (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eApp
        tInt
        (eApp
@@ -624,12 +675,12 @@ fragment17_1 :: Expr () () () Void
 fragment17_1 =
   eLet
     ((), "id")
-    (eLam [((), "x")] (eVar ((), "x")))
+    (eLam () [((), "x")] (eVar ((), "x")))
     (eLet
        ((), "f")
-       (eLam
+       (eLam ()
           [((), "x")]
-          (eLam [((), "y")] (eOp2 (Op2 OAdd ()) (eVar ((), "x")) (eVar ((), "y")))))
+          (eLam () [((), "y")] (eOp2 (Op2 OAdd ()) (eVar ((), "x")) (eVar ((), "y")))))
        (eLet
           ((), "g")
           (eApp () (eVar ((), "f")) [eLit (PInt 2)])
@@ -645,12 +696,12 @@ fragment17_2 :: Expr Type Type () Void
 fragment17_2 =
   eLet
     (tVar 2 ~> tVar 2, "id")
-    (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eLet
        (tVar 22 ~> tVar 22 ~> tVar 22, "f")
-       (eLam
+       (eLam ()
           [(tVar 22, "x")]
-          (eLam
+          (eLam ()
              [(tVar 22, "y")]
              (eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y")))))
        (eLet
@@ -694,10 +745,10 @@ fragment17_3 :: Expr Type Type () Void
 fragment17_3 =
   eLet
     (tVar 2 ~> tVar 2, "id")
-    (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eLet
        (tVar 22 ~> tVar 22 ~> tVar 22, "f")
-       (eLam
+       (eLam ()
           [(tVar 22, "x"), (tVar 22, "y")]
           (eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
        (eLet
@@ -741,15 +792,15 @@ fragment17_4 :: Expr Type Type () Void
 fragment17_4 =
   eLet
     (tVar 2 ~> tVar 2, "id")
-    (eLam [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
     (eLet
        (tVar 22 ~> tVar 22 ~> tVar 22, "f")
-       (eLam
+       (eLam ()
           [(tVar 22, "x"), (tVar 22, "y")]
           (eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
        (eLet
           (tInt ~> tInt, "g")
-          (eLam
+          (eLam ()
              [(tInt, ".v0")]
              (eApp
                 tInt
@@ -759,7 +810,7 @@ fragment17_4 =
              oAddInt
              (eApp
                 tInt
-                (eLam
+                (eLam ()
                    [(tInt, ".v0")]
                    (eApp
                       tInt
@@ -920,7 +971,7 @@ fragment17_7 =
           ( tInt
           , eApp
               tInt
-              (eVar ((tInt ~> tInt), ".h8"))
+              (eVar (tInt ~> tInt, ".h8"))
               [eVar (tInt, ".v0")]))
     , ( ".g4"
       , Function
@@ -1009,7 +1060,7 @@ fragment18_1 :: Expr () () () Void
 fragment18_1 =
   eLet
     ((), "f")
-    (eLam
+    (eLam ()
        [((), "n")]
        (eIf
           (eOp2 (Op2 OEq ()) (eLit (PInt 0)) (eVar ((), "n")))
@@ -1038,7 +1089,7 @@ fragment18_2 :: Expr Type Type () Void
 fragment18_2 =
   eLet
     (tInt ~> tInt, "f")
-    (eLam
+    (eLam ()
        [(tInt, "n")]
        (eIf
           (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))

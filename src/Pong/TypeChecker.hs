@@ -104,7 +104,7 @@ instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
       EVar name -> eVar (subst name)
       ECon con -> eCon (subst con)
       ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
-      ELam t args expr -> eLam_ t (subst <$> args) expr
+      ELam t args expr -> eLam t (subst <$> args) expr
       EApp t fun args -> eApp (apply sub t) fun args
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
       EOp2 (Op2 op t) a b -> eOp2 (Op2 op (apply sub t)) a b
@@ -151,7 +151,7 @@ tagExpr =
     EIf e1 e2 e3 -> eIf <$> e1 <*> e2 <*> e3
     ELet (_, name) e1 e2 -> eLet <$> tagLabel name <*> e1 <*> e2
     EApp _ fun args -> eApp <$> tag <*> fun <*> sequence args
-    ELam _ args expr -> eLam <$> traverse (tagLabel . snd) args <*> expr
+    ELam _ args expr -> eLam () <$> traverse (tagLabel . snd) args <*> expr
     EOp2 op e1 e2 -> eOp2 <$> tagOp op <*> e1 <*> e2
     ECase e1 cs ->
       eCase <$> e1 <*>
@@ -311,7 +311,7 @@ check =
     ELam _ args expr -> do
       as <- traverse (pure . first tVar) args
       e <- local (insertArgs (first (toPolyType . tVar) <$> args)) expr
-      pure (eLam as e)
+      pure (eLam () as e)
     EOp2 (Op2 op t) expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2

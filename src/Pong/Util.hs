@@ -12,6 +12,7 @@ module Pong.Util
   , Names
   , Algebra
   , Coalgebra
+  , List1
   , embed1
   , embed2
   , embed3
@@ -29,11 +30,12 @@ import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader
 import Data.Fix (Fix(..))
 import Data.Functor.Foldable
+import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
-import qualified Data.Map.Strict as Map
 import Data.Text (Text, pack, unpack)
-import qualified Data.Text as Text
 import Data.Tuple.Extra
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
@@ -58,6 +60,8 @@ type Names = [Name]
 type Algebra f a = f a -> a
 
 type Coalgebra f a = a -> f a
+
+type List1 = NonEmpty
 
 {-# INLINE embed1 #-}
 embed1 :: (Corecursive t) => (t1 -> Base t t) -> t1 -> t
