@@ -106,7 +106,7 @@ expr :: Parser SourceExpr
 expr = makeExprParser apps operator
   where
     apps = do
-      f <- parens item <|> item
+      f <- parens expr <|> item
       optional (args expr) >>= (fromMaybe [] >>> pure <<< \case
         [] -> f
         as -> eApp () f as)
