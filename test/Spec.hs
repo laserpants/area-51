@@ -140,6 +140,7 @@ main =
       it "#11" (LitValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
       it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
       it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
+      it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
       
 
 applyToFuns 
