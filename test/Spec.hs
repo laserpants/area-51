@@ -24,7 +24,7 @@ import Pong.Lang
 import Pong.Test.Data
 import Pong.Test.Drivers
 import Pong.TypeChecker
-import Pong.Util (Name, (<$$>))
+import Pong.Util (Name, (<$$>), cata)
 import Test.Hspec
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy.IO as Text
@@ -37,8 +37,8 @@ import qualified Pong.Util.Env as Env
 foo :: Value
 foo = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
-fromProgram :: State (Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
-fromProgram prog = Map.toList . unpack <$> runState prog emptyProgram
+fromProgram :: State (Int, Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
+fromProgram prog = Map.toList . unpack . snd <$> runState prog (0, emptyProgram)
 
 --fromProgram2 :: State (Program (Expr Type Type () Void)) PreAst -> (PreAst, [(Name, Definition (Label Type) PreAst)])
 --fromProgram2 prog = undefined -- Map.toList . unpack <$> runState prog emptyProgram
@@ -126,9 +126,24 @@ main =
       it "#6" (evalProgram_ fragment20_5 == LitValue (PInt 5))
       it "#7" (evalProgram_ fragment20_6 == LitValue (PInt 0))
       it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt 2))
+    describe "parseCompileEval" $ do
+      it "#1" (LitValue (PInt 5) == parseCompileEval "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)")
+      it "#2" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)")
+      it "#3" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)")
+      it "#4" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
+      it "#5" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
+      it "#6" (LitValue (PInt 100) == parseCompileEval "def main(n : int) : int = let xs = Cons(100, Nil()) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 | Nil() => y } | Nil() => 2 }")
+      it "#7" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
+      it "#8" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { | Cons(y, ys) => match ys { | Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
+      it "#9" (ConValue "Cons" [LitValue (PInt 101), ConValue "Nil" []] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => ys | Nil() => Nil() }")
+      it "#10" (LitValue (PInt 101) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(101)")
+      it "#11" (LitValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
+      it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
+      it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(f)(g(5)) + f(1)")
+      
 
 applyToFuns 
-  :: (MonadState (Program (Expr Type Type a1 a2)) m) 
+  :: (MonadState (Int, Program (Expr Type Type a1 a2)) m) 
   => (Expr Type Type a1 a2 -> m (Expr Type Type a1 a2)) 
   -> m ()
 applyToFuns f =
@@ -138,8 +153,8 @@ applyToFuns f =
       pure (Function as (t, e))
     def -> pure def
 
-runProgramState :: State (Program a) s -> [(Name, Definition (Label Type) a)] -> (s, [(Name, Definition (Label Type) a)])
-runProgramState a p = Map.toList . unpack <$> runState a (toProgram p)
+runProgramState :: State (Int, Program a) s -> [(Name, Definition (Label Type) a)] -> (s, [(Name, Definition (Label Type) a)])
+runProgramState a p = Map.toList . unpack . snd <$> runState a (0, toProgram p)
 
 alignCallSigns_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (PreAst, [(Name, Definition (Label Type) PreAst)])
 alignCallSigns_ (e, ds) = runProgramState (applyToFuns alignCallSigns >> alignCallSigns e) ds
@@ -410,90 +425,193 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --
 
 
+--compileDef0
+--  :: (MonadState (Program PreAst) m) 
+--  => Definition (Label Type) TypedExpr 
+--  -> m (Definition (Label Type) PreAst)
+compileDef0 def = convertClosuresT <$> def
+
+
 compileDef1
-  :: (MonadState (Program PreAst) m) 
+  :: (MonadState (Int, Program PreAst) m) 
   => Definition (Label Type) TypedExpr 
   -> m (Definition (Label Type) PreAst)
 compileDef1 def = preprocess (convertClosuresT . combineLambdas <$> def)
 
 compileDef2 
-  :: (MonadState (Program PreAst) m) 
+  :: (MonadState (Int, Program PreAst) m) 
   => Definition (Label Type) PreAst
-  -> m (Definition (Label Type) Ast)
-compileDef2 = traverse (pure . convertFunApps <=< replaceFunArgs <=< alignCallSigns)
+  -> m (Definition (Label Type) PreAst)
+compileDef2 = traverse (replaceFunArgs <=< alignCallSigns) 
 
 compileDef 
-  :: (MonadState (Program PreAst) m) 
+  :: (MonadState (Int, Program PreAst) m) 
   => Definition (Label Type) TypedExpr 
   -> m (Definition (Label Type) Ast)
 compileDef def = do
   d2 <- preprocess (convertClosuresT . combineLambdas <$> def)
-  --d3 <- traverse (replaceFunArgs <=< alignCallSigns) d2
+  --d3 <- runReaderT (traverse (replaceFunArgs <=< alignCallSigns) d2) 1
   d3 <- traverse (alignCallSigns) d2
   pure (convertFunApps <$> d3)
 
-overDefs :: (MonadState (Program PreAst) m) => (Definition (Label Type) a -> m (Definition (Label Type) b)) -> Program a -> m (Program b)
+--overDefs :: (MonadState (Program p) m) => (Definition (Label Type) a -> m (Definition (Label Type) b)) -> Program a -> m (Program b)
 overDefs f (Program p) = Program <$> traverse f p
 
-abcx456 :: (MonadState (Program PreAst) m) => Program TypedExpr -> m (Program Ast)
-abcx456 = overDefs compileDef 
+--abcx456 :: (MonadState (Program PreAst) m) => Program TypedExpr -> m (Program Ast)
+--abcx456 = overDefs compileDef 
 
-abcx555 :: Program Ast
-abcx555 = flip evalState emptyProgram $ do
-  overDefs compileDef pirog1
+--abcx555 :: Program Ast
+--abcx555 = flip evalState emptyProgram $ do
+--  overDefs compileDef pirog1
 
-abcx888 :: [(Name, Definition (Label Type) Ast)]
-abcx888 = let Program p = abcx555 in Map.toList p
+--abcx888 :: [(Name, Definition (Label Type) Ast)]
+--abcx888 = let Program p = abcx555 in Map.toList p
 
-abcx999 :: (Ast, [(Name, Definition (Label Type) Ast)])
-abcx999 = (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], abcx888)
+--abcx999 :: (Ast, [(Name, Definition (Label Type) Ast)])
+--abcx999 = (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], abcx888)
 
-pirog0 :: Program Ast
-pirog0 = xx2 -- flip evalState emptyProgram $ do
+parseCompileEval s =
+    evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList r)
   where
-    xx1 :: Program PreAst
-    xx1 = evalState (overDefs compileDef1 q) emptyProgram 
-    xx2 = evalState (overDefs compileDef2 xx1) xx1
-    q = over Program (rtcx2 <$>) p
-    te = programToTypeEnv p
+    xx1 = snd $ execState (forEachDefX q compileDef1) (0, emptyProgram)
+    xx2 = snd $ execState (forEachDefX xx1 compileDef2) (0, xx1)
+    Program r = over Program (convertFunApps <$$>) xx2
+    q = oiouo p
+    Right p = runParser program "" s
+
+-- let
+--   f =
+--     lam(y) => 
+--       z
+--   in
+--     f(1)
+
+-- let
+--   f =
+--     (lam[z, y] => z)(z)
+--   in
+--     f(1)
+
+-- let
+--   f =
+--     (lam(v0) => (lam[z, y] => z)(z, v0))
+--   in
+--     f(1)
+
+-- f0(z, y) = z
+--
+-- let
+--   f =
+--     (lam(v0) => f0(z, v0))
+--   in
+--     f(1)
+
+-- f0(z, y) = z
+-- f1(v0) = f0(z, v0)
+--
+-- let
+--   in
+--     f1(1)
+
+
+parseCompileEval2 s =
+    xx1
+    --evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList r)
+  where
+    gork = zz2 <$> xx0
+    Program xx0 = let Program z = q in Program (compileDef0 <$> z) 
+--    xx0 = execState (forEachDefX q zz2) emptyProgram
+    --xx0 = over Program (zz2 <$$>) r
+    xx1 = snd $ execState (forEachDefX q compileDef1) (0, emptyProgram)
+    xx2 = snd $ execState (forEachDefX xx1 compileDef2) (0, xx1)
+    Program r = over Program (convertFunApps <$$>) xx2
+    q = oiouo p
+    Right p = runParser program "" s
+
+    zz2 def = (fillParams (convert <$> def))
+  
+    convert =
+      cata $ \case
+        EVar v -> eVar v
+        ECon c -> eCon c
+        ELit l -> eLit l
+        EIf a1 a2 a3 -> eIf a1 a2 a3
+        ELam _ a1 a2 -> eLam () a1 a2
+        ELet a1 a2 a3 -> eLet a1 a2 a3
+        EApp a1 a2 a3 -> eApp a1 a2 a3
+        EOp2 op a1 a2 -> eOp2 op a1 a2
+        ECase a1 a2 -> eCase a1 a2
+        ERow row -> eRow (mapRow convert row)
+
+
+
+
+--pirog0 :: Program Ast
+--pirog0 = xx3 -- flip evalState emptyProgram $ do
+--  where
+----    xx1 :: Program PreAst
+--    xx1 = execState (forEachDefX q compileDef1) (0, emptyProgram)
+--    xx2 = execState (forEachDefX xx1 compileDef2) (0, xx1)
+--    xx3 :: Program Ast
+--    xx3 = over Program (convertFunApps <$$>) xx2
+--    q = oiouo p
+--    --te = programToTypeEnv p
+--    --Right p = runParser program "" "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)"
+--    --Right p = runParser program "" "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)"
+--    --Right p = runParser program "" "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)"
+--    --Right p = runParser program "" "def main(n : int) : int = let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
+--    --Right p = runParser program "" "def main(n : int) : int = let xs = Nil in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
+--    --Right p = runParser program "" "def main(n : int) : int = let xs = Cons(100, Nil()) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 | Nil() => y } | Nil() => 2 }"
+--    --Right p = runParser program "" "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }"
+--    --Right p = runParser program "" "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { | Cons(y, ys) => match ys { | Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }"
+--    --Right p = runParser program "" "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => ys | Nil() => Nil() }"
+--    Right p = runParser program "" "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(101)"
+
+
+oiouo :: Program SourceExpr -> Program TypedExpr
+oiouo p = over Program (rtcx2 <$>) p
+  where
+    te = Env.inserts [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] (programToTypeEnv p)
     rtcx2 :: Definition (Label Type) SourceExpr -> Definition (Label Type) TypedExpr
     rtcx2 (Function args (t, e)) =
               case runTypeChecker (Env.inserts (toPolyType <$$> swap <$> toList args) te) (applySubstitution =<< check =<< tagExpr e) of
                 Left err -> error (show err)
                 Right r -> Function args (t, r)
     rtcx2 _ = error "TODO"
-    --Right p = runParser program "" "def fact(n : int) : int = 5 def main(a : int) : int = fact(1)"
-    Right p = runParser program "" "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) def main(a : int) : int = fact(5)"
 
-runp = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
-  where
-    Program p = pirog0
+--runq t = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
+--  where
+--    Program p = t
+
+--runp = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
+--  where
+--    Program p = pirog0
 
 --[(Name, Definition (Label Type) a)]
-pirog1 :: Program TypedExpr
-pirog1 =
-  toProgram 
-    [ ( "fact", Function (fromList [(tInt, "n")]) 
-            (tInt, 
-              eIf 
-                (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
-                (eLit (PInt 1))
-                (eOp2 oMulInt
-                    (eVar (tInt, "n"))
-                    (eApp 
-                        tInt
-                        (eVar (tInt ~> tInt, "fact"))
-                        [ eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1)) ]
-                    ))
-            ))
-    , ( "main", Function (fromList [(tInt, "a")]) 
-            (tInt, 
-              eApp
-                tInt
-                (eVar (tInt ~> tInt, "fact"))
-                [eLit (PInt 5)]
-            ))
-    ]
+--pirog1 :: Program TypedExpr
+--pirog1 =
+--  toProgram 
+--    [ ( "fact", Function (fromList [(tInt, "n")]) 
+--            (tInt, 
+--              eIf 
+--                (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+--                (eLit (PInt 1))
+--                (eOp2 oMulInt
+--                    (eVar (tInt, "n"))
+--                    (eApp 
+--                        tInt
+--                        (eVar (tInt ~> tInt, "fact"))
+--                        [ eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1)) ]
+--                    ))
+--            ))
+--    , ( "main", Function (fromList [(tInt, "a")]) 
+--            (tInt, 
+--              eApp
+--                tInt
+--                (eVar (tInt ~> tInt, "fact"))
+--                [eLit (PInt 5)]
+--            ))
+--    ]
 
 
 foox123 = runParser expr "" 
@@ -541,19 +659,19 @@ p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf
     Right a1 = runParser expr "" 
          "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
 
-p124 :: Program Ast
-p124 = (`evalState` emptyProgram) abc
-  where
---    xyz = xxx0 convertClosures p123
-
-    abc :: (MonadState (Program PreAst) m) => m (Program Ast)
-    abc = xxx2 (def <=< preprocess) p123
-
-    def :: (MonadState (Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
-    def = pure . (convertFunApps <$>)
-
---    ghi :: (MonadState (Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
---    ghi = pure . (convertClosures <$>)
+--p124 :: Program Ast
+--p124 = (`evalState` emptyProgram) abc
+--  where
+----    xyz = xxx0 convertClosures p123
+--
+--    abc :: (MonadState (Int, Program PreAst) m) => m (Program Ast)
+--    abc = xxx2 (def <=< preprocess) p123
+--
+--    def :: (MonadState (Int, Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
+--    def = pure . (convertFunApps <$>)
+--
+----    ghi :: (MonadState (Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
+----    ghi = pure . (convertClosures <$>)
 
 
 --  foox125 p123

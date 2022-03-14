@@ -15,6 +15,7 @@ import Debug.Trace
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
+import Data.Tuple.Extra (swap, second)
 import Pong.Data
 import Pong.Util (Name, Map, (!), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import qualified Pong.Util.Env as Env
@@ -286,25 +287,25 @@ modifyM :: (MonadState s m) => (s -> m s) -> m ()
 modifyM f = get >>= f >>= put
 
 modifyProgram ::
-     (MonadState (Program a) m)
+     (MonadState (Int, Program a) m)
   => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a))
   -> m ()
-modifyProgram = modify . over Program
+modifyProgram = modify . second . over Program
 
 modifyProgramM ::
-     (MonadState (Program a) m)
+     (MonadState (Int, Program a) m)
   => (Map Name (Definition (Label Type) a) -> m (Map Name (Definition (Label Type) a)))
   -> m ()
 modifyProgramM f = do
-  Program p <- get
+  (n, Program p) <- get
   x <- f p
-  put (Program x)
+  put (n, Program x)
   --p <- Control.Newtype.Generics.unpack <$> get
   --let zzz = modify f p
   -- modify . over Program
 
 insertDef ::
-     (MonadState (Program a) m) => Name -> Definition (Label Type) a -> m ()
+     (MonadState (Int, Program a) m) => Name -> Definition (Label Type) a -> m ()
 insertDef = modifyProgram <$$> Map.insert
 
 --updateDef ::
@@ -314,20 +315,26 @@ insertDef = modifyProgram <$$> Map.insert
 --  -> m ()
 --updateDef = modifyProgram <$$> Map.update 
 
-forEachDef ::
-     (MonadState (Program a) m)
-  => (Definition (Label Type) a -> m (Definition (Label Type) a))
-  -> m ()
+--forEachDef ::
+--     (MonadState (Program a) m)
+--  => (Definition (Label Type) a -> m (Definition (Label Type) a))
+--  -> m ()
 forEachDef run = do
-  Program defs <- get
+  Program defs <- gets snd
   forM_ (Map.keys defs) $ \key -> do
-    Program defs <- get
+    Program defs <- gets snd
     def <- run (defs ! key)
     insertDef key def
 
-lookupDef :: (MonadState (Program a) m) => Name -> m (Definition (Label Type) a)
+forEachDefX (Program defs) run = do
+  --Program defs <- get
+  forM_ (Map.keys defs) $ \key -> do
+    def <- run (defs ! key)
+    insertDef key def
+
+lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition (Label Type) a)
 lookupDef key = do
-  Program defs <- get
+  Program defs <- gets snd
   pure (defs ! key)
 
 {-# INLINE tUnit #-}

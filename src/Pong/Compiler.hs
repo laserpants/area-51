@@ -193,7 +193,7 @@ substMany :: [(Name, Name)] -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
 substMany subs e = foldr (uncurry varSubst) e subs
 
 liftLambdas ::
-     (MonadState (Program PreAst) m) => Expr Type Type () Void -> m PreAst
+     (MonadState (Int, Program PreAst) m) => Expr Type Type () Void -> m PreAst
 liftLambdas input = do
   (expr, subs) <- replaceVarLets <$> fun input
   modifyProgram (substMany subs <$$>)
@@ -217,12 +217,13 @@ liftLambdas input = do
         EApp t expr args -> eApp t <$> expr <*> sequence args
         ERow row -> eRow <$> mapRowM liftLambdas row
 
-uniqueName :: (MonadState (Program a) m) => Name -> m Name
+uniqueName :: (MonadState (Int, Program a) m) => Name -> m Name
 uniqueName prefix = do
-  Program defs <- get
-  pure (prefix <> showt (Map.size defs))
+  n <- gets fst
+  modify (first succ)
+  pure (prefix <> showt n)
 
-alignCallSigns :: (MonadState (Program PreAst) m) => PreAst -> m PreAst
+alignCallSigns :: (MonadState (Int, Program PreAst) m) => PreAst -> m PreAst
 alignCallSigns =
   cata $ \case
     EApp t fun args -> do
@@ -243,7 +244,7 @@ alignCallSigns =
     e -> embed <$> sequence e
 
 preprocess ::
-     (MonadState (Program PreAst) m)
+     (MonadState (Int, Program PreAst) m)
   => Definition (Label Type) (Expr Type Type a1 a2)
   -> m (Definition (Label Type) PreAst)
 preprocess def = do
@@ -255,13 +256,14 @@ preprocess def = do
         ECon c -> eCon c
         ELit l -> eLit l
         EIf a1 a2 a3 -> eIf a1 a2 a3
+        ELam _ a1 a2 -> eLam () a1 a2
         ELet a1 a2 a3 -> eLet a1 a2 a3
         EApp a1 a2 a3 -> eApp a1 a2 a3
         EOp2 op a1 a2 -> eOp2 op a1 a2
         ECase a1 a2 -> eCase a1 a2
         ERow row -> eRow (mapRow convert row)
 
-replaceFunArgs :: (MonadState (Program PreAst) m) => PreAst -> m PreAst
+replaceFunArgs :: (MonadState (Int, Program PreAst) m) => PreAst -> m PreAst
 replaceFunArgs =
   cata $ \case
     EApp t fun args -> do
@@ -293,6 +295,7 @@ convertFunApps =
   cata
     (\case
        EVar a -> eVar a
+       ECon con -> eCall con []
        ELit a -> eLit a
        EIf a1 a2 a3 -> eIf a1 a2 a3
        ELet a1 a2 a3 -> eLet a1 a2 a3

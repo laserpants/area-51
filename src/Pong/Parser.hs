@@ -62,7 +62,13 @@ args1 :: Parser a -> Parser [a]
 args1 = parens . commaSep1
 
 keywords :: [Text]
-keywords = ["if", "then", "else", "match", "let", "in", "lam", "true", "false", "def"]
+keywords = ["if", "then", "else", "match", "let", "in", "lam", "true", "false", "def"
+  , "bool"
+  , "int" 
+  , "float"
+  , "double"
+  , "char" 
+  , "string" ]
 
 keyword :: Text -> Parser ()
 keyword tok = Megaparsec.string tok *> notFollowedBy alphaNumChar *> spaces
@@ -161,7 +167,7 @@ caseExpr :: Parser SourceExpr
 caseExpr = do
   keyword "match"
   e <- expr
-  cs <- braces (caseClause `sepBy1` symbol "|")
+  cs <- braces (optional (symbol "|") >> caseClause `sepBy1` symbol "|")
   pure (eCase e cs)
 
 caseClause :: Parser ([Label ()], SourceExpr)
@@ -216,23 +222,31 @@ prim =
     primString = lexeme (PString . pack <$> chars)
     primFloat = do
       d <- lexeme Lexer.float
-      f <- optional (char 'f' <|> char 'F')
-      pure $ if isJust f then PFloat (realToFrac d) else PDouble d
+      isFloat <- isJust <$> optional (char 'f' <|> char 'F')
+      pure $ if isFloat then PFloat (realToFrac d) else PDouble d
     primIntegral = PInt <$> lexeme Lexer.decimal
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
 type_ :: Parser Type
-type_ = keyword "unit" $> tUnit
-  <|> keyword "bool" $> tBool
-  <|> keyword "int" $> tInt
-  <|> keyword "float" $> tFloat
-  <|> keyword "double" $> tDouble
-  <|> keyword "char" $> tChar
-  <|> keyword "string" $> tString
---  <|> conType
---  <|> arrType
---  <|> varType
---  <|> genType
+type_ = makeExprParser item [[InfixR (tArr <$ symbol "->")]]
+  where
+    item = keyword "unit" $> tUnit
+      <|> keyword "bool" $> tBool
+      <|> keyword "int" $> tInt
+      <|> keyword "float" $> tFloat
+      <|> keyword "double" $> tDouble
+      <|> keyword "char" $> tChar
+      <|> keyword "string" $> tString
+      <|> conType
+--      <|> genType
+    conType = do
+      con <- constructor
+      ts <- many type_
+      pure (tCon con ts)
+--    genType = do
+--      -- z
+--      v <- identifier
+--      undefined
 
 label_ :: Parser (Label Type)
 label_ = do

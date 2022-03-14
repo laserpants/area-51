@@ -2,7 +2,9 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE StrictData #-}
+
+-- Note: Do not use StrictData in this module, since this will lead to
+-- infinite recursion in evaluation of let expressions 
 
 module Pong.Eval where
 
