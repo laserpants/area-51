@@ -52,6 +52,16 @@ def main(a : int) : int =
   fact(5)
 
 
+extern
+  printInt : int -> unit
+
+type List a
+  = Nil
+  | Cons a (List a)
+
+const 
+  speedLimit = 4
+
 def 
   main(z : int) : int =
    let
@@ -62,12 +72,13 @@ def
          g =
            lam(x) => 
              x
-         let
-           f =
-             lam(y) =>
-               y + h
-           in
-             g(101)
+         in
+           let
+             f =
+               lam(y) =>
+                 y + h
+             in
+               g(101)
 
 --             g(f)(g(5)) + f(1)
          

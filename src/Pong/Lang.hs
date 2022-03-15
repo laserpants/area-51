@@ -183,6 +183,8 @@ isTCon con =
       | ArrT == con -> True
     TVar {}
       | VarT == con -> True
+    TRow {}
+      | RowT == con -> True
     _ -> False
 
 isCon :: Con -> Expr t a0 a1 a2 -> Bool

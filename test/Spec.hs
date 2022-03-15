@@ -141,6 +141,11 @@ main =
       it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
       it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
       it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
+      it "#15" (LitValue (PInt 6) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { | { price = p | r } => p + 1 }")
+      it "#16" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { | { quantity = q | r } => q }")
+      it "#17" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { { price = p | q } => match q { { quantity = s | o } => s } }")
+      it "#18" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { { quantity = s | q } => match q { { price = p | o } => p } }")
+      it "#19" (LitValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { { quantity = s | q } => match q { { price = p | o } => match o { {} => 1010 } } }")
       
 
 applyToFuns 
@@ -572,7 +577,7 @@ parseCompileEval2 s =
 oiouo :: Program SourceExpr -> Program TypedExpr
 oiouo p = over Program (rtcx2 <$>) p
   where
-    te = Env.inserts [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] (programToTypeEnv p)
+    te = Env.inserts [("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] (programToTypeEnv p)
     rtcx2 :: Definition (Label Type) SourceExpr -> Definition (Label Type) TypedExpr
     rtcx2 (Function args (t, e)) =
               case runTypeChecker (Env.inserts (toPolyType <$$> swap <$> toList args) te) (applySubstitution =<< check =<< tagExpr e) of

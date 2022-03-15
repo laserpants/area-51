@@ -13,6 +13,7 @@ import Data.Char (isUpper)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Text as Text
 import Data.Void (Void)
+import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Util
@@ -42,13 +43,13 @@ eval =
       (_, env) <- ask
       case Env.lookup var env of
         Just val -> pure val
-        Nothing -> error "Runtime error"
+        Nothing -> error "Runtime error (1)"
     ELit lit -> pure (LitValue lit)
     EIf cond true false ->
       cond >>= \case
         LitValue (PBool True) -> true
         LitValue (PBool False) -> false
-        _ -> error "Runtime error"
+        _ -> error "Runtime error (2)"
     ELet (_, var) body expr ->
       mdo let insertVar = localSecond (Env.insert var val)
           val <- insertVar body
@@ -63,7 +64,7 @@ eval =
         Just (Function vs (_, body)) -> do
           as <- sequence args
           localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
-        _ -> error "Runtime error"
+        _ -> error "Runtime error (3)"
     EOp2 (Op2 OLogicOr _) a b ->
       a >>= \case
         LitValue (PBool True) -> a
@@ -93,13 +94,13 @@ evalRow =
       (_, env) <- ask
       case Env.lookup var env of
         Just (RowValue val) -> pure val
-        _ -> error "Runtime error"
+        _ -> error "Runtime error (4)"
     RExt name v row ->
       rExt name <$> eval v <*> row
 
 getPrim :: Value -> Prim
 getPrim (LitValue lit) = lit
-getPrim _ = error "Runtime error"
+getPrim _ = error "Runtime error (5)"
 
 evalOp2 :: Op2 Type -> Prim -> Prim -> Prim
 evalOp2 (Op2 OAdd _) (PFloat p) (PFloat q) = PFloat (p + q)
@@ -114,7 +115,7 @@ evalOp2 (Op2 OEq _) (PInt m) (PInt n) = PBool (m == n)
 evalOp2 (Op2 OAdd _) (PInt m) (PInt n) = PInt (m + n)
 evalOp2 (Op2 OSub _) (PInt m) (PInt n) = PInt (m - n)
 evalOp2 (Op2 OMul _) (PInt m) (PInt n) = PInt (m * n)
-evalOp2 _ _ _ = error "Runtime error"
+evalOp2 _ _ _ = error "Runtime error (6)"
 
 evalCase ::
      ( MonadFix m
@@ -138,10 +139,12 @@ evalRowCase ::
   => Row Value Void
   -> ([Label Type], m Value)
   -> m Value
-evalRowCase (Fix RNil) ([], value) = value
+evalRowCase (Fix RNil) ([(_, "{}")], value) = value
 evalRowCase row ([(_, name), (_, v), (_, r)], value) = do
   let (p, q) = splitRow (trimLabel name) row
   localSecond (Env.inserts [(v, p), (r, RowValue q)]) value
+--evalRowCase row ([(_, name)], value) = do
+--  localSecond (Env.insert name (RowValue row)) value
 
 evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value
 evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)

@@ -52,9 +52,6 @@ commaSep parser = parser `sepBy` symbol ","
 commaSep1 :: Parser a -> Parser [a]
 commaSep1 parser = parser `sepBy1` symbol ","
 
-fields :: Parser a -> Parser [a]
-fields = braces . commaSep
-
 args :: Parser a -> Parser [a]
 args = parens . commaSep
 
@@ -172,7 +169,7 @@ caseExpr = do
 
 caseClause :: Parser ([Label ()], SourceExpr)
 caseClause = do
-  ls <- conPattern <|> rowPattern <|> varPattern
+  ls <- conPattern <|> rowPattern
   symbol "=>"
   e <- expr
   pure (ls, e)
@@ -181,22 +178,20 @@ caseClause = do
       con <- constructor
       ids <- fromMaybe [] <$> optional (args identifier)
       pure (toLabel <$> con : ids)
-    rowPattern =
-      braces $ do
-        lhs <- identifier
-        symbol "="
-        rhs <- identifier
-        symbol "|"
-        row <- identifier
-        pure [toLabel ("{" <> lhs <> "}"), toLabel rhs, toLabel row]
-    varPattern = do
-      var <- identifier
-      pure [toLabel var]
+    rowPattern = try nilRow <|> extRow
+    nilRow = braces spaces $> [toLabel "{}"]
+    extRow = braces $ do
+      lhs <- identifier
+      symbol "="
+      rhs <- identifier
+      symbol "|"
+      row <- identifier
+      pure [toLabel ("{" <> lhs <> "}"), toLabel rhs, toLabel row]
 
 rowExpr :: Parser SourceExpr
 rowExpr =
   braces $ do
-    fs <- fields field
+    fs <- commaSep field
     tail <- optional (symbol "|" *> identifier)
     let row =
           case fs of
@@ -257,7 +252,7 @@ label_ = do
 
 def :: Parser (Name, Definition (Label Type) SourceExpr)
 def = 
-  functionDef -- <|> constantDef <|> externalDef <|> dataDef
+  functionDef <|> constantDef -- <|> externalDef <|> dataDef
     where 
       functionDef = do
         keyword "def"
@@ -268,6 +263,14 @@ def =
         symbol "="
         e <- expr
         pure (name, Function (fromList args) (t, e))
+      constantDef = do
+        keyword "const"
+        name <- identifier
+        symbol ":"
+        t <- type_
+        symbol "="
+        e <- expr
+        pure (name, Constant (t, e))
 
 program :: Parser (Program SourceExpr)
 program = do

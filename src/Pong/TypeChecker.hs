@@ -341,48 +341,65 @@ checkCases ::
      TypedExpr
   -> [([Label Int], TypeChecker TypedExpr)]
   -> TypeChecker [([Label Type], TypedExpr)]
-checkCases (Fix (ERow row)) [clause] = do
+checkCases expr [clause] | isTCon RowT t = do
+  let TRow row = project t
   c <- checkRowCase row clause
   pure [c]
+  where t = typeOf expr
+--checkCases (Fix (ERow row)) [clause] = do
+--  --c <- checkRowCase row clause
+--  c <- checkRowCase (typeOf row) clause
+--  pure [c]
+--checkCases (Fix (EVar (t, var))) [clause] | isTCon RowT t = do
+----  xx <- eVar <$> checkName var NotInScope
+----  undefined
+--  c <- checkRowCase (rVar (t, var)) clause
+--  pure [c]
 checkCases expr clauses = do
-  cs <- traverse (secondM applySubstitution <=< checkCase) clauses
+  cs <- traverse (secondM applySubstitution <=< checkCase (typeOf expr)) clauses
   let t:ts = snd <$> cs
   forM_ ts (unifyM t)
   pure cs
 
 checkRowCase ::
-     Row TypedExpr (Label Type)
+     Row Type Int
   -> ([Label Int], TypeChecker TypedExpr)
   -> TypeChecker ([Label Type], TypedExpr)
 checkRowCase row (args, expr) = do
   case args of
     [(t, "{}")] -> do
       unifyM (tVar t :: Type) (tRow rNil :: Type)
+      unifyM (tVar t :: Type) (tRow row)
       e <- expr
       pure ([(tRow rNil, "{}")], e)
     [(u0, label), (u1, v1), (u2, v2)] -> do
-      let (e1, q) = splitRow (trimLabel label) row
-          [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
-      unifyM t1 e1
-      unifyM t2 q
-      applySubstitution (t1 ~> t2 ~> typeOf row) >>= unifyM t0 
+      let (r1, q) = splitRow (trimLabel label) row
+      let [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
+      unifyM t1 r1
+      unifyM t2 (tRow q)
+      tx0 <- applySubstitution t0
+      tx1 <- applySubstitution t1
+      tx2 <- applySubstitution t2
+      applySubstitution (t1 ~> t2 ~> tRow row) >>= unifyM tx0 
       e <-
         local
-          (Env.inserts (toPolyType <$$> [(label, t0), (v1, t1), (v2, t2)]))
+          (Env.inserts (toPolyType <$$> [(label, tx0), (v1, tx1), (v2, tx2)]))
           expr
       pure ([(t0, label), (t1, v1), (t2, v2)], e)
     [(t, v)] -> do
-      unifyM (tVar t :: Type) (typeOf row)
-      e <- expr
+      unifyM (tVar t :: Type) (tRow row)
+      unifyM (tVar t :: Type) (tRow row)
+      e <- local (Env.insert v (toPolyType (tRow row))) expr
       pure ([(tVar t, v)], e)
 
-checkCase ::
-     ([Label Int], TypeChecker TypedExpr)
-  -> TypeChecker ([Label Type], TypedExpr)
-checkCase (con:vs, expr) = do
+--checkCase ::
+--     ([Label Int], TypeChecker TypedExpr)
+--  -> TypeChecker ([Label Type], TypedExpr)
+checkCase tt (con:vs, expr) = do
   (t, _) <- checkName con ConstructorNotInScope
   let ts = unwindType t
       ps = (snd <$> vs) `zip` (toPolyType <$> ts)
+  unifyM tt (last ts)
   e <- local (Env.inserts ps) expr
   tvs <-
     forM (zip vs ts) $ \((t0, n), t1) -> do

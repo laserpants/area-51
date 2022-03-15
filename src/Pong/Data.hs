@@ -50,6 +50,7 @@ type PolyType = TypeT Int
 data TCon
   = VarT
   | ArrT
+  | RowT
 
 data Prim
   = PBool Bool
