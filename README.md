@@ -60,7 +60,7 @@ type List a
   | Cons a (List a)
 
 const 
-  speedLimit = 4
+  speedLimit : int = 4
 
 def 
   main(z : int) : int =
