@@ -22,7 +22,6 @@ import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
-import Data.Tuple (swap)
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import Data.Void (Void)
 import Debug.Trace
@@ -310,7 +309,7 @@ check =
       pure (eApp t1 f as)
     ELam _ args expr -> do
       as <- traverse (pure . first tVar) args
-      e <- local (insertArgs (first (toPolyType . tVar) <$> args)) expr
+      e <- local (insertArgs (first tVar <$> args)) expr
       pure (eLam () as e)
     EOp2 (Op2 op t) expr1 expr2 -> do
       e1 <- expr1

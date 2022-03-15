@@ -68,7 +68,7 @@ def
      h =
        z + 1
      in
-       let 
+       let
          g =
            lam(x) => 
              x
@@ -78,7 +78,5 @@ def
                lam(y) =>
                  y + h
              in
-               g(101)
-
---             g(f)(g(5)) + f(1)
+               (g(f))(g(5)) + f(1)
          

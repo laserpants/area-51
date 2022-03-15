@@ -15,7 +15,7 @@ import Debug.Trace
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
-import Data.Tuple.Extra (swap, second)
+import Data.Tuple.Extra (second)
 import Pong.Data
 import Pong.Util (Name, Map, (!), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import qualified Pong.Util.Env as Env
@@ -275,8 +275,8 @@ foldType1 :: [Type] -> Type
 foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
-insertArgs :: [(PolyType, Name)] -> Environment PolyType -> Environment PolyType
-insertArgs = Env.inserts . (swap <$>)
+insertArgs :: [(Type, Name)] -> Environment PolyType -> Environment PolyType
+insertArgs = Env.inserts . (toPolyType <$$>) . (swap <$>)
 
 {-# INLINE emptyProgram #-}
 emptyProgram :: Program a

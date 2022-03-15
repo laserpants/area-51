@@ -146,6 +146,9 @@ main =
       it "#17" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { { price = p | q } => match q { { quantity = s | o } => s } }")
       it "#18" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { { quantity = s | q } => match q { { price = p | o } => p } }")
       it "#19" (LitValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in match r { { quantity = s | q } => match q { { price = p | o } => match o { {} => 1010 } } }")
+      it "#20" (LitValue (PInt 1) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in match r { | { quantity = q | a } => q }")
+      it "#21" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in match r { | { price = p | a } => p }")
+      it "#22" (RowValue rNil == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in match r { | { quantity = q | a } => match a { { price = p | b } => b } }")
       
 
 applyToFuns 
@@ -577,10 +580,10 @@ parseCompileEval2 s =
 oiouo :: Program SourceExpr -> Program TypedExpr
 oiouo p = over Program (rtcx2 <$>) p
   where
-    te = Env.inserts [("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] (programToTypeEnv p)
+    te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] (programToTypeEnv p)
     rtcx2 :: Definition (Label Type) SourceExpr -> Definition (Label Type) TypedExpr
     rtcx2 (Function args (t, e)) =
-              case runTypeChecker (Env.inserts (toPolyType <$$> swap <$> toList args) te) (applySubstitution =<< check =<< tagExpr e) of
+              case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr e) of
                 Left err -> error (show err)
                 Right r -> Function args (t, r)
     rtcx2 _ = error "TODO"
