@@ -80,3 +80,11 @@ def
              in
                (g(f))(g(5)) + f(1)
          
+
+let
+  r =
+    { name = "Bob", id = 1 }
+  in
+    select r { name = n | q } => n
+    
+    
