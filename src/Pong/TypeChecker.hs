@@ -107,6 +107,7 @@ instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
       EApp t fun args -> eApp (apply sub t) fun args
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
       EOp2 (Op2 op t) a b -> eOp2 (Op2 op (apply sub t)) a b
+      EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
       e -> embed e
     where
       subst = first (apply sub)
@@ -156,6 +157,7 @@ tagExpr =
       eCase <$> e1 <*>
       traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
     ERow row -> eRow <$> tagRow row
+    EField f e1 e2 -> eField <$> traverse (tagLabel . snd) f <*> e1 <*> e2
 
 tagOp :: Op2 t -> TypeChecker (Op2 Int)
 tagOp (Op2 op _) = Op2 op <$> tag
@@ -325,6 +327,50 @@ check =
       e <- expr
       eCase e <$> checkCases e clauses
     ERow row -> eRow <$> checkRow row
+    EField field expr1 expr2 -> do
+      e1 <- expr1
+      let t = typeOf e1
+      (f, e2) <- checkRowCase t field expr2
+      pure (eField f e1 e2)
+
+--checkCases expr [clause] | isTCon RowT t = do
+--  let TRow row = project t
+--  c <- checkRowCase row clause
+--  pure [c]
+--  where t = typeOf expr
+
+checkRowCase ::
+     Type
+  -> [Label Int] 
+  -> TypeChecker TypedExpr
+  -> TypeChecker ([Label Type], TypedExpr)
+checkRowCase (Fix (TRow row)) args expr = do
+  case args of
+--    [(t, "{}")] -> do
+--      unifyM (tVar t :: Type) (tRow rNil :: Type)
+--      unifyM (tVar t :: Type) (tRow row)
+--      e <- expr
+--      pure ([(tRow rNil, "{}")], e)
+    [(u0, label), (u1, v1), (u2, v2)] -> do
+      let (r1, q) = splitRow (trimLabel label) row
+      let [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
+      unifyM t1 r1
+      unifyM t2 (tRow q)
+      tx0 <- applySubstitution t0
+      tx1 <- applySubstitution t1
+      tx2 <- applySubstitution t2
+      applySubstitution (t1 ~> t2 ~> tRow row) >>= unifyM tx0 
+      e <-
+        local
+          (Env.inserts (toPolyType <$$> [(label, tx0), (v1, tx1), (v2, tx2)]))
+          expr
+      pure ([(t0, label), (t1, v1), (t2, v2)], e)
+--    [(t, v)] -> do
+--      unifyM (tVar t :: Type) (tRow row)
+--      unifyM (tVar t :: Type) (tRow row)
+--      e <- local (Env.insert v (toPolyType (tRow row))) expr
+--      pure ([(tVar t, v)], e)
+
 
 binopType :: Binop -> PolyType
 binopType = \case
@@ -340,11 +386,11 @@ checkCases ::
      TypedExpr
   -> [([Label Int], TypeChecker TypedExpr)]
   -> TypeChecker [([Label Type], TypedExpr)]
-checkCases expr [clause] | isTCon RowT t = do
-  let TRow row = project t
-  c <- checkRowCase row clause
-  pure [c]
-  where t = typeOf expr
+--checkCases expr [clause] | isTCon RowT t = do
+--  let TRow row = project t
+--  c <- checkRowCase row clause
+--  pure [c]
+--  where t = typeOf expr
 --checkCases (Fix (ERow row)) [clause] = do
 --  --c <- checkRowCase row clause
 --  c <- checkRowCase (typeOf row) clause
@@ -359,37 +405,6 @@ checkCases expr clauses = do
   let t:ts = snd <$> cs
   forM_ ts (unifyM t)
   pure cs
-
-checkRowCase ::
-     Row Type Int
-  -> ([Label Int], TypeChecker TypedExpr)
-  -> TypeChecker ([Label Type], TypedExpr)
-checkRowCase row (args, expr) = do
-  case args of
-    [(t, "{}")] -> do
-      unifyM (tVar t :: Type) (tRow rNil :: Type)
-      unifyM (tVar t :: Type) (tRow row)
-      e <- expr
-      pure ([(tRow rNil, "{}")], e)
-    [(u0, label), (u1, v1), (u2, v2)] -> do
-      let (r1, q) = splitRow (trimLabel label) row
-      let [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
-      unifyM t1 r1
-      unifyM t2 (tRow q)
-      tx0 <- applySubstitution t0
-      tx1 <- applySubstitution t1
-      tx2 <- applySubstitution t2
-      applySubstitution (t1 ~> t2 ~> tRow row) >>= unifyM tx0 
-      e <-
-        local
-          (Env.inserts (toPolyType <$$> [(label, tx0), (v1, tx1), (v2, tx2)]))
-          expr
-      pure ([(t0, label), (t1, v1), (t2, v2)], e)
-    [(t, v)] -> do
-      unifyM (tVar t :: Type) (tRow row)
-      unifyM (tVar t :: Type) (tRow row)
-      e <- local (Env.insert v (toPolyType (tRow row))) expr
-      pure ([(tVar t, v)], e)
 
 --checkCase ::
 --     ([Label Int], TypeChecker TypedExpr)

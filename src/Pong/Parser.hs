@@ -59,7 +59,7 @@ args1 :: Parser a -> Parser [a]
 args1 = parens . commaSep1
 
 keywords :: [Text]
-keywords = ["if", "then", "else", "match", "let", "in", "lam", "true", "false", "def"
+keywords = ["if", "then", "else", "match", "field", "let", "in", "lam", "true", "false", "def"
   , "bool"
   , "int" 
   , "float"
@@ -109,7 +109,7 @@ expr = makeExprParser apps operator
         as -> eApp () f as)
     item =
       litExpr <|> ifExpr <|> letExpr <|> lamExpr <|> caseExpr <|>
-      rowExpr <|>
+      rowExpr <|> fieldExpr <|>
       varExpr <|>
       conExpr
 
@@ -167,26 +167,29 @@ caseExpr = do
   cs <- braces (optional (symbol "|") >> caseClause `sepBy1` symbol "|")
   pure (eCase e cs)
 
+fieldExpr :: Parser SourceExpr
+fieldExpr = do
+  keyword "field" 
+  f <- braces $ do
+          lhs <- identifier
+          symbol "="
+          rhs <- identifier
+          symbol "|"
+          row <- identifier
+          pure [toLabel ("{" <> lhs <> "}"), toLabel rhs, toLabel row]
+  e1 <- symbol "=" *> expr
+  e2 <- symbol "in" *> expr
+  pure (eField f e1 e2)
+
 caseClause :: Parser ([Label ()], SourceExpr)
 caseClause = do
-  ls <- conPattern <|> rowPattern
-  symbol "=>"
-  e <- expr
-  pure (ls, e)
-  where
-    conPattern = do
+  ls <- do
       con <- constructor
       ids <- fromMaybe [] <$> optional (args identifier)
       pure (toLabel <$> con : ids)
-    rowPattern = try nilRow <|> extRow
-    nilRow = braces spaces $> [toLabel "{}"]
-    extRow = braces $ do
-      lhs <- identifier
-      symbol "="
-      rhs <- identifier
-      symbol "|"
-      row <- identifier
-      pure [toLabel ("{" <> lhs <> "}"), toLabel rhs, toLabel row]
+  symbol "=>"
+  e <- expr
+  pure (ls, e)
 
 rowExpr :: Parser SourceExpr
 rowExpr =

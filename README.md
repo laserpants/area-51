@@ -85,6 +85,10 @@ let
   r =
     { name = "Bob", id = 1 }
   in
-    select r { name = n | q } => n
+    field 
+      { name = n | q } = 
+        r 
+      in 
+        n
     
     

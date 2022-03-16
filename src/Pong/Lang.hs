@@ -450,6 +450,9 @@ eCase = embed2 ECase
 eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
 eRow = embed1 ERow
 
+eField :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eField = embed3 EField
+
 {-# INLINE oAddInt #-}
 oAddInt :: Op2 Type
 oAddInt = Op2 OAdd (tInt ~> tInt ~> tInt)

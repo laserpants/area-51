@@ -216,6 +216,7 @@ liftLambdas input = do
         ECase a1 a2 -> eCase <$> a1 <*> traverse sequence a2
         EApp t expr args -> eApp t <$> expr <*> sequence args
         ERow row -> eRow <$> mapRowM liftLambdas row
+        EField a1 a2 a3 -> eField a1 <$> a2 <*> a3
 
 uniqueName :: (MonadState (Int, Program a) m) => Name -> m Name
 uniqueName prefix = do
@@ -262,6 +263,7 @@ preprocess def = do
         EOp2 op a1 a2 -> eOp2 op a1 a2
         ECase a1 a2 -> eCase a1 a2
         ERow row -> eRow (mapRow convert row)
+        EField a1 a2 a3 -> eField a1 a2 a3
 
 replaceFunArgs :: (MonadState (Int, Program PreAst) m) => PreAst -> m PreAst
 replaceFunArgs =
@@ -307,4 +309,5 @@ convertFunApps =
            ECall _ fun as1 -> do
              eCall fun (as1 <> args)
            e -> error "Implementation error"
-       ERow row -> eRow (mapRow convertFunApps row))
+       ERow row -> eRow (mapRow convertFunApps row)
+       EField a1 a2 a3 -> eField a1 a2 a3)

@@ -79,6 +79,9 @@ eval =
       e <- expr
       evalCase e cs
     ERow row -> RowValue <$> evalRow row
+    EField field expr1 expr2 -> do
+      e1 <- expr1
+      evalRowCase (getRow e1) field expr2
 
 evalRow ::
      ( MonadFix m
@@ -101,6 +104,10 @@ evalRow =
 getPrim :: Value -> Prim
 getPrim (LitValue lit) = lit
 getPrim _ = error "Runtime error (5)"
+
+getRow :: Value -> Row Value Void
+getRow (RowValue row) = row
+getRow _ = error "Runtime error (6)"
 
 evalOp2 :: Op2 Type -> Prim -> Prim -> Prim
 evalOp2 (Op2 OAdd _) (PFloat p) (PFloat q) = PFloat (p + q)
@@ -125,7 +132,7 @@ evalCase ::
   => Value
   -> [([Label Type], m Value)]
   -> m Value
-evalCase (RowValue row) [c] = evalRowCase row c
+---evalCase (RowValue row) [c] = evalRowCase row c
 evalCase _ [] = error "Runtime error: No matching clause"
 evalCase (ConValue name fields) (((_, con):vars, value):clauses)
   | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
@@ -137,10 +144,11 @@ evalRowCase ::
                    , Environment Value) m
      )
   => Row Value Void
-  -> ([Label Type], m Value)
+  -> [Label Type] 
   -> m Value
-evalRowCase (Fix RNil) ([(_, "{}")], value) = value
-evalRowCase row ([(_, name), (_, v), (_, r)], value) = do
+  -> m Value
+--evalRowCase (Fix RNil) ([(_, "{}")], value) = value
+evalRowCase row [(_, name), (_, v), (_, r)] value = do
   let (p, q) = splitRow (trimLabel name) row
   localSecond (Env.inserts [(v, p), (r, RowValue q)]) value
 --evalRowCase row ([(_, name)], value) = do

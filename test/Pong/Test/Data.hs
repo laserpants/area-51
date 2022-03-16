@@ -1290,18 +1290,15 @@ fragment20_6 =
 --     x
 -- }
 --
--- match ( a = 1, b = 2, c = 3 } {
---   | {b} x r =>
---     x
--- }
---
+-- field { b = x | r } = ( a = 1, b = 2, c = 3 } in x
 --
 fragment21_0 :: Expr () a0 a1 a2
 fragment21_0 = 
-  eCase 
+  eField 
+      [((), "{b}"), ((), "x"), ((), "r")]
       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
-        [ ([((), "{b}"), ((), "x"), ((), "r")], eVar ((), "x")) 
-        ]
+      (eVar ((), "x"))
+        
 
 -- match ( a = 1, b = 2, c = 3 } {
 --   | q =>
@@ -1319,17 +1316,27 @@ fragment22_0 =
 
 fragment21_1 :: TypedExpr
 fragment21_1 = 
-  eCase 
+  eField 
+      [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
-        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
-        ]
+      (eVar (tInt, "x"))
+
+--  eCase 
+--      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+--        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
+--        ]
 
 fragment21_2 :: Ast
 fragment21_2 = 
-  eCase 
+  eField
+      [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")] 
       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
-        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
-        ]
+      (eVar (tInt, "x")) 
+
+--  eCase 
+--      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+--        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
+--        ]
 
 
 --frag22 = rExt "a" (eLit (PInt 1)) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PInt 3)) rNil))

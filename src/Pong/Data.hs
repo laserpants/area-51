@@ -86,6 +86,7 @@ data ExprF t a0 a1 a2 a
   | EOp2 (Op2 t) a a
   | ECase a [([Label t], a)]
   | ERow (Row (Expr t a0 a1 a2) (Label t))
+  | EField [Label t] a a
 
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
