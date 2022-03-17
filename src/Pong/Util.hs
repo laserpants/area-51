@@ -39,7 +39,7 @@ import qualified Data.Text as Text
 
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
-without = foldr (filter . (/=))
+without = foldr (filter <<< (/=))
 
 {-# INLINE (<$$>) #-}
 (<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)

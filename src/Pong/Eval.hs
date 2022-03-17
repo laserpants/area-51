@@ -73,6 +73,10 @@ eval =
       a >>= \case
         LitValue (PBool False) -> a
         _ -> b
+    EOp2 (Op2 OEq _) a b -> do
+      lhs <- a
+      rhs <- b
+      pure (LitValue (PBool (lhs == rhs)))
     EOp2 op a b ->
       LitValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     ECase expr cs -> do
@@ -132,7 +136,6 @@ evalCase ::
   => Value
   -> [([Label Type], m Value)]
   -> m Value
----evalCase (RowValue row) [c] = evalRowCase row c
 evalCase _ [] = error "Runtime error: No matching clause"
 evalCase (ConValue name fields) (((_, con):vars, value):clauses)
   | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value

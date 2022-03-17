@@ -33,8 +33,10 @@ data RowF e r a
   | RVar r
   | RExt Name e a
 
--- | A row is a sequence of labeled elements
--- Rows appear both at the type and the expression level
+-- | A row is a sequence of labeled fields. Rows encode the internal structure 
+-- of records, both at the type and expression level. A row can be either open 
+-- or closed. An open row is one that has a variable in the tail of the 
+-- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
 
 data TypeF t a

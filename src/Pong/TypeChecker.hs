@@ -306,6 +306,7 @@ check =
       f <- fun
       as <- sequence args
       t0 <- applySubstitution (typeOf f)  -- ????
+--      let t0 = (typeOf f)  -- ????
       t1 <- applySubstitution (tVar t)
       unifyM t0 (foldType t1 (typeOf <$> as))
       pure (eApp t1 f as)
@@ -346,11 +347,6 @@ checkRowCase ::
   -> TypeChecker ([Label Type], TypedExpr)
 checkRowCase (Fix (TRow row)) args expr = do
   case args of
---    [(t, "{}")] -> do
---      unifyM (tVar t :: Type) (tRow rNil :: Type)
---      unifyM (tVar t :: Type) (tRow row)
---      e <- expr
---      pure ([(tRow rNil, "{}")], e)
     [(u0, label), (u1, v1), (u2, v2)] -> do
       let (r1, q) = splitRow (trimLabel label) row
       let [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [Type]
@@ -365,12 +361,6 @@ checkRowCase (Fix (TRow row)) args expr = do
           (Env.inserts (toPolyType <$$> [(label, tx0), (v1, tx1), (v2, tx2)]))
           expr
       pure ([(t0, label), (t1, v1), (t2, v2)], e)
---    [(t, v)] -> do
---      unifyM (tVar t :: Type) (tRow row)
---      unifyM (tVar t :: Type) (tRow row)
---      e <- local (Env.insert v (toPolyType (tRow row))) expr
---      pure ([(tVar t, v)], e)
-
 
 binopType :: Binop -> PolyType
 binopType = \case
@@ -386,30 +376,18 @@ checkCases ::
      TypedExpr
   -> [([Label Int], TypeChecker TypedExpr)]
   -> TypeChecker [([Label Type], TypedExpr)]
---checkCases expr [clause] | isTCon RowT t = do
---  let TRow row = project t
---  c <- checkRowCase row clause
---  pure [c]
---  where t = typeOf expr
---checkCases (Fix (ERow row)) [clause] = do
---  --c <- checkRowCase row clause
---  c <- checkRowCase (typeOf row) clause
---  pure [c]
---checkCases (Fix (EVar (t, var))) [clause] | isTCon RowT t = do
-----  xx <- eVar <$> checkName var NotInScope
-----  undefined
---  c <- checkRowCase (rVar (t, var)) clause
---  pure [c]
 checkCases expr clauses = do
-  cs <- traverse (secondM applySubstitution <=< checkCase (typeOf expr)) clauses
+  cs <- traverse (secondM applySubstitution <=< uncurry (checkCase (typeOf expr))) clauses
   let t:ts = snd <$> cs
   forM_ ts (unifyM t)
   pure cs
 
---checkCase ::
---     ([Label Int], TypeChecker TypedExpr)
---  -> TypeChecker ([Label Type], TypedExpr)
-checkCase tt (con:vs, expr) = do
+checkCase ::
+  Type
+  -> [(Int, Name)]
+  -> TypeChecker TypedExpr
+  -> TypeChecker ([Label Type], TypedExpr)
+checkCase tt (con:vs) expr = do
   (t, _) <- checkName con ConstructorNotInScope
   let ts = unwindType t
       ps = (snd <$> vs) `zip` (toPolyType <$> ts)

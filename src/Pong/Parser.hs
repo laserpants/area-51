@@ -76,7 +76,7 @@ word parser =
   try $ do
     name <- parser
     if name `elem` keywords
-      then fail ("Reserved word " <> unpack name)
+      then fail ("Reserved keyword " <> unpack name)
       else pure name
 
 validChar :: Parser Char
