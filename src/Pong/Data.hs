@@ -15,7 +15,17 @@ import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Void (Void)
 import GHC.Generics (Generic)
-import Pong.Util (Fix(..), Name, Text, List1, embed, embed1, embed2, embed3, embed4)
+import Pong.Util
+  ( Fix(..)
+  , List1
+  , Name
+  , Text
+  , embed
+  , embed1
+  , embed2
+  , embed3
+  , embed4
+  )
 import Text.Show.Deriving (deriveShow1)
 
 data RowF e r a
@@ -72,7 +82,8 @@ data Binop
 
 type Label t = (t, Name)
 
-data Op2 t = Op2 Binop t
+data Op2 t =
+  Op2 Binop t
 
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
@@ -104,7 +115,7 @@ data Con
   | LamE
   | RowE
 
-newtype Environment a = 
+newtype Environment a =
   Environment (Map Name a)
 
 data Constructor =
@@ -119,7 +130,7 @@ data Definition d a
   | External [Type] (Label Type)
   | Data Name [Constructor]
 
-newtype Program a = 
+newtype Program a =
   Program (Map Name (Definition (Label Type) a))
 
 -- Row
@@ -238,7 +249,7 @@ deriving instance Foldable Environment
 
 deriving instance Traversable Environment
 
-deriving instance Semigroup (Environment a) 
+deriving instance Semigroup (Environment a)
 
 deriving instance Monoid (Environment a)
 

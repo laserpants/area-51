@@ -25,14 +25,14 @@ mapRow f =
   cata $ \case
     RNil -> rNil
     RVar v -> rVar v
-    RExt name expr row -> rExt name (f expr) row
+    RExt name elem row -> rExt name (f elem) row
 
 mapRowM :: (Monad m) => (e -> m f) -> Row e r -> m (Row f r)
 mapRowM f =
   cata $ \case
     RNil -> pure rNil
     RVar v -> pure (rVar v)
-    RExt name expr row -> rExt name <$> f expr <*> row
+    RExt name elem row -> rExt name <$> f elem <*> row
 
 canonRow :: Row e r -> Row e r
 canonRow = uncurry (flip foldRow) . unwindRow
@@ -148,6 +148,7 @@ instance (Typed t) => Typed (Expr t t a1 a2) where
       ECase _ [] -> error "Empty case statement"
       ECase _ cs -> head (snd <$> cs)
       ERow r -> typeOf r
+      EField _ _ e -> e
 
 instance (Typed t) => Typed (Definition (Label t) a) where
   typeOf =
@@ -234,6 +235,7 @@ freeVars =
         RNil -> []
         RVar v -> [v]
         RExt _ expr r -> freeVars expr <> r
+    EField (_:vs) e1 e2 -> e1 <> e2 `without` vs
 
 toPolyType :: Type -> PolyType
 toPolyType =
