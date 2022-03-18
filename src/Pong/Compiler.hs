@@ -69,7 +69,7 @@ hoistTopLambdas =
     combine t as =
       project . combineLambdas >>> \case
         ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
-        _ -> error "Implementation error"
+        _ -> error "Implementation error (1)"
 
 -- from:
 --   plus(x, y) = x + y
@@ -82,7 +82,23 @@ hoistTopLambdas =
 fillParams ::
      Definition (Label Type) (Expr Type Type () a2)
   -> Definition (Label Type) (Expr Type Type () a2)
-fillParams = hoistTopLambdas <<< fmap fillExprParams
+fillParams = hoistTopLambdas <<< fmap (fillExprParams <<< foo123)
+
+foo123 :: Expr Type Type () a2 -> Expr Type Type () a2
+foo123 =
+  cata $ \case
+    EApp t fun args ->
+      case project fun of
+        EIf e1 e2 e3 ->
+          eIf e1 (app e2 args) (app e3 args)
+        ECase e1 cs -> 
+          eCase e1 ((`app` args) <$$> cs)
+        _ ->
+          eApp t fun args
+    e ->
+      embed e
+  where
+    app e args = eApp (foldType1 (drop (length args) (unwindType e))) e args 
 
 --
 -- from:
@@ -308,6 +324,6 @@ convertFunApps =
            EVar var -> eCall var args
            ECall _ fun as1 -> do
              eCall fun (as1 <> args)
-           e -> error "Implementation error"
+           e -> error "Implementation error (2)"
        ERow row -> eRow (mapRow convertFunApps row)
        EField a1 a2 a3 -> eField a1 a2 a3)
