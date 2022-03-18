@@ -93,6 +93,10 @@ foo123 =
           eIf e1 (app e2 args) (app e3 args)
         ECase e1 cs -> 
           eCase e1 ((`app` args) <$$> cs)
+        EField e1 e2 e3 ->
+          eField e1 e2 (app e3 args)
+        ELet e1 e2 e3 ->
+          eLet e1 e2 (app e3 args)
         _ ->
           eApp t fun args
     e ->
