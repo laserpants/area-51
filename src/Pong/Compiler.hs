@@ -211,9 +211,10 @@ substMany subs e = foldr (uncurry varSubst) e subs
 liftLambdas ::
      (MonadState (Int, Program PreAst) m) => Expr Type Type () Void -> m PreAst
 liftLambdas input = do
-  (expr, subs) <- replaceVarLets <$> fun input
-  modifyProgram (substMany subs <$$>)
-  pure expr
+  --(expr, subs) <- replaceVarLets <$> fun input
+  --modifyProgram (substMany subs <$$>)
+  --pure expr
+  fun input
   where
     fun =
       cata $ \case
