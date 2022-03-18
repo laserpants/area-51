@@ -150,7 +150,11 @@ main =
       it "#21" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { price = p | a } = r in p }")
       it "#22" (RowValue rNil == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b")
       it "#23" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }")
-      
+      it "#24" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)")
+      it "#25" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (let f = lam(x) => x + 1 in f)(1)")
+      it "#26" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(1)")
+      it "#27" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f")
+      it "#28" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)")
 
 applyToFuns 
   :: (MonadState (Int, Program (Expr Type Type a1 a2)) m) 
@@ -446,7 +450,10 @@ compileDef1
   :: (MonadState (Int, Program PreAst) m) 
   => Definition (Label Type) TypedExpr 
   -> m (Definition (Label Type) PreAst)
-compileDef1 def = preprocess (convertClosuresT . combineLambdas <$> def)
+--compileDef1 def = preprocess (convertClosuresT . combineLambdas <$> def)
+compileDef1 def = do
+  --traceShowM (convertClosuresT . combineLambdas <$> def)
+  preprocess (convertClosuresT . combineLambdas <$> def)
 
 compileDef2 
   :: (MonadState (Int, Program PreAst) m) 

@@ -64,6 +64,7 @@ data TCon
   | ArrT
   | RowT
 
+-- | Builtin language primitives
 data Prim
   = PBool Bool
   | PInt Int
@@ -73,6 +74,7 @@ data Prim
   | PString Text
   | PUnit
 
+-- | Binary operators
 data Binop
   = OEq
   | OAdd
@@ -101,6 +103,7 @@ data ExprF t a0 a1 a2 a
   | ERow (Row (Expr t a0 a1 a2) (Label t))
   | EField [Label t] a a
 
+-- | Main expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
 type TaggedExpr = Expr Int Int () Void
