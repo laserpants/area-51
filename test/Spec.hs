@@ -155,6 +155,8 @@ main =
       it "#26" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(1)")
       it "#27" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f")
       it "#28" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)")
+      it "#29" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1)}")
+
 
 applyToFuns 
   :: (MonadState (Int, Program (Expr Type Type a1 a2)) m) 
