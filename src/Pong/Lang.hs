@@ -46,6 +46,9 @@ canonTypeRows =
 foldRow :: Row e r -> Map Name [e] -> Row e r
 foldRow = Map.foldrWithKey (flip . foldr . rExt)
 
+foldRow1 :: Map Name [e] -> Row e r
+foldRow1 = foldRow rNil
+
 unwindRow :: Row e r -> (Map Name [e], Row e r)
 unwindRow row = (foldr (uncurry (Map.insertWith (<>))) mempty fields, leaf)
   where
@@ -59,15 +62,15 @@ unwindRow row = (foldr (uncurry (Map.insertWith (<>))) mempty fields, leaf)
         t -> embed t
 
 splitRow :: Name -> Row e r -> (e, Row e r)
-splitRow a row =
+splitRow name row =
   ( e
   , canonRow
       (foldRow k $
        case es of
-         [] -> Map.delete a m
-         _ -> Map.insert a es m))
+         [] -> Map.delete name m
+         _ -> Map.insert name es m))
   where
-    Just (e:es) = Map.lookup a m
+    Just (e:es) = Map.lookup name m
     (m, k) = unwindRow row
 
 class FreeIn a where
@@ -281,7 +284,7 @@ mapTypes f =
       EOp2 (Op2 op2 t) e1 e2 -> eOp2 (Op2 op2 (f t)) e1 e2
       ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
       ERow r -> eRow (mapRowTypes r)
-      EField fs e1 e2 -> eField  (fmap (first f) fs) e1 e2
+      EField fs e1 e2 -> eField  (first f <$> fs) e1 e2
     where
       mapRowTypes =
         cata $ \case

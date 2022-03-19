@@ -64,7 +64,7 @@ data TCon
   | ArrT
   | RowT
 
--- | Builtin language primitives
+-- | Built-in language primitives
 data Prim
   = PBool Bool
   | PInt Int
