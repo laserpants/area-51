@@ -80,9 +80,9 @@ hoistTopLambdas =
 --   foo(x, v_0) = plus(x, v_0)
 --
 fillParams ::
-     Definition (Label Type) (Expr Type Type () a2)
-  -> Definition (Label Type) (Expr Type Type () a2)
-fillParams = hoistTopLambdas <<< fmap (fillExprParams <<< foo123)
+     Definition (Label Type) (Expr Type Type () Void)
+  -> Definition (Label Type) (Expr Type Type () Void)
+fillParams = hoistTopLambdas <<< fmap (convertClosuresT <<< fillExprParams <<< foo123)
 
 foo123 :: Expr Type Type () a2 -> Expr Type Type () a2
 foo123 =
@@ -121,8 +121,8 @@ foo123 =
 --
 fillExprParams :: Expr Type Type () a2 -> Expr Type Type () a2
 fillExprParams =
-  replaceVarLets >>>
-  fst >>>
+--  replaceVarLets >>>
+--  fst >>>
   para
     (\case
        EVar (t, fun)
@@ -214,13 +214,14 @@ substMany subs e = foldr (uncurry varSubst) e subs
 
 liftLambdas ::
      (MonadState (Int, Program PreAst) m) => Expr Type Type () Void -> m PreAst
-liftLambdas input = do
+--liftLambdas input = do
+liftLambdas = do
   --(expr, subs) <- replaceVarLets <$> fun input
   --modifyProgram (substMany subs <$$>)
   --pure expr
-  fun input
-  where
-    fun =
+  --fun input
+  --where
+  --  fun =
       cata $ \case
         ELam _ args expr -> do
           name <- uniqueName ".f"

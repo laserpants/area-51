@@ -15,7 +15,7 @@ import Debug.Trace
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
-import Data.Tuple.Extra (second)
+import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Util (Name, Map, (!), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import qualified Pong.Util.Env as Env
@@ -267,6 +267,27 @@ fromPolyType ts =
     TArr t1 t2 -> tArr t1 t2
     TVar n -> tVar n
     TRow row -> tRow (mapRow (fromPolyType ts) row)
+
+mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2 
+mapTypes f =
+    cata $ \case
+      EVar (t, v) -> eVar (f t, v)
+      ECon (t, c) -> eCon (f t, c)
+      ELit lit -> eLit lit
+      EIf e1 e2 e3 -> eIf e1 e2 e3
+      ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
+      ELam a args e1 -> eLam a (fmap (first f) args) e1
+      EApp t fun as -> eApp (f t) fun as
+      EOp2 (Op2 op2 t) e1 e2 -> eOp2 (Op2 op2 (f t)) e1 e2
+      ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
+      ERow r -> eRow (mapRowTypes r)
+      EField fs e1 e2 -> eField  (fmap (first f) fs) e1 e2
+    where
+      mapRowTypes =
+        cata $ \case
+          RNil -> rNil
+          RVar (t, v) -> rVar (f t, v)
+          RExt name elem row -> rExt name (mapTypes f elem) row
 
 {-# INLINE foldType #-}
 foldType :: Type -> [Type] -> Type
