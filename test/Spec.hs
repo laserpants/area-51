@@ -52,110 +52,113 @@ toProgram = Program . Map.fromList
 main :: IO ()
 main =
   hspec $ do
-    describe "fillParams" $ do
-      it "#1" (fillParams fragment1_0 == fragment1_1)
-      it "#2" (fillParams fragment10_0 == fragment10_1)
+--    describe "fillParams" $ do
+--      it "#1" (fillParams fragment1_0 == fragment1_1)
+--      it "#2" (fillParams fragment10_0 == fragment10_1)
     describe "fillExprParams" $ do
       it "#1" (fillExprParams fragment11_1 == fragment11_2)
       it "#2" (fillExprParams fragment12_0 == fragment12_1)
       it "#3" (fillExprParams fragment17_3 == fragment17_4)
-    describe "hoistTopLambdas" $ do
-      it "#1" (hoistTopLambdas fragment2_0 == fragment2_1)
+--    describe "hoistTopLambdas" $ do
+--      it "#1" (hoistTopLambdas fragment2_0 == fragment2_1)
     describe "combineApps" $ do
       it "#1" (combineApps fragment3_0 == fragment3_1)
+      it "#2" (marshall fragment3_0 == fragment3_1)
     describe "combineLambdas" $ do
-      it "#1" (combineLambdas fragment4_0 == fragment4_1)
-      it "#2" (combineLambdas fragment17_2 == fragment17_3)
-    describe "convertClosures" $ do
-      it "#1" (convertClosures fragment5_0 == fragment5_1)
-      it "#2" (convertClosures fragment7_0 == fragment7_1)
-      it "#3" (convertClosuresT fragment5_2 == fragment5_3)
-    describe "convertFunApps" $ do
-      it "#1" (convertFunApps fragment6_0 == fragment6_1)
-    describe "liftLambdas" $ do
-      it "#1" (fromProgram (liftLambdas fragment8_0) == fragment8_1)
-      it "#2" (fromProgram (liftLambdas fragment17_4) == fragment17_5)
-      it "#3" (fromProgram (liftLambdas fragment18_2) == fragment18_3)
-    describe "replaceVarLets" $ do
-      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
-      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
-    describe "typeCheck" $ do
-      it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
-      it "#2" (Right fragment16_2 == runTypeChecker' 8 mempty (applySubstitution =<< check fragment16_1))
-      it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
-      it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment18_1))
-      it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment21_0))
-    describe "unify" $ do
-      it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
-      it "#2" (let Right sub = runUnifyRows row_0  row_1 in canonRow (apply sub row_0 :: Row Type Int) == row_1)
-      it "#3" (let Right sub = runUnify type_0 type_1 in canonTypeRows (apply sub type_0 :: Type) == type_1)
-      it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: Type in canonTypeRows u == type_3)
-      it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
-      it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row Type Int in canonRow q == row_5)
-      it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row Type Int in canonRow q == row_7)
-      it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
-      it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row Type Int; s = apply sub row_11 :: Row Type Int in canonRow q == canonRow s)
-      it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row Type Int in canonRow q == canonRow row_12)
-      it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
-      it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
-      it "#13" (let Right sub = runUnifyRows row_20 row_21 in canonRow (apply sub row_20 :: Row Type Int) == canonRow (apply sub row_21))
-      it "#14" (let Right sub = runUnifyRows row_22 row_23 in canonRow (apply sub row_22 :: Row Type Int) == canonRow (apply sub row_23))
-      it "#15" (let Right sub = runUnifyRows row_24 row_25 in canonRow (apply sub row_24 :: Row Type Int) == canonRow (apply sub row_25))
-      it "#16" (let Right sub = runUnifyRows row_26 row_27 in canonRow (apply sub row_26 :: Row Type Int) == canonRow (apply sub row_27))
-      it "#17" (let Right sub = runUnifyRows row_28 row_29 in canonRow (apply sub row_28 :: Row Type Int) == canonRow (apply sub row_29))
-      it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
-      it "#19" (let Right sub = runUnifyRows row_32 row_33 in canonRow (apply sub row_32 :: Row Type Int) == canonRow (apply sub row_33))
-      it "#20" (let Right sub = runUnifyRows row_34 row_35 in canonRow (apply sub row_34 :: Row Type Int) == canonRow (apply sub row_35))
-      it "#21" (let Right sub = runUnifyRows row_36 row_37 in canonRow (apply sub row_36 :: Row Type Int) == canonRow (apply sub row_37))
-      it "#22" (let Right sub = runUnifyRows row_38 row_39 in canonRow (apply sub row_38 :: Row Type Int) == canonRow (apply sub row_39))
-      it "#23" (let Right sub = runUnifyRows row_40 row_41 in canonRow (apply sub row_40 :: Row Type Int) == canonRow (apply sub row_41))
-    describe "alignCallSigns" $ do
-      it "#1" (alignCallSigns_ fragment17_5 == fragment17_6)
-    describe "replaceFunArgs" $ do
-      it "#1" (replaceFunArgs_ fragment17_6 == fragment17_7)
-      it "#2" (replaceFunArgs_ fragment19_2 == fragment19_3)
-    describe "convertFunApps" $ do
-      it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
-      it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
-    describe "evalProgram_" $ do
-      it "#1" (evalProgram_ fragment17_8 == LitValue (PInt 14))
-      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt 120))
-      it "#3" (runReader fragment20_2 mempty == LitValue (PInt 100))
-      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt 5))
-      it "#5" (evalProgram_ fragment20_4 == LitValue (PInt 5))
-      it "#6" (evalProgram_ fragment20_5 == LitValue (PInt 5))
-      it "#7" (evalProgram_ fragment20_6 == LitValue (PInt 0))
-      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt 2))
-    describe "parseCompileEval" $ do
-      it "#1" (LitValue (PInt 5) == parseCompileEval "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)")
-      it "#2" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)")
-      it "#3" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)")
-      it "#4" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
-      it "#5" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
-      it "#6" (LitValue (PInt 100) == parseCompileEval "def main(n : int) : int = let xs = Cons(100, Nil()) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 | Nil() => y } | Nil() => 2 }")
-      it "#7" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
-      it "#8" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { | Cons(y, ys) => match ys { | Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
-      it "#9" (ConValue "Cons" [LitValue (PInt 101), ConValue "Nil" []] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => ys | Nil() => Nil() }")
-      it "#10" (LitValue (PInt 101) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(101)")
-      it "#11" (LitValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
-      it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
-      it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
-      it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
-      it "#15" (LitValue (PInt 6) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | r } = r in p + 1 }")
-      it "#16" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = q | r } = r in q")
-      it "#17" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | q } = r in field { quantity = s | o } = q in s")
-      it "#18" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in p")
-      it "#19" (LitValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011")
-      it "#20" (LitValue (PInt 1) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in q")
-      it "#21" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { price = p | a } = r in p }")
-      it "#22" (RowValue rNil == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b")
-      it "#23" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }")
-      it "#24" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)")
-      it "#25" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (let f = lam(x) => x + 1 in f)(1)")
-      it "#26" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(1)")
-      it "#27" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f")
-      it "#28" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)")
-      it "#29" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1)}")
+      --it "#1" (combineLambdas fragment4_0 == fragment4_1)
+      --it "#2" (combineLambdas fragment17_2 == fragment17_3)
+      it "#3" (combineLambdas fragment4_0 == (fragment4_1 :: TypedExpr))
+      it "#4" (combineLambdas fragment17_2 == (fragment17_3 :: TypedExpr))
+--    describe "convertClosures" $ do
+--      it "#1" (convertClosures fragment5_0 == fragment5_1)
+--      it "#2" (convertClosures fragment7_0 == fragment7_1)
+--      it "#3" (convertClosuresT fragment5_2 == fragment5_3)
+--    describe "convertFunApps" $ do
+--      it "#1" (convertFunApps fragment6_0 == fragment6_1)
+--    describe "liftLambdas" $ do
+--      it "#1" (fromProgram (liftLambdas fragment8_0) == fragment8_1)
+--      it "#2" (fromProgram (liftLambdas fragment17_4) == fragment17_5)
+--      it "#3" (fromProgram (liftLambdas fragment18_2) == fragment18_3)
+--    describe "replaceVarLets" $ do
+--      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
+--      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
+--    describe "typeCheck" $ do
+--      it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
+--      it "#2" (Right fragment16_2 == runTypeChecker' 8 mempty (applySubstitution =<< check fragment16_1))
+--      it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
+--      it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment18_1))
+--      it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment21_0))
+--    describe "unify" $ do
+--      it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
+--      it "#2" (let Right sub = runUnifyRows row_0  row_1 in canonRow (apply sub row_0 :: Row Type Int) == row_1)
+--      it "#3" (let Right sub = runUnify type_0 type_1 in canonTypeRows (apply sub type_0 :: Type) == type_1)
+--      it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: Type in canonTypeRows u == type_3)
+--      it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
+--      it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row Type Int in canonRow q == row_5)
+--      it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row Type Int in canonRow q == row_7)
+--      it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
+--      it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row Type Int; s = apply sub row_11 :: Row Type Int in canonRow q == canonRow s)
+--      it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row Type Int in canonRow q == canonRow row_12)
+--      it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
+--      it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
+--      it "#13" (let Right sub = runUnifyRows row_20 row_21 in canonRow (apply sub row_20 :: Row Type Int) == canonRow (apply sub row_21))
+--      it "#14" (let Right sub = runUnifyRows row_22 row_23 in canonRow (apply sub row_22 :: Row Type Int) == canonRow (apply sub row_23))
+--      it "#15" (let Right sub = runUnifyRows row_24 row_25 in canonRow (apply sub row_24 :: Row Type Int) == canonRow (apply sub row_25))
+--      it "#16" (let Right sub = runUnifyRows row_26 row_27 in canonRow (apply sub row_26 :: Row Type Int) == canonRow (apply sub row_27))
+--      it "#17" (let Right sub = runUnifyRows row_28 row_29 in canonRow (apply sub row_28 :: Row Type Int) == canonRow (apply sub row_29))
+--      it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
+--      it "#19" (let Right sub = runUnifyRows row_32 row_33 in canonRow (apply sub row_32 :: Row Type Int) == canonRow (apply sub row_33))
+--      it "#20" (let Right sub = runUnifyRows row_34 row_35 in canonRow (apply sub row_34 :: Row Type Int) == canonRow (apply sub row_35))
+--      it "#21" (let Right sub = runUnifyRows row_36 row_37 in canonRow (apply sub row_36 :: Row Type Int) == canonRow (apply sub row_37))
+--      it "#22" (let Right sub = runUnifyRows row_38 row_39 in canonRow (apply sub row_38 :: Row Type Int) == canonRow (apply sub row_39))
+--      it "#23" (let Right sub = runUnifyRows row_40 row_41 in canonRow (apply sub row_40 :: Row Type Int) == canonRow (apply sub row_41))
+--    describe "alignCallSigns" $ do
+--      it "#1" (alignCallSigns_ fragment17_5 == fragment17_6)
+--    describe "replaceFunArgs" $ do
+--      it "#1" (replaceFunArgs_ fragment17_6 == fragment17_7)
+--      it "#2" (replaceFunArgs_ fragment19_2 == fragment19_3)
+--    describe "convertFunApps" $ do
+--      it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
+--      it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
+--    describe "evalProgram_" $ do
+--      it "#1" (evalProgram_ fragment17_8 == LitValue (PInt 14))
+--      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt 120))
+--      it "#3" (runReader fragment20_2 mempty == LitValue (PInt 100))
+--      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt 5))
+--      it "#5" (evalProgram_ fragment20_4 == LitValue (PInt 5))
+--      it "#6" (evalProgram_ fragment20_5 == LitValue (PInt 5))
+--      it "#7" (evalProgram_ fragment20_6 == LitValue (PInt 0))
+--      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt 2))
+--    describe "parseCompileEval" $ do
+--      it "#1" (LitValue (PInt 5) == parseCompileEval "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)")
+--      it "#2" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)")
+--      it "#3" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)")
+--      it "#4" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
+--      it "#5" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
+--      it "#6" (LitValue (PInt 100) == parseCompileEval "def main(n : int) : int = let xs = Cons(100, Nil()) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 | Nil() => y } | Nil() => 2 }")
+--      it "#7" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
+--      it "#8" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { | Cons(y, ys) => match ys { | Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
+--      it "#9" (ConValue "Cons" [LitValue (PInt 101), ConValue "Nil" []] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => ys | Nil() => Nil() }")
+--      it "#10" (LitValue (PInt 101) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(101)")
+--      it "#11" (LitValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
+--      it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
+--      it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
+--      it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
+--      it "#15" (LitValue (PInt 6) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | r } = r in p + 1 }")
+--      it "#16" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = q | r } = r in q")
+--      it "#17" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | q } = r in field { quantity = s | o } = q in s")
+--      it "#18" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in p")
+--      it "#19" (LitValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011")
+--      it "#20" (LitValue (PInt 1) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in q")
+--      it "#21" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { price = p | a } = r in p }")
+--      it "#22" (RowValue rNil == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b")
+--      it "#23" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }")
+--      it "#24" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)")
+--      it "#25" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (let f = lam(x) => x + 1 in f)(1)")
+--      it "#26" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(1)")
+--      it "#27" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f")
+--      it "#28" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)")
+--      it "#29" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1)}")
 
 
 applyToFuns 
@@ -447,6 +450,11 @@ runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (uni
 --  -> m (Definition (Label Type) PreAst)
 compileDef0 def = convertClosuresT <$> def
 
+compileDef11
+  :: (MonadState (Int, Program PreAst) m) 
+  => Definition (Label Type) PreAst
+  -> m (Definition (Label Type) PreAst)
+compileDef11 d = pure (combineApps <$> d)
 
 compileDef1
   :: (MonadState (Int, Program PreAst) m) 
@@ -461,7 +469,17 @@ compileDef2
   :: (MonadState (Int, Program PreAst) m) 
   => Definition (Label Type) PreAst
   -> m (Definition (Label Type) PreAst)
-compileDef2 = traverse (replaceFunArgs <=< alignCallSigns) 
+--compileDef2 = traverse (replaceFunArgs <=< alignCallSigns) 
+compileDef2 abc = do
+  zz <- traverse alignCallSigns abc
+  pure zz
+--  traceShowM "1 =================="
+--  traceShowM zz
+--  yy <- traverse replaceFunArgs zz
+--  traceShowM "2 =================="
+--  traceShowM yy
+--  traceShowM "3 =================="
+--  pure yy
 
 compileDef 
   :: (MonadState (Int, Program PreAst) m) 
@@ -534,7 +552,7 @@ parseCompileEval s =
 
 
 parseCompileEval2 s =
-    xx1
+    xx2
     --evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList r)
   where
     gork = zz2 <$> xx0
@@ -542,7 +560,8 @@ parseCompileEval2 s =
 --    xx0 = execState (forEachDefX q zz2) emptyProgram
     --xx0 = over Program (zz2 <$$>) r
     xx1 = snd $ execState (forEachDefX q compileDef1) (0, emptyProgram)
-    xx2 = snd $ execState (forEachDefX xx1 compileDef2) (0, xx1)
+    xx11 = snd $ execState (forEachDefX xx1 compileDef11) (0, xx1)
+    xx2 = snd $ execState (forEachDefX xx11 compileDef2) (0, xx11)
     Program r = over Program (convertFunApps <$$>) xx2
     q = oiouo p
     Right p = runParser program "" s
@@ -597,6 +616,7 @@ oiouo p = over Program (rtcx2 <$>) p
                 Left err -> error (show err)
                 Right r -> Function args (t, r)
     rtcx2 _ = error "TODO"
+
 
 --runq t = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
 --  where
@@ -711,3 +731,29 @@ p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf
 
 
 
+--
+-- let
+--   g = 
+--     lam(x) => 
+--       x
+--   in
+--     let 
+--       f =
+--         lam(y) => 
+--           y + 1
+--       in
+--         (g(f))(g(5))
+--
+--
+-- let
+--   g = 
+--     lam(x) => 
+--       x
+--   in
+--     let 
+--       f =
+--         lam(y) => 
+--           y + 1
+--       in
+--         g(f, g(5))
+--

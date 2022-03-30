@@ -11,13 +11,14 @@ import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Function ((&))
 import Data.List (nub)
+import Data.Void
 import Debug.Trace
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Name, Map, (!), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
+import Pong.Util (Name, Map, (!), (!?), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -127,7 +128,10 @@ instance (Typed t) => Typed (Op2 t) where
     \case
       Op2 _ t -> typeOf t
 
-instance (Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
+instance Typed Void where
+  typeOf _ = tCon "Void" []
+
+instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
   typeOf =
     cata $ \case
       RNil -> tRow rNil
@@ -136,7 +140,7 @@ instance (Typed t) => Typed (Row (Expr t t a1 a2) (Label t)) where
         let TRow row = project r
          in tRow (rExt name (typeOf expr) row)
 
-instance (Typed t) => Typed (Expr t t a1 a2) where
+instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
   typeOf =
     cata $ \case
       EVar (t, _) -> typeOf t
@@ -222,7 +226,7 @@ argTypes = init <<< unwindType
 
 freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
 freeVars =
-  cata $ \case
+  nub <<< cata (\case
     EVar v -> [v]
     ECon _ -> []
     ELit _ -> []
@@ -238,7 +242,7 @@ freeVars =
         RNil -> []
         RVar v -> [v]
         RExt _ expr r -> freeVars expr <> r
-    EField (_:vs) e1 e2 -> e1 <> e2 `without` vs
+    EField (_:vs) e1 e2 -> e1 <> e2 `without` vs)
 
 toPolyType :: Type -> PolyType
 toPolyType =
@@ -281,6 +285,7 @@ mapTypes f =
       ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
       ELam a args e1 -> eLam a (fmap (first f) args) e1
       EApp t fun as -> eApp (f t) fun as
+      ECall a (t, fun) as -> embed3 ECall a (f t, fun) as
       EOp2 (Op2 op2 t) e1 e2 -> eOp2 (Op2 op2 (f t)) e1 e2
       ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
       ERow r -> eRow (mapRowTypes r)
@@ -360,10 +365,15 @@ forEachDefX (Program defs) run = do
     def <- run (defs ! key)
     insertDef key def
 
-lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition (Label Type) a)
+--lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition (Label Type) a)
 lookupDef key = do
   Program defs <- gets snd
-  pure (defs ! key)
+  case defs !? key of
+    Just z -> pure z
+    Nothing ->
+      error (show defs)
+  --traceShowM defs
+  --pure (defs ! key)
 
 {-# INLINE tUnit #-}
 tUnit :: TypeT t
@@ -494,3 +504,19 @@ oMulInt = Op2 OMul (tInt ~> tInt ~> tInt)
 {-# INLINE oEqInt #-}
 oEqInt :: Op2 Type
 oEqInt = Op2 OEq (tInt ~> tInt ~> tBool)
+
+{-# INLINE oLtInt #-}
+oLtInt :: Op2 Type
+oLtInt = Op2 OLt (tInt ~> tInt ~> tBool)
+
+{-# INLINE oGtInt #-}
+oGtInt :: Op2 Type
+oGtInt = Op2 OGt (tInt ~> tInt ~> tBool)
+
+{-# INLINE oLtEInt #-}
+oLtEInt :: Op2 Type
+oLtEInt = Op2 OLtE (tInt ~> tInt ~> tBool)
+
+{-# INLINE oGtEInt #-}
+oGtEInt :: Op2 Type
+oGtEInt = Op2 OGtE (tInt ~> tInt ~> tBool)

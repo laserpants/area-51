@@ -76,16 +76,22 @@ data Prim
 
 -- | Binary operators
 data Binop
-  = OEq
-  | OAdd
-  | OSub
-  | OMul
-  | ODiv
-  | OLogicOr
-  | OLogicAnd
+  = OEq        -- ^ Equality 
+  | OLt        -- ^ Less than
+  | OGt        -- ^ Greater than
+  | OLtE       -- ^ Less than or equal
+  | OGtE       -- ^ Greater than or equal
+  | OAdd       -- ^ Addition
+  | OSub       -- ^ Subtraction
+  | OMul       -- ^ Multiplication
+  | ODiv       -- ^ Division
+  | OLogicOr   -- ^ Logical OR
+  | OLogicAnd  -- ^ Logical AND
 
+-- | A label is a typed identifier 
 type Label t = (t, Name)
 
+-- | Typed operator 
 data Op2 t =
   Op2 Binop t
 
@@ -103,11 +109,12 @@ data ExprF t a0 a1 a2 a
   | ERow (Row (Expr t a0 a1 a2) (Label t))
   | EField [Label t] a a
 
--- | Main expression language grammar
+-- | Parameterized main expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
 type TaggedExpr = Expr Int Int () Void
 
+-- | Typed intermediate expression
 type TypedExpr = Expr Type Type () Void
 
 type PreAst = Expr Type Type Void Void

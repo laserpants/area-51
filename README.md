@@ -91,4 +91,119 @@ let
       in 
         n
     
+-------------------
+-------------------
+-------------------
+-------------------
     
+
+
+
+main(z) =
+  let 
+    f =
+      lam[x, y] => x + y
+    in
+      let 
+        q : int -> int =
+          (if z > 5 then f else g)(5)
+        in
+          q(3)
+
+--
+
+main(z) =
+  let 
+    f =
+      lam[x, y] => x + y
+    in
+      let 
+        q : int -> int =
+          (lam[v0, v1] => if z > 5 then f(v0, v1) else g(v0, v1))(5)
+        in
+          q(3)
+
+--
+
+f0 = lam[v0, v1] => if z > 5 then f(v0, v1) else g(v0, v1)
+
+main(z) =
+  let 
+    f =
+      lam[x, y] => x + y
+    in
+      let 
+        q : int -> int =
+          f0(5)
+        in
+          q(3)
+
+--
+
+f0[v0, v1] = if z > 5 then f(v0, v1) else g(v0, v1)
+
+main(z) =
+  let 
+    f =
+      lam[x, y] => x + y
+    in
+      let 
+        q : int -> int =
+          f0(5)
+        in
+          q(3)
+
+--
+
+f0[v0, v1] = if z > 5 then f(v0, v1) else g(v0, v1)
+
+main(z) =
+  let 
+    f =
+      lam[x, y] => x + y
+    in
+      let 
+        q : int -> int =
+          lam(v0) => f0(5, v0)
+        in
+          q(3)
+
+--
+
+f0[v0, v1] = if z > 5 then f(v0, v1) else g(v0, v1)
+f1[v0] = f0(5, v0)
+
+main(z) =
+  let 
+    f =
+      lam[x, y] => x + y
+    in
+      let 
+        q =
+          f1
+        in
+          q(3)
+
+
+
+
+-------------------
+-------------------
+-------------------
+-------------------
+
+
+main(z) =
+  let 
+    g = 
+      lam(x) => 
+        x
+    in
+      let 
+        f =
+          lam(y) => y + 1
+      in
+        (g(f))(g(5))
+
+
+

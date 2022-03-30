@@ -66,10 +66,10 @@ fragment3_1 =
     (eVar (tInt ~> tInt ~> tInt, "g"))
     [eVar (tInt, "x"), eVar (tInt, "y")]
 
-fragment4_0 :: Expr Type () () Void
+--fragment4_0 :: Expr Type () () Void
 fragment4_0 = eLam () [(tInt, "a")] (eLam () [(tInt, "b")] (eVar (tInt, "b")))
 
-fragment4_1 :: Expr Type () () Void
+--fragment4_1 :: Expr Type () () Void
 fragment4_1 = eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "b"))
 
 fragment5_0 :: Expr Type () () Void
@@ -692,7 +692,7 @@ fragment17_1 =
                 [eApp () (eVar ((), "id")) [eLit (PInt 3)]])
              (eApp () (eVar ((), "f")) [eLit (PInt 4), eLit (PInt 5)]))))
 
-fragment17_2 :: Expr Type Type () Void
+--fragment17_2 :: Expr Type Type () Void
 fragment17_2 =
   eLet
     (tVar 2 ~> tVar 2, "id")
@@ -741,7 +741,7 @@ fragment17_2 =
 --           in
 --             id(g)(id(3)) + f(4, 5)
 --
-fragment17_3 :: Expr Type Type () Void
+--fragment17_3 :: Expr Type Type () Void
 fragment17_3 =
   eLet
     (tVar 2 ~> tVar 2, "id")

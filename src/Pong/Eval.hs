@@ -2,10 +2,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE StandaloneDeriving #-}
-
--- Note: Do not use StrictData in this module, since this will lead to
+-- ----------------------------------------------------------------------------
+-- Note: StrictData must not be used in this module, since this will lead to
 -- infinite recursion in evaluation of let expressions 
-
+-- ----------------------------------------------------------------------------
 module Pong.Eval where
 
 import Control.Monad.Reader
