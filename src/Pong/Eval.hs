@@ -3,8 +3,8 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE StandaloneDeriving #-}
 -- ----------------------------------------------------------------------------
--- Note: StrictData must not be used in this module, since this will lead to
--- infinite recursion in evaluation of let expressions 
+-- Note: StrictData must not be used in this module, since this will cause
+-- evaluation of let expressions not to terminate
 -- ----------------------------------------------------------------------------
 module Pong.Eval where
 
@@ -18,11 +18,13 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util
 import qualified Pong.Util.Env as Env
+import qualified Data.Map.Strict as Map
 
 data Value
   = LitValue Prim
   | ConValue Name [Value]
   | RowValue (Row Value Void)
+  | Closure (Label Type) [Value]
 
 deriving instance Show Value
 
@@ -43,7 +45,7 @@ eval =
       (_, env) <- ask
       case Env.lookup var env of
         Just val -> pure val
-        Nothing -> error "Runtime error (1)"
+        Nothing -> error ("Runtime error (1) : " <> show var)
     ELit lit -> pure (LitValue lit)
     EIf cond true false ->
       cond >>= \case
@@ -54,17 +56,9 @@ eval =
       mdo let insertVar = localSecond (Env.insert var val)
           val <- insertVar body
           insertVar expr
-    ECall _ (_, con) args
-      | isUpper (Text.head con) -> do
-        as <- sequence args
-        pure (ConValue con as)
-    ECall _ (_, fun) args -> do
-      (env, _) <- ask
-      case Env.lookup fun env of
-        Just (Function vs (_, body)) -> do
-          as <- sequence args
-          localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
-        _ -> error "Runtime error (3)"
+    ECall _ fun args -> do
+      as <- sequence args
+      evalCall fun as
     EOp2 (Op2 OLogicOr _) a b ->
       a >>= \case
         LitValue (PBool True) -> a
@@ -86,6 +80,28 @@ eval =
     EField field expr1 expr2 -> do
       e1 <- expr1
       evalRowCase (getRow e1) field expr2
+
+evalCall ::
+     ( MonadFix m
+     , MonadReader ( Environment (Definition (Label Type) Ast)
+                   , Environment Value) m
+     )
+  => Label Type
+  -> [Value]
+  -> m Value
+evalCall (t, fun) args 
+  | arity t > length args = pure (Closure (t, fun) args)
+  | isUpper (Text.head fun) = 
+      pure (ConValue fun args)
+  | otherwise = do
+      (env, vals) <- ask
+      case Env.lookup fun env of
+        Just (Function vs (_, body)) -> do
+          localSecond (Env.inserts (zip (snd <$> toList vs) args)) (eval body)
+        _ -> case Env.lookup fun vals of
+                Just (Closure g vs) -> do
+                  evalCall g (vs <> args)
+                _ -> error ("Runtime error (3) : " <> show fun)
 
 evalRow ::
      ( MonadFix m
@@ -159,3 +175,6 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 
 evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value
 evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)
+
+evalProgram__ :: (Ast, Program Ast) -> Value
+evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)

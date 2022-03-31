@@ -19,6 +19,7 @@ import Data.Tuple.Extra (first, second, swap)
 import Data.Void (Void)
 import Debug.Trace
 import Pong.Data
+import Pong.Eval
 import Pong.Lang
 import Pong.TypeChecker (Substitution, apply, unify, runTypeChecker')
 import Pong.Util
@@ -1223,6 +1224,58 @@ exp1_ =
   )
 
 
+-- 
+--  let
+--    fact =
+--      lam(n) =>
+--        if n == 0
+--          then 1
+--          else n * fact(n - 1)
+--    in
+--      fact(5)
+--
+expx9 = 
+  eLet
+    (tInt ~> tInt, "fact")
+    (eLam () [(tInt, "n")] 
+      (eIf
+        (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+        (eLit (PInt 1))
+        (eOp2 oMulInt (eVar (tInt, "n")) (eApp 
+          tInt
+          (eVar (tInt ~> tInt, "fact"))
+          [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+    (eApp tInt (eVar (tInt ~> tInt, "fact")) [eLit (PInt 5)])
+    
+
+
+-- 
+--  $lam1(fact, n) = 
+--        if n == 0
+--          then 1
+--          else n * fact(n - 1)
+--
+--  let
+--    fact =
+--      [$lam1(fact)]
+--    in
+--      fact(5)
+--
+expx9_ = 
+  ( eLet
+    (tInt ~> tInt, "fact") (eCall ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1") [eVar (tInt ~> tInt, "fact")])
+    (eCall (tInt ~> tInt, "fact") [eLit (PInt 5)])
+  , Program (Map.fromList 
+      [ ( "$lam1" , Function (fromList [(tInt ~> tInt, "fact"), (tInt, "n")]) (tInt, 
+              eIf
+                (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+                (eLit (PInt 1))
+                (eOp2 oMulInt (eVar (tInt, "n")) (eCall
+                  (tInt ~> tInt, "fact")
+                  [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))])))) 
+      ])
+  )
+
 
 
 
@@ -1312,12 +1365,12 @@ t123 =
   runState (beebop exp1) (1, emptyProgram)
 
 
-xyz :: (MonadState (Int, Program (Expr Type Void () ())) m) 
+xyz :: (MonadState (Int, Program Ast) m) 
     => Name 
     -> [Label Type]
     -> [Label Type]
-    -> Expr Type Void () ()
-    -> m (Expr Type Void () ())
+    -> Ast
+    -> m Ast
 xyz name vs args expr = do
   insertDef name def
   pure (eCall (typeOf def, name) (eVar <$> vs))
@@ -1326,7 +1379,7 @@ xyz name vs args expr = do
     as = vs <> args `without` [(t, name)]
     def = Function (fromList as) (t, expr)
 
-appxx :: [Expr Type Void () ()] -> Expr Type Void () () -> Expr Type Void () ()
+appxx :: [Ast] -> Ast -> Ast
 appxx xs = 
   cata $ \case
     ECall _ g ys -> do
@@ -1337,12 +1390,12 @@ appxx xs =
 extra :: Typed t => t -> [Label Type]
 extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int .. ]]
 
-gorkx :: (MonadState (Int, Program (Expr Type Void () ())) m) => m [Label Type]
+gorkx :: (MonadState (Int, Program Ast) m) => m [Label Type]
 gorkx = do
   Program p <- gets snd
   pure (swap <$> Map.toList (Map.map typeOf p))
 
-bernie :: (MonadState (Int, Program (Expr Type Void () ())) m) => TypedExpr -> m (Expr Type Void () ())
+bernie :: (MonadState (Int, Program Ast) m) => TypedExpr -> m Ast
 bernie =
   cata $ \case
     ELam t args expr1 -> do
@@ -1396,5 +1449,41 @@ t0t2 = second snd (runState (bernie expx0) (1, emptyProgram)) == expx0_
 t0t3 = second snd (runState (bernie expx8) (1, emptyProgram)) == expx8_
 t0t4 = second snd (runState (bernie expx01) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == expx01_
 t0t5 = second snd (runState (bernie exp1) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == exp1_
+t0t6 = evalProgram__ expyx_ == LitValue (PInt 125)
+t0t7 = evalProgram__ expyy_ == LitValue (PInt 125)
+t0t8 = evalProgram__ exp0_ == LitValue (PInt 5)
+t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == LitValue (PInt 120)
+t0t10 = second snd (runState (bernie expx9) (1, emptyProgram)) == expx9_
 
-t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5
+t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 && t0t9 && t0t10
+
+
+expyx_ =
+  ( eLet
+      (tInt, "z")
+      (eLit (PInt 123))
+        (eLet
+        (tInt, "f")
+        (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z"), eLit (PInt 1), eLit (PInt 1)])
+        (eVar (tInt, "f")))
+  , Program (Map.fromList 
+      [ ( "$lam1" 
+        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
+      ])
+  )
+
+
+expyy_ =
+  ( eLet
+      (tInt, "z")
+      (eLit (PInt 123))
+        (eLet
+        (tInt ~> tInt ~> tInt, "f")
+        (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
+        (eCall (tInt ~> tInt ~> tInt, "f") [eLit (PInt 1), eLit (PInt 1)]))
+  , Program (Map.fromList 
+      [ ( "$lam1" 
+        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
+      ])
+  )
+
