@@ -618,6 +618,12 @@ oiouo p = over Program (rtcx2 <$>) p
     rtcx2 _ = error "TODO"
 
 
+baz123 e = 
+    runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
+  where
+    te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
+
+
 --runq t = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
 --  where
 --    Program p = t

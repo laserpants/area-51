@@ -8,12 +8,9 @@ module Pong.Compiler where
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
-import qualified Control.Newtype.Generics as N
 import Data.Function ((&))
 import Data.List (partition, nub)
-import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty, (!!), fromList, toList)
-import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Tuple.Extra (first, second, swap)
 import Data.Void (Void)
@@ -21,10 +18,17 @@ import Debug.Trace
 import Pong.Data
 import Pong.Eval
 import Pong.Lang
+import Pong.Parser
+import Pong.TypeChecker
 import Pong.TypeChecker (Substitution, apply, unify, runTypeChecker')
 import Pong.Util
 import Prelude hiding ((!!))
+import Text.Megaparsec (runParser)
 import TextShow (showt)
+import qualified Control.Newtype.Generics as N
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Pong.Util.Env as Env
 
 -- from:
 --   lam(a) => lam(b) => b
@@ -1408,6 +1412,16 @@ bernie =
          then e1
          else appxx (eVar <$> ys) e1
 
+    ECase expr1 clauses -> do
+      e1 <- expr1
+      cs <- traverse sequence clauses
+      let t = typeOf (head (snd <$> cs))
+      if isTCon ArrT t
+        then do 
+          undefined
+        else 
+          pure (eCase e1 cs)
+
     EIf expr1 expr2 expr3 -> do
       e1 <- expr1
       e2 <- expr2
@@ -1433,6 +1447,9 @@ bernie =
         EVar v -> do
           pure (eCall v xs)
 
+    ECon con -> 
+        pure (eCall con [])
+
     ELet expr1 expr2 expr3 -> eLet expr1 <$> expr2 <*> expr3
     EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
     EVar v -> pure (eVar v)
@@ -1454,8 +1471,17 @@ t0t7 = evalProgram__ expyy_ == LitValue (PInt 125)
 t0t8 = evalProgram__ exp0_ == LitValue (PInt 5)
 t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == LitValue (PInt 120)
 t0t10 = second snd (runState (bernie expx9) (1, emptyProgram)) == expx9_
+t0t11 = baz125 exmp29_0 exmp29_1
 
-t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 && t0t9 && t0t10
+t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 && t0t9 && t0t10 && t0t11
+
+
+baz125 a b = let Right q = let Right r = runParser expr "" a in baz124 r in q == b
+
+baz124 e = 
+    runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
+  where
+    te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
 
 
 expyx_ =
@@ -1487,3 +1513,69 @@ expyy_ =
       ])
   )
 
+
+exmp29_0 :: Text
+exmp29_0 = "let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1) }"
+
+--  let 
+--    r =
+--      Cons
+--        ( lam(x) => x + 1
+--        , Nil()
+--        )
+--    in
+--      match r {
+--        Cons(f, ys) =>
+--          f(1)
+--      }
+--
+exmp29_1 =
+  eLet
+    (tCon "List" [tInt ~> tInt], "r")
+    (eApp (tCon "List" [tInt ~> tInt]) (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")) 
+      [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+      , eCon (tCon "List" [tInt ~> tInt], "Nil") 
+      ])
+    (eCase 
+      (eVar (tCon "List" [tInt ~> tInt], "r"))
+      [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+        , (tInt ~> tInt, "f")
+        , (tCon "List" [tInt ~> tInt], "ys")
+        ], eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]
+        )
+      ])
+
+
+exmp30_0 :: Text
+exmp30_0 = "let r = Cons(lam(x) => x + 1, Nil()) in (match r { Cons(f, ys) => f })(1)"
+
+--  let 
+--    r =
+--      Cons
+--        ( lam(x) => x + 1
+--        , Nil()
+--        )
+--    in
+--      (match r {
+--        Cons(f, ys) =>
+--          f
+--      })(1)
+--
+exmp30_1 =
+  eLet
+    (tCon "List" [tInt ~> tInt], "r")
+    (eApp (tCon "List" [tInt ~> tInt]) (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")) 
+      [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+      , eCon (tCon "List" [tInt ~> tInt], "Nil") 
+      ])
+    (eApp
+      undefined
+      (eCase 
+        (eVar (tCon "List" [tInt ~> tInt], "r"))
+        [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+          , (tInt ~> tInt, "f")
+          , (tCon "List" [tInt ~> tInt], "ys")
+          ], eVar (tInt ~> tInt, "f")
+          )
+        ])
+      [eLit (PInt 1)])
