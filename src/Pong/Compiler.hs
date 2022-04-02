@@ -1054,6 +1054,47 @@ exp00 =
     (eVar (tInt ~> tInt ~> tInt, "f"))
 
 
+-- 
+-- let
+--   z =
+--     5
+--   in
+--     let
+--       f =
+--         lam[x, y] => 
+--           (z + x) + y
+--       in
+--         f
+--
+exp0000 =
+  eLet
+    (tInt, "z")
+      (eLit (PInt 5))
+        (eLet
+          (tInt ~> tInt ~> tInt, "f")
+          (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
+          (eVar (tInt ~> tInt ~> tInt, "f")))
+
+
+--  $lam1(z, x, y) = (z + x) + y
+--  $let2(z, $v1, $v2) = let f = [$lam1(z)] in [f($v1, $v2)]]
+--
+--  $let2(z)
+exp00_ =
+  ( eCall (tInt ~> tInt ~> tInt ~> tInt, "$let2") [eVar (tInt, "z")]
+      , Program (Map.fromList 
+      [ ( "$lam1" 
+        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
+      , ( "$let2" 
+        , Function (fromList [(tInt, "z"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, 
+            eLet 
+              (tInt ~> tInt ~> tInt, "f")
+              (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
+              (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                ) )
+      ])
+  )
+
 --  $lam1(z, x, y) = 
 --    (z + x) + y
 --
@@ -1062,16 +1103,15 @@ exp00 =
 --      [$lam1(z)]
 --    in
 --      f
-exp00_ =
-  ( eLet
-    (tInt ~> tInt ~> tInt, "f")
-    (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
-    (eVar (tInt ~> tInt ~> tInt, "f"))
-  , Program (Map.fromList 
-      [ ( "$lam1" 
-        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
-      ])
-  )
+--  ( eLet
+--    (tInt ~> tInt ~> tInt, "f")
+--    (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
+--    (eVar (tInt ~> tInt ~> tInt, "f"))
+--  , Program (Map.fromList 
+--      [ ( "$lam1" 
+--        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
+--      ])
+--  )
 
 -- 
 --  (if z > 5 then f else f)(5)
@@ -1385,11 +1425,13 @@ xyz name vs args expr = do
 
 appxx :: [Ast] -> Ast -> Ast
 appxx xs = 
-  cata $ \case
+  project >>> (\case
     ECall _ g ys -> do
       eCall g (ys <> xs)
     EVar v -> do
       eCall v xs
+    e ->
+      error (show e))
 
 extra :: Typed t => t -> [Label Type]
 extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int .. ]]
@@ -1418,7 +1460,12 @@ bernie =
       let t = typeOf (head (snd <$> cs))
       if isTCon ArrT t
         then do 
-          undefined
+          defs <- gorkx
+          name <- uniqueName "$match"
+          let vs = freeVars (eCase e1 cs) `without` defs
+              ys = extra t
+              app = appxx (eVar <$> ys)
+          xyz name vs ys (eCase e1 (fmap (second app) cs))
         else 
           pure (eCase e1 cs)
 
@@ -1431,7 +1478,7 @@ bernie =
         then do 
           defs <- gorkx
           name <- uniqueName "$if"
-          let vs = nub (freeVars e1 <> freeVars e2 <> freeVars e3) `without` defs
+          let vs = nub (freeVars (eIf e1 e2 e3)) `without` defs
               ys = extra t
               app = appxx (eVar <$> ys)
           xyz name vs ys (eIf e1 (app e2) (app e3))
@@ -1447,13 +1494,45 @@ bernie =
         EVar v -> do
           pure (eCall v xs)
 
+--    ELet expr1 expr2 expr3 -> eLet expr1 <$> expr2 <*> expr3
+
+    ELet var expr1 expr2 -> do
+      e1 <- expr1 
+      e2 <- expr2 
+      let t = typeOf e2
+      if isTCon ArrT t
+        then do 
+          defs <- gorkx
+          name <- uniqueName "$let"
+          let vs = nub (freeVars (eLet var e1 e2)) `without` defs
+              ys = extra t
+              app = appxx (eVar <$> ys)
+          xyz name vs ys (eLet var e1 (app e2))
+        else 
+          pure (eLet var e1 e2)
+
+    EField fs expr1 expr2 -> do
+      e1 <- expr1 
+      e2 <- expr2 
+      let t = typeOf e2
+      if isTCon ArrT t
+        then do
+          defs <- gorkx
+          name <- uniqueName "$field"
+          let vs = nub (freeVars (eField fs e1 e2)) `without` defs
+              ys = extra t
+              app = appxx (eVar <$> ys)
+          xyz name vs ys (eField fs e1 (app e2))
+        else 
+          pure (eField fs e1 e2)
+
     ECon con -> 
         pure (eCall con [])
 
-    ELet expr1 expr2 expr3 -> eLet expr1 <$> expr2 <*> expr3
     EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
     EVar v -> pure (eVar v)
     ELit l -> pure (eLit l)
+    ERow row -> eRow <$> mapRowM bernie row
 
 --    expr -> do 
 --      e <- sequence expr
@@ -1471,17 +1550,44 @@ t0t7 = evalProgram__ expyy_ == LitValue (PInt 125)
 t0t8 = evalProgram__ exp0_ == LitValue (PInt 5)
 t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == LitValue (PInt 120)
 t0t10 = second snd (runState (bernie expx9) (1, emptyProgram)) == expx9_
-t0t11 = baz125 exmp29_0 exmp29_1
+t0t11 = typeCheck_ exmp29_0 == exmp29_1
+t0t12 = typeCheck_ exmp30_0 == exmp30_1
+t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))) == LitValue (PInt 2)
+t0t14 = typeCheck_ exmp31_0 == exmp31_1
+t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == LitValue (PInt 2)
+t0t16 = LitValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)" 
+t0t17 = typeCheck_ "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" == exmp34_1
+t0t18 = LitValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" 
+t0t19 = LitValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)" 
+t0t20 = LitValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
+t0t21 = LitValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
+t0t22 = LitValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
+t0t23 = typeCheck_ "let r = { price = 5 } in field { quantity = q | a } = r in 5"
+t0t24 = typeCheck_ "let q = {} in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b"
 
-t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 && t0t9 && t0t10 && t0t11
+t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 
+    && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
+    && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22
 
 
-baz125 a b = let Right q = let Right r = runParser expr "" a in baz124 r in q == b
+typeCheck_ :: Text -> TypedExpr 
+typeCheck_ a = 
+  case baz124 r of
+    Right q -> q
+    Left e -> error (show e)
+  where
+    Right r = runParser expr "" a 
 
+baz124 :: Expr t () () Void -> Either TypeError TypedExpr
 baz124 e = 
     runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
   where
     te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
+
+
+baz127 :: Text -> Value
+baz127 p = evalProgram__ (second snd (runState (bernie q) (1, emptyProgram)))
+  where Right q = let Right r = runParser expr "" p in baz124 r 
 
 
 expyx_ =
@@ -1568,8 +1674,7 @@ exmp30_1 =
       [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
       , eCon (tCon "List" [tInt ~> tInt], "Nil") 
       ])
-    (eApp
-      undefined
+    (eApp tInt
       (eCase 
         (eVar (tCon "List" [tInt ~> tInt], "r"))
         [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
@@ -1579,3 +1684,127 @@ exmp30_1 =
           )
         ])
       [eLit (PInt 1)])
+
+
+exmp31_0 :: Text
+exmp31_0 = "(let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f })(1)"
+
+--
+-- (let r = 4 in lam(x) => x)(1)
+--
+exmp31_4 =
+  eApp tInt
+    (eLet 
+      (tInt, "r")
+      (eLit (PInt 4))
+      (eLam () [(tInt, "x")] (eVar (tInt, "x"))))
+    [eLit (PInt 1)]
+
+
+--  [$let3(1)]
+--
+--  $lam1(x) = x + 1
+--  $let3($v1) = let r = Cons([$lam1], [Nil]) [$match2()]
+--
+
+
+--  $lam1(x) = x + 1
+--  $let3($v1) = let r = Cons([$lam1()], [Nil()]) in [$match2(r($v1), $v1)]
+--  $let3($v1) = let r = Cons([$lam1()], [Nil()]) in [$match2(r, $v1)]
+--
+--  [$let3(1)]
+
+
+--  (let 
+--    r =
+--      Cons
+--        ( lam(x) => x + 1
+--        , Nil()
+--        )
+--    in
+--      match r {
+--        Cons(f, ys) =>
+--          f
+--      })(1)
+--
+exmp31_1 =
+  eApp tInt
+    (eLet
+      (tCon "List" [tInt ~> tInt], "r")
+      (eApp (tCon "List" [tInt ~> tInt]) (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")) 
+        [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+        , eCon (tCon "List" [tInt ~> tInt], "Nil") 
+        ])
+        (eCase 
+          (eVar (tCon "List" [tInt ~> tInt], "r"))
+          [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+            , (tInt ~> tInt, "f")
+            , (tCon "List" [tInt ~> tInt], "ys")
+            ], eVar (tInt ~> tInt, "f")
+            )
+          ]))
+        [eLit (PInt 1)]
+
+
+
+
+--  (match r {
+--    Cons(f, ys) =>
+--      f
+--  })(1)
+exmp32_1 =
+  eApp tInt
+    (eCase 
+          (eVar (tCon "List" [tInt ~> tInt], "r"))
+          [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+            , (tInt ~> tInt, "f")
+            , (tCon "List" [tInt ~> tInt], "ys")
+            ], eVar (tInt ~> tInt, "f")
+            )
+          ])
+        [eLit (PInt 1)]
+
+
+--
+--  let
+--    r =
+--      { a = lam(x) => x + 1 }
+--    in
+--      field 
+--        { a = f | q } = 
+--          r 
+--        in 
+--          f
+--
+exmp33_1 =
+  eLet
+    (tRow (rExt "a" (tInt ~> tInt) rNil), "r")
+    (eRow (rExt "a" (eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))) rNil))
+    (eField [((tInt ~> tInt) ~> tRow rNil ~> tRow (rExt "a" (tInt ~> tInt) rNil), "{a}"), (tInt ~> tInt, "f"), (tRow rNil, "q")] 
+        (eVar (tRow (rExt "a" (tInt ~> tInt) rNil), "r")) 
+        (eVar (tInt ~> tInt, "f")))
+
+
+--  (let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)
+--
+--  (let
+--    r =
+--      { a = lam(x) => x + 1 }
+--    in
+--      field 
+--        { a = f | q } = 
+--          r 
+--        in 
+--          f)(5)
+--
+exmp34_1 =
+  eApp 
+    tInt
+    (eLet
+      (tRow (rExt "a" (tInt ~> tInt) rNil), "r")
+      (eRow (rExt "a" (eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))) rNil))
+      (eField [((tInt ~> tInt) ~> tRow rNil ~> tRow (rExt "a" (tInt ~> tInt) rNil), "{a}"), (tInt ~> tInt, "f"), (tRow rNil, "q")] 
+          (eVar (tRow (rExt "a" (tInt ~> tInt) rNil), "r")) 
+          (eVar (tInt ~> tInt, "f"))))
+    [eLit (PInt 5)]
+

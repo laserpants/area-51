@@ -108,6 +108,7 @@ instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
       EOp2 (Op2 op t) a b -> eOp2 (Op2 op (apply sub t)) a b
       EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
+      ERow row -> eRow (mapRow (apply sub) row)
       e -> embed e
     where
       subst = first (apply sub)

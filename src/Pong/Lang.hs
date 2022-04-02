@@ -11,12 +11,14 @@ import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Function ((&))
 import Data.List (nub)
+import Data.Char (isUpper)
 import Data.Void
 import Debug.Trace
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
+import qualified Data.Text as Text
 import Pong.Data
 import Pong.Util (Name, Map, (!), (!?), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import qualified Pong.Util.Env as Env
@@ -227,16 +229,21 @@ argTypes = init <<< unwindType
 freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
 freeVars =
   nub <<< cata (\case
-    EVar v -> [v]
+    EVar v 
+      | isUpper (Text.head (snd v)) -> []
+      | otherwise -> [v]
     ECon _ -> []
     ELit _ -> []
     EIf e1 e2 e3 -> e1 <> e2 <> e3
     ELet bind e1 e2 -> (e1 <> e2) `without` [bind]
     ELam _ args expr -> expr `without` args
     EApp _ fun args -> fun <> concat args
-    ECall _ fun args -> fun : concat args
+    ECall _ fun args 
+      | isUpper (Text.head (snd fun)) -> concat args
+      | otherwise -> fun : concat args
     EOp2 op e1 e2 -> e1 <> e2
-    ECase e1 cs -> e1 <> (cs >>= \(_:vs, expr) -> expr `without` vs)
+    ECase e1 cs -> e1 <> (cs >>= \(_:vs, expr) -> 
+      expr `without` vs)
     ERow row ->
       (`cata` row) $ \case
         RNil -> []
