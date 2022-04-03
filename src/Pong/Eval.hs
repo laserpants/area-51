@@ -101,8 +101,21 @@ eval =
       evalRowCase (getRow e1) field expr2
 
 evalCall :: (MonadFix m) => Label Type -> [EvalT m (Value m)] -> EvalT m (Value m)
-evalCall (t, fun) args =
-  undefined
+evalCall = undefined
+--evalCall (t, fun) args 
+--  | arity t > length args = pure (Closure (t, fun) args)
+--  | isUpper (Text.head fun) = 
+--      pure (ConValue fun args)
+--  | otherwise = do
+--      (env, vals) <- ask
+--      case Env.lookup fun env of
+--        Just (Function vs (_, body)) -> do
+--          localSecond (Env.inserts (zip (snd <$> toList vs) args)) (eval body)
+--        _ -> case Env.lookup fun vals of
+--                Just (Closure g vs) -> do
+--                  evalCall g (vs <> args)
+--                _ -> error ("Runtime error (3) : " <> show fun)
+
 
 --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
 --evalCall (t, fun) args 
