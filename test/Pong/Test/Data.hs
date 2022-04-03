@@ -1207,24 +1207,24 @@ fragment19_3 =
               [eApp tInt (eVar (tInt ~> tInt, "j")) [eVar (tInt, "n")]]))
     ])
 
-fragment20_1 :: Value
+fragment20_1 :: Value m
 fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
-fragment20_2 ::
-     ( MonadFix m
-     , MonadReader ( Environment (Definition (Label Type) Ast)
-                   , Environment Value) m
-     )
-  => m Value
-fragment20_2 =
-  evalCase
-    fragment20_1
-    [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
-        , (tInt, "x")
-        , (tCon "List" [tInt], "xs")
-        ]
-      , pure (LitValue (PInt 100)))
-    ]
+--fragment20_2 ::
+--     ( MonadFix m
+--     , MonadReader ( Environment (Definition (Label Type) Ast)
+--                   , Environment (Value m)) m
+--     )
+--  => m (Value m)
+--fragment20_2 =
+--  evalCase
+--    fragment20_1
+--    [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+--        , (tInt, "x")
+--        , (tCon "List" [tInt], "xs")
+--        ]
+--      , pure (LitValue (PInt 100)))
+--    ]
 
 fragment20_3 :: (Ast, [(Name, Definition (Label Type) Ast)])
 fragment20_3 =

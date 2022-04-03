@@ -34,7 +34,7 @@ import qualified Pong.Util.Env as Env
 
 --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 
-foo :: Value
+foo :: Value m
 foo = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
 fromProgram :: State (Int, Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
