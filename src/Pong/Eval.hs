@@ -80,7 +80,7 @@ eval =
       --mdo let insertVar = localSecond (Env.insert var val)
       --    val <- insertVar body
       --    insertVar expr
-      mdo val <- localSecond (Env.insert var undefined) body
+      mdo val <- localSecond (Env.insert var (Baz undefined)) body
           localSecond (Env.insert var val) expr
     ECall _ fun args -> do
       evalCall fun args
