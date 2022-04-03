@@ -29,9 +29,19 @@ data Value m
   = LitValue Prim
   | ConValue Name [Value m]
   | RowValue (Row (Value m) Void)
-  | Closure (Label Type) [m (Value m)]
+  | Closure (Label Type) [EvalT m (Value m)]
+  | Baz (EvalT m (Value m))
 
-deriving instance Show (Value Identity) 
+instance Show (Value m) where
+  show = \case
+    LitValue prim -> show prim
+    RowValue row -> show row
+
+instance Eq (Value m) where
+  v == w =
+    case (v, w) of
+      (LitValue a, LitValue b) -> a == b
+      (RowValue r, RowValue q) -> r == q
 
 type ValueEnv m = 
   ( Environment (Definition (Label Type) Ast)
@@ -70,7 +80,7 @@ eval =
       --mdo let insertVar = localSecond (Env.insert var val)
       --    val <- insertVar body
       --    insertVar expr
-      mdo val <- localSecond (Env.insert var val) body
+      mdo val <- localSecond (Env.insert var undefined) body
           localSecond (Env.insert var val) expr
     ECall _ fun args -> do
       evalCall fun args
@@ -88,8 +98,8 @@ eval =
       lhs <- a
       rhs <- b
       case (lhs, rhs) of
-        (LitValue p, LitValue q) ->
-          pure (LitValue (PBool (p == q)))
+        (LitValue p, LitValue q) -> pure (LitValue (PBool (p == q)))
+        (RowValue r, RowValue q) -> pure (LitValue (PBool (r == q)))
     EOp2 op a b ->
       LitValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     ECase expr cs -> do
@@ -101,20 +111,22 @@ eval =
       evalRowCase (getRow e1) field expr2
 
 evalCall :: (MonadFix m) => Label Type -> [EvalT m (Value m)] -> EvalT m (Value m)
-evalCall = undefined
---evalCall (t, fun) args 
---  | arity t > length args = pure (Closure (t, fun) args)
---  | isUpper (Text.head fun) = 
---      pure (ConValue fun args)
---  | otherwise = do
---      (env, vals) <- ask
---      case Env.lookup fun env of
---        Just (Function vs (_, body)) -> do
---          localSecond (Env.inserts (zip (snd <$> toList vs) args)) (eval body)
---        _ -> case Env.lookup fun vals of
---                Just (Closure g vs) -> do
---                  evalCall g (vs <> args)
---                _ -> error ("Runtime error (3) : " <> show fun)
+--evalCall = undefined
+evalCall (t, fun) args 
+  | arity t > length args = pure (Closure (t, fun) args)
+  | isUpper (Text.head fun) = do
+      as <- sequence args
+      pure (ConValue fun as)
+  | otherwise = do
+      (env, vals) <- ask
+      as <- sequence args
+      case Env.lookup fun env of
+        Just (Function vs (_, body)) -> do
+          localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
+        _ -> case Env.lookup fun vals of
+                Just (Closure g vs) -> do
+                  evalCall g (vs <> args)
+                _ -> error ("Runtime error (3) : " <> show fun)
 
 
 --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
