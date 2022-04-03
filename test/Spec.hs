@@ -34,7 +34,7 @@ import qualified Pong.Util.Env as Env
 
 --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 
-foo :: Value m
+foo :: Value 
 foo = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
 fromProgram :: State (Int, Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
@@ -143,6 +143,10 @@ main =
 --      it "#11" (LitValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
 --      it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
 --      it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
+--
+--
+--
+--
 --      it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
 --
 --
@@ -767,3 +771,8 @@ p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf
 --       in
 --         g(f, g(5))
 --
+--
+--  $lam1(x) = x
+--  $lam2(h, y) = y + h
+--
+--  let h = 100 + 1 in let g = [$lam1] in let f = [$lam2(h)] in [g(f, [g(5)])]

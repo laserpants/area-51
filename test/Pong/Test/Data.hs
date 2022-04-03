@@ -1207,7 +1207,7 @@ fragment19_3 =
               [eApp tInt (eVar (tInt ~> tInt, "j")) [eVar (tInt, "n")]]))
     ])
 
-fragment20_1 :: Value m
+fragment20_1 :: Value 
 fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
 --fragment20_2 ::

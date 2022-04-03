@@ -1,68 +1,56 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving #-}
--- ----------------------------------------------------------------------------
--- Note: StrictData must not be used in this module, since this will cause
--- evaluation of let expressions not to terminate
--- ----------------------------------------------------------------------------
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE StrictData #-}
 module Pong.Eval where
 
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Char (isUpper)
 import Data.List.NonEmpty (fromList, toList)
-import qualified Data.Text as Text
 import Data.Void (Void)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Util
-import qualified Pong.Util.Env as Env
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
+import qualified Pong.Util.Env as Env
 
-data Value m
+data Value 
   = LitValue Prim
-  | ConValue Name [Value m]
-  | RowValue (Row (Value m) Void)
-  | Closure (Label Type) [EvalT m (Value m)]
-  | Baz (EvalT m (Value m))
+  | ConValue Name [Value]
+  | RowValue (Row Value Void)
+  | Closure (Label Type) [Eval Value]
 
-instance Show (Value m) where
+instance Show Value where
   show = \case
-    LitValue prim -> show prim
-    RowValue row -> show row
+    LitValue p -> show p
+    ConValue _ _ -> show "ConValue"
+    RowValue _ -> show "RowValue"
+    Closure n as -> show ("Closure " <> show n <> ":" <> show (length as))
 
-instance Eq (Value m) where
-  v == w =
-    case (v, w) of
-      (LitValue a, LitValue b) -> a == b
-      (RowValue r, RowValue q) -> r == q
+instance Eq Value where
+  a == b = 
+    case (a, b) of
+      (LitValue p, LitValue q) -> p == q
+      (RowValue r, RowValue s) -> r == s
 
-type ValueEnv m = 
+type ValueEnv = 
   ( Environment (Definition (Label Type) Ast)
-  , Environment (Value m)
+  , Environment Value 
   )
 
-newtype EvalT m a = Eval { unEvalT :: ReaderT (ValueEnv m) m a } deriving
+newtype Eval a = Eval { unEval :: Reader ValueEnv a } deriving
   ( Functor
   , Applicative
   , Monad
-  , MonadFix
-  , MonadReader (ValueEnv m)
+  , MonadReader ValueEnv 
   )
 
---deriving instance Show Value
-
---deriving instance Eq (Value m)
-
---deriving instance Ord Value
-
-eval :: (MonadFix m) => Ast -> EvalT m (Value m)
+eval :: Ast -> Eval Value 
 eval =
   cata $ \case
     EVar (_, var) -> do
@@ -77,15 +65,9 @@ eval =
         LitValue (PBool False) -> false
         _ -> error "Runtime error (2)"
     ELet (_, var) body expr -> do
-      --mdo let insertVar = localSecond (Env.insert var val)
-      --    val <- insertVar body
-      --    insertVar expr
-      mdo val <- localSecond (Env.insert var (Baz undefined)) body
-          localSecond (Env.insert var val) expr
-    ECall _ fun args -> do
-      evalCall fun args
-      --as <- sequence args
-      --evalCall fun as
+      val <- body 
+      localSecond (Env.insert var val) expr
+    ECall _ fun args -> evalCall fun args
     EOp2 (Op2 OLogicOr _) a b ->
       a >>= \case
         LitValue (PBool True) -> a
@@ -97,9 +79,7 @@ eval =
     EOp2 (Op2 OEq _) a b -> do
       lhs <- a
       rhs <- b
-      case (lhs, rhs) of
-        (LitValue p, LitValue q) -> pure (LitValue (PBool (p == q)))
-        (RowValue r, RowValue q) -> pure (LitValue (PBool (r == q)))
+      pure (LitValue (PBool (lhs == rhs)))
     EOp2 op a b ->
       LitValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     ECase expr cs -> do
@@ -110,8 +90,7 @@ eval =
       e1 <- expr1
       evalRowCase (getRow e1) field expr2
 
-evalCall :: (MonadFix m) => Label Type -> [EvalT m (Value m)] -> EvalT m (Value m)
---evalCall = undefined
+evalCall :: Label Type -> [Eval Value] -> Eval Value 
 evalCall (t, fun) args 
   | arity t > length args = pure (Closure (t, fun) args)
   | isUpper (Text.head fun) = do
@@ -124,10 +103,8 @@ evalCall (t, fun) args
         Just (Function vs (_, body)) -> do
           localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
         _ -> case Env.lookup fun vals of
-                Just (Closure g vs) -> do
-                  evalCall g (vs <> args)
+                Just (Closure g vs) -> evalCall g (vs <> args)
                 _ -> error ("Runtime error (3) : " <> show fun)
-
 
 --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
 --evalCall (t, fun) args 
@@ -152,7 +129,7 @@ evalCall (t, fun) args
 --                  evalCall g (vs <> args)
 --                _ -> error ("Runtime error (3) : " <> show fun)
 
-evalRow :: (MonadFix m) => Row Ast (Label Type) -> EvalT m (Row (Value m) Void)
+evalRow :: Row Ast (Label Type) -> Eval (Row Value Void)
 evalRow =
   cata $ \case
     RNil -> pure rNil
@@ -165,16 +142,15 @@ evalRow =
       rExt name <$> eval v <*> row
 
 evalCase
-  :: (MonadFix m) 
-  => Value m
-  -> [([Label Type], EvalT m (Value m))]
-  -> EvalT m (Value m)
+  :: Value
+  -> [([Label Type], Eval Value)]
+  -> Eval Value 
 evalCase _ [] = error "Runtime error: No matching clause"
 evalCase (ConValue name fields) (((_, con):vars, value):clauses)
   | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
   | otherwise = evalCase (ConValue name fields) clauses
 
-evalRowCase :: (MonadFix m) => Row (Value m) Void -> [Label Type] -> EvalT m (Value m) -> EvalT m (Value m)
+evalRowCase :: Row Value Void -> [Label Type] -> Eval Value -> Eval Value 
 evalRowCase row [(_, name), (_, v), (_, r)] value = do
   let (p, q) = splitRow (trimLabel name) row
   localSecond (Env.inserts [(v, p), (r, RowValue q)]) value
@@ -280,11 +256,11 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 --    RExt name v row ->
 --      rExt name <$> eval v <*> row
 
-getPrim :: Value m -> Prim
+getPrim :: Value -> Prim
 getPrim (LitValue lit) = lit
 getPrim _ = error "Runtime error (5)"
 
-getRow :: Value m -> Row (Value m) Void
+getRow :: Value -> Row Value Void
 getRow (RowValue row) = row
 getRow _ = error "Runtime error (6)"
 
@@ -335,12 +311,8 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 --evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value
 --evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)
 
-evalProgram__ :: (Ast, Program Ast) -> Value Identity
+evalProgram__ :: (Ast, Program Ast) -> Value 
 evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)
 
-evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value Identity
-evalProgram_ (ast, defs) = runIdentity (runReaderT x (Env.fromList defs, mempty))
-  where
-    x :: (MonadFix m) => ReaderT (ValueEnv m) m (Value m)
-    x = unEvalT (eval ast)
-
+evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value 
+evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.fromList defs, mempty))

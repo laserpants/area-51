@@ -1495,8 +1495,6 @@ bernie =
         EVar v -> do
           pure (eCall v xs)
 
---    ELet expr1 expr2 expr3 -> eLet expr1 <$> expr2 <*> expr3
-
     ELet var expr1 expr2 -> do
       e1 <- expr1 
       e2 <- expr2 
@@ -1565,12 +1563,15 @@ t0t21 = LitValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => 
 t0t22 = LitValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
 t0t23 = RowValue rNil == baz127 "let q = { quantity = 123 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b"
 t0t24 = LitValue (PInt 1010) == baz127 "let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011"
-
+t0t25 = LitValue (PInt 120) == baz127 "let fact = lam(n) => if n == 0 then 1 else n * fact(n - 1) in fact(5)"
+t0t26 = LitValue (PInt 1) == baz127 "let f = lam(x) => 1 in let i = f in i(1)"
+t0t27 = LitValue (PInt 12) == baz127 "let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)"
 
 
 t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 
     && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
     && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
+    && t0t25 && t0t26 && t0t27
 
 
 typeCheck_ :: Text -> TypedExpr 
@@ -1588,7 +1589,7 @@ baz124 e =
     te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
 
 
-baz127 :: Text -> Value Identity
+baz127 :: Text -> Value 
 baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
   where Right q = let Right r = runParser expr "" p in baz124 r 
 
