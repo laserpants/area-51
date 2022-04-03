@@ -1562,12 +1562,14 @@ t0t19 = LitValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field {
 t0t20 = LitValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
 t0t21 = LitValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
 t0t22 = LitValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
-t0t23 = typeCheck_ "let r = { price = 5 } in field { quantity = q | a } = r in 5"
-t0t24 = typeCheck_ "let q = {} in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b"
+t0t23 = RowValue rNil == baz127 "let q = { quantity = 123 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b"
+t0t24 = LitValue (PInt 1010) == baz127 "let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011"
+
+
 
 t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 
     && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
-    && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22
+    && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
 
 
 typeCheck_ :: Text -> TypedExpr 
@@ -1586,8 +1588,14 @@ baz124 e =
 
 
 baz127 :: Text -> Value
-baz127 p = evalProgram__ (second snd (runState (bernie q) (1, emptyProgram)))
+baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
   where Right q = let Right r = runParser expr "" p in baz124 r 
+
+
+--baz128 :: Text -> Value
+baz128 p = second snd (runState (bernie q) (1, emptyProgram))
+  where Right q = let Right r = runParser expr "" p in baz124 r 
+
 
 
 expyx_ =
@@ -1808,3 +1816,18 @@ exmp34_1 =
           (eVar (tInt ~> tInt, "f"))))
     [eLit (PInt 5)]
 
+
+--  let
+--    r =
+--      { price = 5 }
+--    in
+--      field 
+--        { quantity = q | a } = 
+--          r
+--        in
+--          5
+exmp35_1 =
+  eLet
+    ((), "r")
+    (eRow (rExt "price" (eLit (PInt 5)) rNil))
+    (eField [((), "{quantity}"), ((), "q"), ((), "a")] (eVar ((), "r")) (eLit (PInt 5)))

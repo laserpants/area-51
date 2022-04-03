@@ -25,6 +25,7 @@ data Value
   | ConValue Name [Value]
   | RowValue (Row Value Void)
   | Closure (Label Type) [Value]
+  | Baz Ast
 
 deriving instance Show Value
 
@@ -52,10 +53,12 @@ eval =
         LitValue (PBool True) -> true
         LitValue (PBool False) -> false
         _ -> error "Runtime error (2)"
-    ELet (_, var) body expr ->
-      mdo let insertVar = localSecond (Env.insert var val)
-          val <- insertVar body
-          insertVar expr
+    ELet (_, var) body expr -> do
+      --mdo let insertVar = localSecond (Env.insert var val)
+      --    val <- insertVar body
+      --    insertVar expr
+      mdo val <- localSecond (Env.insert var val) body
+          localSecond (Env.insert var val) expr
     ECall _ fun args -> do
       as <- sequence args
       evalCall fun as
@@ -90,6 +93,14 @@ evalCall ::
   -> [Value]
   -> m Value
 evalCall (t, fun) args 
+  | "i" == fun = do
+        (env, vals) <- ask
+        --let boo = Env.lookup fun vals 
+        error (show vals)
+        --        Just (Closure g vs) -> do
+        --          error "XXX"
+        --          --evalCall g (vs <> args)
+        --        _ -> error ("Runtime error (r3) : " <> show fun)
   | arity t > length args = pure (Closure (t, fun) args)
   | isUpper (Text.head fun) = 
       pure (ConValue fun args)

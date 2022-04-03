@@ -144,17 +144,18 @@ main =
 --      it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
 --      it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
 --      it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
+--
+--
 --      it "#15" (LitValue (PInt 6) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | r } = r in p + 1 }")
 --      it "#16" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = q | r } = r in q")
 --      it "#17" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | q } = r in field { quantity = s | o } = q in s")
 --      it "#18" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in p")
+--
+--
 --      it "#19" (LitValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011")
 --      it "#20" (LitValue (PInt 1) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in q")
 --      it "#21" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { price = p | a } = r in p }")
 --      it "#22" (RowValue rNil == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b")
---
---
---
 --      it "#23" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }")
 --      it "#24" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)")
 --      it "#25" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (let f = lam(x) => x + 1 in f)(1)")
