@@ -93,21 +93,26 @@ eval =
 evalCall :: Label Type -> [Eval Value] -> Eval Value 
 evalCall (t, fun) args 
   | arity t > length args = pure (Closure (t, fun) args)
-  | isUpper (Text.head fun) = do
-      as <- sequence args
-      pure (ConValue fun as)
-  | otherwise = do
-      (env, vals) <- ask
-      as <- sequence args
-      case Env.lookup fun env of
-        Just (Function vs (_, body)) -> do
-          traceShowM (show (zip (snd <$> toList vs) as))
-          --error (show (zip (snd <$> toList vs) as))
-          --traceShowM ">>>>>>>>>>>>>>>"
-          localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
-        _ -> case Env.lookup fun vals of
-                Just (Closure g vs) -> evalCall g (vs <> args)
-                _ -> error ("Runtime error (3) : " <> show fun)
+  | arity t < length args = do
+    evalCall (t, fun) (take (arity t) args) >>= 
+      \case 
+        Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
+        _ -> error "??"
+  | isUpper (Text.head fun) = do 
+    as <- sequence args 
+    pure (ConValue fun as)
+  | otherwise = do 
+    (env, vals) <- ask
+    as <- sequence args
+    case Env.lookup fun env of
+      Just (Function vs (_, body)) -> do
+        traceShowM (show (zip (snd <$> toList vs) as))
+        --error (show (zip (snd <$> toList vs) as))
+        --traceShowM ">>>>>>>>>>>>>>>"
+        localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
+      _ -> case Env.lookup fun vals of
+              Just (Closure g vs) -> evalCall g (vs <> args)
+              _ -> error ("Runtime error (3) : " <> show fun)
 
 --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
 --evalCall (t, fun) args 

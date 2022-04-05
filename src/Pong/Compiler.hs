@@ -1677,12 +1677,13 @@ t0t24 = LitValue (PInt 1010) == baz127 "let r = { price = 5, quantity = 3 } in f
 t0t25 = LitValue (PInt 120) == baz127 "let fact = lam(n) => if n == 0 then 1 else n * fact(n - 1) in fact(5)"
 t0t26 = LitValue (PInt 1) == baz127 "let f = lam(x) => 1 in let i = f in i(1)"
 t0t27 = LitValue (PInt 12) == baz127 "let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)"
+t0t28 = LitValue (PInt 18) == baz127 "let h = 5 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)"
 
 
 t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 
     && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
     && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
-    && t0t25 && t0t26 && t0t27
+    && t0t25 && t0t26 && t0t27 && t0t28
 
 
 typeCheck_ :: Text -> TypedExpr 
@@ -1712,7 +1713,7 @@ baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, e
   where Right q = let Right r = runParser expr "" p in baz124 r 
 
 --baz127b :: Text -> Value 
-baz127b p = (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
+baz127b p = (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
   where Right q = let Right r = runParser expr "" p in baz124 r 
 
 
