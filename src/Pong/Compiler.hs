@@ -8,8 +8,10 @@ module Pong.Compiler where
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Arrow ((&&&))
 import Control.Monad.Writer
 import Data.Function ((&))
+import Data.Char (isUpper)
 import Data.List (partition, nub)
 import Data.List.NonEmpty (NonEmpty, (!!), fromList, toList)
 import Data.Maybe (fromMaybe)
@@ -27,6 +29,7 @@ import Prelude hiding ((!!))
 import Text.Megaparsec (runParser)
 import TextShow (showt)
 import qualified Control.Newtype.Generics as N
+import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
@@ -270,7 +273,7 @@ alignCallSigns =
               pure (eApp t f as)
             Just def -> do
               let tdef = typeOf def
-              case runTypeChecker' (leastFree [tdef, t1]) mempty (unify tdef t1) of
+              case runTypeChecker' (freeIndex [tdef, t1]) mempty (unify tdef t1) of
                 Right sub
                   | sub /= mempty -> do
                     name <- uniqueName ".g"
@@ -1537,6 +1540,114 @@ bernie =
 --      e <- sequence expr
 --      error (show e)
 
+perry2 :: (MonadState (Int, Program Ast) m) => Ast -> m Ast
+perry2 ast = do
+  (_, Program p) <- get
+  runReaderT (perry ast) (Env.fromList (grok <$> Map.toList p))
+  --runReaderT (perry ast) mempty
+
+grok :: (Name, Definition (Label Type) Ast) -> (Name, (Type, Name))
+grok x = (fst x, (typeOf (snd x), fst x))
+
+--findCallTarget :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Name -> m (Label Type)
+--findCallTarget name = do
+--  (_, Program box) <- get
+--  case Map.lookup name box of
+--    Just zz -> 
+--      pure (typeOf zz, name)
+--    _ -> do
+--      xyz <- ask
+--      case Env.lookup name xyz of
+--        Just (_, yy) ->
+--          findCallTarget yy
+--        _ ->
+--          error ("FOOOO " <> show name)
+
+findCallTarget2 
+  :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) 
+  => Name 
+  -> m (Name, Definition (Label Type) Ast)
+findCallTarget2 name = do
+  (_, Program box) <- get
+  case Map.lookup name box of
+    Just zz -> 
+      pure (name, zz)
+    _ -> do
+      xyz <- ask
+      case Env.lookup name xyz of
+        Just (_, yy) ->
+          findCallTarget2 yy
+        _ ->
+          error ("FOOOO " <> show name)
+
+perry :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Ast -> m Ast
+perry = 
+  cata $ \case
+
+    ECase _ _ ->
+      undefined
+
+--    EVar (t, var) | isTCon ArrT t && not (isUpper (Text.head var)) -> do
+--      (zyx, _) <- findCallTarget2 var
+--      --pure (eCall zyx [])
+--      pure (eVar (t, zyx))
+
+--    EVar (t, var) | isTCon ArrT t && not (isUpper (Text.head var)) -> do
+--      (zyx, _) <- findCallTarget2 var
+--      --pure (eCall zyx [])
+--      pure (eCall (t, zyx) [])
+
+    ELet (t, var) expr1 expr2 -> do
+      e1 <- expr1
+      case project e1 of
+        EVar (_, name) | not (isUpper (Text.head name)) -> do
+          (zyx, _) <- findCallTarget2 name
+          local (Env.insert var (t, zyx)) expr2
+        ECall _ (_, zyx)_ | not (isUpper (Text.head zyx)) ->
+          local (Env.insert var (t, zyx)) expr2
+        _ ->
+          eLet (t, var) e1 <$> expr2
+
+    EField _ _ _ ->
+      undefined
+
+    ECall _ (t0, fun) args | not (isUpper (Text.head fun)) -> do
+      as <- sequence args
+      (mmm, def) <- findCallTarget2 fun
+      let t1 = typeOf def
+      --traceShowM t0
+      --traceShowM t1
+      --traceShowM "^^^^"
+      if t0 == t1
+         then pure (eCall (t0, mmm) as)
+         else 
+           case runTypeChecker' (freeIndex [t0, t1]) mempty (unify t0 t1) of
+                Right sub
+                  | sub /= mempty -> do
+                    name <- uniqueName "$def"
+                    insertDef name (foo9 (apply sub def)) -- =<< preprocess (fmap xx123 (apply sub def))
+                    pure (eCall (t0, name) as)
+                    --insertDef name =<< preprocess (fmap xx123 (apply sub def))
+                    --pure (eApp t (eVar (t1, name)) as)
+                _ -> 
+                  pure (eCall (t0, mmm) as)
+--                  undefined -- pure (eApp t f as)
+
+--      case Env.lookup fun abc of
+--        Just xx ->
+--        _ -> 
+--          undefined
+
+    e -> do
+      embed <$> sequence e
+
+foo9 :: Definition (Label Type) Ast -> Definition (Label Type) Ast
+foo9 = \case
+  Function args (t, expr) | arity t > 0 ->
+    let ys = extra t
+     in Function (args <> fromList ys) (t, appxx (eVar <$> ys) expr)
+  def ->
+    def
 
 t0t0 = second snd (runState (bernie exp00) (1, emptyProgram)) == exp00_
 t0t1 = second snd (runState (bernie exp0) (1, emptyProgram)) == exp0_
@@ -1585,16 +1696,28 @@ typeCheck_ a =
 baz124 :: Expr t () () Void -> Either TypeError TypedExpr
 baz124 e = 
     runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
+--    runTypeChecker te $ do
+--        x <- tagExpr e
+--        y <- check x
+--        s <- get
+--        traceShowM s
+--        applySubstitution y
   where
     te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
 
 
 baz127 :: Text -> Value 
+--baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
 baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
+  where Right q = let Right r = runParser expr "" p in baz124 r 
+
+--baz127b :: Text -> Value 
+baz127b p = (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
   where Right q = let Right r = runParser expr "" p in baz124 r 
 
 
 --baz128 :: Text -> Value
+--baz128 p = second snd (runState (perry2 =<< bernie q) (1, emptyProgram))
 baz128 p = second snd (runState (bernie q) (1, emptyProgram))
   where Right q = let Right r = runParser expr "" p in baz124 r 
 

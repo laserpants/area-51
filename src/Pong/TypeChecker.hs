@@ -53,7 +53,7 @@ data TypeError
   = UnificationError
   | NotInScope Name
   | ConstructorNotInScope Name
-  | EmptyCaseStatement
+  | IllFormedExpression
 
 runTypeChecker' ::
      Int -> Environment PolyType -> TypeChecker a -> Either TypeError a
@@ -97,16 +97,19 @@ instance Substitutable Type where
 instance Substitutable PolyType where
   apply = substitute . (toPolyType <$>) . unpack
 
-instance (Substitutable t) => Substitutable (Expr t t a1 a2) where
+instance Substitutable Void where
+  apply _ void = void
+
+instance (Substitutable t, Substitutable a0) => Substitutable (Expr t a0 a1 a2) where
   apply sub =
     cata $ \case
       EVar name -> eVar (subst name)
-      ECon con -> eCon (subst con)
+      ECon con -> eCon (first (apply sub) con)
       ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
       ELam t args expr -> eLam t (subst <$> args) expr
       EApp t fun args -> eApp (apply sub t) fun args
       ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
-      EOp2 (Op2 op t) a b -> eOp2 (Op2 op (apply sub t)) a b
+      EOp2 (Op2 op t) expr1 expr2 -> eOp2 (Op2 op (apply sub t)) expr1 expr2
       EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
       ERow row -> eRow (mapRow (apply sub) row)
       e -> embed e
@@ -123,8 +126,8 @@ instance Substitutable (Map k Type) where
 instance Substitutable (Environment PolyType) where
   apply = fmap . apply
 
-instance (Substitutable t) =>
-         Substitutable (Definition (Label t) (Expr t t a1 a2)) where
+instance (Substitutable t, Substitutable a0) =>
+         Substitutable (Definition (Label t) (Expr t a0 a1 a2)) where
   apply sub =
     \case
       Function args (t, body) ->
@@ -324,7 +327,7 @@ check =
       unifyM e2 t2
       t1 <- applySubstitution t0
       pure (eOp2 (Op2 op t1) e1 e2)
-    ECase _ [] -> throwError EmptyCaseStatement
+    ECase _ [] -> throwError IllFormedExpression
     ECase expr clauses -> do
       e <- expr
       eCase e <$> checkCases e clauses

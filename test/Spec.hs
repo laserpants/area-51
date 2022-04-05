@@ -197,9 +197,9 @@ convertFunApps_ (e, ds) = (convertFunApps e, fmap convertFunApps <$$> ds)
 preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 
 
-runUnify t1 t2 =  runTypeChecker' (leastFree [t1, t2]) mempty (unify t1 t2)
+runUnify t1 t2 =  runTypeChecker' (freeIndex [t1, t2]) mempty (unify t1 t2)
 
-runUnifyRows r1 r2 =  runTypeChecker' (leastFree [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
+runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
 
 
 
@@ -776,3 +776,7 @@ p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf
 --  $lam2(h, y) = y + h
 --
 --  let h = 100 + 1 in let g = [$lam1] in let f = [$lam2(h)] in [g(f, [g(5)])]
+-- 
+-- ===
+--
+--  let h = 100 + 1 in [$lam1([$lam2], $lam1(5))]

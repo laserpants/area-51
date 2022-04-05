@@ -92,10 +92,11 @@ instance FreeIn (TypeT t) where
 
 instance FreeIn (Row (TypeT t) Int) where
   free =
-    cata $ \case
+    nub . 
+    cata (\case
       RVar v -> [v]
       RExt _ expr r -> free expr <> r
-      _ -> []
+      _ -> [])
 
 instance (FreeIn a) => FreeIn [a] where
   free = concatMap free
@@ -180,8 +181,8 @@ instance HasArity (Definition d a) where
       External args _ -> length args
       _ -> 0
 
-leastFree :: (FreeIn t) => [t] -> Int
-leastFree ts =
+freeIndex :: (FreeIn t) => [t] -> Int
+freeIndex ts =
   case free =<< ts of
     [] -> 0
     vs -> succ (maximum vs)

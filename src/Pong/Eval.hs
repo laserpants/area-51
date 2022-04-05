@@ -101,6 +101,9 @@ evalCall (t, fun) args
       as <- sequence args
       case Env.lookup fun env of
         Just (Function vs (_, body)) -> do
+          traceShowM (show (zip (snd <$> toList vs) as))
+          --error (show (zip (snd <$> toList vs) as))
+          --traceShowM ">>>>>>>>>>>>>>>"
           localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
         _ -> case Env.lookup fun vals of
                 Just (Closure g vs) -> evalCall g (vs <> args)
