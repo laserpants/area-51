@@ -1540,114 +1540,114 @@ bernie =
 --      e <- sequence expr
 --      error (show e)
 
-perry2 :: (MonadState (Int, Program Ast) m) => Ast -> m Ast
-perry2 ast = do
-  (_, Program p) <- get
-  runReaderT (perry ast) (Env.fromList (grok <$> Map.toList p))
-  --runReaderT (perry ast) mempty
-
-grok :: (Name, Definition (Label Type) Ast) -> (Name, (Type, Name))
-grok x = (fst x, (typeOf (snd x), fst x))
-
---findCallTarget :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Name -> m (Label Type)
---findCallTarget name = do
+--perry2 :: (MonadState (Int, Program Ast) m) => Ast -> m Ast
+--perry2 ast = do
+--  (_, Program p) <- get
+--  runReaderT (perry ast) (Env.fromList (grok <$> Map.toList p))
+--  --runReaderT (perry ast) mempty
+--
+--grok :: (Name, Definition (Label Type) Ast) -> (Name, (Type, Name))
+--grok x = (fst x, (typeOf (snd x), fst x))
+--
+----findCallTarget :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Name -> m (Label Type)
+----findCallTarget name = do
+----  (_, Program box) <- get
+----  case Map.lookup name box of
+----    Just zz -> 
+----      pure (typeOf zz, name)
+----    _ -> do
+----      xyz <- ask
+----      case Env.lookup name xyz of
+----        Just (_, yy) ->
+----          findCallTarget yy
+----        _ ->
+----          error ("FOOOO " <> show name)
+--
+--findCallTarget2 
+--  :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) 
+--  => Name 
+--  -> m (Name, Definition (Label Type) Ast)
+--findCallTarget2 name = do
 --  (_, Program box) <- get
 --  case Map.lookup name box of
 --    Just zz -> 
---      pure (typeOf zz, name)
+--      pure (name, zz)
 --    _ -> do
 --      xyz <- ask
 --      case Env.lookup name xyz of
 --        Just (_, yy) ->
---          findCallTarget yy
+--          findCallTarget2 yy
 --        _ ->
 --          error ("FOOOO " <> show name)
-
-findCallTarget2 
-  :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) 
-  => Name 
-  -> m (Name, Definition (Label Type) Ast)
-findCallTarget2 name = do
-  (_, Program box) <- get
-  case Map.lookup name box of
-    Just zz -> 
-      pure (name, zz)
-    _ -> do
-      xyz <- ask
-      case Env.lookup name xyz of
-        Just (_, yy) ->
-          findCallTarget2 yy
-        _ ->
-          error ("FOOOO " <> show name)
-
-perry :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Ast -> m Ast
-perry = 
-  cata $ \case
-
-    ECase _ _ ->
-      undefined
-
---    EVar (t, var) | isTCon ArrT t && not (isUpper (Text.head var)) -> do
---      (zyx, _) <- findCallTarget2 var
---      --pure (eCall zyx [])
---      pure (eVar (t, zyx))
-
---    EVar (t, var) | isTCon ArrT t && not (isUpper (Text.head var)) -> do
---      (zyx, _) <- findCallTarget2 var
---      --pure (eCall zyx [])
---      pure (eCall (t, zyx) [])
-
-    ELet (t, var) expr1 expr2 -> do
-      e1 <- expr1
-      case project e1 of
-        EVar (_, name) | not (isUpper (Text.head name)) -> do
-          (zyx, _) <- findCallTarget2 name
-          local (Env.insert var (t, zyx)) expr2
-        ECall _ (_, zyx)_ | not (isUpper (Text.head zyx)) ->
-          local (Env.insert var (t, zyx)) expr2
-        _ ->
-          eLet (t, var) e1 <$> expr2
-
-    EField _ _ _ ->
-      undefined
-
-    ECall _ (t0, fun) args | not (isUpper (Text.head fun)) -> do
-      as <- sequence args
-      (mmm, def) <- findCallTarget2 fun
-      let t1 = typeOf def
-      --traceShowM t0
-      --traceShowM t1
-      --traceShowM "^^^^"
-      if t0 == t1
-         then pure (eCall (t0, mmm) as)
-         else 
-           case runTypeChecker' (freeIndex [t0, t1]) mempty (unify t0 t1) of
-                Right sub
-                  | sub /= mempty -> do
-                    name <- uniqueName "$def"
-                    insertDef name (foo9 (apply sub def)) -- =<< preprocess (fmap xx123 (apply sub def))
-                    pure (eCall (t0, name) as)
-                    --insertDef name =<< preprocess (fmap xx123 (apply sub def))
-                    --pure (eApp t (eVar (t1, name)) as)
-                _ -> 
-                  pure (eCall (t0, mmm) as)
---                  undefined -- pure (eApp t f as)
-
---      case Env.lookup fun abc of
---        Just xx ->
---        _ -> 
---          undefined
-
-    e -> do
-      embed <$> sequence e
-
-foo9 :: Definition (Label Type) Ast -> Definition (Label Type) Ast
-foo9 = \case
-  Function args (t, expr) | arity t > 0 ->
-    let ys = extra t
-     in Function (args <> fromList ys) (t, appxx (eVar <$> ys) expr)
-  def ->
-    def
+--
+--perry :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Ast -> m Ast
+--perry = 
+--  cata $ \case
+--
+--    ECase _ _ ->
+--      undefined
+--
+----    EVar (t, var) | isTCon ArrT t && not (isUpper (Text.head var)) -> do
+----      (zyx, _) <- findCallTarget2 var
+----      --pure (eCall zyx [])
+----      pure (eVar (t, zyx))
+--
+----    EVar (t, var) | isTCon ArrT t && not (isUpper (Text.head var)) -> do
+----      (zyx, _) <- findCallTarget2 var
+----      --pure (eCall zyx [])
+----      pure (eCall (t, zyx) [])
+--
+--    ELet (t, var) expr1 expr2 -> do
+--      e1 <- expr1
+--      case project e1 of
+--        EVar (_, name) | not (isUpper (Text.head name)) -> do
+--          (zyx, _) <- findCallTarget2 name
+--          local (Env.insert var (t, zyx)) expr2
+--        ECall _ (_, zyx)_ | not (isUpper (Text.head zyx)) ->
+--          local (Env.insert var (t, zyx)) expr2
+--        _ ->
+--          eLet (t, var) e1 <$> expr2
+--
+--    EField _ _ _ ->
+--      undefined
+--
+--    ECall _ (t0, fun) args | not (isUpper (Text.head fun)) -> do
+--      as <- sequence args
+--      (mmm, def) <- findCallTarget2 fun
+--      let t1 = typeOf def
+--      --traceShowM t0
+--      --traceShowM t1
+--      --traceShowM "^^^^"
+--      if t0 == t1
+--         then pure (eCall (t0, mmm) as)
+--         else 
+--           case runTypeChecker' (freeIndex [t0, t1]) mempty (unify t0 t1) of
+--                Right sub
+--                  | sub /= mempty -> do
+--                    name <- uniqueName "$def"
+--                    insertDef name (foo9 (apply sub def)) -- =<< preprocess (fmap xx123 (apply sub def))
+--                    pure (eCall (t0, name) as)
+--                    --insertDef name =<< preprocess (fmap xx123 (apply sub def))
+--                    --pure (eApp t (eVar (t1, name)) as)
+--                _ -> 
+--                  pure (eCall (t0, mmm) as)
+----                  undefined -- pure (eApp t f as)
+--
+----      case Env.lookup fun abc of
+----        Just xx ->
+----        _ -> 
+----          undefined
+--
+--    e -> do
+--      embed <$> sequence e
+--
+--foo9 :: Definition (Label Type) Ast -> Definition (Label Type) Ast
+--foo9 = \case
+--  Function args (t, expr) | arity t > 0 ->
+--    let ys = extra t
+--     in Function (args <> fromList ys) (t, appxx (eVar <$> ys) expr)
+--  def ->
+--    def
 
 t0t0 = second snd (runState (bernie exp00) (1, emptyProgram)) == exp00_
 t0t1 = second snd (runState (bernie exp0) (1, emptyProgram)) == exp0_
@@ -1681,13 +1681,14 @@ t0t28 = LitValue (PInt 18) == baz127 "let h = 5 + 1 in let g = lam(x) => x in le
 t0t29 = LitValue (PInt 254) == baz127 "let h = 123 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)"
 t0t30 = LitValue (PInt 2) == baz127 "let xs = Cons(lam(x) => x + 1, Nil()) in match xs { | Cons(a, b) => a(1) }"
 t0t31 = LitValue (PInt 3) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a(1) } in f(2)"
+t0t32 = LitValue (PInt 5) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a } in f(2, 3)"
  
 
 
 t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 
     && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
     && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
-    && t0t25 && t0t26 && t0t27 && t0t28 && t0t29 && t0t30 && t0t31
+    && t0t25 && t0t26 && t0t27 && t0t28 && t0t29 && t0t30 && t0t31 && t0t32
 
 
 typeCheck_ :: Text -> TypedExpr 

@@ -112,11 +112,13 @@ data ExprF t a0 a1 a2 a
 -- | Parameterized main expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
+-- | Source expression annotated with numeric tags to facilitate type checking
 type TaggedExpr = Expr Int Int () Void
 
--- | Typed intermediate expression
+-- | Typed source expression
 type TypedExpr = Expr Type Type () Void
 
+-- | Typed intermediate representation
 type PreAst = Expr Type Type Void Void
 
 type Ast = Expr Type Void Void ()

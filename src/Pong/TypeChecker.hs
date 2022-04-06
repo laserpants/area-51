@@ -25,7 +25,7 @@ import qualified Data.Text as Text
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import Data.Void (Void)
 import Debug.Trace
-import GHC.Generics
+import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Lang
 import Pong.Util
@@ -126,14 +126,17 @@ instance Substitutable (Map k Type) where
 instance Substitutable (Environment PolyType) where
   apply = fmap . apply
 
+instance Substitutable Constructor where
+  apply sub (Constructor name fields) = Constructor name (apply sub <$> fields)
+
 instance (Substitutable t, Substitutable a0) =>
          Substitutable (Definition (Label t) (Expr t a0 a1 a2)) where
   apply sub =
     \case
-      Function args (t, body) ->
-        Function (first (apply sub) <$> args) (apply sub t, apply sub body)
+      Function args (t, body) -> Function (first (apply sub) <$> args) (apply sub t, apply sub body)
       Constant (t, expr) -> Constant (apply sub t, apply sub expr)
-      def -> def
+      Data name ctors -> Data name (apply sub <$> ctors)
+      External args (t, name) -> External (apply sub <$> args) (apply sub t, name)
 
 compose :: Substitution -> Substitution -> Substitution
 compose = over2 Substitution fun
