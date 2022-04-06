@@ -228,7 +228,8 @@ prim =
 type_ :: Parser Type
 type_ = makeExprParser foo [[InfixR (tArr <$ symbol "->")]]
   where
-    foo = parens item <|> item
+    foo = 
+      parens item <|> item
     item = keyword "unit" $> tUnit
       <|> keyword "bool" $> tBool
       <|> keyword "int" $> tInt
