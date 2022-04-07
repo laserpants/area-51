@@ -617,7 +617,7 @@ parseCompileEval2 s =
 oiouo :: Program SourceExpr -> Program TypedExpr
 oiouo p = over Program (rtcx2 <$>) p
   where
-    te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] (programToTypeEnv p)
+    te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programToTypeEnv p)
     rtcx2 :: Definition (Label Type) SourceExpr -> Definition (Label Type) TypedExpr
     rtcx2 (Function args (t, e)) =
               case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr e) of
@@ -629,7 +629,7 @@ oiouo p = over Program (rtcx2 <$>) p
 baz123 e = 
     runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
   where
-    te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
+    te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
 
 
 --runq t = evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList p)
@@ -681,7 +681,7 @@ foox124 = do
     --q = flip runState p $ preprocess (Function (fromList []) (undefined, undefined))
     --p = Program (Map.fromList [ ("foo1", Function (fromList [(undefined, "a")]) (undefined, a2)) ])
     --a3 = preprocess (Function (fromList []) (typeOf a2, a2))
-    Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< check =<< tagExpr a1)
+    Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])]) (applySubstitution =<< check =<< tagExpr a1)
     Right a1 = runParser expr "" 
          "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
 
@@ -708,7 +708,7 @@ xxx2 f (Program p) = Program <$> traverse f p
 p123 :: Program TypedExpr
 p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf a2, a2))])
     where
-    Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< check =<< tagExpr a1)
+    Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])]) (applySubstitution =<< check =<< tagExpr a1)
     Right a1 = runParser expr "" 
          "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
 

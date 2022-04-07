@@ -40,7 +40,7 @@ mapRowM f =
 canonRow :: Row e r -> Row e r
 canonRow = uncurry (flip foldRow) . unwindRow
 
-canonTypeRows :: TypeT t -> TypeT t
+canonTypeRows :: Type -> Type
 canonTypeRows =
   cata $ \case
     TRow r -> tRow (canonRow r)
@@ -79,7 +79,7 @@ splitRow name row =
 class FreeIn a where
   free :: a -> [Int]
 
-instance FreeIn (TypeT t) where
+instance FreeIn (Type) where
   free =
     nub .
     cata
@@ -90,7 +90,7 @@ instance FreeIn (TypeT t) where
          TRow r -> free r
          _ -> [])
 
-instance FreeIn (Row (TypeT t) Int) where
+instance FreeIn (Row (Type) Int) where
   free =
     nub . 
     cata (\case
@@ -252,25 +252,28 @@ freeVars =
         RExt _ expr r -> freeVars expr <> r
     EField (_:vs) e1 e2 -> e1 <> e2 `without` vs)
 
-toPolyType :: Type -> PolyType
-toPolyType =
-  cata $ \case
-    TUnit -> tUnit
-    TBool -> tBool
-    TInt -> tInt
-    TFloat -> tFloat
-    TDouble -> tDouble
-    TChar -> tChar
-    TString -> tString
-    TCon con ts -> tCon con ts
-    TArr t1 t2 -> tArr t1 t2
-    TVar n -> tVar n
-    TRow row -> tRow (mapRow toPolyType row)
+--toPolyType :: Type -> PolyType
+--toPolyType =
+--  cata $ \case
+--    TUnit -> tUnit
+--    TBool -> tBool
+--    TInt -> tInt
+--    TFloat -> tFloat
+--    TDouble -> tDouble
+--    TChar -> tChar
+--    TString -> tString
+--    TCon con ts -> tCon con ts
+--    TArr t1 t2 -> tArr t1 t2
+--    TVar n -> tVar n
+--    TRow row -> tRow (mapRow toPolyType row)
 
-fromPolyType :: [Type] -> PolyType -> Type
+fromPolyType :: Map Name Type -> Type -> Type
 fromPolyType ts =
   cata $ \case
-    TGen n -> ts !! n
+    TGen n -> 
+      case Map.lookup n ts of
+        Nothing -> error "Implementation error"
+        Just t -> t
     TUnit -> tUnit
     TBool -> tBool
     TInt -> tInt
@@ -314,15 +317,15 @@ foldType1 :: [Type] -> Type
 foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
-insertArgs :: [(Type, Name)] -> Environment PolyType -> Environment PolyType
-insertArgs = Env.inserts . (toPolyType <$$>) . (swap <$>)
+insertArgs :: [(Type, Name)] -> Environment Type -> Environment Type
+insertArgs = Env.inserts . (swap <$>)
 
 {-# INLINE emptyProgram #-}
 emptyProgram :: Program a
 emptyProgram = Program mempty
 
-programToTypeEnv :: Program p -> Environment PolyType
-programToTypeEnv p = Env.fromList (toPolyType . typeOf <$$> Map.toList (unpack p))
+programToTypeEnv :: Program p -> Environment Type
+programToTypeEnv p = Env.fromList (typeOf <$$> Map.toList (unpack p))
 
 modifyM :: (MonadState s m) => (s -> m s) -> m ()
 modifyM f = get >>= f >>= put
@@ -384,27 +387,27 @@ lookupDef key = do
   --pure (defs ! key)
 
 {-# INLINE tUnit #-}
-tUnit :: TypeT t
+tUnit :: Type
 tUnit = embed TUnit
 
 {-# INLINE tBool #-}
-tBool :: TypeT t
+tBool :: Type
 tBool = embed TBool
 
 {-# INLINE tInt #-}
-tInt :: TypeT t
+tInt :: Type
 tInt = embed TInt
 
 {-# INLINE tFloat #-}
-tFloat :: TypeT t
+tFloat :: Type
 tFloat = embed TFloat
 
 {-# INLINE tDouble #-}
-tDouble :: TypeT t
+tDouble :: Type
 tDouble = embed TDouble
 
 {-# INLINE tArr #-}
-tArr :: TypeT t -> TypeT t -> TypeT t
+tArr :: Type -> Type -> Type
 tArr = embed2 TArr
 
 infixr 1 `tArr`
@@ -415,27 +418,27 @@ infixr 1 `tArr`
 infixr 1 ~>
 
 {-# INLINE tCon #-}
-tCon :: Name -> [TypeT t] -> TypeT t
+tCon :: Name -> [Type] -> Type
 tCon = embed2 TCon
 
 {-# INLINE tVar #-}
-tVar :: Int -> TypeT t
+tVar :: Int -> Type
 tVar = embed1 TVar
 
 {-# INLINE tRow #-}
-tRow :: Row (TypeT t) Int -> TypeT t
+tRow :: Row Type Int -> Type
 tRow = embed1 TRow
 
 {-# INLINE tChar #-}
-tChar :: TypeT t
+tChar :: Type
 tChar = embed TChar
 
 {-# INLINE tString #-}
-tString :: TypeT t
+tString :: Type
 tString = embed TString
 
 {-# INLINE tGen #-}
-tGen :: Int -> PolyType
+tGen :: Name -> Type
 tGen = embed1 TGen
 
 {-# INLINE rNil #-}

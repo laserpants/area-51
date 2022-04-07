@@ -39,7 +39,7 @@ data RowF e r a
 -- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
 
-data TypeF t a
+data TypeF a
   = TUnit
   | TBool
   | TInt
@@ -50,14 +50,10 @@ data TypeF t a
   | TCon Name [a]
   | TArr a a
   | TVar Int
-  | TGen t
-  | TRow (Row (TypeT t) Int)
+  | TGen Name
+  | TRow (Row Type Int)
 
-type TypeT t = Fix (TypeF t)
-
-type Type = TypeT Void
-
-type PolyType = TypeT Int
+type Type = Fix TypeF 
 
 data TCon
   = VarT
@@ -167,11 +163,11 @@ deriving instance Foldable (RowF e r)
 deriving instance Traversable (RowF e r)
 
 -- Type
-deriving instance (Show t, Show a) => Show (TypeF t a)
+deriving instance (Show a) => Show (TypeF a)
 
-deriving instance (Eq t, Eq a) => Eq (TypeF t a)
+deriving instance (Eq a) => Eq (TypeF a)
 
-deriving instance (Ord t, Ord a) => Ord (TypeF t a)
+deriving instance (Ord a) => Ord (TypeF a)
 
 deriveShow1 ''TypeF
 
@@ -179,11 +175,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor (TypeF t)
+deriving instance Functor TypeF 
 
-deriving instance Foldable (TypeF t)
+deriving instance Foldable TypeF 
 
-deriving instance Traversable (TypeF t)
+deriving instance Traversable TypeF 
 
 -- TCon
 deriving instance Show TCon

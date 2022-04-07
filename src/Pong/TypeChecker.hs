@@ -21,6 +21,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import TextShow (showt)
 import qualified Data.Text as Text
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import Data.Void (Void)
@@ -46,7 +47,7 @@ newtype Substitution =
 
 newtype TypeChecker a =
   TypeChecker
-    (ExceptT TypeError (ReaderT (Environment PolyType) (State ( Int
+    (ExceptT TypeError (ReaderT (Environment Type) (State ( Int
                                                               , Substitution))) a)
 
 data TypeError
@@ -56,14 +57,14 @@ data TypeError
   | IllFormedExpression
 
 runTypeChecker' ::
-     Int -> Environment PolyType -> TypeChecker a -> Either TypeError a
+     Int -> Environment Type -> TypeChecker a -> Either TypeError a
 runTypeChecker' n env m =
   evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
 
-runTypeChecker :: Environment PolyType -> TypeChecker a -> Either TypeError a
+runTypeChecker :: Environment Type -> TypeChecker a -> Either TypeError a
 runTypeChecker = runTypeChecker' 1
 
-substitute :: Map Int (TypeT t) -> TypeT t -> TypeT t
+substitute :: Map Int Type -> Type -> Type
 substitute sub =
   cata $ \case
     TVar n -> fromMaybe (tVar n) (sub !? n)
@@ -72,7 +73,7 @@ substitute sub =
     TRow row -> tRow (rowSubstitute sub row)
     t -> embed t
 
-rowSubstitute :: Map Int (TypeT t) -> Row (TypeT t) Int -> Row (TypeT t) Int
+rowSubstitute :: Map Int Type -> Row Type Int -> Row Type Int
 rowSubstitute sub =
   cata $ \case
     RNil -> rNil
@@ -88,14 +89,14 @@ class Substitutable a where
 instance Substitutable (Row Type Int) where
   apply = rowSubstitute . unpack
 
-instance Substitutable (Row PolyType Int) where
-  apply = rowSubstitute . (toPolyType <$>) . unpack
+--instance Substitutable (Row PolyType Int) where
+--  apply = rowSubstitute . (toPolyType <$>) . unpack
 
 instance Substitutable Type where
   apply = substitute . unpack
 
-instance Substitutable PolyType where
-  apply = substitute . (toPolyType <$>) . unpack
+--instance Substitutable PolyType where
+--  apply = substitute . (toPolyType <$>) . unpack
 
 instance Substitutable Void where
   apply _ void = void
@@ -123,7 +124,7 @@ instance (Substitutable t) =>
 instance Substitutable (Map k Type) where
   apply = fmap . apply
 
-instance Substitutable (Environment PolyType) where
+instance Substitutable (Environment Type) where
   apply = fmap . apply
 
 instance Substitutable Constructor where
@@ -252,12 +253,12 @@ unifyM a b = do
   sub1 <- unify (typeOf (apply sub a)) (typeOf (apply sub b))
   modify (second (sub1 <>))
 
-instantiate :: PolyType -> TypeChecker Type
+instantiate :: Type -> TypeChecker Type
 instantiate p = do
-  ts <- traverse (const tag) (Set.toList (bound p))
-  pure (fromPolyType (tVar <$> ts) p)
+  ts <- traverse (\n -> tag >>= \t -> pure (n, tVar t)) (Set.toList (bound p))
+  pure (fromPolyType (Map.fromList ts) p)
   where
-    bound :: PolyType -> Set Int
+    bound :: Type -> Set Name
     bound =
       cata $ \case
         TGen n -> Set.singleton n
@@ -270,14 +271,17 @@ instantiate p = do
                _ -> mempty)
         _ -> mempty
 
-generalize :: Type -> TypeChecker PolyType
+generalize :: Type -> TypeChecker Type
 generalize t = do
   env <- ask
   t1 <- applySubstitution t
   e1 <- applySubstitution env
   let names = filter (`notElem` free e1) (free t1)
-      ixs = Map.fromList (zip names [0 ..])
-  pure (substitute (tGen <$> ixs) (toPolyType t1))
+      ixs = Map.fromList (zip names ffoo123)
+  pure (substitute (tGen <$> ixs) t1)
+  where
+    ffoo123 :: [Name]
+    ffoo123 = ["a" <> showt i | i <- [0 :: Int ..]]
 
 checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type, Name)
 checkName (t, var) toErr = 
@@ -303,7 +307,7 @@ check =
       unifyM e2 e3
       pure (eIf e1 e2 e3)
     ELet (t, var) expr1 expr2 -> do
-      e1 <- local (Env.insert var (tGen 0)) expr1 -- TODO: ???
+      e1 <- local (Env.insert var (tGen "a0")) expr1 -- TODO: ???
       s <- generalize (typeOf e1)
       e2 <- local (Env.insert var s) expr2
       unifyM (tVar t :: Type) e1
@@ -365,17 +369,17 @@ checkRowCase (Fix (TRow row)) args expr = do
       applySubstitution (t1 ~> t2 ~> tRow row) >>= unifyM tx0 
       e <-
         local
-          (Env.inserts (toPolyType <$$> [(label, tx0), (v1, tx1), (v2, tx2)]))
+          (Env.inserts [(label, tx0), (v1, tx1), (v2, tx2)])
           expr
       pure ([(t0, label), (t1, v1), (t2, v2)], e)
 
-binopType :: Binop -> PolyType
+binopType :: Binop -> Type
 binopType = \case
-  OEq        -> tGen 0 ~> tGen 0 ~> tBool
-  OAdd       -> tGen 0 ~> tGen 0 ~> tGen 0
-  OSub       -> tGen 0 ~> tGen 0 ~> tGen 0
-  OMul       -> tGen 0 ~> tGen 0 ~> tGen 0
-  ODiv       -> tGen 0 ~> tGen 0 ~> tGen 0
+  OEq        -> tGen "a0" ~> tGen "a0" ~> tBool
+  OAdd       -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+  OSub       -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+  OMul       -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+  ODiv       -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
   OLogicOr   -> tBool ~> tBool ~> tBool
   OLogicAnd  -> tBool ~> tBool ~> tBool
 
@@ -397,7 +401,7 @@ checkCase ::
 checkCase tt (con:vs) expr = do
   (t, _) <- checkName con ConstructorNotInScope
   let ts = unwindType t
-      ps = (snd <$> vs) `zip` (toPolyType <$> ts)
+      ps = (snd <$> vs) `zip` ts
   unifyM tt (last ts)
   e <- local (Env.inserts ps) expr
   tvs <-
@@ -440,7 +444,7 @@ deriving instance Monad TypeChecker
 
 deriving instance (MonadState (Int, Substitution)) TypeChecker
 
-deriving instance (MonadReader (Environment PolyType)) TypeChecker
+deriving instance (MonadReader (Environment Type)) TypeChecker
 
 deriving instance (MonadError TypeError) TypeChecker
 

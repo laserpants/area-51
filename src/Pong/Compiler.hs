@@ -1711,7 +1711,7 @@ baz124 e =
 --        traceShowM s
 --        applySubstitution y
   where
-    te = Env.inserts [("None", tCon "Option" [tGen 0]), ("Some", tGen 0 ~> tCon "Option" [tGen 0]), ("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])] mempty
+    te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
 
 
 baz127 :: Text -> Value 
