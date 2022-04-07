@@ -1,5 +1,10 @@
 # pong
 
+[-] gen. types
+[-] adts
+[-] codegen
+[-] ?
+
 def 
   main(n : int) : List int = 
     let 
