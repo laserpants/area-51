@@ -5,7 +5,6 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
-
 module Pong.Data where
 
 import Control.Newtype.Generics
