@@ -134,8 +134,8 @@ data Constructor =
     , conFields :: [Type]
     }
 
-data Definition d a
-  = Function (List1 (Label d)) (Type, a)
+data Definition t a
+  = Function (List1 (Label t)) (Type, a)
   | Constant (Type, a)
   | External [Type] (Label Type)
   | Data Name [Constructor]
