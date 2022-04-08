@@ -15,7 +15,7 @@ import Pong.Util
 import qualified Pong.Util.Env as Env
 
 -- (x) = plus(x)
-fragment1_0 :: Definition (Label Type) (Expr Type Type () Void)
+fragment1_0 :: Definition Type (Expr Type Type () Void)
 fragment1_0 =
   Function
     (fromList [(tInt, "x")])
@@ -26,7 +26,7 @@ fragment1_0 =
         [eVar (tInt, "x")])
 
 -- (x, v0) = plus(x, v0)
-fragment1_1 :: Definition (Label Type) (Expr Type Type () Void)
+fragment1_1 :: Definition Type (Expr Type Type () Void)
 fragment1_1 =
   Function
     (fromList [(tInt, "x"), (tInt, ".v0")])
@@ -36,14 +36,14 @@ fragment1_1 =
         (eVar (tInt ~> tInt ~> tInt, "plus"))
         [eVar (tInt, "x"), eVar (tInt, ".v0")])
 
-fragment2_0 :: Definition (Label Type) (Expr Type () () Void)
+fragment2_0 :: Definition Type (Expr Type () () Void)
 fragment2_0 =
   Function
     (fromList [(tInt, "x")])
     ( tInt ~> tInt ~> tInt
     , eLam () [(tInt, "a")] (eLam () [(tInt, "b")] (eVar (tInt, "b"))))
 
-fragment2_1 :: Definition (Label Type) (Expr Type () () Void)
+fragment2_1 :: Definition Type (Expr Type () () Void)
 fragment2_1 =
   Function
     (fromList [(tInt, "x"), (tInt, "a"), (tInt, "b")])
@@ -234,7 +234,7 @@ fragment8_0 =
                 [eApp tInt (eVar (tInt ~> tInt, "g")) [eLit (PInt 5)]])
              (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]))))
 
-fragment8_1 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment8_1 :: (PreAst, [(Name, Definition Type PreAst)])
 fragment8_1 =
   ( eLet
       (tInt, "h")
@@ -266,7 +266,7 @@ fragment9_0 =
 fragment9_1 :: Expr Type () () Void
 fragment9_1 = eOp2 oAddInt (eVar (tInt, "y")) (eVar (tInt, "z"))
 
-fragment10_0 :: Definition (Label Type) (Expr Type Type () Void)
+fragment10_0 :: Definition Type (Expr Type Type () Void)
 fragment10_0 =
   Constant
     ( tInt
@@ -295,7 +295,7 @@ fragment10_0 =
                     [eLit (PInt 6)])
                  (eApp tInt (eVar (tInt ~> tInt, "h")) [eLit (PInt 7)])))))
 
-fragment10_1 :: Definition (Label Type) (Expr Type Type () Void)
+fragment10_1 :: Definition Type (Expr Type Type () Void)
 fragment10_1 =
   Constant
     ( tInt
@@ -830,7 +830,7 @@ fragment17_4 =
 --
 -- .f3(.f0(3)) + .f1(4, 5)
 --
-fragment17_5 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment17_5 :: (PreAst, [(Name, Definition Type PreAst)])
 fragment17_5 =
   ( eOp2
       oAddInt
@@ -878,7 +878,7 @@ fragment17_5 =
 --
 -- .f3(.g2(3)) + .g3(4, 5)
 --
-fragment17_6 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment17_6 :: (PreAst, [(Name, Definition Type PreAst)])
 fragment17_6 =
   ( eOp2
       oAddInt
@@ -940,7 +940,7 @@ fragment17_6 =
 -- .f3(.g2(3)) + .g3(4, 5)
 fragment17_7 ::
      ( Expr Type Type a1 a2
-     , [(Name, Definition (Label Type) (Expr Type Type a1 a2))])
+     , [(Name, Definition Type (Expr Type Type a1 a2))])
 fragment17_7 =
   ( eOp2
       oAddInt
@@ -995,7 +995,7 @@ fragment17_7 =
     ])
 
 
-fragment17_8 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment17_8 :: (Ast, [(Name, Definition Type Ast)])
 fragment17_8 =
   ( eOp2
       oAddInt
@@ -1103,7 +1103,7 @@ fragment18_2 =
                 [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
     (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
 
-fragment18_3 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment18_3 :: (PreAst, [(Name, Definition Type PreAst)])
 fragment18_3 =
   ( eApp tInt (eVar (tInt ~> tInt, ".f0")) [eLit (PInt 5)]
   , [ ( ".f0"
@@ -1122,7 +1122,7 @@ fragment18_3 =
                     [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
     ])
 
-fragment18_4 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment18_4 :: (Ast, [(Name, Definition Type Ast)])
 fragment18_4 =
   ( eCall (tInt ~> tInt, ".f0") [eLit (PInt 5)]
   , [ ( ".f0"
@@ -1147,7 +1147,7 @@ fragment18_4 =
 --
 -- z(f, 5, g)
 --
-fragment19_2 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment19_2 :: (PreAst, [(Name, Definition Type PreAst)])
 fragment19_2 =
   ( eApp
       tInt
@@ -1180,7 +1180,7 @@ fragment19_2 =
 --
 -- .h0(5)
 --
-fragment19_3 :: (PreAst, [(Name, Definition (Label Type) PreAst)])
+fragment19_3 :: (PreAst, [(Name, Definition Type PreAst)])
 fragment19_3 =
   ( eApp tInt (eVar (tInt ~> tInt, ".h0")) [eLit (PInt 5)]
   , [ ( ".h0"
@@ -1212,7 +1212,7 @@ fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
 --fragment20_2 ::
 --     ( MonadFix m
---     , MonadReader ( Environment (Definition (Label Type) Ast)
+--     , MonadReader ( Environment (Definition Type Ast)
 --                   , Environment (Value m)) m
 --     )
 --  => m (Value m)
@@ -1226,7 +1226,7 @@ fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 --      , pure (LitValue (PInt 100)))
 --    ]
 
-fragment20_3 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_3 :: (Ast, [(Name, Definition Type Ast)])
 fragment20_3 =
   ( eCase
       (eCall
@@ -1240,7 +1240,7 @@ fragment20_3 =
       ]
   , [])
 
-fragment20_4 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_4 :: (Ast, [(Name, Definition Type Ast)])
 fragment20_4 =
   ( eCase
       (eCall
@@ -1255,7 +1255,7 @@ fragment20_4 =
       ]
   , [])
 
-fragment20_5 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_5 :: (Ast, [(Name, Definition Type Ast)])
 fragment20_5 =
   ( eCase
       (eCall
@@ -1271,7 +1271,7 @@ fragment20_5 =
   , [])
 
 
-fragment20_6 :: (Ast, [(Name, Definition (Label Type) Ast)])
+fragment20_6 :: (Ast, [(Name, Definition Type Ast)])
 fragment20_6 =
   ( eCase
       (eCall (tCon "List" [tInt], "Nil") [])

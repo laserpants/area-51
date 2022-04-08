@@ -160,7 +160,7 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
       ERow r -> typeOf r
       EField _ _ e -> e
 
-instance (Typed t) => Typed (Definition (Label t) a) where
+instance (Typed t) => Typed (Definition t a) where
   typeOf =
     \case
       Function args (t, _) -> foldType t (typeOf . fst <$> toList args)
@@ -332,13 +332,13 @@ modifyM f = get >>= f >>= put
 
 modifyProgram ::
      (MonadState (Int, Program a) m)
-  => (Map Name (Definition (Label Type) a) -> Map Name (Definition (Label Type) a))
+  => (Map Name (Definition Type a) -> Map Name (Definition Type a))
   -> m ()
 modifyProgram = modify . second . over Program
 
 modifyProgramM ::
      (MonadState (Int, Program a) m)
-  => (Map Name (Definition (Label Type) a) -> m (Map Name (Definition (Label Type) a)))
+  => (Map Name (Definition Type a) -> m (Map Name (Definition Type a)))
   -> m ()
 modifyProgramM f = do
   (n, Program p) <- get
@@ -349,19 +349,19 @@ modifyProgramM f = do
   -- modify . over Program
 
 insertDef ::
-     (MonadState (Int, Program a) m) => Name -> Definition (Label Type) a -> m ()
+     (MonadState (Int, Program a) m) => Name -> Definition Type a -> m ()
 insertDef = modifyProgram <$$> Map.insert
 
 --updateDef ::
 --     (MonadState (Program a) m)
---  => (Definition (Label Type) a -> Maybe (Definition (Label Type) a))
+--  => (Definition Type a -> Maybe (Definition Type a))
 --  -> Name
 --  -> m ()
 --updateDef = modifyProgram <$$> Map.update 
 
 --forEachDef ::
 --     (MonadState (Program a) m)
---  => (Definition (Label Type) a -> m (Definition (Label Type) a))
+--  => (Definition Type a -> m (Definition Type a))
 --  -> m ()
 forEachDef run = do
   Program defs <- gets snd
@@ -376,7 +376,7 @@ forEachDefX (Program defs) run = do
     def <- run (defs ! key)
     insertDef key def
 
---lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition (Label Type) a)
+--lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition Type a)
 lookupDef key = do
   Program defs <- gets snd
   case defs !? key of

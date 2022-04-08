@@ -66,8 +66,8 @@ combineApps =
 --   foo(a, b) = b
 --   baz(x, a, b) = b
 hoistTopLambdas ::
-     Definition (Label t) (Expr t a0 () a2)
-  -> Definition (Label t) (Expr t a0 () a2)
+     Definition t (Expr t a0 () a2)
+  -> Definition t (Expr t a0 () a2)
 hoistTopLambdas =
   \case
     Function args (t, expr)
@@ -90,8 +90,8 @@ hoistTopLambdas =
 --   foo(x, v_0) = plus(x, v_0)
 --
 fillParams ::
-     Definition (Label Type) (Expr Type Type () Void)
-  -> Definition (Label Type) (Expr Type Type () Void)
+     Definition Type (Expr Type Type () Void)
+  -> Definition Type (Expr Type Type () Void)
 fillParams = hoistTopLambdas <<< fmap (convertClosuresT <<< fillExprParams <<< marshall)
 
 marshall :: TypedExpr -> TypedExpr
@@ -300,8 +300,8 @@ xx123 = cata $ \case
 
 preprocess ::
      (MonadState (Int, Program PreAst) m)
-  => Definition (Label Type) (Expr Type Type () Void)
-  -> m (Definition (Label Type) PreAst)
+  => Definition Type (Expr Type Type () Void)
+  -> m (Definition Type PreAst)
 preprocess = traverse liftLambdas <<< fillParams
 --  traverse liftLambdas (fillParams (convert <$> def))
 --  where
@@ -822,7 +822,7 @@ testop4_1 =
 
 
 
-foo :: [Label Type] -> Type -> TypedExpr -> Definition (Label Type) TypedExpr
+foo :: [Label Type] -> Type -> TypedExpr -> Definition Type TypedExpr
 foo vs t = project >>> \case 
   ELam _ args e1 ->
     Function (fromList (vs <> args)) (r, e1)
@@ -868,7 +868,7 @@ tst5 = (snd <$> runState (op1 ns testop3) (1, emptyProgram)) == (testop3_1, test
 tstall = tst1 && tst2 && tst3 && tst4 && tst5
 
 
-def1 = Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eLit (PInt 3)) :: Definition (Label Type) TypedExpr
+def1 = Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eLit (PInt 3)) :: Definition Type TypedExpr
 tdef = tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt
 
 -- >>>
@@ -953,7 +953,7 @@ app args =
     ECall _ f as -> do
       eCall f (args <> as)
 
---foo3 :: (MonadState (Int, Program (Expr Type Type () ())) m) => [Label Type] -> Type -> Expr Type Type () () -> m (Definition (Label Type) (Expr Type Type () ()))
+--foo3 :: (MonadState (Int, Program (Expr Type Type () ())) m) => [Label Type] -> Type -> Expr Type Type () () -> m (Definition Type (Expr Type Type () ()))
 --foo3 vs t = 
 --  cata $ \case 
 --    ELam _ args e1 -> do
@@ -972,10 +972,10 @@ app args =
 ----      args1 = eVar <$> zip ts names
 ----      names = ["$v" <> showt m | m <- [1 :: Int .. ]]
 
-foo2 :: [Label Type] -> Type -> Expr Type Void () () -> Definition (Label Type) (Expr Type Void () ())
+foo2 :: [Label Type] -> Type -> Expr Type Void () () -> Definition Type (Expr Type Void () ())
 foo2 vs t = undefined
 
---foo2 :: [Label Type] -> Type -> Expr Type Type () () -> Definition (Label Type) (Expr Type Type () ())
+--foo2 :: [Label Type] -> Type -> Expr Type Type () () -> Definition Type (Expr Type Type () ())
 --foo2 vs t = project >>> \case 
 --  ELam _ args e1 ->
 --    Function (fromList (vs <> args)) (r, e1)
@@ -999,7 +999,7 @@ beebop2 x =
 
 
 
---foo2 :: [Label Type] -> Type -> TypedExpr -> Definition (Label Type) TypedExpr
+--foo2 :: [Label Type] -> Type -> TypedExpr -> Definition Type TypedExpr
 --foo2 vs t = project >>> \case 
 --  ELam _ args e1 ->
 --    Function (fromList (vs <> args)) (r, e1)
@@ -1546,7 +1546,7 @@ bernie =
 --  runReaderT (perry ast) (Env.fromList (grok <$> Map.toList p))
 --  --runReaderT (perry ast) mempty
 --
---grok :: (Name, Definition (Label Type) Ast) -> (Name, (Type, Name))
+--grok :: (Name, Definition Type Ast) -> (Name, (Type, Name))
 --grok x = (fst x, (typeOf (snd x), fst x))
 --
 ----findCallTarget :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Name -> m (Label Type)
@@ -1566,7 +1566,7 @@ bernie =
 --findCallTarget2 
 --  :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) 
 --  => Name 
---  -> m (Name, Definition (Label Type) Ast)
+--  -> m (Name, Definition Type Ast)
 --findCallTarget2 name = do
 --  (_, Program box) <- get
 --  case Map.lookup name box of
@@ -1641,7 +1641,7 @@ bernie =
 --    e -> do
 --      embed <$> sequence e
 --
---foo9 :: Definition (Label Type) Ast -> Definition (Label Type) Ast
+--foo9 :: Definition Type Ast -> Definition Type Ast
 --foo9 = \case
 --  Function args (t, expr) | arity t > 0 ->
 --    let ys = extra t

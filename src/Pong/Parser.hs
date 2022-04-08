@@ -255,7 +255,7 @@ label_ = do
   t <- type_
   pure (t, name)
 
-def :: Parser (Name, Definition (Label Type) SourceExpr)
+def :: Parser (Name, Definition Type SourceExpr)
 def = 
   functionDef <|> constantDef -- <|> externalDef <|> dataDef
     where 

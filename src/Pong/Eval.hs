@@ -39,7 +39,7 @@ instance Eq Value where
       (RowValue r, RowValue s) -> r == s
 
 type ValueEnv = 
-  ( Environment (Definition (Label Type) Ast)
+  ( Environment (Definition Type Ast)
   , Environment Value 
   )
 
@@ -167,7 +167,7 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 
 --eval ::
 --     ( MonadFix m
---     , MonadReader ( Environment (Definition (Label Type) Ast)
+--     , MonadReader ( Environment (Definition Type Ast)
 --                   , Environment Value) m
 --     )
 --  => Ast
@@ -218,7 +218,7 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 --
 --evalCall ::
 --     ( MonadFix m
---     , MonadReader ( Environment (Definition (Label Type) Ast)
+--     , MonadReader ( Environment (Definition Type Ast)
 --                   , Environment Value) m
 --     )
 --  => Label Type
@@ -248,7 +248,7 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 --
 --evalRow ::
 --     ( MonadFix m
---     , MonadReader ( Environment (Definition (Label Type) Ast)
+--     , MonadReader ( Environment (Definition Type Ast)
 --                   , Environment Value) m
 --     )
 --  => Row Ast (Label Type)
@@ -289,7 +289,7 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 
 --evalCase ::
 --     ( MonadFix m
---     , MonadReader ( Environment (Definition (Label Type) Ast)
+--     , MonadReader ( Environment (Definition Type Ast)
 --                   , Environment Value) m
 --     )
 --  => Value
@@ -302,7 +302,7 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 --
 --evalRowCase ::
 --     ( MonadFix m
---     , MonadReader ( Environment (Definition (Label Type) Ast)
+--     , MonadReader ( Environment (Definition Type Ast)
 --                   , Environment Value) m
 --     )
 --  => Row Value Void
@@ -316,11 +316,11 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 ----evalRowCase row ([(_, name)], value) = do
 ----  localSecond (Env.insert name (RowValue row)) value
 --
---evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value
+--evalProgram_ :: (Ast, [(Name, Definition Type Ast)]) -> Value
 --evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)
 
 evalProgram__ :: (Ast, Program Ast) -> Value 
 evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)
 
-evalProgram_ :: (Ast, [(Name, Definition (Label Type) Ast)]) -> Value 
+evalProgram_ :: (Ast, [(Name, Definition Type Ast)]) -> Value 
 evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.fromList defs, mempty))

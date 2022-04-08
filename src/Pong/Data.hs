@@ -108,7 +108,7 @@ data ExprF t a0 a1 a2 a
 -- | Parameterized main expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
--- | Source expression annotated with numeric tags to facilitate type checking
+-- | Source expression annotated with numeric tags to support type checking
 type TaggedExpr = Expr Int Int () Void
 
 -- | Typed source expression
@@ -135,13 +135,13 @@ data Constructor =
     }
 
 data Definition d a
-  = Function (List1 d) (Type, a)
+  = Function (List1 (Label d)) (Type, a)
   | Constant (Type, a)
   | External [Type] (Label Type)
   | Data Name [Constructor]
 
 newtype Program a =
-  Program (Map Name (Definition (Label Type) a))
+  Program (Map Name (Definition Type a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)

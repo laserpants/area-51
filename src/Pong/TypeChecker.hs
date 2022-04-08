@@ -131,7 +131,7 @@ instance Substitutable Constructor where
   apply sub (Constructor name fields) = Constructor name (apply sub <$> fields)
 
 instance (Substitutable t, Substitutable a0) =>
-         Substitutable (Definition (Label t) (Expr t a0 a1 a2)) where
+         Substitutable (Definition t (Expr t a0 a1 a2)) where
   apply sub =
     \case
       Function args (t, body) -> Function (first (apply sub) <$> args) (apply sub t, apply sub body)

@@ -37,16 +37,16 @@ import qualified Pong.Util.Env as Env
 foo :: Value 
 foo = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
 
-fromProgram :: State (Int, Program a1) a2 -> (a2, [(Name, Definition (Label Type) a1)])
+fromProgram :: State (Int, Program a1) a2 -> (a2, [(Name, Definition Type a1)])
 fromProgram prog = Map.toList . unpack . snd <$> runState prog (0, emptyProgram)
 
---fromProgram2 :: State (Program (Expr Type Type () Void)) PreAst -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+--fromProgram2 :: State (Program (Expr Type Type () Void)) PreAst -> (PreAst, [(Name, Definition Type PreAst)])
 --fromProgram2 prog = undefined -- Map.toList . unpack <$> runState prog emptyProgram
 --  where
---    xx :: (PreAst, Map Name (Definition (Label Type) (Expr Type Type () Void)))
+--    xx :: (PreAst, Map Name (Definition Type (Expr Type Type () Void)))
 --    xx = unpack <$> runState prog emptyProgram
 
-toProgram :: [(Name, Definition (Label Type) a)] -> Program a
+toProgram :: [(Name, Definition Type a)] -> Program a
 toProgram = Program . Map.fromList
 
 main :: IO ()
@@ -180,20 +180,20 @@ applyToFuns f =
       pure (Function as (t, e))
     def -> pure def
 
-runProgramState :: State (Int, Program a) s -> [(Name, Definition (Label Type) a)] -> (s, [(Name, Definition (Label Type) a)])
+runProgramState :: State (Int, Program a) s -> [(Name, Definition Type a)] -> (s, [(Name, Definition Type a)])
 runProgramState a p = Map.toList . unpack . snd <$> runState a (0, toProgram p)
 
-alignCallSigns_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+alignCallSigns_ :: (PreAst, [(Name, Definition Type PreAst)]) -> (PreAst, [(Name, Definition Type PreAst)])
 alignCallSigns_ (e, ds) = runProgramState (applyToFuns alignCallSigns >> alignCallSigns e) ds
 
-replaceFunArgs_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+replaceFunArgs_ :: (PreAst, [(Name, Definition Type PreAst)]) -> (PreAst, [(Name, Definition Type PreAst)])
 replaceFunArgs_ (e, ds) = runProgramState (applyToFuns replaceFunArgs >> replaceFunArgs e) ds
 
-convertFunApps_ :: (PreAst, [(Name, Definition (Label Type) PreAst)]) -> (Ast, [(Name, Definition (Label Type) Ast)])
+convertFunApps_ :: (PreAst, [(Name, Definition Type PreAst)]) -> (Ast, [(Name, Definition Type Ast)])
 convertFunApps_ (e, ds) = (convertFunApps e, fmap convertFunApps <$$> ds)
 
 
---preprocess_ :: (TypedExpr, [(Name, Definition (Label Type) TypedExpr)]) -> (PreAst, [(Name, Definition (Label Type) PreAst)])
+--preprocess_ :: (TypedExpr, [(Name, Definition Type TypedExpr)]) -> (PreAst, [(Name, Definition Type PreAst)])
 preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 
 
@@ -454,20 +454,20 @@ runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (uni
 
 --compileDef0
 --  :: (MonadState (Program PreAst) m) 
---  => Definition (Label Type) TypedExpr 
---  -> m (Definition (Label Type) PreAst)
+--  => Definition Type TypedExpr 
+--  -> m (Definition Type PreAst)
 compileDef0 def = convertClosuresT <$> def
 
 compileDef11
   :: (MonadState (Int, Program PreAst) m) 
-  => Definition (Label Type) PreAst
-  -> m (Definition (Label Type) PreAst)
+  => Definition Type PreAst
+  -> m (Definition Type PreAst)
 compileDef11 d = pure (combineApps <$> d)
 
 compileDef1
   :: (MonadState (Int, Program PreAst) m) 
-  => Definition (Label Type) TypedExpr 
-  -> m (Definition (Label Type) PreAst)
+  => Definition Type TypedExpr 
+  -> m (Definition Type PreAst)
 --compileDef1 def = preprocess (convertClosuresT . combineLambdas <$> def)
 compileDef1 def = do
   --traceShowM (convertClosuresT . combineLambdas <$> def)
@@ -475,8 +475,8 @@ compileDef1 def = do
 
 compileDef2 
   :: (MonadState (Int, Program PreAst) m) 
-  => Definition (Label Type) PreAst
-  -> m (Definition (Label Type) PreAst)
+  => Definition Type PreAst
+  -> m (Definition Type PreAst)
 --compileDef2 = traverse (replaceFunArgs <=< alignCallSigns) 
 compileDef2 abc = do
   zz <- traverse alignCallSigns abc
@@ -491,15 +491,15 @@ compileDef2 abc = do
 
 compileDef 
   :: (MonadState (Int, Program PreAst) m) 
-  => Definition (Label Type) TypedExpr 
-  -> m (Definition (Label Type) Ast)
+  => Definition Type TypedExpr 
+  -> m (Definition Type Ast)
 compileDef def = do
   d2 <- preprocess (convertClosuresT . combineLambdas <$> def)
   --d3 <- runReaderT (traverse (replaceFunArgs <=< alignCallSigns) d2) 1
   d3 <- traverse (alignCallSigns) d2
   pure (convertFunApps <$> d3)
 
---overDefs :: (MonadState (Program p) m) => (Definition (Label Type) a -> m (Definition (Label Type) b)) -> Program a -> m (Program b)
+--overDefs :: (MonadState (Program p) m) => (Definition Type a -> m (Definition Type b)) -> Program a -> m (Program b)
 overDefs f (Program p) = Program <$> traverse f p
 
 --abcx456 :: (MonadState (Program PreAst) m) => Program TypedExpr -> m (Program Ast)
@@ -509,10 +509,10 @@ overDefs f (Program p) = Program <$> traverse f p
 --abcx555 = flip evalState emptyProgram $ do
 --  overDefs compileDef pirog1
 
---abcx888 :: [(Name, Definition (Label Type) Ast)]
+--abcx888 :: [(Name, Definition Type Ast)]
 --abcx888 = let Program p = abcx555 in Map.toList p
 
---abcx999 :: (Ast, [(Name, Definition (Label Type) Ast)])
+--abcx999 :: (Ast, [(Name, Definition Type Ast)])
 --abcx999 = (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], abcx888)
 
 parseCompileEval s =
@@ -618,7 +618,7 @@ oiouo :: Program SourceExpr -> Program TypedExpr
 oiouo p = over Program (rtcx2 <$>) p
   where
     te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programToTypeEnv p)
-    rtcx2 :: Definition (Label Type) SourceExpr -> Definition (Label Type) TypedExpr
+    rtcx2 :: Definition Type SourceExpr -> Definition Type TypedExpr
     rtcx2 (Function args (t, e)) =
               case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr e) of
                 Left err -> error (show err)
@@ -640,7 +640,7 @@ baz123 e =
 --  where
 --    Program p = pirog0
 
---[(Name, Definition (Label Type) a)]
+--[(Name, Definition Type a)]
 --pirog1 :: Program TypedExpr
 --pirog1 =
 --  toProgram 
@@ -699,10 +699,10 @@ foox124 = do
 xxx0 :: (a -> b) -> Program a -> Program b
 xxx0 f = xxx1 (fmap f)
 
-xxx1 :: (Definition (Label Type) a -> Definition (Label Type) b) -> Program a -> Program b
+xxx1 :: (Definition Type a -> Definition Type b) -> Program a -> Program b
 xxx1 = over Program . fmap 
 
-xxx2 :: (Monad m) => (Definition (Label Type) a -> m (Definition (Label Type) b)) -> Program a -> m (Program b)
+xxx2 :: (Monad m) => (Definition Type a -> m (Definition Type b)) -> Program a -> m (Program b)
 xxx2 f (Program p) = Program <$> traverse f p
 
 p123 :: Program TypedExpr
@@ -720,10 +720,10 @@ p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf
 --    abc :: (MonadState (Int, Program PreAst) m) => m (Program Ast)
 --    abc = xxx2 (def <=< preprocess) p123
 --
---    def :: (MonadState (Int, Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
+--    def :: (MonadState (Int, Program PreAst) m) => Definition Type PreAst -> m (Definition Type Ast)
 --    def = pure . (convertFunApps <$>)
 --
-----    ghi :: (MonadState (Program PreAst) m) => Definition (Label Type) PreAst -> m (Definition (Label Type) Ast)
+----    ghi :: (MonadState (Program PreAst) m) => Definition Type PreAst -> m (Definition Type Ast)
 ----    ghi = pure . (convertClosures <$>)
 
 
