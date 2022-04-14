@@ -1,4 +1,8 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Pong.Util.Env
   ( empty
   , insert
@@ -19,14 +23,40 @@ module Pong.Util.Env
   , delete
   , map
   , askLookup
+  , Environment(..)
   ) where
 
 import Control.Monad.Reader
-import Control.Newtype.Generics
+import Control.Newtype.Generics (Newtype, over, pack, unpack)
+import Data.Map.Strict (Map)
+import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Util (Name, (<$$>))
 import Prelude hiding (insert, lookup, map)
 import qualified Data.Map.Strict as Map
+
+newtype Environment a =
+  Environment (Map Name a)
+
+deriving instance (Show a) => Show (Environment a)
+
+deriving instance (Eq a) => Eq (Environment a)
+
+deriving instance (Ord a) => Ord (Environment a)
+
+deriving instance Functor Environment
+
+deriving instance Foldable Environment
+
+deriving instance Traversable Environment
+
+deriving instance Semigroup (Environment a)
+
+deriving instance Monoid (Environment a)
+
+deriving instance Generic (Environment a)
+
+instance Newtype (Environment a)
 
 {-# INLINE empty #-}
 empty :: Environment a

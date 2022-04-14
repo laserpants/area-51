@@ -1,31 +1,36 @@
-{-# LANGUAGE DeriveGeneric #-}
+-- {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- {-# LANGUAGE FlexibleContexts #-}
+-- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Pong.Data where
 
-import Control.Newtype.Generics
 import Data.Eq.Deriving (deriveEq1)
-import Data.List.NonEmpty (fromList)
-import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
-import Data.Void (Void)
-import GHC.Generics (Generic)
-import Pong.Util
-  ( Fix(..)
-  , List1
-  , Name
-  , Text
-  , embed
-  , embed1
-  , embed2
-  , embed3
-  , embed4
-  )
+import Pong.Util (Name, Text, Fix(..))
 import Text.Show.Deriving (deriveShow1)
+import Data.Void (Void)
+
+-- import Control.Newtype.Generics
+-- import Data.Eq.Deriving (deriveEq1)
+-- import Data.List.NonEmpty (fromList)
+-- import Data.Map.Strict (Map)
+-- import Data.Ord.Deriving (deriveOrd1)
+-- import GHC.Generics (Generic)
+-- import Pong.Util
+--   ( Fix(..)
+--   , List1
+--   , Name
+--   , Text
+--   , embed
+--   , embed1
+--   , embed2
+--   , embed3
+--   , embed4
+--   )
+-- import Text.Show.Deriving (deriveShow1)
 
 data RowF e r a
   = RNil
@@ -38,7 +43,7 @@ data RowF e r a
 -- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
 
-data TypeF a
+data TypeF v g a
   = TUnit
   | TBool
   | TInt
@@ -50,9 +55,11 @@ data TypeF a
   | TArr a a
   | TVar Int
   | TGen Name
-  | TRow (Row Type Int)
+  | TRow (Row (Type v g) Int)
 
-type Type = Fix TypeF 
+type Type v g = Fix (TypeF v g)
+
+type MonoType = Type Int Void
 
 data TCon
   = VarT
@@ -69,8 +76,13 @@ data Prim
   | PString Text
   | PUnit
 
+-- | Unary operators
+data Op1
+  = ONot       -- ^ Logical NOT
+  | ONeg       -- ^ Negation
+
 -- | Binary operators
-data Binop
+data Op2
   = OEq        -- ^ Equality 
   | OLt        -- ^ Less than
   | OGt        -- ^ Greater than
@@ -86,10 +98,6 @@ data Binop
 -- | A label is a typed identifier 
 type Label t = (t, Name)
 
--- | Typed operator 
-data Op2 t =
-  Op2 Binop t
-
 data ExprF t a0 a1 a2 a
   = EVar (Label t)
   | ECon (Label a0)
@@ -99,7 +107,8 @@ data ExprF t a0 a1 a2 a
   | EApp a0 a [a]
   | ELam a1 [Label t] a
   | ECall a2 (Label t) [a]
-  | EOp2 (Op2 t) a a
+  | EOp1 (t, Op1) a 
+  | EOp2 (t, Op2) a a
   | ECase a [([Label t], a)]
   | ERow (Row (Expr t a0 a1 a2) (Label t))
   | EField [Label t] a a
@@ -107,16 +116,16 @@ data ExprF t a0 a1 a2 a
 -- | Parameterized main expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
--- | Source expression annotated with numeric tags to support type checking
+-- | Source expression annotated with numeric tags to facilitate type checking
 type TaggedExpr = Expr Int Int () Void
 
 -- | Typed source expression
-type TypedExpr = Expr Type Type () Void
+type TypedExpr = Expr MonoType MonoType () Void
 
--- | Typed intermediate representation
-type PreAst = Expr Type Type Void Void
-
-type Ast = Expr Type Void Void ()
+-- -- | Typed intermediate representation
+-- type PreAst = Expr Type Type Void Void
+-- 
+-- type Ast = Expr Type Void Void ()
 
 data Con
   = VarE
@@ -124,23 +133,23 @@ data Con
   | LamE
   | RowE
 
-newtype Environment a =
-  Environment (Map Name a)
-
-data Constructor =
-  Constructor
-    { conName :: Name
-    , conFields :: [Type]
-    }
-
-data Definition t a
-  = Function (List1 (Label t)) (Type, a)
-  | Constant (Type, a)
-  | External [Type] (Label Type)
-  | Data Name [Constructor]
-
-newtype Program a =
-  Program (Map Name (Definition Type a))
+-- newtype Environment a =
+--   Environment (Map Name a)
+-- 
+-- data Constructor =
+--   Constructor
+--     { conName :: Name
+--     , conFields :: [Type]
+--     }
+-- 
+-- data Definition t a
+--   = Function (List1 (Label t)) (Type, a)
+--   | Constant (Type, a)
+--   | External [Type] (Label Type)
+--   | Data Name [Constructor]
+-- 
+-- newtype Program a =
+--   Program (Map Name (Definition Type a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -162,11 +171,11 @@ deriving instance Foldable (RowF e r)
 deriving instance Traversable (RowF e r)
 
 -- Type
-deriving instance (Show a) => Show (TypeF a)
+deriving instance (Show v, Show g, Show a) => Show (TypeF v g a)
 
-deriving instance (Eq a) => Eq (TypeF a)
+deriving instance (Eq v, Eq g, Eq a) => Eq (TypeF v g a)
 
-deriving instance (Ord a) => Ord (TypeF a)
+deriving instance (Ord v, Ord g, Ord a) => Ord (TypeF v g a)
 
 deriveShow1 ''TypeF
 
@@ -174,11 +183,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor TypeF 
+deriving instance Functor (TypeF v g)
 
-deriving instance Foldable TypeF 
+deriving instance Foldable (TypeF v g)
 
-deriving instance Traversable TypeF 
+deriving instance Traversable (TypeF v g)
 
 -- TCon
 deriving instance Show TCon
@@ -201,30 +210,26 @@ deriving instance Eq Prim
 
 deriving instance Ord Prim
 
--- Binop
-deriving instance Show Binop
+-- Op1
+deriving instance Show Op1
 
-deriving instance Eq Binop
+deriving instance Eq Op1
 
-deriving instance Ord Binop
+deriving instance Ord Op1
 
 -- Op2
-deriving instance (Show t) => Show (Op2 t)
+deriving instance Show Op2
 
-deriving instance (Eq t) => Eq (Op2 t)
+deriving instance Eq Op2
 
-deriving instance (Ord t) => Ord (Op2 t)
+deriving instance Ord Op2
 
 -- Expr
-deriving instance
-         (Show t, Show a0, Show a1, Show a2, Show a) =>
-         Show (ExprF t a0 a1 a2 a)
+deriving instance (Show t, Show a0, Show a1, Show a2, Show a) => Show (ExprF t a0 a1 a2 a)
 
-deriving instance
-         (Eq t, Eq a0, Eq a1, Eq a2, Eq a) => Eq (ExprF t a0 a1 a2 a)
+deriving instance (Eq t, Eq a0, Eq a1, Eq a2, Eq a) => Eq (ExprF t a0 a1 a2 a)
 
-deriving instance
-         (Ord t, Ord a0, Ord a1, Ord a2, Ord a) => Ord (ExprF t a0 a1 a2 a)
+deriving instance (Ord t, Ord a0, Ord a1, Ord a2, Ord a) => Ord (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
 
@@ -238,50 +243,50 @@ deriving instance Foldable (ExprF t a0 a1 a2)
 
 deriving instance Traversable (ExprF t a0 a1 a2)
 
--- Constructor
-deriving instance Show Constructor
-
-deriving instance Eq Constructor
-
-deriving instance Ord Constructor
-
--- Environment
-deriving instance (Show a) => Show (Environment a)
-
-deriving instance (Eq a) => Eq (Environment a)
-
-deriving instance (Ord a) => Ord (Environment a)
-
-deriving instance Functor Environment
-
-deriving instance Foldable Environment
-
-deriving instance Traversable Environment
-
-deriving instance Semigroup (Environment a)
-
-deriving instance Monoid (Environment a)
-
-deriving instance Generic (Environment a)
-
-instance Newtype (Environment a)
-
--- Definition
-deriving instance (Show d, Show a) => Show (Definition d a)
-
-deriving instance (Eq d, Eq a) => Eq (Definition d a)
-
-deriving instance Functor (Definition d)
-
-deriving instance Foldable (Definition d)
-
-deriving instance Traversable (Definition d)
-
--- Program
-deriving instance (Show a) => Show (Program a)
-
-deriving instance (Eq a) => Eq (Program a)
-
-deriving instance Generic (Program a)
-
-instance Newtype (Program a)
+-- -- Constructor
+-- deriving instance Show Constructor
+-- 
+-- deriving instance Eq Constructor
+-- 
+-- deriving instance Ord Constructor
+-- 
+-- -- Environment
+-- deriving instance (Show a) => Show (Environment a)
+-- 
+-- deriving instance (Eq a) => Eq (Environment a)
+-- 
+-- deriving instance (Ord a) => Ord (Environment a)
+-- 
+-- deriving instance Functor Environment
+-- 
+-- deriving instance Foldable Environment
+-- 
+-- deriving instance Traversable Environment
+-- 
+-- deriving instance Semigroup (Environment a)
+-- 
+-- deriving instance Monoid (Environment a)
+-- 
+-- deriving instance Generic (Environment a)
+-- 
+-- instance Newtype (Environment a)
+-- 
+-- -- Definition
+-- deriving instance (Show d, Show a) => Show (Definition d a)
+-- 
+-- deriving instance (Eq d, Eq a) => Eq (Definition d a)
+-- 
+-- deriving instance Functor (Definition d)
+-- 
+-- deriving instance Foldable (Definition d)
+-- 
+-- deriving instance Traversable (Definition d)
+-- 
+-- -- Program
+-- deriving instance (Show a) => Show (Program a)
+-- 
+-- deriving instance (Eq a) => Eq (Program a)
+-- 
+-- deriving instance Generic (Program a)
+-- 
+-- instance Newtype (Program a)

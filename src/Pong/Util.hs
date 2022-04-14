@@ -23,7 +23,7 @@ module Pong.Util
   , asksFirst
   , localSecond
   , asksSecond
-  , trimLabel
+--  , trimLabel
   ) where
 
 import Control.Arrow ((***), (<<<), (>>>))
@@ -114,6 +114,6 @@ localSecond = local . second
 asksSecond :: MonadReader (q, r) m => (r -> a) -> m a
 asksSecond = asks . (snd >>>)
 
-{-# INLINE trimLabel #-}
-trimLabel :: Name -> Name
-trimLabel = Text.tail . Text.init
+--{-# INLINE trimLabel #-}
+--trimLabel :: Name -> Name
+--trimLabel = Text.tail . Text.init

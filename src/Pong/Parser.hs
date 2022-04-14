@@ -1,23 +1,23 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
 module Pong.Parser where
 
-import Data.List.NonEmpty (fromList)
+-- import Data.List.NonEmpty (fromList)
 import Control.Monad.Combinators.Expr
 import Data.Functor (($>))
 import Data.Maybe (isJust, fromMaybe)
-import Data.Text (Text)
-import Data.Void
+import Data.Text (Text, pack, unpack)
+import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
-import Pong.Util
+import Pong.Util (Name, (<<<), (>>>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-import qualified Data.Map.Strict as Map
+-- import qualified Data.Map.Strict as Map
 
 type Parser = Parsec Void Text
 
@@ -98,7 +98,7 @@ toLabel :: t -> ((), t)
 toLabel = ((), )
 
 type SourceExpr = Expr () () () Void
-
+ 
 expr :: Parser SourceExpr
 expr = makeExprParser apps operator
   where
@@ -117,17 +117,17 @@ operator :: [[Operator Parser SourceExpr]]
 operator
     -- 7
  =
-  [ [InfixL (eOp2 (Op2 OMul ()) <$ symbol "*")]
+  [ [InfixL (eOp2 ((), OMul) <$ symbol "*")]
       -- 6
-  , [ InfixL (eOp2 (Op2 OAdd ()) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
-    , InfixL (eOp2 (Op2 OSub ()) <$ symbol "-")
+  , [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
+    , InfixL (eOp2 ((), OSub) <$ symbol "-")
     ]
       -- 4
-  , [InfixN (eOp2 (Op2 OEq ()) <$ symbol "==")]
+  , [InfixN (eOp2 ((), OEq) <$ symbol "==")]
       -- 3
-  , [InfixR (eOp2 (Op2 OLogicAnd ()) <$ symbol "&&")]
+  , [InfixR (eOp2 ((), OLogicAnd) <$ symbol "&&")]
       -- 2
-  , [InfixR (eOp2 (Op2 OLogicOr ()) <$ symbol "||")]
+  , [InfixR (eOp2 ((), OLogicOr) <$ symbol "||")]
   ]
 
 varExpr :: Parser SourceExpr
@@ -225,11 +225,9 @@ prim =
     primIntegral = PInt <$> lexeme Lexer.decimal
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
-type_ :: Parser Type
-type_ = makeExprParser foo [[InfixR (tArr <$ symbol "->")]]
+type_ :: Parser (Type v g)
+type_ = makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
-    foo = 
-      parens item <|> item
     item = keyword "unit" $> tUnit
       <|> keyword "bool" $> tBool
       <|> keyword "int" $> tInt
@@ -238,46 +236,44 @@ type_ = makeExprParser foo [[InfixR (tArr <$ symbol "->")]]
       <|> keyword "char" $> tChar
       <|> keyword "string" $> tString
       <|> conType
---      <|> genType
+      <|> genType
     conType = do
       con <- constructor
       ts <- many type_
       pure (tCon con ts)
---    genType = do
---      -- z
---      v <- identifier
---      undefined
-
-label_ :: Parser (Label Type)
-label_ = do
-  name <- identifier
-  symbol ":"
-  t <- type_
-  pure (t, name)
-
-def :: Parser (Name, Definition Type SourceExpr)
-def = 
-  functionDef <|> constantDef -- <|> externalDef <|> dataDef
-    where 
-      functionDef = do
-        keyword "def"
-        name <- identifier
-        args <- parens (some label_)
-        symbol ":"
-        t <- type_
-        symbol "="
-        e <- expr
-        pure (name, Function (fromList args) (t, e))
-      constantDef = do
-        keyword "const"
-        name <- identifier
-        symbol ":"
-        t <- type_
-        symbol "="
-        e <- expr
-        pure (name, Constant (t, e))
-
-program :: Parser (Program SourceExpr)
-program = do
-  defs <- many def
-  pure (Program (Map.fromList defs))
+    genType = 
+      tGen <$> identifier
+ 
+-- label_ :: Parser (Label Type)
+-- label_ = do
+--   name <- identifier
+--   symbol ":"
+--   t <- type_
+--   pure (t, name)
+-- 
+-- def :: Parser (Name, Definition Type SourceExpr)
+-- def = 
+--   functionDef <|> constantDef -- <|> externalDef <|> dataDef
+--     where 
+--       functionDef = do
+--         keyword "def"
+--         name <- identifier
+--         args <- parens (some label_)
+--         symbol ":"
+--         t <- type_
+--         symbol "="
+--         e <- expr
+--         pure (name, Function (fromList args) (t, e))
+--       constantDef = do
+--         keyword "const"
+--         name <- identifier
+--         symbol ":"
+--         t <- type_
+--         symbol "="
+--         e <- expr
+--         pure (name, Constant (t, e))
+-- 
+-- program :: Parser (Program SourceExpr)
+-- program = do
+--   defs <- many def
+--   pure (Program (Map.fromList defs))
