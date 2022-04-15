@@ -38,26 +38,6 @@ import qualified Data.Map.Strict as Map
 newtype Environment a =
   Environment (Map Name a)
 
-deriving instance (Show a) => Show (Environment a)
-
-deriving instance (Eq a) => Eq (Environment a)
-
-deriving instance (Ord a) => Ord (Environment a)
-
-deriving instance Functor Environment
-
-deriving instance Foldable Environment
-
-deriving instance Traversable Environment
-
-deriving instance Semigroup (Environment a)
-
-deriving instance Monoid (Environment a)
-
-deriving instance Generic (Environment a)
-
-instance Newtype (Environment a)
-
 {-# INLINE empty #-}
 empty :: Environment a
 empty = mempty
@@ -132,3 +112,23 @@ map = over Environment . Map.map
 {-# INLINE askLookup #-}
 askLookup :: (MonadReader (Environment a) m) => Name -> m (Maybe a)
 askLookup = asks . lookup
+
+deriving instance (Show a) => Show (Environment a)
+
+deriving instance (Eq a) => Eq (Environment a)
+
+deriving instance (Ord a) => Ord (Environment a)
+
+deriving instance Functor Environment
+
+deriving instance Foldable Environment
+
+deriving instance Traversable Environment
+
+deriving instance Semigroup (Environment a)
+
+deriving instance Monoid (Environment a)
+
+deriving instance Generic (Environment a)
+
+instance Newtype (Environment a)

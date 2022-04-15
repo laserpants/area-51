@@ -1,22 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- {-# LANGUAGE OverloadedStrings #-}
 -- {-# LANGUAGE MultiParamTypeClasses #-}
+-- {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
--- {-# LANGUAGE UndecidableInstances #-}
 
 module Pong.Lang where
 
 import Control.Monad.State
 import Control.Newtype.Generics
--- import Data.Function ((&))
---import Data.Void
--- import Data.Void
--- import Debug.Trace
-import Data.List.NonEmpty (toList)
---import Pong.Util (Name, Map, (!), (!?), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import Data.Char (isUpper)
 import Data.List (nub)
+import Data.List.NonEmpty (toList)
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
@@ -139,11 +134,6 @@ instance (Typed g) => Typed (Type Int g) where
         RVar v -> rVar v
         RExt name elem r -> rExt name (typeOf elem) r)
 
---instance Typed (Type Int Name) where
---  typeOf =
---    cata $ \case
---      TUnit -> tUnit
-
 instance Typed Prim where
   typeOf =
     \case
@@ -182,9 +172,6 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
       ERow r -> typeOf r
       EField _ _ e -> e
 
---instance Typed Void where
---  typeOf _ = tCon "Void" []
-
 instance (Typed t) => Typed (Definition t a) where
   typeOf =
     \case
@@ -200,19 +187,6 @@ arity = pred <<< length <<< unwindType
 --       External args (t, _) -> foldType v args
 --       Constant (t, _) -> typeOf t
 --       Data {} -> error "Implementation error"
--- 
--- class HasArity a where
---   arity :: a -> Int
--- 
--- instance (Typed t) => HasArity t where
---   arity = pred <<< length <<< unwindType
--- 
--- instance HasArity (Definition d a) where
---   arity =
---     \case
---       Function args _ -> length args
---       External args _ -> length args
---       _ -> 0
 
 freeIndex :: (FreeIn t) => [t] -> Int
 freeIndex ts =
@@ -320,26 +294,6 @@ fromPolyType vs =
     TVar v -> tVar v
     TRow row -> tRow (mapRow (fromPolyType vs) row)
 
-
---fromPolyType :: Map Name Type -> Type -> Type
---fromPolyType vs =
---   cata $ \case
---     TGen n -> 
---       case Map.lookup n ts of
---         Nothing -> error "Implementation error"
---         Just t -> t
---     TUnit -> tUnit
---     TBool -> tBool
---     TInt -> tInt
---     TFloat -> tFloat
---     TDouble -> tDouble
---     TChar -> tChar
---     TString -> tString
---     TCon con ts -> tCon con ts
---     TArr t1 t2 -> tArr t1 t2
---     TVar n -> tVar n
---     TRow row -> tRow (mapRow (fromPolyType vs) row)
-
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2 
 mapTypes f =
     cata $ \case
@@ -372,22 +326,22 @@ foldType1 :: [Type v g] -> Type v g
 foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
-insertArgs :: [(Type v g, Name)] -> Environment (Type v g) -> Environment (Type v g)
+insertArgs :: [(t, Name)] -> Environment t -> Environment t
 insertArgs = Env.inserts . (swap <$>)
 
 {-# INLINE emptyProgram #-}
 emptyProgram :: Program t a
 emptyProgram = Program mempty
 
-programToTypeEnv :: (Typed t) => Program t a -> Environment (Type Int g)
-programToTypeEnv p = Env.fromList (typeOf <$$> Map.toList (unpack p))
-
+--programTypeEnv :: (Typed t) => Program t a -> Environment MonoType
+--programTypeEnv p = Env.fromList (typeOf <$$> Map.toList (unpack p))
+--
 -- modifyM :: (MonadState s m) => (s -> m s) -> m ()
 -- modifyM f = get >>= f >>= put
 
 modifyProgram ::
-     (MonadState (Int, Program MonoType a) m)
-  => (Map Name (Definition MonoType a) -> Map Name (Definition MonoType a))
+     (MonadState (s, Program t a) m)
+  => (Map Name (Definition t a) -> Map Name (Definition t a))
   -> m ()
 modifyProgram = modify . second . over Program
 
@@ -403,8 +357,7 @@ modifyProgram = modify . second . over Program
 ----   --let zzz = modify f p
 ----   -- modify . over Program
 
-insertDef ::
-     (MonadState (Int, Program MonoType a) m) => Name -> Definition MonoType a -> m ()
+insertDef :: (MonadState (s, Program t a) m) => Name -> Definition t a -> m ()
 insertDef = modifyProgram <$$> Map.insert
 
 ---- --updateDef ::

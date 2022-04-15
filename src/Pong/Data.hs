@@ -1,7 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
--- {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -37,7 +35,7 @@ data RowF e r a
   | RVar r
   | RExt Name e a
 
--- | A row is a sequence of labeled fields. Rows encode the internal structure 
+-- | A row is a sequence of labeled fields which encode the internal structure 
 -- of records, both at the type and expression level. A row can be either open 
 -- or closed. An open row is one that has a variable in the tail of the 
 -- sequence, whereas a closed row ends with the empty row.
@@ -125,6 +123,7 @@ type TypedExpr = Expr MonoType MonoType () Void
 -- | Typed intermediate representation
 type PreAst = Expr MonoType MonoType Void Void
 
+-- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
 data Con
