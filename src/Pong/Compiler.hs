@@ -5,33 +5,33 @@
 
 module Pong.Compiler where
 
+-- import Control.Arrow ((&&&))
 -- import Control.Monad.Identity
 -- import Control.Monad.Reader
-import Control.Monad.State
--- import Control.Arrow ((&&&))
 -- import Control.Monad.Writer
--- import Data.Function ((&))
 -- import Data.Char (isUpper)
-import Data.List (nub)
+-- import Data.Function ((&))
 -- import Data.List.NonEmpty (NonEmpty, (!!), fromList, toList)
-import Data.List.NonEmpty (fromList, toList)
 -- import Data.Maybe (fromMaybe)
-import Data.Tuple.Extra (first, second, swap)
 -- import Data.Void (Void)
 -- import Debug.Trace
+-- import Pong.TypeChecker (Substitution, apply, unify, runTypeChecker')
+-- import Prelude hiding ((!!))
+-- import qualified Control.Newtype.Generics as N
+-- import qualified Data.List as List
+-- import qualified Data.Text as Text
+import Control.Monad.State
+import Data.List (nub)
+import Data.List.NonEmpty (fromList, toList)
+import Data.Tuple.Extra (first, second, swap)
 import Pong.Data
 import Pong.Eval
 import Pong.Lang
 import Pong.Parser
 import Pong.TypeChecker
--- import Pong.TypeChecker (Substitution, apply, unify, runTypeChecker')
 import Pong.Util
--- import Prelude hiding ((!!))
 import Text.Megaparsec (runParser)
 import TextShow (showt)
--- import qualified Control.Newtype.Generics as N
--- import qualified Data.Text as Text
--- import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 
@@ -1658,34 +1658,34 @@ t0t2 = second snd (runState (bernie expx0) (1, emptyProgram)) == expx0_
 t0t3 = second snd (runState (bernie expx8) (1, emptyProgram)) == expx8_
 t0t4 = second snd (runState (bernie expx01) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == expx01_
 t0t5 = second snd (runState (bernie exp1) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == exp1_
-t0t6 = evalProgram__ expyx_ == LitValue (PInt 125)
-t0t7 = evalProgram__ expyy_ == LitValue (PInt 125)
-t0t8 = evalProgram__ exp0_ == LitValue (PInt 5)
-t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == LitValue (PInt 120)
+t0t6 = evalProgram__ expyx_ == PrimValue (PInt 125)
+t0t7 = evalProgram__ expyy_ == PrimValue (PInt 125)
+t0t8 = evalProgram__ exp0_ == PrimValue (PInt 5)
+t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == PrimValue (PInt 120)
 t0t10 = second snd (runState (bernie expx9) (1, emptyProgram)) == expx9_
 t0t11 = typeCheck_ exmp29_0 == exmp29_1
 t0t12 = typeCheck_ exmp30_0 == exmp30_1
-t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))) == LitValue (PInt 2)
+t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))) == PrimValue (PInt 2)
 t0t14 = typeCheck_ exmp31_0 == exmp31_1
-t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == LitValue (PInt 2)
-t0t16 = LitValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)" 
+t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == PrimValue (PInt 2)
+t0t16 = PrimValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)" 
 t0t17 = typeCheck_ "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" == exmp34_1
-t0t18 = LitValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" 
-t0t19 = LitValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)" 
-t0t20 = LitValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
-t0t21 = LitValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
-t0t22 = LitValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
+t0t18 = PrimValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" 
+t0t19 = PrimValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)" 
+t0t20 = PrimValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
+t0t21 = PrimValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
+t0t22 = PrimValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
 t0t23 = RowValue rNil == baz127 "let q = { quantity = 123 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b"
-t0t24 = LitValue (PInt 1010) == baz127 "let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011"
-t0t25 = LitValue (PInt 120) == baz127 "let fact = lam(n) => if n == 0 then 1 else n * fact(n - 1) in fact(5)"
-t0t26 = LitValue (PInt 1) == baz127 "let f = lam(x) => 1 in let i = f in i(1)"
-t0t27 = LitValue (PInt 12) == baz127 "let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)"
-t0t28 = LitValue (PInt 18) == baz127 "let h = 5 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)"
-t0t29 = LitValue (PInt 254) == baz127 "let h = 123 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)"
-t0t30 = LitValue (PInt 2) == baz127 "let xs = Cons(lam(x) => x + 1, Nil()) in match xs { | Cons(a, b) => a(1) }"
-t0t31 = LitValue (PInt 3) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a(1) } in f(2)"
-t0t32 = LitValue (PInt 5) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a } in f(2, 3)"
-t0t33 = LitValue (PInt 5) == baz127 "let head = lam(xs) => match xs { | Cons(z, zs) => z } in head(Cons(5, Cons(2, Cons(3, Nil()))))"
+t0t24 = PrimValue (PInt 1010) == baz127 "let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011"
+t0t25 = PrimValue (PInt 120) == baz127 "let fact = lam(n) => if n == 0 then 1 else n * fact(n - 1) in fact(5)"
+t0t26 = PrimValue (PInt 1) == baz127 "let f = lam(x) => 1 in let i = f in i(1)"
+t0t27 = PrimValue (PInt 12) == baz127 "let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)"
+t0t28 = PrimValue (PInt 18) == baz127 "let h = 5 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)"
+t0t29 = PrimValue (PInt 254) == baz127 "let h = 123 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)"
+t0t30 = PrimValue (PInt 2) == baz127 "let xs = Cons(lam(x) => x + 1, Nil()) in match xs { | Cons(a, b) => a(1) }"
+t0t31 = PrimValue (PInt 3) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a(1) } in f(2)"
+t0t32 = PrimValue (PInt 5) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a } in f(2, 3)"
+t0t33 = PrimValue (PInt 5) == baz127 "let head = lam(xs) => match xs { | Cons(z, zs) => z } in head(Cons(5, Cons(2, Cons(3, Nil()))))"
  
 
 

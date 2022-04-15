@@ -36,7 +36,7 @@ import Test.Hspec
 -- --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 -- 
 -- foo :: Value 
--- foo = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
+-- foo = ConValue "Cons" [PrimValue (PInt 5), ConValue "Nil" []]
 -- 
 -- fromProgram :: State (Int, Program a1) a2 -> (a2, [(Name, Definition Type a1)])
 -- fromProgram prog = Map.toList . unpack . snd <$> runState prog (0, emptyProgram)
@@ -122,52 +122,52 @@ main =
 -- --      it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
 -- --      it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
     describe "evalProgram_" $ do
-      it "#1" (evalProgram_ fragment17_8 == LitValue (PInt 14))
-      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt 120))
---      it "#3" (runReader fragment20_2 mempty == LitValue (PInt 100))
-      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt 5))
-      it "#5" (evalProgram_ fragment20_4 == LitValue (PInt 5))
-      it "#6" (evalProgram_ fragment20_5 == LitValue (PInt 5))
-      it "#7" (evalProgram_ fragment20_6 == LitValue (PInt 0))
-      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt 2))
+      it "#1" (evalProgram_ fragment17_8 == PrimValue (PInt 14))
+      it "#2" (evalProgram_ fragment18_4 == PrimValue (PInt 120))
+--      it "#3" (runReader fragment20_2 mempty == PrimValue (PInt 100))
+      it "#4" (evalProgram_ fragment20_3 == PrimValue (PInt 5))
+      it "#5" (evalProgram_ fragment20_4 == PrimValue (PInt 5))
+      it "#6" (evalProgram_ fragment20_5 == PrimValue (PInt 5))
+      it "#7" (evalProgram_ fragment20_6 == PrimValue (PInt 0))
+      it "#8" (evalProgram_ (fragment21_2, []) == PrimValue (PInt 2))
 -- --    describe "parseCompileEval" $ do
--- --      it "#1" (LitValue (PInt 5) == parseCompileEval "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)")
--- --      it "#2" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)")
--- --      it "#3" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)")
--- --      it "#4" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
--- --      it "#5" (LitValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
--- --      it "#6" (LitValue (PInt 100) == parseCompileEval "def main(n : int) : int = let xs = Cons(100, Nil()) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 | Nil() => y } | Nil() => 2 }")
+-- --      it "#1" (PrimValue (PInt 5) == parseCompileEval "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)")
+-- --      it "#2" (PrimValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)")
+-- --      it "#3" (PrimValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)")
+-- --      it "#4" (PrimValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
+-- --      it "#5" (PrimValue (PInt 2) == parseCompileEval "def main(n : int) : int = let xs = Nil in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }")
+-- --      it "#6" (PrimValue (PInt 100) == parseCompileEval "def main(n : int) : int = let xs = Cons(100, Nil()) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 | Nil() => y } | Nil() => 2 }")
 -- --      it "#7" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => match ys { Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
 -- --      it "#8" (ConValue "Nil" [] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { | Cons(y, ys) => match ys { | Cons(z, zs) => zs | Nil() => Nil() } | Nil() => Nil() }")
--- --      it "#9" (ConValue "Cons" [LitValue (PInt 101), ConValue "Nil" []] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => ys | Nil() => Nil() }")
--- --      it "#10" (LitValue (PInt 101) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(101)")
--- --      it "#11" (LitValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
--- --      it "#12" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
--- --      it "#13" (LitValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
+-- --      it "#9" (ConValue "Cons" [PrimValue (PInt 101), ConValue "Nil" []] == parseCompileEval "def main(n : int) : List int = let xs = Cons(100, Cons(101, Nil())) in match xs { Cons(y, ys) => ys | Nil() => Nil() }")
+-- --      it "#10" (PrimValue (PInt 101) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in g(101)")
+-- --      it "#11" (PrimValue (PInt 1) == parseCompileEval "def main(z : int) : int = let f = lam(y) => z in f(1)")
+-- --      it "#12" (PrimValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)")
+-- --      it "#13" (PrimValue (PInt 10) == parseCompileEval "def main(z : int) : int = let h = z + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)")
 -- --
 -- --
 -- --
 -- --
--- --      it "#14" (LitValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
+-- --      it "#14" (PrimValue (PInt 12) == parseCompileEval "def main(z : int) : int = let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)")
 -- --
 -- --
--- --      it "#15" (LitValue (PInt 6) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | r } = r in p + 1 }")
--- --      it "#16" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = q | r } = r in q")
--- --      it "#17" (LitValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | q } = r in field { quantity = s | o } = q in s")
--- --      it "#18" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in p")
+-- --      it "#15" (PrimValue (PInt 6) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | r } = r in p + 1 }")
+-- --      it "#16" (PrimValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = q | r } = r in q")
+-- --      it "#17" (PrimValue (PInt 3) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { price = p | q } = r in field { quantity = s | o } = q in s")
+-- --      it "#18" (PrimValue (PInt 5) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in p")
 -- --
 -- --
--- --      it "#19" (LitValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011")
--- --      it "#20" (LitValue (PInt 1) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in q")
--- --      it "#21" (LitValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { price = p | a } = r in p }")
+-- --      it "#19" (PrimValue (PInt 1010) == parseCompileEval "def main(a : int) : int = let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011")
+-- --      it "#20" (PrimValue (PInt 1) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in q")
+-- --      it "#21" (PrimValue (PInt 5) == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { price = p | a } = r in p }")
 -- --      it "#22" (RowValue rNil == parseCompileEval "def main(a : int) : int = let q = { quantity = 1 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b")
--- --      it "#23" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }")
--- --      it "#24" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)")
--- --      it "#25" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = (let f = lam(x) => x + 1 in f)(1)")
--- --      it "#26" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(1)")
--- --      it "#27" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f")
--- --      it "#28" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)")
--- --      it "#29" (LitValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1)}")
+-- --      it "#23" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }")
+-- --      it "#24" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = (if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)")
+-- --      it "#25" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = (let f = lam(x) => x + 1 in f)(1)")
+-- --      it "#26" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(1)")
+-- --      it "#27" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f")
+-- --      it "#28" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)")
+-- --      it "#29" (PrimValue (PInt 2) == parseCompileEval "def main(a : int) : int = let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1)}")
 -- 
 -- 
 -- applyToFuns 

@@ -5,30 +5,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Pong.Data where
 
+import Control.Newtype.Generics
 import Data.Eq.Deriving (deriveEq1)
 import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
+import GHC.Generics (Generic)
 import Pong.Util (Void, Name, Text, Fix(..), List1)
 import Text.Show.Deriving (deriveShow1)
-import Control.Newtype.Generics
-import GHC.Generics (Generic)
-
--- import Data.Eq.Deriving (deriveEq1)
--- import Data.List.NonEmpty (fromList)
--- import Data.Map.Strict (Map)
--- import Data.Ord.Deriving (deriveOrd1)
--- import Pong.Util
---   ( Fix(..)
---   , List1
---   , Name
---   , Text
---   , embed
---   , embed1
---   , embed2
---   , embed3
---   , embed4
---   )
--- import Text.Show.Deriving (deriveShow1)
 
 data RowF e r a
   = RNil
@@ -241,9 +224,9 @@ deriving instance Traversable (ExprF t a0 a1 a2)
 
 -- -- Constructor
 -- deriving instance Show Constructor
--- 
+
 -- deriving instance Eq Constructor
--- 
+
 -- deriving instance Ord Constructor
 
 -- Definition

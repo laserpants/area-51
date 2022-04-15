@@ -1,43 +1,40 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
+
 module Pong.Eval where
 
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Char (isUpper)
 import Data.List.NonEmpty (fromList, toList)
--- import Data.Void (Void)
 import Debug.Trace
 import Pong.Data
-import Text.Show.Deriving (deriveShow1)
 import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment)
+import Text.Show.Deriving (deriveShow1)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 data Value
-  = LitValue Prim
+  = PrimValue Prim
   | ConValue Name [Value]
   | RowValue (Row Value Void)
   | Closure (Label MonoType) [Eval Value]
 
 --data ValF a 
---  = VLitVal Int
+--  = VLitVal Prim
 --  | VConVal Name [a]
 --  | VRowVal (Row Val Void)
 --  | VClosure (Label MonoType) [Eval a]
 --
 --type Val = Fix ValF 
-
+--
 --instance Show Val where
 --  show = project >>> (\case
 --    VLitVal p -> show p
@@ -50,7 +47,7 @@ data Value
 --
 ---- instance Show Value where
 ----   show = \case
-----     LitValue p -> show p
+----     PrimValue p -> show p
 ----     ConValue _ _ -> show "ConValue"
 ----     RowValue _ -> show "RowValue"
 ----     Closure n as -> show ("Closure " <> show n <> ":" <> show (length as))
@@ -58,13 +55,13 @@ data Value
 instance Eq Value where
   a == b = 
     case (a, b) of
-      (LitValue p, LitValue q) -> p == q
+      (PrimValue p, PrimValue q) -> p == q
       (RowValue r, RowValue s) -> r == s
 
 ----instance Eq Value where
 ----  a == b = 
 ----    case (project a, project b) of
-----      (LitValue p, LitValue q) -> p == q
+----      (PrimValue p, PrimValue q) -> p == q
 ----      (RowValue r, RowValue s) -> r == s
 
 type ValueEnv = 
@@ -87,11 +84,11 @@ eval =
        case Env.lookup var env of
          Just val -> pure val
          Nothing -> error ("Runtime error (1) : " <> show var)
-    ELit lit -> pure (LitValue lit)
+    ELit lit -> pure (PrimValue lit)
     EIf cond true false ->
       cond >>= \case
-        LitValue (PBool True) -> true
-        LitValue (PBool False) -> false
+        PrimValue (PBool True) -> true
+        PrimValue (PBool False) -> false
         _ -> error "Runtime error (2)"
     ELet (_, var) body expr -> do
       val <- body 
@@ -99,18 +96,18 @@ eval =
     ECall _ fun args -> evalCall fun args
     EOp2 (_, OLogicOr) a b ->
       a >>= \case
-        LitValue (PBool True) -> a
+        PrimValue (PBool True) -> a
         _ -> b
     EOp2 (_, OLogicAnd) a b ->
       a >>= \case
-        LitValue (PBool False) -> a
+        PrimValue (PBool False) -> a
         _ -> b
     EOp2 (_, OEq) a b -> do
       lhs <- a
       rhs <- b
-      pure (LitValue (PBool (lhs == rhs)))
+      pure (PrimValue (PBool (lhs == rhs)))
     EOp2 (_, op) a b ->
-      LitValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
+      PrimValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     ECase expr cs -> do
       e <- expr
       evalCase e cs
@@ -124,11 +121,11 @@ evalCall (t, fun) args
   | arity t > length args = pure (Closure (t, fun) args)
   | arity t < length args = do
     evalCall (t, fun) (take (arity t) args) >>= 
-      \case 
+      \case
         Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
         _ -> error "??"
-  | isUpper (Text.head fun) = do 
-    as <- sequence args 
+  | isUpper (Text.head fun) = do
+    as <- sequence args
     pure (ConValue fun as)
   | otherwise = do 
     (env, vals) <- ask
@@ -189,12 +186,9 @@ evalCase (ConValue name fields) (((_, con):vars, value):clauses)
   | otherwise = evalCase (ConValue name fields) clauses
 
 evalRowCase :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value 
-evalRowCase row [(_, name), (_, v), (_, r)] value = do
-  --let (p, q) = splitRow (trimLabel name) row
-  let (p, q) = splitRow name row
-  localSecond (Env.inserts [(v, p), (r, RowValue q)]) value
---evalRowCase row ([(_, name)], value) = do
---  localSecond (Env.insert name (RowValue row)) value
+evalRowCase row [(_, name), (_, v), (_, r)] =
+  localSecond (Env.inserts [(v, p), (r, RowValue q)]) 
+  where (p, q) = splitRow name row
 
 ---- --eval ::
 ---- --     ( MonadFix m
@@ -210,11 +204,11 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 ---- --      case Env.lookup var env of
 ---- --        Just val -> pure val
 ---- --        Nothing -> error ("Runtime error (1) : " <> show var)
----- --    ELit lit -> pure (LitValue lit)
+---- --    ELit lit -> pure (PrimValue lit)
 ---- --    EIf cond true false ->
 ---- --      cond >>= \case
----- --        LitValue (PBool True) -> true
----- --        LitValue (PBool False) -> false
+---- --        PrimValue (PBool True) -> true
+---- --        PrimValue (PBool False) -> false
 ---- --        _ -> error "Runtime error (2)"
 ---- --    ELet (_, var) body expr -> do
 ---- --      --mdo let insertVar = localSecond (Env.insert var val)
@@ -227,18 +221,18 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 ---- --      evalCall fun as
 ---- --    EOp2 (Op2 OLogicOr _) a b ->
 ---- --      a >>= \case
----- --        LitValue (PBool True) -> a
+---- --        PrimValue (PBool True) -> a
 ---- --        _ -> b
 ---- --    EOp2 (Op2 OLogicAnd _) a b ->
 ---- --      a >>= \case
----- --        LitValue (PBool False) -> a
+---- --        PrimValue (PBool False) -> a
 ---- --        _ -> b
 ---- --    EOp2 (Op2 OEq _) a b -> do
 ---- --      lhs <- a
 ---- --      rhs <- b
----- --      pure (LitValue (PBool (lhs == rhs)))
+---- --      pure (PrimValue (PBool (lhs == rhs)))
 ---- --    EOp2 op a b ->
----- --      LitValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
+---- --      PrimValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
 ---- --    ECase expr cs -> do
 ---- --      e <- expr
 ---- --      evalCase e cs
@@ -298,7 +292,7 @@ evalRowCase row [(_, name), (_, v), (_, r)] value = do
 ---- --      rExt name <$> eval v <*> row
 
 getPrim :: Value -> Prim
-getPrim (LitValue lit) = lit
+getPrim (PrimValue prim) = prim
 getPrim _ = error "Runtime error (5)"
 
 getRow :: Value -> Row Value Void

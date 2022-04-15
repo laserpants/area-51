@@ -1,7 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE OverloadedStrings #-}
--- {-# LANGUAGE MultiParamTypeClasses #-}
--- {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
@@ -98,7 +95,7 @@ instance FreeIn (Row (Type Int g) Int) where
       RExt _ expr r -> free expr <> r
       _ -> [])
 
-instance (FreeIn a) => FreeIn [a] where
+instance (FreeIn f) => FreeIn [f] where
   free = concatMap free
 
 instance (Typed t) => FreeIn (Expr t t a1 a2) where

@@ -1218,7 +1218,7 @@ fragment18_4 =
 --    ])
 --
 --fragment20_1 :: Value 
---fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
+--fragment20_1 = ConValue "Cons" [PrimValue (PInt 5), ConValue "Nil" []]
 
 --fragment20_2 ::
 --     ( MonadFix m
@@ -1234,7 +1234,7 @@ fragment20_2 =
         , (tInt, "x")
         , (tCon "List" [tInt], "xs")
         ]
-      , pure (LitValue (PInt 100)))
+      , pure (PrimValue (PInt 100)))
     ]
 
 fragment20_3 :: (Ast, [(Name, Definition MonoType Ast)])
@@ -1361,11 +1361,11 @@ fragment21_2 =
 ----  , [])
 --
 --
-----test456 = runReader fragment20_2 mempty == LitValue (PInt 1)
-----test457 = runReader fragment20_3 mempty == LitValue (PInt 5)
+----test456 = runReader fragment20_2 mempty == PrimValue (PInt 1)
+----test457 = runReader fragment20_3 mempty == PrimValue (PInt 5)
 --
 fragment20_1 :: Value
-fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
+fragment20_1 = ConValue "Cons" [PrimValue (PInt 5), ConValue "Nil" []]
 
 ----fragment16_1 :: Expr Int Int () Void
 ----fragment16_1 =  
