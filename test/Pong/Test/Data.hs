@@ -3,15 +3,16 @@
 
 module Pong.Test.Data where
 
---import Control.Monad.Fix
---import Control.Monad.Reader
+import Control.Monad.Fix
+import Control.Monad.Reader
 import Data.List.NonEmpty (fromList, toList)
 --import qualified Data.Map.Strict as Map
 import Data.Void
 import Pong.Data
---import Pong.Eval
+import Pong.Eval
 import Pong.Lang
 import Pong.Util
+import Pong.Util.Env (Environment)
 --import qualified Pong.Util.Env as Env
 --
 ---- (x) = plus(x)
@@ -1005,66 +1006,65 @@ fragment17_2 =
 --
 --
 fragment17_8 :: (Ast, [(Name, Definition MonoType Ast)])
-fragment17_8 = undefined
---fragment17_8 =
---  ( eOp2
---      oAddInt
---      (eCall (tInt ~> tInt, ".f3")
---         [eCall (tInt ~> tInt, ".g2") [eLit (PInt 3)]])
---      (eCall
---         (tInt ~> tInt ~> tInt, ".g3")
---         [eLit (PInt 4), eLit (PInt 5)])
---  , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
---    , ( ".f1"
---      , Function
---          (fromList [(tVar 22, "x"), (tVar 22, "y")])
---          (tVar 22, eOp2 (Op2 OAdd (tVar 22 ~> tVar 22 ~> tVar 22)) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
---    , ( ".f2"
---      , Function
---          (fromList [(tInt, ".v0")])
---          ( tInt
---          , eCall
---              (tInt ~> tInt ~> tInt, ".g0")
---              [eLit (PInt 2), eVar (tInt, ".v0")]))
---    , ( ".f3"
---      , Function
---          (fromList [(tInt, ".v0")])
---          ( tInt
---          , eCall
---              (tInt ~> tInt, ".h0")
---              [eVar (tInt, ".v0")]))
---    , ( ".g0"
---      , Function
---          (fromList [(tInt, "x"), (tInt, "y")])
---          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
---    , ( ".g1"
---      , Function
---          (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
---          ( tInt
---          , eCall (tInt ~> tInt, "x") [eVar (tInt, ".v0")]))
---    , (".g2", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
---    , ( ".g3"
---      , Function
---          (fromList [(tInt, "x"), (tInt, "y")])
---          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
---    , ( ".h0"
---      , Function
---          (fromList [(tInt, ".v0")])
---          ( tInt
---          , eCall (tInt ~> tInt, ".f2") [eVar (tInt, ".v0")]))
---    ])
---
---
----- let
-----   f =
-----     lam(n) => 
-----       if 0 == n
-----         then
-----           1
-----         else
-----           n * f(n - 1)
-----   in
-----     f(5)
+fragment17_8 =
+  ( eOp2
+      oAddInt
+      (eCall (tInt ~> tInt, ".f3")
+         [eCall (tInt ~> tInt, ".g2") [eLit (PInt 3)]])
+      (eCall
+         (tInt ~> tInt ~> tInt, ".g3")
+         [eLit (PInt 4), eLit (PInt 5)])
+  , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
+    , ( ".f1"
+      , Function
+          (fromList [(tVar 22, "x"), (tVar 22, "y")])
+          (tVar 22, eOp2 (tVar 22 ~> tVar 22 ~> tVar 22, OAdd) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
+    , ( ".f2"
+      , Function
+          (fromList [(tInt, ".v0")])
+          ( tInt
+          , eCall
+              (tInt ~> tInt ~> tInt, ".g0")
+              [eLit (PInt 2), eVar (tInt, ".v0")]))
+    , ( ".f3"
+      , Function
+          (fromList [(tInt, ".v0")])
+          ( tInt
+          , eCall
+              (tInt ~> tInt, ".h0")
+              [eVar (tInt, ".v0")]))
+    , ( ".g0"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".g1"
+      , Function
+          (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
+          ( tInt
+          , eCall (tInt ~> tInt, "x") [eVar (tInt, ".v0")]))
+    , (".g2", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
+    , ( ".g3"
+      , Function
+          (fromList [(tInt, "x"), (tInt, "y")])
+          (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
+    , ( ".h0"
+      , Function
+          (fromList [(tInt, ".v0")])
+          ( tInt
+          , eCall (tInt ~> tInt, ".f2") [eVar (tInt, ".v0")]))
+    ])
+
+
+-- let
+--   f =
+--     lam(n) => 
+--       if 0 == n
+--         then
+--           1
+--         else
+--           n * f(n - 1)
+--   in
+--     f(5)
 
 fragment18_1 :: Expr () () () Void
 fragment18_1 =
@@ -1131,25 +1131,25 @@ fragment18_2 =
 --                    (eVar (tInt ~> tInt, ".f0"))
 --                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
 --    ])
---
---fragment18_4 :: (Ast, [(Name, Definition Type Ast)])
---fragment18_4 =
---  ( eCall (tInt ~> tInt, ".f0") [eLit (PInt 5)]
---  , [ ( ".f0"
---      , Function
---          (fromList [(tInt, "n")])
---          ( tInt
---          , eIf
---              (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
---              (eLit (PInt 1))
---              (eOp2
---                 oMulInt
---                 (eVar (tInt, "n"))
---                 (eCall
---                    (tInt ~> tInt, ".f0")
---                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
---    ])
---
+
+fragment18_4 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment18_4 =
+  ( eCall (tInt ~> tInt, ".f0") [eLit (PInt 5)]
+  , [ ( ".f0"
+      , Function
+          (fromList [(tInt, "n")])
+          ( tInt
+          , eIf
+              (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+              (eLit (PInt 1))
+              (eOp2
+                 oMulInt
+                 (eVar (tInt, "n"))
+                 (eCall
+                    (tInt ~> tInt, ".f0")
+                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+    ])
+
 ----
 ---- f(x) = x
 ---- g(y) = y + 1
@@ -1219,81 +1219,82 @@ fragment18_2 =
 --
 --fragment20_1 :: Value 
 --fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
---
-----fragment20_2 ::
-----     ( MonadFix m
-----     , MonadReader ( Environment (Definition Type Ast)
-----                   , Environment (Value m)) m
-----     )
-----  => m (Value m)
-----fragment20_2 =
-----  evalCase
-----    fragment20_1
-----    [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
-----        , (tInt, "x")
-----        , (tCon "List" [tInt], "xs")
-----        ]
-----      , pure (LitValue (PInt 100)))
-----    ]
---
---fragment20_3 :: (Ast, [(Name, Definition Type Ast)])
---fragment20_3 =
---  ( eCase
---      (eCall
---         (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---         [eLit (PInt 5), eCall (tCon "List" [tInt], "Nil") []])
---      [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---          , (tInt, "x")
---          , (tCon "List" [tInt], "xs")
---          ]
---        , eVar (tInt, "x"))
---      ]
---  , [])
---
---fragment20_4 :: (Ast, [(Name, Definition Type Ast)])
---fragment20_4 =
---  ( eCase
---      (eCall
---         (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---         [eLit (PInt 5), eCall (tCon "List" [tInt], "Nil") []])
---      [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---          , (tInt, "x")
---          , (tCon "List" [tInt], "xs")
---          ]
---        , eVar (tInt, "x"))
---      , ([(tCon "List" [tInt], "Nil")], eLit (PInt 0))
---      ]
---  , [])
---
---fragment20_5 :: (Ast, [(Name, Definition Type Ast)])
---fragment20_5 =
---  ( eCase
---      (eCall
---         (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---         [eLit (PInt 5), eCall (tCon "List" [tInt], "Nil") []])
---      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 0))
---      , ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---          , (tInt, "x")
---          , (tCon "List" [tInt], "xs")
---          ]
---        , eVar (tInt, "x"))
---      ]
---  , [])
---
---
---fragment20_6 :: (Ast, [(Name, Definition Type Ast)])
---fragment20_6 =
---  ( eCase
---      (eCall (tCon "List" [tInt], "Nil") [])
---      [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---          , (tInt, "x")
---          , (tCon "List" [tInt], "xs")
---          ]
---        , eVar (tInt, "x"))
---      , ([(tCon "List" [tInt], "Nil")], eLit (PInt 0))
---      ]
---  , [])
---
+
+--fragment20_2 ::
+--     ( MonadFix m
+--     , MonadReader ( Environment (Definition MonoType Ast)
+--                   , Environment Value) m
+--     )
+--  => m Value
+fragment20_2 :: Eval Value
+fragment20_2 =
+  evalCase
+    fragment20_1
+    [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+        , (tInt, "x")
+        , (tCon "List" [tInt], "xs")
+        ]
+      , pure (LitValue (PInt 100)))
+    ]
+
+fragment20_3 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_3 =
+  ( eCase
+      (eCall
+         (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+         [eLit (PInt 5), eCall (tCon "List" [tInt], "Nil") []])
+      [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+          , (tInt, "x")
+          , (tCon "List" [tInt], "xs")
+          ]
+        , eVar (tInt, "x"))
+      ]
+  , [])
+
+fragment20_4 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_4 =
+  ( eCase
+      (eCall
+         (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+         [eLit (PInt 5), eCall (tCon "List" [tInt], "Nil") []])
+      [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+          , (tInt, "x")
+          , (tCon "List" [tInt], "xs")
+          ]
+        , eVar (tInt, "x"))
+      , ([(tCon "List" [tInt], "Nil")], eLit (PInt 0))
+      ]
+  , [])
+
+fragment20_5 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_5 =
+ ( eCase
+     (eCall
+        (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+        [eLit (PInt 5), eCall (tCon "List" [tInt], "Nil") []])
+     [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 0))
+     , ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+         , (tInt, "x")
+         , (tCon "List" [tInt], "xs")
+         ]
+       , eVar (tInt, "x"))
+     ]
+ , [])
+
+
+fragment20_6 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_6 =
+  ( eCase
+      (eCall (tCon "List" [tInt], "Nil") [])
+      [ ( [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+          , (tInt, "x")
+          , (tCon "List" [tInt], "xs")
+          ]
+        , eVar (tInt, "x"))
+      , ([(tCon "List" [tInt], "Nil")], eLit (PInt 0))
+      ]
+  , [])
+
 ---- 
 ---- match ( a = 1, b = 2, c = 3 } {
 ----   | { b = x | r } =>
@@ -1336,13 +1337,13 @@ fragment21_1 =
 --        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
 --        ]
 
---fragment21_2 :: Ast
---fragment21_2 = 
---  eField
---      [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")] 
---      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
---      (eVar (tInt, "x")) 
---
+fragment21_2 :: Ast
+fragment21_2 = 
+  eField
+      [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")] 
+      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+      (eVar (tInt, "x")) 
+
 ----  eCase 
 ----      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
 ----        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
@@ -1362,8 +1363,10 @@ fragment21_1 =
 --
 ----test456 = runReader fragment20_2 mempty == LitValue (PInt 1)
 ----test457 = runReader fragment20_3 mempty == LitValue (PInt 5)
-----fragment20_1 :: Value
-----fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
+--
+fragment20_1 :: Value
+fragment20_1 = ConValue "Cons" [LitValue (PInt 5), ConValue "Nil" []]
+
 ----fragment16_1 :: Expr Int Int () Void
 ----fragment16_1 =  
 ----  eLet

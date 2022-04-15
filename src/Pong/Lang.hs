@@ -1,4 +1,4 @@
--- {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- {-# LANGUAGE OverloadedStrings #-}
 -- {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -7,21 +7,21 @@
 
 module Pong.Lang where
 
--- import Control.Monad.State
--- import Control.Newtype.Generics
+import Control.Monad.State
+import Control.Newtype.Generics
 -- import Data.Function ((&))
 --import Data.Void
 -- import Data.Void
 -- import Debug.Trace
--- import Data.List.NonEmpty (toList)
+import Data.List.NonEmpty (toList)
 --import Pong.Util (Name, Map, (!), (!?), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
 import Data.Char (isUpper)
 import Data.List (nub)
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Name, Map, Void, (<<<), (>>>), cata, para, project, embed, embed1, embed2, embed3, embed4, without)
-import Pong.Util.Env 
+import Pong.Util (Name, Map, Void, (<<<), (>>>), (<$$>), (!), cata, para, project, embed, embed1, embed2, embed3, embed4, without)
+import Pong.Util.Env (Environment(..))
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
@@ -185,10 +185,18 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
 --instance Typed Void where
 --  typeOf _ = tCon "Void" []
 
--- instance (Typed t) => Typed (Definition t a) where
---   typeOf =
---     \case
---       Function args (t, _) -> foldType v (typeOf . fst <$> toList args)
+instance (Typed t) => Typed (Definition t a) where
+  typeOf =
+    \case
+      Function args (t, _) -> foldType (typeOf t) (typeOf . fst <$> toList args)
+
+arity :: (Typed t) => t -> Int
+arity = pred <<< length <<< unwindType
+
+--instance (Typed t) => Typed (Definition t a) where
+--  typeOf =
+--    \case
+--      Function args (t, _) -> foldType undefined (typeOf . fst <$> toList args)
 --       External args (t, _) -> foldType v args
 --       Constant (t, _) -> typeOf t
 --       Data {} -> error "Implementation error"
@@ -367,71 +375,71 @@ foldType1 = foldr1 tArr
 insertArgs :: [(Type v g, Name)] -> Environment (Type v g) -> Environment (Type v g)
 insertArgs = Env.inserts . (swap <$>)
 
--- {-# INLINE emptyProgram #-}
--- emptyProgram :: Program a
--- emptyProgram = Program mempty
--- 
--- programToTypeEnv :: Program p -> Environment Type
--- programToTypeEnv p = Env.fromList (typeOf <$$> Map.toList (unpack p))
--- 
+{-# INLINE emptyProgram #-}
+emptyProgram :: Program t a
+emptyProgram = Program mempty
+
+programToTypeEnv :: (Typed t) => Program t a -> Environment (Type Int g)
+programToTypeEnv p = Env.fromList (typeOf <$$> Map.toList (unpack p))
+
 -- modifyM :: (MonadState s m) => (s -> m s) -> m ()
 -- modifyM f = get >>= f >>= put
--- 
--- modifyProgram ::
---      (MonadState (Int, Program a) m)
---   => (Map Name (Definition Type a) -> Map Name (Definition Type a))
---   -> m ()
--- modifyProgram = modify . second . over Program
--- 
--- modifyProgramM ::
---      (MonadState (Int, Program a) m)
---   => (Map Name (Definition Type a) -> m (Map Name (Definition Type a)))
---   -> m ()
--- modifyProgramM f = do
---   (n, Program p) <- get
---   x <- f p
---   put (n, Program x)
---   --p <- Control.Newtype.Generics.unpack <$> get
---   --let zzz = modify f p
---   -- modify . over Program
--- 
--- insertDef ::
---      (MonadState (Int, Program a) m) => Name -> Definition Type a -> m ()
--- insertDef = modifyProgram <$$> Map.insert
--- 
--- --updateDef ::
--- --     (MonadState (Program a) m)
--- --  => (Definition Type a -> Maybe (Definition Type a))
--- --  -> Name
--- --  -> m ()
--- --updateDef = modifyProgram <$$> Map.update 
--- 
--- --forEachDef ::
--- --     (MonadState (Program a) m)
--- --  => (Definition Type a -> m (Definition Type a))
--- --  -> m ()
--- forEachDef run = do
---   Program defs <- gets snd
---   forM_ (Map.keys defs) $ \key -> do
---     Program defs <- gets snd
---     def <- run (defs ! key)
---     insertDef key def
--- 
--- forEachDefX (Program defs) run = do
---   --Program defs <- get
---   forM_ (Map.keys defs) $ \key -> do
---     def <- run (defs ! key)
---     insertDef key def
--- 
--- --lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition Type a)
--- lookupDef key = do
---   Program defs <- gets snd
---   case defs !? key of
---     Just z -> pure z
---     Nothing ->
---       error (show defs)
---   --traceShowM defs
---   --pure (defs ! key)
+
+modifyProgram ::
+     (MonadState (Int, Program MonoType a) m)
+  => (Map Name (Definition MonoType a) -> Map Name (Definition MonoType a))
+  -> m ()
+modifyProgram = modify . second . over Program
+
+---- modifyProgramM ::
+----      (MonadState (Int, Program a) m)
+----   => (Map Name (Definition Type a) -> m (Map Name (Definition Type a)))
+----   -> m ()
+---- modifyProgramM f = do
+----   (n, Program p) <- get
+----   x <- f p
+----   put (n, Program x)
+----   --p <- Control.Newtype.Generics.unpack <$> get
+----   --let zzz = modify f p
+----   -- modify . over Program
+
+insertDef ::
+     (MonadState (Int, Program MonoType a) m) => Name -> Definition MonoType a -> m ()
+insertDef = modifyProgram <$$> Map.insert
+
+---- --updateDef ::
+---- --     (MonadState (Program a) m)
+---- --  => (Definition Type a -> Maybe (Definition Type a))
+---- --  -> Name
+---- --  -> m ()
+---- --updateDef = modifyProgram <$$> Map.update 
+---- 
+---- --forEachDef ::
+---- --     (MonadState (Program a) m)
+---- --  => (Definition Type a -> m (Definition Type a))
+---- --  -> m ()
+---- forEachDef run = do
+----   Program defs <- gets snd
+----   forM_ (Map.keys defs) $ \key -> do
+----     Program defs <- gets snd
+----     def <- run (defs ! key)
+----     insertDef key def
+--
+--forEachDefX (Program defs) run = do
+--  --Program defs <- get
+--  forM_ (Map.keys defs) $ \key -> do
+--    def <- run (defs ! key)
+--    insertDef key def
+--
+---- --lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition Type a)
+---- lookupDef key = do
+----   Program defs <- gets snd
+----   case defs !? key of
+----     Just z -> pure z
+----     Nothing ->
+----       error (show defs)
+----   --traceShowM defs
+----   --pure (defs ! key)
 
 {-# INLINE tUnit #-}
 tUnit :: Type v g

@@ -3,7 +3,7 @@
 -- {-# LANGUAGE LambdaCase #-}
 -- 
 -- import Data.List.NonEmpty (toList, fromList)
--- import Control.Monad.Reader
+import Control.Monad.Reader
 -- import Control.Monad.State
 -- import Control.Monad.Writer
 -- import Text.Megaparsec (runParser)
@@ -121,15 +121,15 @@ main =
 -- --    describe "convertFunApps" $ do
 -- --      it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
 -- --      it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
---    describe "evalProgram_" $ do
---      it "#1" (evalProgram_ fragment17_8 == Fix (LitValue (PInt 14)))
--- --      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt 120))
--- --      it "#3" (runReader fragment20_2 mempty == LitValue (PInt 100))
--- --      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt 5))
--- --      it "#5" (evalProgram_ fragment20_4 == LitValue (PInt 5))
--- --      it "#6" (evalProgram_ fragment20_5 == LitValue (PInt 5))
--- --      it "#7" (evalProgram_ fragment20_6 == LitValue (PInt 0))
--- --      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt 2))
+    describe "evalProgram_" $ do
+      it "#1" (evalProgram_ fragment17_8 == LitValue (PInt 14))
+      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt 120))
+--      it "#3" (runReader fragment20_2 mempty == LitValue (PInt 100))
+      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt 5))
+      it "#5" (evalProgram_ fragment20_4 == LitValue (PInt 5))
+      it "#6" (evalProgram_ fragment20_5 == LitValue (PInt 5))
+      it "#7" (evalProgram_ fragment20_6 == LitValue (PInt 0))
+      it "#8" (evalProgram_ (fragment21_2, []) == LitValue (PInt 2))
 -- --    describe "parseCompileEval" $ do
 -- --      it "#1" (LitValue (PInt 5) == parseCompileEval "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)")
 -- --      it "#2" (LitValue (PInt 120) == parseCompileEval "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)")

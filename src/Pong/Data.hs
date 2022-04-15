@@ -1,4 +1,4 @@
--- {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 -- {-# LANGUAGE FlexibleContexts #-}
 -- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -8,16 +8,17 @@
 module Pong.Data where
 
 import Data.Eq.Deriving (deriveEq1)
+import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
 import Pong.Util (Void, Name, Text, Fix(..), List1)
 import Text.Show.Deriving (deriveShow1)
+import Control.Newtype.Generics
+import GHC.Generics (Generic)
 
--- import Control.Newtype.Generics
 -- import Data.Eq.Deriving (deriveEq1)
 -- import Data.List.NonEmpty (fromList)
 -- import Data.Map.Strict (Map)
 -- import Data.Ord.Deriving (deriveOrd1)
--- import GHC.Generics (Generic)
 -- import Pong.Util
 --   ( Fix(..)
 --   , List1
@@ -121,8 +122,8 @@ type TaggedExpr = Expr Int Int () Void
 -- | Typed source expression
 type TypedExpr = Expr MonoType MonoType () Void
 
--- -- | Typed intermediate representation
--- type PreAst = Expr Type Type Void Void
+-- | Typed intermediate representation
+type PreAst = Expr MonoType MonoType Void Void
 
 type Ast = Expr MonoType Void Void ()
 
@@ -143,9 +144,9 @@ data Definition t a
 --   | Constant (Type, a)
 --   | External [Type] (Label Type)
 --   | Data Name [Constructor]
--- 
--- newtype Program a =
---   Program (Map Name (Definition Type a))
+
+newtype Program t a =
+  Program (Map Name (Definition t a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -245,44 +246,23 @@ deriving instance Traversable (ExprF t a0 a1 a2)
 -- deriving instance Eq Constructor
 -- 
 -- deriving instance Ord Constructor
--- 
--- -- Environment
--- deriving instance (Show a) => Show (Environment a)
--- 
--- deriving instance (Eq a) => Eq (Environment a)
--- 
--- deriving instance (Ord a) => Ord (Environment a)
--- 
--- deriving instance Functor Environment
--- 
--- deriving instance Foldable Environment
--- 
--- deriving instance Traversable Environment
--- 
--- deriving instance Semigroup (Environment a)
--- 
--- deriving instance Monoid (Environment a)
--- 
--- deriving instance Generic (Environment a)
--- 
--- instance Newtype (Environment a)
--- 
--- -- Definition
--- deriving instance (Show d, Show a) => Show (Definition d a)
--- 
--- deriving instance (Eq d, Eq a) => Eq (Definition d a)
--- 
--- deriving instance Functor (Definition d)
--- 
--- deriving instance Foldable (Definition d)
--- 
--- deriving instance Traversable (Definition d)
--- 
--- -- Program
--- deriving instance (Show a) => Show (Program a)
--- 
--- deriving instance (Eq a) => Eq (Program a)
--- 
--- deriving instance Generic (Program a)
--- 
--- instance Newtype (Program a)
+
+-- Definition
+deriving instance (Show d, Show a) => Show (Definition d a)
+
+deriving instance (Eq d, Eq a) => Eq (Definition d a)
+
+deriving instance Functor (Definition d)
+
+deriving instance Foldable (Definition d)
+
+deriving instance Traversable (Definition d)
+
+-- Program
+deriving instance (Show t, Show a) => Show (Program t a)
+
+deriving instance (Eq t, Eq a) => Eq (Program t a)
+
+deriving instance Generic (Program t a)
+
+instance Newtype (Program t a)

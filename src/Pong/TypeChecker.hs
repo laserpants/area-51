@@ -410,9 +410,9 @@ check =
       t1 <- gets (apply . snd) <*> pure t0
       pure (eOp2 (t1, op) e1 e2)
     ECase _ [] -> throwError IllFormedExpression
---    ECase expr clauses -> do
---      e <- expr
---      eCase e <$> checkCases e clauses
+    ECase expr clauses -> do
+      e <- expr
+      eCase e <$> checkCases e clauses
     ERow row -> eRow <$> checkRow row
     EField field expr1 expr2 -> do
       e1 <- expr1
@@ -422,11 +422,13 @@ check =
       x <- sequence e
       error (show x)
 
----- --checkCases expr [clause] | isTCon RowT t = do
----- --  let TRow row = project t
----- --  c <- checkRowCase row clause
----- --  pure [c]
----- --  where t = typeOf expr
+--checkCases expr [clause] | isTCon RowT t = do
+--  let TRow row = project t
+--      zz = row :: Row MonoType Int
+--  --c <- checkRowCase row clause
+--  undefined
+--  --pure [c]
+--  where t = typeOf expr
 
 checkRowCase ::
      MonoType
@@ -483,32 +485,32 @@ binopType = \case
   OLogicOr   -> tBool ~> tBool ~> tBool
   OLogicAnd  -> tBool ~> tBool ~> tBool
 
---CheckCases ::
---     TypedExpr
---  -> [([Label Int], TypeChecker TypedExpr)]
---  -> TypeChecker [([Label MonoType], TypedExpr)]
---CheckCases expr clauses = do
---  cs <- traverse (secondM applySubstitution <=< uncurry (checkCase (typeOf expr))) clauses
---  let t:ts = snd <$> cs
---  forM_ ts (unifyM t)
---  pure cs
---
---CheckCase ::
---  MonoType
---  -> [(Int, Name)]
---  -> TypeChecker TypedExpr
---  -> TypeChecker ([Label MonoType], TypedExpr)
---CheckCase tt (con:vs) expr = do
---   (t, _) <- checkName con ConstructorNotInScope
---   let ts = unwindType t
---       ps = (snd <$> vs) `zip` ts
---   unifyM tt (last ts :: MonoType)
---   e <- local (Env.inserts ps) expr
---   tvs <-
---     forM (zip vs ts) $ \((t0, n), t1) -> do
---       unifyM (tVar t0 :: MonoType) (t1 :: MonoType)
---       pure (tVar t0, n)
---   pure ((t, snd con) : tvs, e)
+checkCases ::
+     TypedExpr
+  -> [([Label Int], TypeChecker TypedExpr)]
+  -> TypeChecker [([Label MonoType], TypedExpr)]
+checkCases expr clauses = do
+  cs <- traverse (secondM applySubstitution <=< uncurry (checkCase (typeOf expr))) clauses
+  let t:ts = snd <$> cs
+  forM_ ts (unifyM2 (typeOf t) . typeOf)
+  pure cs
+
+checkCase ::
+  MonoType
+  -> [(Int, Name)]
+  -> TypeChecker TypedExpr
+  -> TypeChecker ([Label MonoType], TypedExpr)
+checkCase tt (con:vs) expr = do
+   (t, _) <- checkName con ConstructorNotInScope
+   let ts = unwindType t
+       ps = (snd <$> vs) `zip` ts
+   unifyM2 (typeOf tt) (last ts :: MonoType)
+   e <- local (Env.inserts ps) expr
+   tvs <-
+     forM (zip vs ts) $ \((t0, n), t1) -> do
+       unifyM2 (tVar t0 :: MonoType) (t1 :: MonoType)
+       pure (tVar t0, n)
+   pure ((t, snd con) : tvs, e)
 
 checkRow ::
      Row (Expr Int Int () Void) (Label Int)

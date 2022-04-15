@@ -4,7 +4,7 @@
 
 module Pong.Parser where
 
--- import Data.List.NonEmpty (fromList)
+import Data.List.NonEmpty (fromList)
 import Control.Monad.Combinators.Expr
 import Data.Functor (($>))
 import Data.Maybe (isJust, fromMaybe)
@@ -17,7 +17,7 @@ import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
--- import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map
 
 type Parser = Parsec Void Text
 
@@ -176,7 +176,8 @@ fieldExpr = do
           rhs <- identifier
           symbol "|"
           row <- identifier
-          pure [toLabel ("{" <> lhs <> "}"), toLabel rhs, toLabel row]
+          --pure [toLabel ("{" <> lhs <> "}"), toLabel rhs, toLabel row]
+          pure [toLabel lhs, toLabel rhs, toLabel row]
   e1 <- symbol "=" *> expr
   e2 <- symbol "in" *> expr
   pure (eField f e1 e2)
@@ -244,36 +245,36 @@ type_ = makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
     genType = 
       tGen <$> identifier
  
--- label_ :: Parser (Label Type)
--- label_ = do
---   name <- identifier
---   symbol ":"
---   t <- type_
---   pure (t, name)
--- 
--- def :: Parser (Name, Definition Type SourceExpr)
--- def = 
---   functionDef <|> constantDef -- <|> externalDef <|> dataDef
---     where 
---       functionDef = do
---         keyword "def"
---         name <- identifier
---         args <- parens (some label_)
---         symbol ":"
---         t <- type_
---         symbol "="
---         e <- expr
---         pure (name, Function (fromList args) (t, e))
---       constantDef = do
---         keyword "const"
---         name <- identifier
---         symbol ":"
---         t <- type_
---         symbol "="
---         e <- expr
---         pure (name, Constant (t, e))
--- 
--- program :: Parser (Program SourceExpr)
--- program = do
---   defs <- many def
---   pure (Program (Map.fromList defs))
+label_ :: Parser (Label (Type v Name))
+label_ = do
+  name <- identifier
+  symbol ":"
+  t <- type_
+  pure (t, name)
+
+def :: Parser (Name, Definition (Type v Name) SourceExpr)
+def = 
+  functionDef -- <|> constantDef -- <|> externalDef <|> dataDef
+    where 
+      functionDef = do
+        keyword "def"
+        name <- identifier
+        args <- parens (some label_)
+        symbol ":"
+        t <- type_
+        symbol "="
+        e <- expr
+        pure (name, Function (fromList args) (t, e))
+--      constantDef = do
+--        keyword "const"
+--        name <- identifier
+--        symbol ":"
+--        t <- type_
+--        symbol "="
+--        e <- expr
+--        pure (name, Constant (t, e))
+
+program :: Parser (Program (Type v Name) SourceExpr)
+program = do
+  defs <- many def
+  pure (Program (Map.fromList defs))
