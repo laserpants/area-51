@@ -225,7 +225,7 @@ prim =
     primIntegral = PInt <$> lexeme Lexer.decimal
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
-type_ :: Parser (Type v g)
+type_ :: Parser (Type v Name)
 type_ = makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
     item = keyword "unit" $> tUnit

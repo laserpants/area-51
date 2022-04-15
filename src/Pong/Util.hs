@@ -4,6 +4,7 @@ module Pong.Util
   ( module Control.Arrow
   , module Data.Functor.Foldable
   , module Data.Fix
+  , module Data.Void
   , module Data.Map.Strict
   , module Data.Text
   , (<$$>)
@@ -34,6 +35,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
 import Data.Text (Text, pack, unpack)
 import Data.Tuple.Extra
+import Data.Void (Void)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 

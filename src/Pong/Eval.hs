@@ -1,55 +1,67 @@
--- {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor #-}
 -- {-# LANGUAGE FlexibleContexts #-}
 -- {-# LANGUAGE FlexibleInstances #-}
--- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- {-# LANGUAGE LambdaCase #-}
--- {-# LANGUAGE StrictData #-}
+{-# LANGUAGE StrictData #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+-- {-# LANGUAGE TemplateHaskell #-}
 module Pong.Eval where
 
 -- import Control.Monad.Identity
--- import Control.Monad.Reader
+import Control.Monad.Reader
 -- import Data.Char (isUpper)
 -- import Data.List.NonEmpty (fromList, toList)
 -- import Data.Void (Void)
 -- import Debug.Trace
--- import Pong.Data
+import Pong.Data
 -- import Pong.Lang
--- import Pong.Util
+import Pong.Util
+import Pong.Util.Env
 -- import qualified Data.Map.Strict as Map
 -- import qualified Data.Text as Text
 -- import qualified Pong.Util.Env as Env
--- 
--- data Value 
---   = LitValue Prim
---   | ConValue Name [Value]
---   | RowValue (Row Value Void)
---   | Closure (Label Type) [Eval Value]
--- 
+
+data ValueF a
+  = LitValue Prim
+  | ConValue Name [a]
+  | RowValue (Row a Void)
+  | Closure (Label MonoType) [Eval a]
+
+type Value = Fix ValueF
+
 -- instance Show Value where
 --   show = \case
 --     LitValue p -> show p
 --     ConValue _ _ -> show "ConValue"
 --     RowValue _ -> show "RowValue"
 --     Closure n as -> show ("Closure " <> show n <> ":" <> show (length as))
--- 
--- instance Eq Value where
---   a == b = 
---     case (a, b) of
---       (LitValue p, LitValue q) -> p == q
---       (RowValue r, RowValue s) -> r == s
--- 
--- type ValueEnv = 
---   ( Environment (Definition Type Ast)
---   , Environment Value 
---   )
--- 
--- newtype Eval a = Eval { unEval :: Reader ValueEnv a } deriving
---   ( Functor
---   , Applicative
---   , Monad
---   , MonadReader ValueEnv 
---   )
--- 
+
+instance Eq Value where
+  a == b = 
+    case (project a, project b) of
+      (LitValue p, LitValue q) -> p == q
+--      (RowValue r, RowValue s) -> r == s
+
+--instance Eq Value where
+--  a == b = 
+--    case (project a, project b) of
+--      (LitValue p, LitValue q) -> p == q
+--      (RowValue r, RowValue s) -> r == s
+
+type ValueEnv = 
+  ( Environment (Definition MonoType Ast)
+  , Environment Value 
+  )
+
+newtype Eval a = Eval { unEval :: Reader ValueEnv a } deriving
+  ( Functor
+  , Applicative
+  , Monad
+  , MonadReader ValueEnv 
+  )
+
 -- eval :: Ast -> Eval Value 
 -- eval =
 --   cata $ \case
@@ -318,9 +330,15 @@ module Pong.Eval where
 -- --
 -- --evalProgram_ :: (Ast, [(Name, Definition Type Ast)]) -> Value
 -- --evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)
+
+evalProgram_ :: (Ast, [(Name, Definition MonoType Ast)]) -> Value
+evalProgram_ = undefined
+
 -- 
 -- evalProgram__ :: (Ast, Program Ast) -> Value 
 -- evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)
--- 
+
 -- evalProgram_ :: (Ast, [(Name, Definition Type Ast)]) -> Value 
 -- evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.fromList defs, mempty))
+
+deriving instance Functor ValueF 

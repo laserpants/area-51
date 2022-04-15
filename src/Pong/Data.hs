@@ -9,9 +9,8 @@ module Pong.Data where
 
 import Data.Eq.Deriving (deriveEq1)
 import Data.Ord.Deriving (deriveOrd1)
-import Pong.Util (Name, Text, Fix(..))
+import Pong.Util (Void, Name, Text, Fix(..), List1)
 import Text.Show.Deriving (deriveShow1)
-import Data.Void (Void)
 
 -- import Control.Newtype.Generics
 -- import Data.Eq.Deriving (deriveEq1)
@@ -53,8 +52,8 @@ data TypeF v g a
   | TString
   | TCon Name [a]
   | TArr a a
-  | TVar Int
-  | TGen Name
+  | TVar v
+  | TGen g
   | TRow (Row (Type v g) Int)
 
 type Type v g = Fix (TypeF v g)
@@ -124,8 +123,8 @@ type TypedExpr = Expr MonoType MonoType () Void
 
 -- -- | Typed intermediate representation
 -- type PreAst = Expr Type Type Void Void
--- 
--- type Ast = Expr Type Void Void ()
+
+type Ast = Expr MonoType Void Void ()
 
 data Con
   = VarE
@@ -133,17 +132,14 @@ data Con
   | LamE
   | RowE
 
--- newtype Environment a =
---   Environment (Map Name a)
--- 
 -- data Constructor =
 --   Constructor
 --     { conName :: Name
 --     , conFields :: [Type]
 --     }
--- 
--- data Definition t a
---   = Function (List1 (Label t)) (Type, a)
+
+data Definition t a
+  = Function (List1 (Label t)) (t, a)
 --   | Constant (Type, a)
 --   | External [Type] (Label Type)
 --   | Data Name [Constructor]

@@ -10,19 +10,20 @@ module Pong.Lang where
 -- import Control.Monad.State
 -- import Control.Newtype.Generics
 -- import Data.Function ((&))
-import Data.List (nub)
-import Data.Char (isUpper)
+--import Data.Void
 -- import Data.Void
 -- import Debug.Trace
 -- import Data.List.NonEmpty (toList)
-import qualified Data.Map.Strict as Map
+--import Pong.Util (Name, Map, (!), (!?), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
+import Data.Char (isUpper)
+import Data.List (nub)
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
-import qualified Data.Text as Text
 import Pong.Data
-import Pong.Util (Name, Map, (<<<), (>>>), cata, para, project, embed, embed1, embed2, embed3, embed4, without)
+import Pong.Util (Name, Map, Void, (<<<), (>>>), cata, para, project, embed, embed1, embed2, embed3, embed4, without)
 import Pong.Util.Env 
---import Pong.Util (Name, Map, (!), (!?), (<$$>), (<#>), (<<<), (>>>), cata, para, project, embed, without, embed, embed1, embed2, embed3, embed4)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -48,9 +49,11 @@ normalizeTypeRows =
     TRow r -> tRow (normalizeRow r)
     t -> embed t
 
+{-# INLINE foldRow #-}
 foldRow :: Row e r -> Map Name [e] -> Row e r
 foldRow = Map.foldrWithKey (flip . foldr . rExt)
 
+{-# INLINE foldRow1 #-}
 foldRow1 :: Map Name [e] -> Row e r
 foldRow1 = foldRow rNil
 
@@ -81,7 +84,7 @@ splitRow name row =
 class FreeIn f where
   free :: f -> [Int]
 
-instance FreeIn (Type v g) where
+instance FreeIn (Type Int g) where
   free =
     nub .
     cata
@@ -92,7 +95,7 @@ instance FreeIn (Type v g) where
          TRow r -> free r
          _ -> [])
 
-instance FreeIn (Row (Type v g) Int) where
+instance FreeIn (Row (Type Int g) Int) where
   free =
     nub . 
     cata (\case
@@ -112,9 +115,12 @@ instance (FreeIn e) => FreeIn (Environment e) where
       Environment env -> free (Map.elems env)
 
 class Typed t where
-  typeOf :: t -> Type v g
+  typeOf :: t -> Type Int g
 
-instance Typed (Type v g) where
+instance Typed Void where
+  typeOf _ = tCon "Void" []
+
+instance (Typed g) => Typed (Type Int g) where
   typeOf = 
     cata $ \case
       TUnit -> tUnit
@@ -127,11 +133,16 @@ instance Typed (Type v g) where
       TCon con ts -> tCon con ts
       TArr t1 t2 -> tArr t1 t2
       TVar v -> tVar v
-      TGen n -> tGen n
+      TGen g -> typeOf g
       TRow row -> tRow ((`cata` row) $ \case
         RNil -> rNil
         RVar v -> rVar v
         RExt name elem r -> rExt name (typeOf elem) r)
+
+--instance Typed (Type Int Name) where
+--  typeOf =
+--    cata $ \case
+--      TUnit -> tUnit
 
 instance Typed Prim where
   typeOf =
@@ -194,12 +205,12 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
 --       Function args _ -> length args
 --       External args _ -> length args
 --       _ -> 0
--- 
--- freeIndex :: (FreeIn t) => [t] -> Int
--- freeIndex ts =
---   case free =<< ts of
---     [] -> 0
---     vs -> succ (maximum vs)
+
+freeIndex :: (FreeIn t) => [t] -> Int
+freeIndex ts =
+  case free =<< ts of
+    [] -> 0
+    vs -> succ (maximum vs)
 
 isTCon :: TCon -> Type v g -> Bool
 isTCon con =
@@ -225,7 +236,7 @@ isCon con =
       | RowE == con -> True
     _ -> False
 
-unwindType :: (Typed t) => t -> [Type v g]
+unwindType :: (Typed t) => t -> [Type Int g]
 unwindType =
   typeOf >>>
   para
@@ -234,11 +245,11 @@ unwindType =
        t -> [embed (fst <$> t)])
 
 {-# INLINE returnType #-}
-returnType :: (Typed t) => t -> Type v g
+returnType :: (Typed t) => t -> Type Int g
 returnType = last <<< unwindType
 
 {-# INLINE argTypes #-}
-argTypes :: (Typed t) => t -> [Type v g]
+argTypes :: (Typed t) => t -> [Type Int g]
 argTypes = init <<< unwindType
 
 freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
@@ -282,7 +293,7 @@ freeVars =
 -- --    TVar n -> tVar n
 -- --    TRow row -> tRow (mapRow toPolyType row)
 
-fromPolyType :: Map Name MonoType -> Type v Name -> MonoType
+fromPolyType :: Map Name MonoType -> Type Int Name -> MonoType
 fromPolyType vs = 
   cata $ \case
     TGen n -> 
@@ -458,7 +469,7 @@ tCon :: Name -> [Type v g] -> Type v g
 tCon = embed2 TCon
 
 {-# INLINE tVar #-}
-tVar :: Int -> Type v g
+tVar :: v -> Type v g
 tVar = embed1 TVar
 
 {-# INLINE tRow #-}
@@ -474,7 +485,7 @@ tString :: (Type v g)
 tString = embed TString
 
 {-# INLINE tGen #-}
-tGen :: Name -> Type v g
+tGen :: g -> Type v g
 tGen = embed1 TGen
 
 {-# INLINE rNil #-}

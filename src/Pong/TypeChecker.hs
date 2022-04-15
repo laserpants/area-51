@@ -61,10 +61,10 @@ runTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either
 runTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
 
 runTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
-runTypeChecker = runTypeChecker' 1
+runTypeChecker = runTypeChecker' (1 :: Int)
 
-substitute :: Map Int (Type u s) -> Type v t -> Type u s
-substitute sub = 
+substitute :: Map Int (Type Int s) -> Type Int t -> Type Int s
+substitute sub =
   cata $ \case
     TVar n -> fromMaybe (tVar n) (sub !? n)
     TCon c ts -> tCon c ts
@@ -77,9 +77,9 @@ substitute sub =
     TDouble -> tDouble
     TChar -> tChar
     TString -> tString
-    TGen g -> tGen g
+--    TGen g -> tGen g
 
-rowSubstitute :: Map Int (Type u s) -> Row (Type v t) Int -> Row (Type u s) Int
+rowSubstitute :: Map Int (Type Int g) -> Row (Type Int h) Int -> Row (Type Int g) Int
 rowSubstitute sub =
   cata $ \case
     RNil -> rNil
@@ -89,32 +89,35 @@ rowSubstitute sub =
         Just (TRow r) -> r
         _ -> rVar n
 
-apply0 :: Substitution -> Type v s -> Type Int Void
-apply0 = substitute . unpack
+class Substitutable a where
+  apply :: Substitution -> a -> a
 
-apply1 :: Substitution -> Map Int (Type v s) -> Map Int (Type Int Void)
-apply1 = fmap . apply0
+instance Substitutable MonoType where
+  apply = substitute . unpack
 
-apply2 :: Substitution -> Expr (Type Int Void) (Type Int Void) a1 a2 -> Expr (Type Int Void) (Type Int Void) a1 a2
-apply2 sub =
-  cata $ \case
-    EVar name -> eVar (subst name)
-    ECon con -> eCon (first (apply0 sub) con)
-    ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
-    ELam t args expr -> eLam t (subst <$> args) expr
-    EApp t fun args -> eApp (apply0 sub t) fun args
-    ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
-    EOp1 (t, op) expr1 -> eOp1 (apply0 sub t, op) expr1 
-    EOp2 (t, op) expr1 expr2 -> eOp2 (apply0 sub t, op) expr1 expr2
-    EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
-    ERow row -> eRow (mapRow (apply2 sub) row)
-    e -> embed e
-  where
-    subst = first (apply0 sub)
+instance (Functor f) => Substitutable (f MonoType) where
+  apply = fmap . apply
 
---class Substitutable a where
---  apply :: Substitution -> a -> a
---
+instance Substitutable (Expr MonoType MonoType a1 a2) where
+  apply sub = 
+    cata $ \case
+      EVar name -> eVar (subst name)
+      ECon con -> eCon (first (apply sub) con)
+      ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
+      ELam t args expr -> eLam t (subst <$> args) expr
+      EApp t fun args -> eApp (apply sub t) fun args
+      ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
+      EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1 
+      EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
+      EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
+      ERow row -> eRow (mapRow (apply sub) row)
+      e -> embed e
+    where
+      subst = first (apply sub)
+
+instance Substitutable (Row MonoType Int) where
+  apply = rowSubstitute . unpack
+
 ----Instance Substitutable (Row MonoType Int) where
 ----  apply = rowSubstitute . unpack
 ----
@@ -188,7 +191,7 @@ apply2 sub =
 compose :: Substitution -> Substitution -> Substitution
 compose = over2 Substitution fun
   where
-    fun s1 s2 = apply1 (Substitution s1) s2 `Map.union` s1
+    fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
 
 mapsTo :: Int -> Type Int Void -> Substitution
 mapsTo = pack <$$> Map.singleton
@@ -234,7 +237,7 @@ tag = do
 
 unifyAndCombine :: MonoType -> MonoType -> Substitution -> TypeChecker Substitution
 unifyAndCombine t1 t2 sub1 = do
-  sub2 <- unify (apply0 sub1 t1) (apply0 sub1 t2)
+  sub2 <- unify (apply sub1 t1) (apply sub1 t2)
   pure (sub2 <> sub1)
 
 unifyTypes :: [Type Int Void] -> [Type Int Void] -> TypeChecker Substitution
@@ -288,7 +291,7 @@ unify t1 t2 =
       | otherwise -> throwError UnificationError
 
 applySubstitution :: Expr MonoType MonoType a1 a2 -> TypeChecker (Expr MonoType MonoType a1 a2)
-applySubstitution e = gets (apply2 . snd) <*> pure e
+applySubstitution e = gets (apply . snd) <*> pure e
 
 --unifyM ::
 --     (Substitutable a, Substitutable b, Typed a, Typed b)
@@ -297,17 +300,17 @@ applySubstitution e = gets (apply2 . snd) <*> pure e
 --  -> TypeChecker ()
 --unifyM a b = do
 --  sub <- gets snd
---  let xx = typeOf (apply3 sub a)
---  sub1 <- undefined -- unify (typeOf (apply3 sub a)) (typeOf (apply3 sub b))
+--  let xx = typeOf (apply sub a)
+--  sub1 <- undefined -- unify (typeOf (apply sub a)) (typeOf (apply sub b))
 --  modify (second (sub1 <>))
 
-unifyM2 :: Type v s -> Type u t -> TypeChecker ()
+unifyM2 :: MonoType -> MonoType -> TypeChecker ()
 unifyM2 t1 t2 = do
   sub <- gets snd
-  sub1 <- unify (apply0 sub t1) (apply0 sub t2)
+  sub1 <- unify (apply sub t1) (apply sub t2)
   modify (second (sub1 <>))
 
-instantiate :: Type a Name -> TypeChecker MonoType
+instantiate :: Type Int Name -> TypeChecker MonoType
 instantiate t = do
    ts <- traverse (\n -> tag >>= \t -> pure (n, tVar t)) (Set.toList (bound t))
    pure (fromPolyType (Map.fromList ts) t)
@@ -325,10 +328,10 @@ instantiate t = do
               _ -> mempty)
        _ -> mempty
 
-generalize :: MonoType -> TypeChecker (Type a Name)
+generalize :: MonoType -> TypeChecker (Type Int Name)
 generalize t = do
   env <- ask
-  t1 <- gets (apply0 . snd) <*> pure t
+  t1 <- gets (apply . snd) <*> pure t
 --  e1 <- applySubstitutionnv
   let vars = filter (`notElem` free env) (free t1)
       ixs = Map.fromList (zip vars names)
@@ -377,16 +380,16 @@ check =
       s <- generalize (typeOf e1)
       e2 <- local (Env.insert var s) expr2
       unifyM2 (tVar t) (typeOf e1) 
-      t0 <- gets (apply0 . snd) <*> pure (tVar t)
+      t0 <- gets (apply . snd) <*> pure (tVar t)
       pure (eLet (t0, var) e1 e2)
     EApp t fun args -> do
       f <- fun
       as <- sequence args
 --      t0 <- applySubstitution (typeOf f :: MonoType)  -- ????
 ----      let t0 = (typeOf f)  -- ????
-      --t1 <- gets apply2 applySubstitution (tVar t)
-      --t1 <- gets snd >>= (\s -> pure (apply0 s (tVar t)))
-      t1 <- gets (apply0 . snd) <*> pure (tVar t)
+      --t1 <- gets apply applySubstitution (tVar t)
+      --t1 <- gets snd >>= (\s -> pure (apply s (tVar t)))
+      t1 <- gets (apply . snd) <*> pure (tVar t)
       unifyM2 (typeOf f) (foldType t1 (typeOf <$> as))
       pure (eApp t1 f as)
     ELam _ args expr -> do
@@ -404,7 +407,7 @@ check =
       let [t1, t2] = argTypes t0
       unifyM2 t1 (typeOf e1)
       unifyM2 t2 (typeOf e2)
-      t1 <- gets (apply0 . snd) <*> pure t0
+      t1 <- gets (apply . snd) <*> pure t0
       pure (eOp2 (t1, op) e1 e2)
     ECase _ [] -> throwError IllFormedExpression
 --    ECase expr clauses -> do
@@ -437,10 +440,10 @@ checkRowCase (Fix (TRow row)) args expr = do
       let [t0, t1, t2] = tVar <$> [u0, u1, u2] :: [MonoType]
       unifyM2 t1 r1
       unifyM2 t2 (tRow q)
-      tx0 <- gets (apply0 . snd) <*> pure t0
-      tx1 <- gets (apply0 . snd) <*> pure t1
-      tx2 <- gets (apply0 . snd) <*> pure t2
-      xx1 <- gets (apply0 . snd) <*> pure (t1 ~> t2 ~> tRow row)
+      tx0 <- gets (apply . snd) <*> pure t0
+      tx1 <- gets (apply . snd) <*> pure t1
+      tx2 <- gets (apply . snd) <*> pure t2
+      xx1 <- gets (apply . snd) <*> pure (t1 ~> t2 ~> tRow row)
       unifyM2 tx0 xx1
       e <-
         local
@@ -462,8 +465,7 @@ checkRowCase (Fix (TRow row)) args expr = do
         TDouble -> tDouble
         TChar -> tChar
         TString -> tString
-        TGen g -> tGen g
-
+--        TGen g -> tGen g
 
 --
 --UnaryType :: Op1 -> Type Name
