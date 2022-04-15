@@ -121,8 +121,8 @@ main =
 -- --    describe "convertFunApps" $ do
 -- --      it "#1" (convertFunApps_ fragment17_7 == fragment17_8)
 -- --      it "#2" (convertFunApps_ fragment18_3 == fragment18_4)
-    describe "evalProgram_" $ do
-      it "#1" (evalProgram_ fragment17_8 == Fix (LitValue (PInt 14)))
+--    describe "evalProgram_" $ do
+--      it "#1" (evalProgram_ fragment17_8 == Fix (LitValue (PInt 14)))
 -- --      it "#2" (evalProgram_ fragment18_4 == LitValue (PInt 120))
 -- --      it "#3" (runReader fragment20_2 mempty == LitValue (PInt 100))
 -- --      it "#4" (evalProgram_ fragment20_3 == LitValue (PInt 5))
