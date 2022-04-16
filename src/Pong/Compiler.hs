@@ -1413,8 +1413,8 @@ xyz name vs args expr = do
     as = vs <> args `without` [(t, name)]
     def = Function (fromList as) (t, expr)
 
-appxx :: [Ast] -> Ast -> Ast
-appxx xs = 
+appArgs :: [Ast] -> Ast -> Ast
+appArgs xs = 
   project >>> (\case
     ECall _ g ys -> do
       eCall g (ys <> xs)
@@ -1442,7 +1442,7 @@ bernie =
           ys = extra (typeOf e1)
       xyz name vs (args <> ys) $ if null ys
          then e1
-         else appxx (eVar <$> ys) e1
+         else appArgs (eVar <$> ys) e1
 
     ECase expr1 clauses -> do
       e1 <- expr1
@@ -1454,7 +1454,7 @@ bernie =
           name <- uniqueName "$match"
           let vs = freeVars (eCase e1 cs) `without` defs
               ys = extra t
-              app = appxx (eVar <$> ys)
+              app = appArgs (eVar <$> ys)
           xyz name vs ys (eCase e1 (fmap (second app) cs))
         else 
           pure (eCase e1 cs)
@@ -1470,7 +1470,7 @@ bernie =
           name <- uniqueName "$if"
           let vs = nub (freeVars (eIf e1 e2 e3)) `without` defs
               ys = extra t
-              app = appxx (eVar <$> ys)
+              app = appArgs (eVar <$> ys)
           xyz name vs ys (eIf e1 (app e2) (app e3))
         else 
           pure (eIf e1 e2 e3)
@@ -1494,7 +1494,7 @@ bernie =
           name <- uniqueName "$let"
           let vs = nub (freeVars (eLet var e1 e2)) `without` defs
               ys = extra t
-              app = appxx (eVar <$> ys)
+              app = appArgs (eVar <$> ys)
           xyz name vs ys (eLet var e1 (app e2))
         else 
           pure (eLet var e1 e2)
@@ -1509,7 +1509,7 @@ bernie =
           name <- uniqueName "$field"
           let vs = nub (freeVars (eField fs e1 e2)) `without` defs
               ys = extra t
-              app = appxx (eVar <$> ys)
+              app = appArgs (eVar <$> ys)
           xyz name vs ys (eField fs e1 (app e2))
         else 
           pure (eField fs e1 e2)
@@ -1631,7 +1631,7 @@ bernie =
 -- --foo9 = \case
 -- --  Function args (t, expr) | arity t > 0 ->
 -- --    let ys = extra t
--- --     in Function (args <> fromList ys) (t, appxx (eVar <$> ys) expr)
+-- --     in Function (args <> fromList ys) (t, appArgs (eVar <$> ys) expr)
 -- --  def ->
 -- --    def
 
