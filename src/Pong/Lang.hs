@@ -8,15 +8,15 @@ import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Char (isUpper)
 import Data.List.NonEmpty (toList)
+import qualified Data.Map.Strict as Map
 import Data.Set ((\\))
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, (!), (<$$>), (<#>), (<<<), (>>>))
+import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, (!), (<#>), (<$$>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -244,7 +244,7 @@ freeVars =
           ECon _ -> mempty
           ELit _ -> mempty
           EIf e1 e2 e3 -> e1 <> e2 <> e3
-          ELet bind e1 e2 -> Set.delete bind (e1 <> e2) 
+          ELet bind e1 e2 -> Set.delete bind (e1 <> e2)
           ELam _ args expr -> expr \\ Set.fromList args
           EApp _ fun args -> fun <> Set.unions args
           ECall _ fun args
@@ -252,9 +252,9 @@ freeVars =
             | otherwise -> Set.insert fun (Set.unions args)
           EOp1 _ e1 -> e1
           EOp2 _ e1 e2 -> e1 <> e2
-          ECase e1 cs -> 
-            e1 <> 
-              Set.unions (cs <#> \(_ : vs, expr) -> expr \\ Set.fromList vs)
+          ECase e1 cs ->
+            e1
+              <> Set.unions (cs <#> \(_ : vs, expr) -> expr \\ Set.fromList vs)
           ERow row ->
             (`cata` row) $ \case
               RNil -> mempty

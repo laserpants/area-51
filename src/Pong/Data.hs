@@ -35,7 +35,7 @@ data TypeF v q a
   | TCon Name [a]                  -- ^ Algebraic data-types
   | TArr a a                       -- ^ Function type
   | TVar v                         -- ^ Type variable (internal)
-  | TGen q                         -- ^ Quantified type variable  
+  | TGen q                         -- ^ Quantified type variable
   | TRow (Row (Type v q) Int)      -- ^ Row types
 
 type Type v q = Fix (TypeF v q)
