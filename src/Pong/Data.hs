@@ -87,7 +87,7 @@ data ExprF t a0 a1 a2 a
   | ECall a2 (Label t) [a]                   -- ^ Function call
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
-  | ECase a [([Label t], a)]                 -- ^ Match statement
+  | ECase a [([Label t], a)]                 -- ^ Match clause statement
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
   | EField [Label t] a a                     -- ^ Field accessor
 

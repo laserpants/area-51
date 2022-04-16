@@ -212,7 +212,7 @@ rowExpr =
 prim :: Parser Prim
 prim =
   primUnit <|> primTrue <|> primFalse <|> primChar <|>
-  primString <|> try primFloat <|> primIntegral
+  primString <|> try primFloat <|> try primDouble <|> primIntegral
   where
     primUnit = symbol "()" $> PUnit
     primTrue = keyword "true" $> PBool True
@@ -220,9 +220,11 @@ prim =
     primChar = PChar <$> surroundedBy (symbol "'") printChar
     primString = lexeme (PString . pack <$> chars)
     primFloat = do
+      f <- lexeme (Lexer.float <* (char 'f' <|> char 'F'))
+      pure (PFloat f)
+    primDouble = do
       d <- lexeme Lexer.float
-      isFloat <- isJust <$> optional (char 'f' <|> char 'F')
-      pure $ if isFloat then PFloat (realToFrac d) else PDouble d
+      pure $ PDouble (realToFrac d)
     primIntegral = PInt <$> lexeme Lexer.decimal
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
