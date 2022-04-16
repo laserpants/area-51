@@ -1,8 +1,9 @@
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleContexts #-}
+
 module Pong.XData where
 
 --import Data.Eq.Deriving (deriveEq1)
@@ -34,7 +35,7 @@ module Pong.XData where
 --  | XTGen Int
 --  | XTRow (XRow XType)
 --
---type XType = Fix XTypeF 
+--type XType = Fix XTypeF
 --
 --data XLiteral
 --  = XLBool Bool
@@ -203,11 +204,11 @@ module Pong.XData where
 --xeVar :: XLabel t -> XExpr t a0 a1 a2
 --xeVar = embed1 XEVar
 --
---xeLit :: XLiteral -> XExpr t a0 a1 a2 
---xeLit = embed1 XELit 
+--xeLit :: XLiteral -> XExpr t a0 a1 a2
+--xeLit = embed1 XELit
 --
---xeLet :: XLabel t -> XExpr t a0 a1 a2 -> XExpr t a0 a1 a2 -> XExpr t a0 a1 a2 
---xeLet = embed3 XELet 
+--xeLet :: XLabel t -> XExpr t a0 a1 a2 -> XExpr t a0 a1 a2 -> XExpr t a0 a1 a2
+--xeLet = embed3 XELet
 --
 --xeLam :: [XLabel t] -> XExpr t () a1 a2 -> XExpr t () a1 a2
 --xeLam = embed3 XELam ()

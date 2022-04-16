@@ -1,48 +1,48 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Pong.Util
-  ( module Control.Arrow
-  , module Data.Functor.Foldable
-  , module Data.Fix
-  , module Data.Void
-  , module Data.Eq.Deriving 
-  , module Data.Ord.Deriving 
-  , module Text.Show.Deriving
-  , module Data.Map.Strict
-  , module Data.Text
-  , (<$$>)
-  , (<#>)
-  , Name
-  , Names
-  , Algebra
-  , Coalgebra
-  , List1
-  , embed1
-  , embed2
-  , embed3
-  , embed4
-  , embed5
-  , without
-  , localFirst
-  , asksFirst
-  , localSecond
-  , asksSecond
-  ) where
+module Pong.Util (
+  module Control.Arrow,
+  module Data.Functor.Foldable,
+  module Data.Fix,
+  module Data.Void,
+  module Data.Eq.Deriving,
+  module Data.Ord.Deriving,
+  module Text.Show.Deriving,
+  module Data.Map.Strict,
+  module Data.Text,
+  (<$$>),
+  (<#>),
+  Name,
+  Names,
+  Algebra,
+  Coalgebra,
+  List1,
+  embed1,
+  embed2,
+  embed3,
+  embed4,
+  embed5,
+  without,
+  localFirst,
+  asksFirst,
+  localSecond,
+  asksSecond,
+) where
 
 import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader
 import Data.Eq.Deriving (deriveEq1)
-import Data.Fix (Fix(..))
+import Data.Fix (Fix (..))
 import Data.Functor.Foldable
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
+import qualified Data.Map.Strict as Map
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text (Text, pack, unpack)
+import qualified Data.Text as Text
 import Data.Tuple.Extra
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
-import qualified Data.Map.Strict as Map
-import qualified Data.Text as Text
 
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
@@ -84,25 +84,25 @@ embed3 t a b c = embed (t a b c)
 
 {-# INLINE embed4 #-}
 embed4 ::
-     (Corecursive t)
-  => (t1 -> t2 -> t3 -> t4 -> Base t t)
-  -> t1
-  -> t2
-  -> t3
-  -> t4
-  -> t
+  (Corecursive t) =>
+  (t1 -> t2 -> t3 -> t4 -> Base t t) ->
+  t1 ->
+  t2 ->
+  t3 ->
+  t4 ->
+  t
 embed4 t a b c d = embed (t a b c d)
 
 {-# INLINE embed5 #-}
 embed5 ::
-     (Corecursive t)
-  => (t1 -> t2 -> t3 -> t4 -> t5 -> Base t t)
-  -> t1
-  -> t2
-  -> t3
-  -> t4
-  -> t5
-  -> t
+  (Corecursive t) =>
+  (t1 -> t2 -> t3 -> t4 -> t5 -> Base t t) ->
+  t1 ->
+  t2 ->
+  t3 ->
+  t4 ->
+  t5 ->
+  t
 embed5 t a b c d e = embed (t a b c d e)
 
 {-# INLINE localFirst #-}

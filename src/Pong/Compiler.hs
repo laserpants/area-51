@@ -6,6 +6,7 @@ module Pong.Compiler where
 import Control.Monad.State
 import Data.List (nub)
 import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second, swap)
 import Debug.Trace
 import Pong.Data
@@ -14,15 +15,14 @@ import Pong.Lang
 import Pong.Parser
 import Pong.TypeChecker
 import Pong.Util
+import qualified Pong.Util.Env as Env
 import Text.Megaparsec (runParser)
 import TextShow (showt)
-import qualified Data.Map.Strict as Map
-import qualified Pong.Util.Env as Env
 
 -- from:
 --   lam(a) => lam(b) => b
 --
--- to: 
+-- to:
 --   lamb[a, b] => b
 combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 combineLambdas =
@@ -33,7 +33,7 @@ combineLambdas =
 -- -- from:
 -- --   (g(x))(y)
 -- --
--- -- to: 
+-- -- to:
 -- --   g(x, y)
 -- combineApps :: Expr t Type a1 a2 -> Expr t Type a1 a2
 -- combineApps =
@@ -42,12 +42,12 @@ combineLambdas =
 --       let t1 = foldType1 (drop (length ys) (unwindType t))
 --        in eApp t1 expr (xs <> ys)
 --     e -> embed e
--- 
+--
 -- -- from:
 -- --   foo = lam(a) => lam(b) => b
 -- --   baz(x) = lam(a) => lam(b) => b
 -- --
--- -- to: 
+-- -- to:
 -- --   foo(a, b) = b
 -- --   baz(x, a, b) = b
 -- hoistTopLambdas ::
@@ -65,12 +65,12 @@ combineLambdas =
 --       project . combineLambdas >>> \case
 --         ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
 --         _ -> error "Implementation error (1)"
--- 
+--
 -- -- from:
 -- --   plus(x, y) = x + y
--- --   foo(x) = plus(x)      
+-- --   foo(x) = plus(x)
 -- --
--- -- to: 
+-- -- to:
 -- --   plus(x, y) = x + y
 -- --   foo(x, v_0) = plus(x, v_0)
 -- --
@@ -78,7 +78,7 @@ combineLambdas =
 --      Definition Type (Expr Type Type () Void)
 --   -> Definition Type (Expr Type Type () Void)
 -- fillParams = hoistTopLambdas <<< fmap (convertClosuresT <<< fillExprParams <<< marshall)
--- 
+--
 -- marshall :: TypedExpr -> TypedExpr
 -- marshall =
 --   cata $ \case
@@ -88,7 +88,7 @@ combineLambdas =
 --       case project fun of
 --         EIf e1 e2 e3 ->
 --           eIf e1 (app e2 args) (app e3 args)
---         ECase e1 cs -> 
+--         ECase e1 cs ->
 --           eCase e1 ((`app` args) <$$> cs)
 --         EField fs e1 e2 ->
 --           eField fs e1 (app e2 args)
@@ -100,8 +100,8 @@ combineLambdas =
 --     e ->
 --       embed e
 --   where
---     app e args = eApp (foldType1 (drop (length args) (unwindType e))) e args 
--- 
+--     app e args = eApp (foldType1 (drop (length args) (unwindType e))) e args
+--
 -- --
 -- -- from:
 -- --   let
@@ -141,7 +141,7 @@ combineLambdas =
 --       case project e1 of
 --         EVar v -> eVar v
 --         _ -> e2
--- 
+--
 -- --
 -- -- from:
 -- --   lam(x) => x + h
@@ -159,7 +159,7 @@ combineLambdas =
 --         [] -> lambda
 --         _ -> eApp () lambda (eVar <$> extra)
 --     expr -> embed expr
--- 
+--
 -- convertClosuresT :: TypedExpr -> TypedExpr
 -- convertClosuresT =
 --   cata $ \case
@@ -172,7 +172,7 @@ combineLambdas =
 --     expr -> embed expr
 --   where
 --     appType n t = foldType1 (drop n (unwindType t))
--- 
+--
 -- --
 -- -- from:
 -- --   let x = y in x + z
@@ -196,17 +196,17 @@ combineLambdas =
 --                    body
 --                  _ -> eLet (t, name) <$> expr <*> body)
 --             e -> embed <$> sequence e))
--- 
+--
 -- varSubst :: Name -> Name -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
 -- varSubst from to =
 --   cata $ \case
 --     EVar (t, v)
 --       | v == from -> eVar (t, to)
 --     e -> embed e
--- 
+--
 -- substMany :: [(Name, Name)] -> Expr Type a0 a1 a2 -> Expr Type a0 a1 a2
 -- substMany subs e = foldr (uncurry varSubst) e subs
--- 
+--
 -- liftLambdas ::
 --      (MonadState (Int, Program PreAst) m) => Expr Type Type () Void -> m PreAst
 -- --liftLambdas input = do
@@ -267,7 +267,7 @@ uniqueName prefix = do
 --                 _ -> pure (eApp t f as)
 --         _ -> pure (eApp t f as)
 --     e -> embed <$> sequence e
--- 
+--
 -- xx123 :: Expr Type Type Void Void -> Expr Type Type () Void
 -- xx123 = cata $ \case
 -- --  ELam _ a1 a2 -> eLam () a1 a2
@@ -281,8 +281,8 @@ uniqueName prefix = do
 --         ECase a1 a2 -> eCase a1 a2
 --         ERow row -> eRow (mapRow xx123 row)
 --         EField a1 a2 a3 -> eField a1 a2 a3
--- 
--- 
+--
+--
 -- preprocess ::
 --      (MonadState (Int, Program PreAst) m)
 --   => Definition Type (Expr Type Type () Void)
@@ -303,7 +303,7 @@ uniqueName prefix = do
 -- --        ECase a1 a2 -> eCase a1 a2
 -- --        ERow row -> eRow (mapRow convert row)
 -- --        EField a1 a2 a3 -> eField a1 a2 a3
--- 
+--
 -- replaceFunArgs :: (MonadState (Int, Program PreAst) m) => PreAst -> m PreAst
 -- replaceFunArgs =
 --   cata $ \case
@@ -357,12 +357,12 @@ uniqueName prefix = do
 --            e -> error "Implementation error (2)"
 --        ERow row -> eRow (mapRow convertFunApps row)
 --        EField a1 a2 a3 -> eField a1 a2 a3)
--- 
--- 
+--
+--
 -- --
 -- -- let
 -- --   z =
--- --     (if x > 3 
+-- --     (if x > 3
 -- --       then f
 -- --       else g)(5)
 -- --   in
@@ -377,16 +377,16 @@ uniqueName prefix = do
 -- -- (lam(v_0) => let x = 3 in f(v_0))(5)
 -- --
 -- --
--- --     (if x > 3 
+-- --     (if x > 3
 -- --       then f
 -- --       else g)
 -- --
--- --     (lam(v_0) => if x > 3 
+-- --     (lam(v_0) => if x > 3
 -- --       then f(v_0)
 -- --       else g(v_0))
--- 
+--
 -- ---------------------------------------------------------------------
--- 
+--
 -- --one123 :: TypedExpr -> TypedExpr
 -- --one123 te =
 -- --  fez (typeOf te) te
@@ -399,7 +399,7 @@ uniqueName prefix = do
 -- --    EIf e1 e2 e3 | arity e3 > 0 ->
 -- --      fez (typeOf e3) (eIf e1 e2 e3)
 -- --    ELet t e1 e2 | arity e2 > 0 ->
--- --      fez (typeOf e2) (eLet t e1 e2) 
+-- --      fez (typeOf e2) (eLet t e1 e2)
 -- ----    EApp t fun as | arity t > 0 ->
 -- ----      undefined
 -- ----    ELam _ args e1 | arity e1 > 0 ->
@@ -410,9 +410,9 @@ uniqueName prefix = do
 -- ----      undefined
 -- --    e ->
 -- --      embed e
--- 
+--
 -- fez :: TypedExpr -> TypedExpr
--- fez = 
+-- fez =
 --   cata $ \case
 -- --    EApp t (Fix (EVar (t1, v))) as | arity t > 0 ->
 -- --      eLam () (args t) (eApp (returnType t) (eVar (t1, v)) (as <> (args t <#> eVar)))
@@ -424,14 +424,14 @@ uniqueName prefix = do
 --       embed e
 --   where
 --     args e = zip (argTypes e) [".v" <> showt m | m <- [0 :: Int .. ]]
--- 
+--
 -- --app e = eApp (returnType e) e (args e <#> eVar)
--- 
+--
 -- --    ELet t e1 e2 | arity e2 > 0 ->
 -- --      eLam () (args e2) (eLet t e1 (app e2))
 -- --    EIf e1 e2 e3 | arity e3 > 0 ->
 -- --      eLam () (args e3) (eIf e1 (app e2) (app e3))
--- 
+--
 -- --fez e
 -- --  | arity t > 0 = eLam () args (boo e)
 -- --  | otherwise = e
@@ -455,16 +455,16 @@ uniqueName prefix = do
 -- --          eApp (appt (length args) t0) undefined ((args0 <#> fst) <> (args <#> eVar))
 -- --
 -- --        ELet t0 (_, e1) (_, e2) ->
--- --          eLet t0 e1 e2 
+-- --          eLet t0 e1 e2
 -- --
 -- --        EIf (e1, _) (_, e2) (_, e3) ->
 -- --          eIf e1 e2 e3
 -- --
 -- --        e -> eApp (appt (length args) t) (embed (fst <$> e)) (args <#> eVar)
--- 
+--
 --         --e ->
 --         --  eApp (foldType1 (drop (length args) (unwindType (embed e)))) (embed e) (args <#> eVar)
--- 
+--
 -- -- let x = 3 in f
 -- --
 -- -- let x = 3 in lam(v_0) => f(v_0)
@@ -474,56 +474,56 @@ uniqueName prefix = do
 --   fez (eLet (tInt, "x") (eLit (PInt 3)) (eVar (tInt ~> tInt, "f")))
 --   ==
 --     eLam () [(tInt, ".v0")] (eLet (tInt, "x") (eLit (PInt 3)) (eApp tInt (eVar (tInt ~> tInt, "f")) [eVar (tInt, ".v0")]))
---     
+--
 -- -- if x then f else g
 -- -- lam(v_0) => if x then f(v_0) else g(v_0)
 -- test002 =
 --   fez (eIf (eVar (tBool, "x")) (eVar (tInt ~> tInt, "f")) (eVar (tInt ~> tInt, "g")))
 --   ==
 --     eLam () [(tInt, ".v0")] (eIf (eVar (tBool, "x")) (eApp tInt (eVar (tInt ~> tInt, "f")) [eVar (tInt, ".v0")]) (eApp tInt (eVar (tInt ~> tInt, "g")) [eVar (tInt, ".v0")]))
--- 
--- 
+--
+--
 -- -- f(3)
 -- -- lam(v_0) => f(3, v_0)
 -- test003 =
 --   fez (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "f")) [eLit (PInt 3)])
 --   ==
 --   eLam () [(tInt, ".v0")] (eApp tInt (eVar (tInt ~> tInt ~> tInt, "f")) [eLit (PInt 3), eVar (tInt, ".v0")])
--- 
--- 
+--
+--
 -- -- f
 -- -- lam(v_0) => f(v_0)
 -- test004 =
---   fez (eVar (tInt ~> tInt, "f")) 
+--   fez (eVar (tInt ~> tInt, "f"))
 --   ==
 --   eLam () [(tInt, ".v0")] (eApp tInt (eVar (tInt ~> tInt, "f")) [eVar (tInt, ".v0")])
--- 
--- 
+--
+--
 -- -------------------------------)
 -- -------------------------------)
 -- -------------------------------)
--- 
+--
 -- --  let
 -- --    h =
 -- --      lam(r) =>
 -- --        r(4)
 -- --    in
--- --      let 
+-- --      let
 -- --        f =
 -- --          lam[x, y] => x + y
 -- --        in
--- --          let 
+-- --          let
 -- --            q =
 -- --              (if z > 5 then f else g)(5)
 -- --            in
 -- --              q(3) + h(q)
 -- --
--- 
--- 
--- --  $f1(r) = r(4)          
--- --  $f2(x, y) = x + y      
+--
+--
+-- --  $f1(r) = r(4)
+-- --  $f2(x, y) = x + y
 -- --  $f3(z, f, a0, a1) = if z > 5 then f(a0, a1) else g(a0, a1)
--- --                         
+-- --
 -- --
 -- --  let h = [$f1]
 -- --    in
@@ -533,19 +533,19 @@ uniqueName prefix = do
 -- --            in
 -- --              [$f3(z, f, 5, 3)] + [$f1(q)]
 -- --
--- 
--- 
--- 
--- 
--- 
--- 
--- 
--- 
--- --  let 
+--
+--
+--
+--
+--
+--
+--
+--
+-- --  let
 -- --    f =
 -- --      lam[x, y] => x + y
 -- --    in
--- --      let 
+-- --      let
 -- --        q =
 -- --          (if z > 5 then f else g)(5)
 -- --        in
@@ -557,19 +557,19 @@ uniqueName prefix = do
 --     (tInt ~> tInt ~> tInt, "f")
 --     (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
 --     (eLet
---         (tInt ~> tInt, "q") 
+--         (tInt ~> tInt, "q")
 --         (eApp (tInt ~> tInt)
 --           (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g")))
 --           [eLit (PInt 5)])
 --         (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)]))
--- 
--- --  let 
+--
+-- --  let
 -- --    f =
 -- --      lam(x) =>
--- --        lam(y) => 
+-- --        lam(y) =>
 -- --          x + y
 -- --    in
--- --      let 
+-- --      let
 -- --        q =
 -- --          (if z > 5 then f else g)(5)
 -- --        in
@@ -579,22 +579,22 @@ uniqueName prefix = do
 -- testop1_0 =
 --   eLet
 --     (tInt ~> tInt ~> tInt, "f")
---     (eLam () [(tInt, "x")] 
---         (eLam () [(tInt, "y")] 
+--     (eLam () [(tInt, "x")]
+--         (eLam () [(tInt, "y")]
 --             (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y")))))
 --     (eLet
---         (tInt ~> tInt, "q") 
+--         (tInt ~> tInt, "q")
 --         (eApp (tInt ~> tInt)
 --           (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g")))
 --           [eLit (PInt 5)])
 --         (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)]))
--- 
--- 
--- --  let 
+--
+--
+-- --  let
 -- --    f =
 -- --      lam[x, y] => x + y
 -- --    in
--- --      let 
+-- --      let
 -- --        q =
 -- --          $f1(z, f, 5)
 -- --        in
@@ -606,18 +606,18 @@ uniqueName prefix = do
 --     (tInt ~> tInt ~> tInt, "f")
 --     (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
 --     (eLet
---         (tInt ~> tInt, "q") 
+--         (tInt ~> tInt, "q")
 --         (eApp (tInt ~> tInt)
 --           (eVar (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$f1"))
 --           [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)])
 --         (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)]))
--- 
--- 
--- -- --  let 
+--
+--
+-- -- --  let
 -- -- --    f =
 -- -- --      lam[x, y] => x + y
 -- -- --    in
--- -- --      let 
+-- -- --      let
 -- -- --        q =
 -- -- --          $f1(z, f, 5)
 -- -- --        in
@@ -629,34 +629,34 @@ uniqueName prefix = do
 -- --     (tInt ~> tInt ~> tInt, "f")
 -- --     (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
 -- --     (eLet
--- --         (tInt ~> tInt, "q") 
+-- --         (tInt ~> tInt, "q")
 -- --         (eApp (tInt ~> tInt)
 -- --           (eVar (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$f1"))
 -- --           [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)])
 -- --         (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)]))
--- 
--- 
+--
+--
 -- --
--- --  $f1[z : int, f : int ~> int ~> int, $v1 : int, $v2 : int] = 
--- --    if z > 5 
--- --      then 
--- --        f($v1, $v2) 
--- --      else 
+-- --  $f1[z : int, f : int ~> int ~> int, $v1 : int, $v2 : int] =
+-- --    if z > 5
+-- --      then
+-- --        f($v1, $v2)
+-- --      else
 -- --        g($v1, $v2)
 -- --
 -- testop1_2 :: Program TypedExpr
 -- testop1_2 = Program (Map.fromList [
---     ( "$f1" 
+--     ( "$f1"
 --     , Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
---         (tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) 
+--         (tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5)))
 --             (eApp tInt (eVar (tInt ~> tInt ~> tInt, "f")) [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
 --             (eApp tInt (eVar (tInt ~> tInt ~> tInt, "g")) [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
 --         )
 --     )
 --     ])
--- 
--- 
--- --  let 
+--
+--
+-- --  let
 -- --    q =
 -- --      (lam(a, b) => a)(5)
 -- --    in
@@ -665,13 +665,13 @@ uniqueName prefix = do
 -- testop2 :: TypedExpr
 -- testop2 =
 --   eLet
---       (tInt ~> tInt, "q") 
+--       (tInt ~> tInt, "q")
 --       (eApp (tInt ~> tInt)
 --         (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
 --         [eLit (PInt 5)])
 --       (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
--- 
--- --  let 
+--
+-- --  let
 -- --    q =
 -- --      $f1(5)
 -- --    in
@@ -680,23 +680,23 @@ uniqueName prefix = do
 -- testop2_1 :: TypedExpr
 -- testop2_1 =
 --   eLet
---       (tInt ~> tInt, "q") 
+--       (tInt ~> tInt, "q")
 --       (eApp (tInt ~> tInt)
 --         (eVar (tInt ~> tInt ~> tInt, "$f1"))
 --         [eLit (PInt 5)])
 --       (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
--- 
+--
 -- --
 -- -- f1[a, b] = a
 -- --
 -- testop2_2 :: Program TypedExpr
 -- testop2_2 = Program (Map.fromList [
---     ( "$f1" 
+--     ( "$f1"
 --     , Function (fromList [(tInt, "a"), (tInt, "b")]) (tInt, eVar (tInt, "a")))
 --     ])
--- 
--- 
--- --  let 
+--
+--
+-- --  let
 -- --    q =
 -- --      (lam(a, b) => x)(5)
 -- --    in
@@ -705,16 +705,16 @@ uniqueName prefix = do
 -- testop3 :: TypedExpr
 -- testop3 =
 --   eLet
---       (tInt ~> tInt, "q") 
+--       (tInt ~> tInt, "q")
 --       (eApp (tInt ~> tInt)
 --         (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "x")))
 --         [eLit (PInt 5)])
 --       (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
--- 
--- 
+--
+--
 -- -- $f1(x, a, b) = x
 -- --
--- --  let 
+-- --  let
 -- --    q =
 -- --      $f1(x, 5)
 -- --    in
@@ -723,18 +723,18 @@ uniqueName prefix = do
 -- testop3_1 :: TypedExpr
 -- testop3_1 =
 --   eLet
---       (tInt ~> tInt, "q") 
+--       (tInt ~> tInt, "q")
 --       (eApp (tInt ~> tInt)
 --         (eVar (tInt ~> tInt ~> tInt ~> tInt, "$f1"))
 --         [eVar (tInt, "x"), eLit (PInt 5)])
 --       (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
--- 
--- 
+--
+--
 -- -- $f1(x, a, b) = x
 -- -- $f2(x, v0) = $f1(x, 5, v0)
 -- --
--- --  let 
--- --    q = 
+-- --  let
+-- --    q =
 -- --      $f2(x)
 -- --    in
 -- --      q(3)
@@ -743,23 +743,23 @@ uniqueName prefix = do
 -- testop3_1_1 =
 --   undefined
 -- --  eLet
--- --      (tInt ~> tInt, "q") 
+-- --      (tInt ~> tInt, "q")
 -- --      (eApp (tInt ~> tInt)
 -- --        (eVar (tInt ~> tInt ~> tInt ~> tInt, "$f1"))
 -- --        [eVar (tInt, "x"), eLit (PInt 5)])
 -- --      (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
--- 
+--
 -- --
 -- -- f1[x, a, b] = x
 -- --
 -- testop3_2 :: Program TypedExpr
 -- testop3_2 = Program (Map.fromList [
---     ( "$f1" 
+--     ( "$f1"
 --     , Function (fromList [(tInt, "x"), (tInt, "a"), (tInt, "b")]) (tInt, eVar (tInt, "x")))
 --     ])
--- 
--- 
--- --  let 
+--
+--
+-- --  let
 -- --    q =
 -- --      lam(a, b) => a
 -- --    in
@@ -772,19 +772,19 @@ uniqueName prefix = do
 -- testop4 :: TypedExpr
 -- testop4 =
 --   eLet
---     (tInt ~> tInt ~> tInt, "q") 
+--     (tInt ~> tInt ~> tInt, "q")
 --       (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
---       (eLet 
---         (tInt ~> tInt, "r") 
+--       (eLet
+--         (tInt ~> tInt, "r")
 --         (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "q")) [eLit (PInt 3)])
 --         (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)]))
--- 
--- 
+--
+--
 -- --  $f1(a, b) = a
 -- --  $f2(q, v0) = q(3, v0)
 -- --
--- --  let 
--- --    q = 
+-- --  let
+-- --    q =
 -- --      $f1
 -- --    in
 -- --      let
@@ -796,20 +796,20 @@ uniqueName prefix = do
 -- testop4_1 :: TypedExpr
 -- testop4_1 =
 --   eLet
---     (tInt ~> tInt ~> tInt, "q") 
+--     (tInt ~> tInt ~> tInt, "q")
 --       (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
---       (eLet 
---         (tInt ~> tInt, "r") 
+--       (eLet
+--         (tInt ~> tInt, "r")
 --         (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "q")) [eLit (PInt 3)])
 --         (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)]))
--- 
--- 
--- 
--- 
--- 
--- 
+--
+--
+--
+--
+--
+--
 -- foo :: [Label Type] -> Type -> TypedExpr -> Definition Type TypedExpr
--- foo vs t = project >>> \case 
+-- foo vs t = project >>> \case
 --   ELam _ args e1 ->
 --     Function (fromList (vs <> args)) (r, e1)
 --   EIf e1 e2 e3 ->
@@ -819,12 +819,12 @@ uniqueName prefix = do
 --     ts = argTypes t
 --     args1 = eVar <$> zip ts names
 --     names = ["$v" <> showt m | m <- [1 :: Int .. ]]
--- 
+--
 -- op1 :: (MonadState (Int, Program TypedExpr) m) => [Label Type] -> TypedExpr -> m TypedExpr
 -- op1 ns =
 --   cata $ \case
 --     ELam t xs expr ->
---       expr >>= (project >>> \case 
+--       expr >>= (project >>> \case
 --         ELam _ ys e2 -> pure (eLam t (xs <> ys) e2)
 --         e1 -> pure (eLam t xs (embed e1)))
 --     EApp t fun args | arity t > 0 -> do
@@ -838,29 +838,29 @@ uniqueName prefix = do
 --       pure (eApp t (eVar (typeOf def, name)) ((eVar <$> fs) <> as))
 --     e ->
 --       embed <$> sequence e
--- 
+--
 -- ns = [(tInt ~> tInt ~> tInt, "g")]
--- 
+--
 -- tst1 = evalState (op1 ns testop1) (1, emptyProgram) == testop1_1
--- 
+--
 -- tst2 = snd (execState (op1 ns testop1) (1, emptyProgram)) == testop1_2
--- 
+--
 -- tst3 = evalState (op1 ns testop1_0) (1, emptyProgram) == testop1_1
--- 
+--
 -- tst4 = (snd <$> runState (op1 ns testop2) (1, emptyProgram)) == (testop2_1, testop2_2)
--- 
+--
 -- tst5 = (snd <$> runState (op1 ns testop3) (1, emptyProgram)) == (testop3_1, testop3_2)
--- 
+--
 -- tstall = tst1 && tst2 && tst3 && tst4 && tst5
--- 
--- 
+--
+--
 -- def1 = Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eLit (PInt 3)) :: Definition Type TypedExpr
 -- tdef = tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt
--- 
+--
 -- -- >>>
--- 
+--
 -- appa :: [Expr Type Void () ()] -> Expr Type Void () () -> Expr Type Void () ()
--- appa as = 
+-- appa as =
 --   cata $ \case
 --     EVar v -> eCall undefined undefined
 --     ECon c -> eCall undefined undefined
@@ -873,7 +873,7 @@ uniqueName prefix = do
 --     --
 --     ELit l -> undefined
 --     ERow row -> undefined -- eRow (mapRow (appa as) row)
--- 
+--
 -- beebop :: (MonadState (Int, Program (Expr Type Void () ())) m) => TypedExpr -> m (Expr Type Void () ())
 -- beebop =
 --   cata $ \case
@@ -887,10 +887,10 @@ uniqueName prefix = do
 --           name <- uniqueName "$f"
 --           let fs = freeVars f `without` ((t0, name):ns)
 --               def = Function (fromList (fs <> args)) (typeOf e, e)
--- 
+--
 --           insertDef name def
 --           pure (eCall (typeOf def, name) [])
--- 
+--
 --     EApp t fun args -> do
 --       f <- fun
 --       case project f of
@@ -933,21 +933,21 @@ uniqueName prefix = do
 --     ECase a1 a2 -> eCase <$> a1 <*> traverse sequence a2
 --     ERow row -> eRow <$> mapRowM beebop row
 --     EField a1 a2 a3 -> eField a1 <$> a2 <*> a3
--- 
--- app args = 
+--
+-- app args =
 --   project >>> \case
 --     ECall _ f as -> do
 --       eCall f (args <> as)
--- 
+--
 -- --foo3 :: (MonadState (Int, Program (Expr Type Type () ())) m) => [Label Type] -> Type -> Expr Type Type () () -> m (Definition Type (Expr Type Type () ()))
--- --foo3 vs t = 
--- --  cata $ \case 
+-- --foo3 vs t =
+-- --  cata $ \case
 -- --    ELam _ args e1 -> do
 -- --      e <- e1
 -- --      pure (Function undefine (r, e))
 -- ----      pure (Function (fromList (vs <> args)) (r, e1))
 -- ----    EIf e1 e2 e3 ->
--- ----      Function (fromList (vs <> zip ts names)) 
+-- ----      Function (fromList (vs <> zip ts names))
 -- ----        (r, eIf e1 (eApp r e2 args1) (eApp r e3 args1))
 -- --    expr -> do
 -- --      e <- sequence expr
@@ -957,12 +957,12 @@ uniqueName prefix = do
 -- ----      ts = argTypes t
 -- ----      args1 = eVar <$> zip ts names
 -- ----      names = ["$v" <> showt m | m <- [1 :: Int .. ]]
--- 
+--
 -- foo2 :: [Label Type] -> Type -> Expr Type Void () () -> Definition Type (Expr Type Void () ())
 -- foo2 vs t = undefined
--- 
+--
 -- --foo2 :: [Label Type] -> Type -> Expr Type Type () () -> Definition Type (Expr Type Type () ())
--- --foo2 vs t = project >>> \case 
+-- --foo2 vs t = project >>> \case
 -- --  ELam _ args e1 ->
 -- --    Function (fromList (vs <> args)) (r, e1)
 -- --  EIf e1 e2 e3 ->
@@ -974,19 +974,19 @@ uniqueName prefix = do
 -- --    ts = argTypes t
 -- --    args1 = eVar <$> zip ts names
 -- --    names = ["$v" <> showt m | m <- [1 :: Int .. ]]
--- 
+--
 -- beebop2 :: (MonadState (Int, Program (Expr Type Type () ())) m, MonadReader [(Name, Name)] m) => [Label Type] -> Expr Type Type () () -> m (Expr Type Type () ())
 -- beebop2 x =
 --   cata $ \case
 --     ECall _ f as ->
 --       undefined
---     e -> 
+--     e ->
 --       embed <$> sequence e
--- 
--- 
--- 
+--
+--
+--
 -- --foo2 :: [Label Type] -> Type -> TypedExpr -> Definition Type TypedExpr
--- --foo2 vs t = project >>> \case 
+-- --foo2 vs t = project >>> \case
 -- --  ELam _ args e1 ->
 -- --    Function (fromList (vs <> args)) (r, e1)
 -- --  EIf e1 e2 e3 ->
@@ -996,7 +996,7 @@ uniqueName prefix = do
 -- --    ts = argTypes t
 -- --    args1 = eVar <$> zip ts names
 -- --    names = ["$v" <> showt m | m <- [1 :: Int .. ]]
--- 
+--
 
 --  let
 --    h =
@@ -1004,14 +1004,19 @@ uniqueName prefix = do
 --        r(4)
 --    in
 --      h(lam(x) => x + 1)
-exp0 = 
+exp0 =
   eLet
     ((tInt ~> tInt) ~> tInt, "h")
-    (eLam () [(tInt ~> tInt, "r")]
-      (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)]))
-    (eApp tInt
-      (eVar ((tInt ~> tInt) ~> tInt, "h"))
-      [eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))])
+    ( eLam
+        ()
+        [(tInt ~> tInt, "r")]
+        (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)])
+    )
+    ( eApp
+        tInt
+        (eVar ((tInt ~> tInt) ~> tInt, "h"))
+        [eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))]
+    )
 
 -- --  $lam1(r) = r(4)
 -- --  $lam2(x) = x + 1
@@ -1020,19 +1025,20 @@ exp0 =
 -- --    h = [$lam1]
 -- --    in
 -- --      h([$lam2])
-exp0_ = 
+exp0_ =
   ( eLet
-    ((tInt ~> tInt) ~> tInt, "h")
-    (eCall ((tInt ~> tInt) ~> tInt, "$lam1") [])
-    (eCall ((tInt ~> tInt) ~> tInt, "h") [eCall (tInt ~> tInt, "$lam2") []])
-  , Program (Map.fromList 
-      [ ( "$lam1" , Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]) )
-      , ( "$lam2" , Function (fromList [(tInt, "x")]) (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))) )
-      ])
+      ((tInt ~> tInt) ~> tInt, "h")
+      (eCall ((tInt ~> tInt) ~> tInt, "$lam1") [])
+      (eCall ((tInt ~> tInt) ~> tInt, "h") [eCall (tInt ~> tInt, "$lam2") []])
+  , Program
+      ( Map.fromList
+          [ ("$lam1", Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
+          , ("$lam2", Function (fromList [(tInt, "x")]) (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
+          ]
+      )
   )
 
-
---  let 
+--  let
 --    f =
 --      lam[x, y] => (z + x) + y
 --    in
@@ -1043,15 +1049,14 @@ exp00 =
     (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
     (eVar (tInt ~> tInt ~> tInt, "f"))
 
-
--- -- 
+-- --
 -- -- let
 -- --   z =
 -- --     5
 -- --   in
 -- --     let
 -- --       f =
--- --         lam[x, y] => 
+-- --         lam[x, y] =>
 -- --           (z + x) + y
 -- --       in
 -- --         f
@@ -1064,31 +1069,39 @@ exp00 =
 --           (tInt ~> tInt ~> tInt, "f")
 --           (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
 --           (eVar (tInt ~> tInt ~> tInt, "f")))
--- 
--- 
+--
+--
 -- --  $lam1(z, x, y) = (z + x) + y
 -- --  $let2(z, $v1, $v2) = let f = [$lam1(z)] in [f($v1, $v2)]]
 -- --
 -- --  $let2(z)
 exp00_ =
   ( eCall (tInt ~> tInt ~> tInt ~> tInt, "$let2") [eVar (tInt, "z")]
-      , Program (Map.fromList 
-      [ ( "$lam1" 
-        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
-      , ( "$let2" 
-        , Function (fromList [(tInt, "z"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, 
-            eLet 
-              (tInt ~> tInt ~> tInt, "f")
-              (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
-              (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
-                ) )
-      ])
+  , Program
+      ( Map.fromList
+          [
+            ( "$lam1"
+            , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
+            )
+          ,
+            ( "$let2"
+            , Function
+                (fromList [(tInt, "z"), (tInt, "$v1"), (tInt, "$v2")])
+                ( tInt
+                , eLet
+                    (tInt ~> tInt ~> tInt, "f")
+                    (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                )
+            )
+          ]
+      )
   )
 
--- --  $lam1(z, x, y) = 
+-- --  $lam1(z, x, y) =
 -- --    (z + x) + y
 -- --
--- --  let 
+-- --  let
 -- --    f =
 -- --      [$lam1(z)]
 -- --    in
@@ -1097,125 +1110,145 @@ exp00_ =
 -- --    (tInt ~> tInt ~> tInt, "f")
 -- --    (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
 -- --    (eVar (tInt ~> tInt ~> tInt, "f"))
--- --  , Program (Map.fromList 
--- --      [ ( "$lam1" 
+-- --  , Program (Map.fromList
+-- --      [ ( "$lam1"
 -- --        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
 -- --      ])
 -- --  )
 
--- 
+--
 --  (if z > 5 then f else f)(5)
 --
-expx0 = 
-  eApp (tInt ~> tInt)
-    (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "f"))) 
+expx0 =
+  eApp
+    (tInt ~> tInt)
+    (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "f")))
     [eLit (PInt 5)]
 
-
-
--- 
+--
 --  $if1(z, f, $v1, $v2) = if z > 5 then f($v1, $v2) else f($v1, $v2)
 --
 --  ($if1)(z, f, 5)
 --
-expx0_ = 
-  ( eCall (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
-    [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)]
-  , Program (Map.fromList 
-      [ ( "$if1" 
-        , Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) 
-        ( tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) 
-              (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]) 
-              (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]))
-         )
-      ])
+expx0_ =
+  ( eCall
+      (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
+      [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)]
+  , Program
+      ( Map.fromList
+          [
+            ( "$if1"
+            , Function
+                (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
+                ( tInt
+                , eIf
+                    (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5)))
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                )
+            )
+          ]
+      )
   )
 
-
--- 
+--
 --  (if z > 5 then f else g)(5)
 --
-expx01 = 
-  eApp (tInt ~> tInt)
-    (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g"))) 
+expx01 =
+  eApp
+    (tInt ~> tInt)
+    (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g")))
     [eLit (PInt 5)]
 
-
-expx01_ = 
-  ( eCall (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
-    [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)]
-  , Program (Map.fromList 
-      [ ( "$if1" 
-        , Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) 
-          ( tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) 
-                (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]) 
-                (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]))
-           )
-        , ( "g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1))
-          )
-      ])
+expx01_ =
+  ( eCall
+      (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
+      [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)]
+  , Program
+      ( Map.fromList
+          [
+            ( "$if1"
+            , Function
+                (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
+                ( tInt
+                , eIf
+                    (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5)))
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                    (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                )
+            )
+          , ("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
+          ]
+      )
   )
 
-
-
-
--- 
+--
 --  (lam(x) => f)(5)
 --
-expx8 = 
-  eApp (tInt ~> tInt)
+expx8 =
+  eApp
+    (tInt ~> tInt)
     (eLam () [(tInt, "x")] (eVar (tInt ~> tInt, "f")))
     [eLit (PInt 5)]
 
--- 
+--
 --  $lam1(f, x, $v1) = [f($v1)]
 --
 --  [$lam1(f, 5)]
 --
-expx8_ = 
-  ( eCall ((tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$lam1")
-    [eVar (tInt ~> tInt, "f"), eLit (PInt 5)]
-  , Program (Map.fromList 
-      [ ( "$lam1" 
-        , Function (fromList [(tInt ~> tInt, "f"), (tInt, "x"), (tInt, "$v1")]) (tInt, eCall (tInt ~> tInt, "f") [eVar (tInt, "$v1")] ) )
-      ])
-    )
-
-
-
+expx8_ =
+  ( eCall
+      ((tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$lam1")
+      [eVar (tInt ~> tInt, "f"), eLit (PInt 5)]
+  , Program
+      ( Map.fromList
+          [
+            ( "$lam1"
+            , Function (fromList [(tInt ~> tInt, "f"), (tInt, "x"), (tInt, "$v1")]) (tInt, eCall (tInt ~> tInt, "f") [eVar (tInt, "$v1")])
+            )
+          ]
+      )
+  )
 
 -- --  let
 -- --    h =
 -- --      lam(r) =>
 -- --        r(4)
 -- --    in
--- --      let 
+-- --      let
 -- --        f =
 -- --          lam[x, y] => (z + x) + y
 -- --        in
--- --          let 
+-- --          let
 -- --            q =
 -- --              (if z > 5 then f else g)(5)
 -- --            in
 -- --              q(3) + h(q)
 -- --
-exp1 = 
+exp1 =
   eLet
     ((tInt ~> tInt) ~> tInt, "h")
-    (eLam () [(tInt ~> tInt, "r")]
-      (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)]))
-    (eLet
-      (tInt ~> tInt ~> tInt, "f")
-      (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
-      (eLet
-        (tInt ~> tInt, "q")
-        (eApp (tInt ~> tInt)
-          (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g"))) 
-          [eLit (PInt 5)])
-        (eOp2 oAddInt 
-          (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)]) 
-          (eApp tInt (eVar ((tInt ~> tInt) ~> tInt, "h")) [eVar (tInt ~> tInt, "q")]))
-      )
+    ( eLam
+        ()
+        [(tInt ~> tInt, "r")]
+        (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)])
+    )
+    ( eLet
+        (tInt ~> tInt ~> tInt, "f")
+        (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
+        ( eLet
+            (tInt ~> tInt, "q")
+            ( eApp
+                (tInt ~> tInt)
+                (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g")))
+                [eLit (PInt 5)]
+            )
+            ( eOp2
+                oAddInt
+                (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
+                (eApp tInt (eVar ((tInt ~> tInt) ~> tInt, "h")) [eVar (tInt ~> tInt, "q")])
+            )
+        )
     )
 
 -- --  $lam1(r) = r(4)
@@ -1225,40 +1258,43 @@ exp1 =
 -- --  let
 -- --    h = [$lam1]
 -- --    in
--- --      let 
+-- --      let
 -- --        f = [$lam2(z)]
 -- --        in
--- --          let 
+-- --          let
 -- --            q =
 -- --              [$if3(z, f, 5)]
 -- --            in
 -- --              q(3) + h(q)
 -- --
-exp1_ = 
+exp1_ =
   ( eLet
-    ((tInt ~> tInt) ~> tInt, "h")
-    (eCall ((tInt ~> tInt) ~> tInt, "$lam1") [])
-    (eLet
-      (tInt ~> tInt ~> tInt, "f")
-      (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam2") [eVar (tInt, "z")])
-      (eLet
-        (tInt ~> tInt, "q")
-          (eCall (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if3") [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)])
-        (eOp2 oAddInt 
-          (eCall (tInt ~> tInt, "q") [eLit (PInt 3)]) 
-          (eCall ((tInt ~> tInt) ~> tInt, "h") [eVar (tInt ~> tInt, "q")]))
+      ((tInt ~> tInt) ~> tInt, "h")
+      (eCall ((tInt ~> tInt) ~> tInt, "$lam1") [])
+      ( eLet
+          (tInt ~> tInt ~> tInt, "f")
+          (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam2") [eVar (tInt, "z")])
+          ( eLet
+              (tInt ~> tInt, "q")
+              (eCall (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if3") [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)])
+              ( eOp2
+                  oAddInt
+                  (eCall (tInt ~> tInt, "q") [eLit (PInt 3)])
+                  (eCall ((tInt ~> tInt) ~> tInt, "h") [eVar (tInt ~> tInt, "q")])
+              )
+          )
       )
-    )
-  , Program (Map.fromList 
-      [ ( "$if3" , Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]) (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])) ) 
-      , ( "$lam1" , Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]) )
-      , ( "$lam2" , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
-      , ( "g" , Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
-      ])
+  , Program
+      ( Map.fromList
+          [ ("$if3", Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]) (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])))
+          , ("$lam1", Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
+          , ("$lam2", Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
+          , ("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
+          ]
+      )
   )
 
-
--- -- 
+-- --
 -- --  let
 -- --    fact =
 -- --      lam(n) =>
@@ -1268,23 +1304,32 @@ exp1_ =
 -- --    in
 -- --      fact(5)
 -- --
-expx9 = 
+expx9 =
   eLet
     (tInt ~> tInt, "fact")
-    (eLam () [(tInt, "n")] 
-      (eIf
-        (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
-        (eLit (PInt 1))
-        (eOp2 oMulInt (eVar (tInt, "n")) (eApp 
-          tInt
-          (eVar (tInt ~> tInt, "fact"))
-          [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+    ( eLam
+        ()
+        [(tInt, "n")]
+        ( eIf
+            (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+            (eLit (PInt 1))
+            ( eOp2
+                oMulInt
+                (eVar (tInt, "n"))
+                ( eApp
+                    tInt
+                    (eVar (tInt ~> tInt, "fact"))
+                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]
+                )
+            )
+        )
+    )
     (eApp tInt (eVar (tInt ~> tInt, "fact")) [eLit (PInt 5)])
-    
--- 
--- 
--- -- 
--- --  $lam1(fact, n) = 
+
+--
+--
+-- --
+-- --  $lam1(fact, n) =
 -- --        if n == 0
 -- --          then 1
 -- --          else n * fact(n - 1)
@@ -1295,23 +1340,34 @@ expx9 =
 -- --    in
 -- --      fact(5)
 -- --
-expx9_ = 
+expx9_ =
   ( eLet
-    (tInt ~> tInt, "fact") (eCall ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1") [eVar (tInt ~> tInt, "fact")])
-    (eCall (tInt ~> tInt, "fact") [eLit (PInt 5)])
-  , Program (Map.fromList 
-      [ ( "$lam1" , Function (fromList [(tInt ~> tInt, "fact"), (tInt, "n")]) (tInt, 
-              eIf
-                (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
-                (eLit (PInt 1))
-                (eOp2 oMulInt (eVar (tInt, "n")) (eCall
-                  (tInt ~> tInt, "fact")
-                  [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))])))) 
-      ])
+      (tInt ~> tInt, "fact")
+      (eCall ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1") [eVar (tInt ~> tInt, "fact")])
+      (eCall (tInt ~> tInt, "fact") [eLit (PInt 5)])
+  , Program
+      ( Map.fromList
+          [
+            ( "$lam1"
+            , Function
+                (fromList [(tInt ~> tInt, "fact"), (tInt, "n")])
+                ( tInt
+                , eIf
+                    (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+                    (eLit (PInt 1))
+                    ( eOp2
+                        oMulInt
+                        (eVar (tInt, "n"))
+                        ( eCall
+                            (tInt ~> tInt, "fact")
+                            [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]
+                        )
+                    )
+                )
+            )
+          ]
+      )
   )
-
-
-
 
 -- --  $f1(r) = r(4)
 -- --  $f2(z, x, y) => (z + x) + y
@@ -1319,20 +1375,20 @@ expx9_ =
 -- --  let
 -- --    h = $f1
 -- --    in
--- --      let 
+-- --      let
 -- --        f = $f2(z)
 -- --        in
--- --          let 
+-- --          let
 -- --            q =
 -- --              (if z > 5 then f else g)(5)
 -- --            in
 -- --              q(3) + h(q)
 -- --
--- 
--- 
--- 
--- -- $f1(r) = r(4) 
--- -- $f2(z, x, y) = (z + x) + y 
+--
+--
+--
+-- -- $f1(r) = r(4)
+-- -- $f2(z, x, y) = (z + x) + y
 -- -- $f3(z, f, v1, v2) = if z > 5 then f(v1, v2) else g(v1, v2)
 -- --
 -- -- let
@@ -1348,7 +1404,7 @@ expx9_ =
 -- --             [$f3(z, f, 5)]
 -- --           in
 -- --             [q(3)] + [h(q)]
--- exp2 = 
+-- exp2 =
 --   undefined
 -- --  eLet
 -- --    ((tInt ~> tInt) ~> tInt, "h")
@@ -1360,71 +1416,74 @@ expx9_ =
 -- --      (eLet
 -- --        (tInt ~> tInt, "q")
 -- --        (eApp (tInt ~> tInt)
--- --          (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g"))) 
+-- --          (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "g")))
 -- --          [eLit (PInt 5)])
--- --        (eOp2 oAddInt 
--- --          (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)]) 
+-- --        (eOp2 oAddInt
+-- --          (eApp tInt (eVar (tInt ~> tInt, "q")) [eLit (PInt 3)])
 -- --          (eApp tInt (eVar ((tInt ~> tInt) ~> tInt, "h")) [eVar (tInt ~> tInt, "q")]))
 -- --      )
 -- --    )
--- 
--- 
+--
+--
 -- -- let
 -- --   xs = Cons(f(1), Nil())
--- -- 
+-- --
 -- -- match xs {
 -- --   | Cons(y, ys) => y
 -- -- }
 -- --
 -- --
--- --  f(xs) = 
+-- --  f(xs) =
 -- --    match xs with
 -- --      Cons(y, ys) => y(2, 3)
 -- --
 -- --  g() =
 -- --    let
--- --      zs = 
+-- --      zs =
 -- --        Cons( (lam(x, y, z) => 3)(1)
 -- --            , Nil()
 -- --            )
 -- --      in
 -- --        f(zs, zs)
 -- --
--- 
--- 
--- 
--- 
--- 
--- t123 = 
+--
+--
+--
+--
+--
+-- t123 =
 --   runState (beebop exp1) (1, emptyProgram)
--- 
+--
 
-liftDef :: (MonadState (Int, Program MonoType Ast) m) 
-    => Name 
-    -> [Label MonoType]
-    -> [Label MonoType]
-    -> Ast
-    -> m Ast
+liftDef ::
+  (MonadState (Int, Program MonoType Ast) m) =>
+  Name ->
+  [Label MonoType] ->
+  [Label MonoType] ->
+  Ast ->
+  m Ast
 liftDef name vs args expr = do
   insertDef name def
   pure (eCall (typeOf def, name) (eVar <$> vs))
-  where
-    t = typeOf expr
-    as = vs <> args `without` [(t, name)]
-    def = Function (fromList as) (t, expr)
+ where
+  t = typeOf expr
+  as = vs <> args `without` [(t, name)]
+  def = Function (fromList as) (t, expr)
 
 appArgs :: [Ast] -> Ast -> Ast
-appArgs xs = 
-  project >>> (\case
-    ECall _ g ys ->
-      eCall g (ys <> xs)
-    EVar v ->
-      eCall v xs
-    e ->
-      error (show e))
+appArgs xs =
+  project
+    >>> ( \case
+            ECall _ g ys ->
+              eCall g (ys <> xs)
+            EVar v ->
+              eCall v xs
+            e ->
+              error (show e)
+        )
 
 extra :: MonoType -> [Label MonoType]
-extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int .. ]]
+extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int ..]]
 
 programDefs :: (MonadState (Int, Program MonoType Ast) m) => m [Label MonoType]
 programDefs = do
@@ -1440,41 +1499,37 @@ bernie =
       defs <- programDefs
       let vs = freeVars e1 `without` (args <> defs)
           ys = extra (typeOf e1)
-      liftDef name vs (args <> ys) $ if null ys
-         then e1
-         else appArgs (eVar <$> ys) e1
-
+      liftDef name vs (args <> ys) $
+        if null ys
+          then e1
+          else appArgs (eVar <$> ys) e1
     ECase expr1 clauses -> do
       e1 <- expr1
       cs <- traverse sequence clauses
       let t = typeOf (head (snd <$> cs))
       if isConT ArrT t
-        then do 
+        then do
           defs <- programDefs
           name <- uniqueName "$match"
           let vs = freeVars (eCase e1 cs) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
           liftDef name vs ys (eCase e1 (fmap (second app) cs))
-        else 
-          pure (eCase e1 cs)
-
+        else pure (eCase e1 cs)
     EIf expr1 expr2 expr3 -> do
       e1 <- expr1
       e2 <- expr2
       e3 <- expr3
       let t = typeOf e3
       if isConT ArrT t
-        then do 
+        then do
           defs <- programDefs
           name <- uniqueName "$if"
           let vs = nub (freeVars (eIf e1 e2 e3)) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
           liftDef name vs ys (eIf e1 (app e2) (app e3))
-        else 
-          pure (eIf e1 e2 e3)
-
+        else pure (eIf e1 e2 e3)
     EApp t fun args -> do
       f <- fun
       xs <- sequence args
@@ -1483,25 +1538,22 @@ bernie =
           pure (eCall g (ys <> xs))
         EVar v ->
           pure (eCall v xs)
-
     ELet var expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
       let t = typeOf e2
       if isConT ArrT t
-        then do 
+        then do
           defs <- programDefs
           name <- uniqueName "$let"
           let vs = nub (freeVars (eLet var e1 e2)) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
           liftDef name vs ys (eLet var e1 (app e2))
-        else 
-          pure (eLet var e1 e2)
-
+        else pure (eLet var e1 e2)
     EField fs expr1 expr2 -> do
-      e1 <- expr1 
-      e2 <- expr2 
+      e1 <- expr1
+      e2 <- expr2
       let t = typeOf e2
       if isConT ArrT t
         then do
@@ -1511,18 +1563,14 @@ bernie =
               ys = extra t
               app = appArgs (eVar <$> ys)
           liftDef name vs ys (eField fs e1 (app e2))
-        else 
-          pure (eField fs e1 e2)
-
-    ECon con -> 
+        else pure (eField fs e1 e2)
+    ECon con ->
       pure (eCall con [])
-
     EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
     EVar v -> pure (eVar v)
     ELit l -> pure (eLit l)
     ERow row -> eRow <$> mapRowM bernie row
-
-    expr -> do 
+    expr -> do
       e <- sequence expr
       error (show e)
 
@@ -1539,7 +1587,7 @@ bernie =
 -- ----findCallTarget name = do
 -- ----  (_, Program box) <- get
 -- ----  case Map.lookup name box of
--- ----    Just zz -> 
+-- ----    Just zz ->
 -- ----      pure (typeOf zz, name)
 -- ----    _ -> do
 -- ----      liftDef <- ask
@@ -1549,14 +1597,14 @@ bernie =
 -- ----        _ ->
 -- ----          error ("FOOOO " <> show name)
 -- --
--- --findCallTarget2 
--- --  :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) 
--- --  => Name 
+-- --findCallTarget2
+-- --  :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m)
+-- --  => Name
 -- --  -> m (Name, Definition Type Ast)
 -- --findCallTarget2 name = do
 -- --  (_, Program box) <- get
 -- --  case Map.lookup name box of
--- --    Just zz -> 
+-- --    Just zz ->
 -- --      pure (name, zz)
 -- --    _ -> do
 -- --      liftDef <- ask
@@ -1567,7 +1615,7 @@ bernie =
 -- --          error ("FOOOO " <> show name)
 -- --
 -- --perry :: (MonadReader (Environment (Label Type)) m, MonadState (Int, Program Ast) m) => Ast -> m Ast
--- --perry = 
+-- --perry =
 -- --  cata $ \case
 -- --
 -- --    ECase _ _ ->
@@ -1606,7 +1654,7 @@ bernie =
 -- --      --traceShowM "^^^^"
 -- --      if t0 == t1
 -- --         then pure (eCall (t0, mmm) as)
--- --         else 
+-- --         else
 -- --           case runTypeChecker' (freeIndex [t0, t1]) mempty (unify t0 t1) of
 -- --                Right sub
 -- --                  | sub /= mempty -> do
@@ -1615,13 +1663,13 @@ bernie =
 -- --                    pure (eCall (t0, name) as)
 -- --                    --insertDef name =<< preprocess (fmap xx123 (apply sub def))
 -- --                    --pure (eApp t (eVar (t1, name)) as)
--- --                _ -> 
+-- --                _ ->
 -- --                  pure (eCall (t0, mmm) as)
 -- ----                  undefined -- pure (eApp t f as)
 -- --
 -- ----      case Env.lookup fun abc of
 -- ----        Just xx ->
--- ----        _ -> 
+-- ----        _ ->
 -- ----          undefined
 -- --
 -- --    e -> do
@@ -1651,10 +1699,10 @@ t0t12 = typeCheck_ exmp30_0 == exmp30_1
 t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))) == PrimValue (PInt 2)
 t0t14 = typeCheck_ exmp31_0 == exmp31_1
 t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == PrimValue (PInt 2)
-t0t16 = PrimValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)" 
+t0t16 = PrimValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)"
 t0t17 = typeCheck_ "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" == exmp34_1
-t0t18 = PrimValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" 
-t0t19 = PrimValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)" 
+t0t18 = PrimValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)"
+t0t19 = PrimValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)"
 t0t20 = PrimValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
 t0t21 = PrimValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
 t0t22 = PrimValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
@@ -1673,29 +1721,51 @@ t0t34 = PrimValue (PInt 2) == baz127 "let elemAt1 = lam(xs) => match xs { | Cons
 t0t35 = PrimValue (PFloat 15) == baz127 "let x = 5.0f * 3.0f in x"
 t0t36 = PrimValue (PInt 1) == baz127 "(lam(f) => lam(y) => f(y))(lam(x) => x + 1, 0)"
 t0t37 = PrimValue (PInt 5) == baz127 "let g = (lam(f) => lam(y) => f(y))(lam(x) => x + 1) in g(4)"
- 
 
+t0ta =
+  t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8
+    && t0t9
+    && t0t10
+    && t0t11
+    && t0t12
+    && t0t13
+    && t0t14
+    && t0t15
+    && t0t16
+    && t0t17
+    && t0t18
+    && t0t19
+    && t0t20
+    && t0t21
+    && t0t22
+    && t0t23
+    && t0t24
+    && t0t25
+    && t0t26
+    && t0t27
+    && t0t28
+    && t0t29
+    && t0t30
+    && t0t31
+    && t0t32
+    && t0t33
+    && t0t34
+    && t0t35
+    && t0t36
+    && t0t37
 
-t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8 
-    && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
-    && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
-    && t0t25 && t0t26 && t0t27 && t0t28 && t0t29 && t0t30 && t0t31 && t0t32
-    && t0t33 && t0t34 && t0t35 && t0t36 && t0t37
-
-
-typeCheck_ :: Text -> TypedExpr 
-typeCheck_ a = 
+typeCheck_ :: Text -> TypedExpr
+typeCheck_ a =
   case baz124 r of
     Right q -> q
     Left e -> error (show e)
-  where
-    Right r = runParser expr "" a 
+ where
+  Right r = runParser expr "" a
 
 baz124 :: Expr t () () Void -> Either TypeError TypedExpr
 baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
-  where
-    env = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
-
+ where
+  env = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
 
 --    runTypeChecker te $ do
 --        x <- tagExpr e
@@ -1704,57 +1774,66 @@ baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
 --        traceShowM s
 --        applySubstitution y
 
-baz127 :: Text -> Value 
+baz127 :: Text -> Value
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
 baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
-  where Right q = let Right r = runParser expr "" p in baz124 r 
+ where
+  Right q = let Right r = runParser expr "" p in baz124 r
 
--- --baz127b :: Text -> Value 
+-- --baz127b :: Text -> Value
 -- baz127b p = (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
---   where Right q = let Right r = runParser expr "" p in baz124 r 
--- 
--- 
+--   where Right q = let Right r = runParser expr "" p in baz124 r
+--
+--
 -- --baz128 :: Text -> Value
 -- --baz128 p = second snd (runState (perry2 =<< bernie q) (1, emptyProgram))
 -- baz128 p = second snd (runState (bernie q) (1, emptyProgram))
---   where Right q = let Right r = runParser expr "" p in baz124 r 
--- 
--- 
--- 
+--   where Right q = let Right r = runParser expr "" p in baz124 r
+--
+--
+--
 expyx_ =
   ( eLet
       (tInt, "z")
       (eLit (PInt 123))
-        (eLet
-        (tInt, "f")
-        (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z"), eLit (PInt 1), eLit (PInt 1)])
-        (eVar (tInt, "f")))
-  , Program (Map.fromList 
-      [ ( "$lam1" 
-        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
-      ])
+      ( eLet
+          (tInt, "f")
+          (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z"), eLit (PInt 1), eLit (PInt 1)])
+          (eVar (tInt, "f"))
+      )
+  , Program
+      ( Map.fromList
+          [
+            ( "$lam1"
+            , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
+            )
+          ]
+      )
   )
-
 
 expyy_ =
   ( eLet
       (tInt, "z")
       (eLit (PInt 123))
-        (eLet
-        (tInt ~> tInt ~> tInt, "f")
-        (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
-        (eCall (tInt ~> tInt ~> tInt, "f") [eLit (PInt 1), eLit (PInt 1)]))
-  , Program (Map.fromList 
-      [ ( "$lam1" 
-        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
-      ])
+      ( eLet
+          (tInt ~> tInt ~> tInt, "f")
+          (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
+          (eCall (tInt ~> tInt ~> tInt, "f") [eLit (PInt 1), eLit (PInt 1)])
+      )
+  , Program
+      ( Map.fromList
+          [
+            ( "$lam1"
+            , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
+            )
+          ]
+      )
   )
-
 
 exmp29_0 :: Text
 exmp29_0 = "let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1) }"
 
---  let 
+--  let
 --    r =
 --      Cons
 --        ( lam(x) => x + 1
@@ -1769,24 +1848,30 @@ exmp29_0 = "let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f(1
 exmp29_1 =
   eLet
     (tCon "List" [tInt ~> tInt], "r")
-    (eApp (tCon "List" [tInt ~> tInt]) (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")) 
-      [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
-      , eCon (tCon "List" [tInt ~> tInt], "Nil") 
-      ])
-    (eCase 
-      (eVar (tCon "List" [tInt ~> tInt], "r"))
-      [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
-        , (tInt ~> tInt, "f")
-        , (tCon "List" [tInt ~> tInt], "ys")
-        ], eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]
-        )
-      ])
-
+    ( eApp
+        (tCon "List" [tInt ~> tInt])
+        (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons"))
+        [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+        , eCon (tCon "List" [tInt ~> tInt], "Nil")
+        ]
+    )
+    ( eCase
+        (eVar (tCon "List" [tInt ~> tInt], "r"))
+        [
+          (
+            [ ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+            , (tInt ~> tInt, "f")
+            , (tCon "List" [tInt ~> tInt], "ys")
+            ]
+          , eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)]
+          )
+        ]
+    )
 
 exmp30_0 :: Text
 exmp30_0 = "let r = Cons(lam(x) => x + 1, Nil()) in (match r { Cons(f, ys) => f })(1)"
 
---  let 
+--  let
 --    r =
 --      Cons
 --        ( lam(x) => x + 1
@@ -1801,21 +1886,29 @@ exmp30_0 = "let r = Cons(lam(x) => x + 1, Nil()) in (match r { Cons(f, ys) => f 
 exmp30_1 =
   eLet
     (tCon "List" [tInt ~> tInt], "r")
-    (eApp (tCon "List" [tInt ~> tInt]) (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")) 
-      [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
-      , eCon (tCon "List" [tInt ~> tInt], "Nil") 
-      ])
-    (eApp tInt
-      (eCase 
-        (eVar (tCon "List" [tInt ~> tInt], "r"))
-        [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
-          , (tInt ~> tInt, "f")
-          , (tCon "List" [tInt ~> tInt], "ys")
-          ], eVar (tInt ~> tInt, "f")
-          )
-        ])
-      [eLit (PInt 1)])
-
+    ( eApp
+        (tCon "List" [tInt ~> tInt])
+        (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons"))
+        [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+        , eCon (tCon "List" [tInt ~> tInt], "Nil")
+        ]
+    )
+    ( eApp
+        tInt
+        ( eCase
+            (eVar (tCon "List" [tInt ~> tInt], "r"))
+            [
+              (
+                [ ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+                , (tInt ~> tInt, "f")
+                , (tCon "List" [tInt ~> tInt], "ys")
+                ]
+              , eVar (tInt ~> tInt, "f")
+              )
+            ]
+        )
+        [eLit (PInt 1)]
+    )
 
 exmp31_0 :: Text
 exmp31_0 = "(let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f })(1)"
@@ -1825,28 +1918,28 @@ exmp31_0 = "(let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f 
 -- --
 -- exmp31_4 =
 --   eApp tInt
---     (eLet 
+--     (eLet
 --       (tInt, "r")
 --       (eLit (PInt 4))
 --       (eLam () [(tInt, "x")] (eVar (tInt, "x"))))
 --     [eLit (PInt 1)]
--- 
--- 
+--
+--
 -- --  [$let3(1)]
 -- --
 -- --  $lam1(x) = x + 1
 -- --  $let3($v1) = let r = Cons([$lam1], [Nil]) [$match2()]
 -- --
--- 
--- 
+--
+--
 -- --  $lam1(x) = x + 1
 -- --  $let3($v1) = let r = Cons([$lam1()], [Nil()]) in [$match2(r($v1), $v1)]
 -- --  $let3($v1) = let r = Cons([$lam1()], [Nil()]) in [$match2(r, $v1)]
 -- --
 -- --  [$let3(1)]
--- 
+--
 
---  (let 
+--  (let
 --    r =
 --      Cons
 --        ( lam(x) => x + 1
@@ -1859,33 +1952,41 @@ exmp31_0 = "(let r = Cons(lam(x) => x + 1, Nil()) in match r { Cons(f, ys) => f 
 --      })(1)
 --
 exmp31_1 =
-  eApp tInt
-    (eLet
-      (tCon "List" [tInt ~> tInt], "r")
-      (eApp (tCon "List" [tInt ~> tInt]) (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")) 
-        [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
-        , eCon (tCon "List" [tInt ~> tInt], "Nil") 
-        ])
-        (eCase 
-          (eVar (tCon "List" [tInt ~> tInt], "r"))
-          [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
-            , (tInt ~> tInt, "f")
-            , (tCon "List" [tInt ~> tInt], "ys")
-            ], eVar (tInt ~> tInt, "f")
-            )
-          ]))
-        [eLit (PInt 1)]
+  eApp
+    tInt
+    ( eLet
+        (tCon "List" [tInt ~> tInt], "r")
+        ( eApp
+            (tCon "List" [tInt ~> tInt])
+            (eCon ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons"))
+            [ eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+            , eCon (tCon "List" [tInt ~> tInt], "Nil")
+            ]
+        )
+        ( eCase
+            (eVar (tCon "List" [tInt ~> tInt], "r"))
+            [
+              (
+                [ ((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
+                , (tInt ~> tInt, "f")
+                , (tCon "List" [tInt ~> tInt], "ys")
+                ]
+              , eVar (tInt ~> tInt, "f")
+              )
+            ]
+        )
+    )
+    [eLit (PInt 1)]
 
-
--- 
--- 
+--
+--
 -- --  (match r {
 -- --    Cons(f, ys) =>
 -- --      f
 -- --  })(1)
 -- exmp32_1 =
 --   eApp tInt
---     (eCase 
+--     (eCase
 --           (eVar (tCon "List" [tInt ~> tInt], "r"))
 --           [ ( [((tInt ~> tInt) ~> tCon "List" [tInt ~> tInt] ~> tCon "List" [tInt ~> tInt], "Cons")
 --             , (tInt ~> tInt, "f")
@@ -1894,58 +1995,60 @@ exmp31_1 =
 --             )
 --           ])
 --         [eLit (PInt 1)]
--- 
--- 
+--
+--
 -- --
 -- --  let
 -- --    r =
 -- --      { a = lam(x) => x + 1 }
 -- --    in
--- --      field 
--- --        { a = f | q } = 
--- --          r 
--- --        in 
+-- --      field
+-- --        { a = f | q } =
+-- --          r
+-- --        in
 -- --          f
 -- --
 -- exmp33_1 =
 --   eLet
 --     (tRow (rExt "a" (tInt ~> tInt) rNil), "r")
 --     (eRow (rExt "a" (eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))) rNil))
---     (eField [((tInt ~> tInt) ~> tRow rNil ~> tRow (rExt "a" (tInt ~> tInt) rNil), "a"), (tInt ~> tInt, "f"), (tRow rNil, "q")] 
---         (eVar (tRow (rExt "a" (tInt ~> tInt) rNil), "r")) 
+--     (eField [((tInt ~> tInt) ~> tRow rNil ~> tRow (rExt "a" (tInt ~> tInt) rNil), "a"), (tInt ~> tInt, "f"), (tRow rNil, "q")]
+--         (eVar (tRow (rExt "a" (tInt ~> tInt) rNil), "r"))
 --         (eVar (tInt ~> tInt, "f")))
--- 
--- 
+--
+--
 --  (let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)
 --
 --  (let
 --    r =
 --      { a = lam(x) => x + 1 }
 --    in
---      field 
---        { a = f | q } = 
---          r 
---        in 
+--      field
+--        { a = f | q } =
+--          r
+--        in
 --          f)(5)
 --
 exmp34_1 =
-  eApp 
+  eApp
     tInt
-    (eLet
-      (tRow (rExt "a" (tInt ~> tInt) rNil), "r")
-      (eRow (rExt "a" (eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))) rNil))
-      (eField [((tInt ~> tInt) ~> tRow rNil ~> tRow (rExt "a" (tInt ~> tInt) rNil), "a"), (tInt ~> tInt, "f"), (tRow rNil, "q")] 
-          (eVar (tRow (rExt "a" (tInt ~> tInt) rNil), "r")) 
-          (eVar (tInt ~> tInt, "f"))))
+    ( eLet
+        (tRow (rExt "a" (tInt ~> tInt) rNil), "r")
+        (eRow (rExt "a" (eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))) rNil))
+        ( eField
+            [((tInt ~> tInt) ~> tRow rNil ~> tRow (rExt "a" (tInt ~> tInt) rNil), "a"), (tInt ~> tInt, "f"), (tRow rNil, "q")]
+            (eVar (tRow (rExt "a" (tInt ~> tInt) rNil), "r"))
+            (eVar (tInt ~> tInt, "f"))
+        )
+    )
     [eLit (PInt 5)]
-
 
 -- --  let
 -- --    r =
 -- --      { price = 5 }
 -- --    in
--- --      field 
--- --        { quantity = q | a } = 
+-- --      field
+-- --        { quantity = q | a } =
 -- --          r
 -- --        in
 -- --          5

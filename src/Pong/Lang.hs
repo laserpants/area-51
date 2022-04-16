@@ -9,13 +9,13 @@ import Control.Newtype.Generics
 import Data.Char (isUpper)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Name, Map, Void, (<<<), (>>>), (<$$>), (!), cata, para, project, embed, embed1, embed2, embed3, embed4, without)
-import Pong.Util.Env (Environment(..))
-import qualified Data.Map.Strict as Map
-import qualified Data.Text as Text
+import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, (!), (<$$>), (<<<), (>>>))
+import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -51,50 +51,54 @@ foldRow1 = foldRow rNil
 
 unwindRow :: Row e r -> (Map Name [e], Row e r)
 unwindRow row = (foldr (uncurry (Map.insertWith (<>))) mempty fields, leaf)
-  where
-    fields =
-      (`para` row) $ \case
-        RExt label ty (_, rest) -> (label, [ty]) : rest
-        _ -> []
-    leaf =
-      (`cata` row) $ \case
-        RExt _ _ r -> r
-        t -> embed t
+ where
+  fields =
+    (`para` row) $ \case
+      RExt label ty (_, rest) -> (label, [ty]) : rest
+      _ -> []
+  leaf =
+    (`cata` row) $ \case
+      RExt _ _ r -> r
+      t -> embed t
 
 splitRow :: Name -> Row e r -> (e, Row e r)
 splitRow name row =
   ( e
   , normalizeRow
-      (foldRow k $
-       case es of
-         [] -> Map.delete name m
-         _ -> Map.insert name es m))
-  where
-    Just (e:es) = Map.lookup name m
-    (m, k) = unwindRow row
+      ( foldRow k $
+          case es of
+            [] -> Map.delete name m
+            _ -> Map.insert name es m
+      )
+  )
+ where
+  Just (e : es) = Map.lookup name m
+  (m, k) = unwindRow row
 
 class FreeIn f where
   free :: f -> [Int]
 
 instance FreeIn (Type Int g) where
   free =
-    nub <<<
-    cata
-      (\case
-         TVar n -> [n]
-         TCon _ ts -> concat ts
-         TArr t1 t2 -> t1 <> t2
-         TRow r -> free r
-         _ -> [])
+    nub
+      <<< cata
+        ( \case
+            TVar n -> [n]
+            TCon _ ts -> concat ts
+            TArr t1 t2 -> t1 <> t2
+            TRow r -> free r
+            _ -> []
+        )
 
 instance FreeIn (Row (Type Int g) Int) where
   free =
-    nub <<<
-    cata 
-      (\case
-        RVar v -> [v]
-        RExt _ expr r -> free expr <> r
-        _ -> [])
+    nub
+      <<< cata
+        ( \case
+            RVar v -> [v]
+            RExt _ expr r -> free expr <> r
+            _ -> []
+        )
 
 instance (FreeIn f) => FreeIn [f] where
   free = concatMap free
@@ -114,7 +118,7 @@ instance Typed Void where
   typeOf _ = tCon "Void" []
 
 instance (Typed g) => Typed (Type Int g) where
-  typeOf = 
+  typeOf =
     cata $ \case
       TUnit -> tUnit
       TBool -> tBool
@@ -127,20 +131,23 @@ instance (Typed g) => Typed (Type Int g) where
       TArr t1 t2 -> tArr t1 t2
       TVar v -> tVar v
       TGen g -> typeOf g
-      TRow row -> tRow ((`cata` row) $ \case
-        RNil -> rNil
-        RVar v -> rVar v
-        RExt name elem r -> rExt name (typeOf elem) r)
+      TRow row ->
+        tRow
+          ( (`cata` row) $ \case
+              RNil -> rNil
+              RVar v -> rVar v
+              RExt name elem r -> rExt name (typeOf elem) r
+          )
 
 instance Typed Prim where
   typeOf =
     \case
-      PBool {} -> tBool
-      PInt {} -> tInt
-      PFloat {} -> tFloat
-      PDouble {} -> tDouble
-      PChar {} -> tChar
-      PString {} -> tString
+      PBool{} -> tBool
+      PInt{} -> tInt
+      PFloat{} -> tFloat
+      PDouble{} -> tDouble
+      PChar{} -> tChar
+      PString{} -> tString
       PUnit -> tUnit
 
 instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
@@ -187,34 +194,35 @@ freeIndex ts =
 isConT :: ConT -> Type v g -> Bool
 isConT con =
   project >>> \case
-    TArr {}
+    TArr{}
       | ArrT == con -> True
-    TVar {}
+    TVar{}
       | VarT == con -> True
-    TRow {}
+    TRow{}
       | RowT == con -> True
     _ -> False
 
 isConE :: ConE -> Expr t a0 a1 a2 -> Bool
 isConE con =
   project >>> \case
-    EVar {}
+    EVar{}
       | VarE == con -> True
-    ELit {}
+    ELit{}
       | LitE == con -> True
-    ELam {}
+    ELam{}
       | LamE == con -> True
-    ERow {}
+    ERow{}
       | RowE == con -> True
     _ -> False
 
 unwindType :: (Typed t) => t -> [Type Int g]
 unwindType =
-  typeOf >>>
-  para
-    (\case
-       TArr (t, _) (_, u) -> t : u
-       t -> [embed (fst <$> t)])
+  typeOf
+    >>> para
+      ( \case
+          TArr (t, _) (_, u) -> t : u
+          t -> [embed (fst <$> t)]
+      )
 
 {-# INLINE returnType #-}
 returnType :: (Typed t) => t -> Type Int g
@@ -226,34 +234,40 @@ argTypes = init <<< unwindType
 
 freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
 freeVars =
-  nub <<< cata (\case
-    EVar v 
-      | isUpper (Text.head (snd v)) -> []
-      | otherwise -> [v]
-    ECon _ -> []
-    ELit _ -> []
-    EIf e1 e2 e3 -> e1 <> e2 <> e3
-    ELet bind e1 e2 -> (e1 <> e2) `without` [bind]
-    ELam _ args expr -> expr `without` args
-    EApp _ fun args -> fun <> concat args
-    ECall _ fun args 
-      | isUpper (Text.head (snd fun)) -> concat args
-      | otherwise -> fun : concat args
-    EOp1 _ e1 -> e1 
-    EOp2 _ e1 e2 -> e1 <> e2
-    ECase e1 cs -> e1 <> (cs >>= \(_:vs, expr) -> 
-      expr `without` vs)
-    ERow row ->
-      (`cata` row) $ \case
-        RNil -> []
-        RVar v -> [v]
-        RExt _ elem r -> freeVars elem <> r
-    EField (_:vs) e1 e2 -> e1 <> e2 `without` vs)
+  nub
+    <<< cata
+      ( \case
+          EVar v
+            | isUpper (Text.head (snd v)) -> []
+            | otherwise -> [v]
+          ECon _ -> []
+          ELit _ -> []
+          EIf e1 e2 e3 -> e1 <> e2 <> e3
+          ELet bind e1 e2 -> (e1 <> e2) `without` [bind]
+          ELam _ args expr -> expr `without` args
+          EApp _ fun args -> fun <> concat args
+          ECall _ fun args
+            | isUpper (Text.head (snd fun)) -> concat args
+            | otherwise -> fun : concat args
+          EOp1 _ e1 -> e1
+          EOp2 _ e1 e2 -> e1 <> e2
+          ECase e1 cs ->
+            e1
+              <> ( cs >>= \(_ : vs, expr) ->
+                    expr `without` vs
+                 )
+          ERow row ->
+            (`cata` row) $ \case
+              RNil -> []
+              RVar v -> [v]
+              RExt _ elem r -> freeVars elem <> r
+          EField (_ : vs) e1 e2 -> e1 <> e2 `without` vs
+      )
 
 fromPolyType :: Map Name MonoType -> Type Int Name -> MonoType
-fromPolyType vs = 
+fromPolyType vs =
   cata $ \case
-    TGen n -> 
+    TGen n ->
       case Map.lookup n vs of
         Nothing -> error "Implementation error"
         Just t -> t
@@ -269,28 +283,28 @@ fromPolyType vs =
     TVar v -> tVar v
     TRow row -> tRow (mapRow (fromPolyType vs) row)
 
-mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2 
+mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =
+  cata $ \case
+    EVar (t, v) -> eVar (f t, v)
+    ECon (t, c) -> eCon (f t, c)
+    ELit lit -> eLit lit
+    EIf e1 e2 e3 -> eIf e1 e2 e3
+    ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
+    ELam a args e1 -> eLam a (fmap (first f) args) e1
+    EApp t fun as -> eApp (f t) fun as
+    ECall a (t, fun) as -> embed3 ECall a (f t, fun) as
+    EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
+    EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
+    ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
+    ERow r -> eRow (mapRowTypes r)
+    EField fs e1 e2 -> eField (first f <$> fs) e1 e2
+ where
+  mapRowTypes =
     cata $ \case
-      EVar (t, v) -> eVar (f t, v)
-      ECon (t, c) -> eCon (f t, c)
-      ELit lit -> eLit lit
-      EIf e1 e2 e3 -> eIf e1 e2 e3
-      ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
-      ELam a args e1 -> eLam a (fmap (first f) args) e1
-      EApp t fun as -> eApp (f t) fun as
-      ECall a (t, fun) as -> embed3 ECall a (f t, fun) as
-      EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1 
-      EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
-      ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
-      ERow r -> eRow (mapRowTypes r)
-      EField fs e1 e2 -> eField  (first f <$> fs) e1 e2
-    where
-      mapRowTypes =
-        cata $ \case
-          RNil -> rNil
-          RVar (t, v) -> rVar (f t, v)
-          RExt name elem row -> rExt name (mapTypes f elem) row
+      RNil -> rNil
+      RVar (t, v) -> rVar (f t, v)
+      RExt name elem row -> rExt name (mapTypes f elem) row
 
 {-# INLINE foldType #-}
 foldType :: Type v g -> [Type v g] -> Type v g
@@ -314,10 +328,10 @@ emptyProgram = Program mempty
 -- modifyM :: (MonadState s m) => (s -> m s) -> m ()
 -- modifyM f = get >>= f >>= put
 
-modifyProgram 
-  :: (MonadState (s, Program t a) m)
-  => (Map Name (Definition t a) -> Map Name (Definition t a))
-  -> m ()
+modifyProgram ::
+  (MonadState (s, Program t a) m) =>
+  (Map Name (Definition t a) -> Map Name (Definition t a)) ->
+  m ()
 modifyProgram = modify . second . over Program
 
 ---- modifyProgramM ::
@@ -340,8 +354,8 @@ insertDef = modifyProgram <$$> Map.insert
 ---- --  => (Definition Type a -> Maybe (Definition Type a))
 ---- --  -> Name
 ---- --  -> m ()
----- --updateDef = modifyProgram <$$> Map.update 
----- 
+---- --updateDef = modifyProgram <$$> Map.update
+----
 ---- --forEachDef ::
 ---- --     (MonadState (Program a) m)
 ---- --  => (Definition Type a -> m (Definition Type a))

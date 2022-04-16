@@ -3,21 +3,24 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module Pong.Data where
 
 import Control.Newtype.Generics (Newtype)
 import Data.Map.Strict (Map)
 import GHC.Generics (Generic)
-import Pong.Util (Void, Name, Text, Fix(..), List1, deriveShow1, deriveEq1, deriveOrd1)
+import Pong.Util (Fix (..), List1, Name, Text, Void, deriveEq1, deriveOrd1, deriveShow1)
+
+{- ORMOLU_DISABLE -}
 
 data RowF e r a
   = RNil
   | RVar r
   | RExt Name e a
 
--- | A row is a sequence of labeled fields which encode the internal structure 
--- of records, both at the type and expression level. A row can be either open 
--- or closed. An open row is one that has a variable in the tail of the 
+-- | A row is a sequence of labeled fields which encode the internal structure
+-- of records, both at the type and expression level. A row can be either open
+-- or closed. An open row is one that has a variable in the tail of the
 -- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
 
@@ -61,7 +64,7 @@ data Op1
 
 -- | Binary operators
 data Op2
-  = OEq        -- ^ Equality 
+  = OEq        -- ^ Equality
   | OLt        -- ^ Less than
   | OGt        -- ^ Greater than
   | OLtE       -- ^ Less than or equal
@@ -73,7 +76,7 @@ data Op2
   | OLogicOr   -- ^ Logical OR
   | OLogicAnd  -- ^ Logical AND
 
--- | A label is a typed identifier 
+-- | A label is a typed identifier
 type Label t = (t, Name)
 
 data ExprF t a0 a1 a2 a
@@ -106,26 +109,28 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
+{- ORMOLU_ENABLE -}
+
 data ConE
   = VarE
   | LitE
   | LamE
   | RowE
 
-data Constructor t =
-  Constructor
-    { conName :: Name
-    , conFields :: [t]
-    }
+data Constructor t = Constructor
+  { conName :: Name
+  , conFields :: [t]
+  }
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)
   | Data Name [Constructor t]
+
 --   | Constant (Type, a)
 --   | External [Type] (Label Type)
 
-newtype Program t a =
-  Program (Map Name (Definition t a))
+newtype Program t a
+  = Program (Map Name (Definition t a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -201,11 +206,17 @@ deriving instance Eq Op2
 deriving instance Ord Op2
 
 -- Expr
-deriving instance (Show t, Show a0, Show a1, Show a2, Show a) => Show (ExprF t a0 a1 a2 a)
+deriving instance
+  (Show t, Show a0, Show a1, Show a2, Show a) =>
+  Show (ExprF t a0 a1 a2 a)
 
-deriving instance (Eq t, Eq a0, Eq a1, Eq a2, Eq a) => Eq (ExprF t a0 a1 a2 a)
+deriving instance
+  (Eq t, Eq a0, Eq a1, Eq a2, Eq a) =>
+  Eq (ExprF t a0 a1 a2 a)
 
-deriving instance (Ord t, Ord a0, Ord a1, Ord a2, Ord a) => Ord (ExprF t a0 a1 a2 a)
+deriving instance
+  (Ord t, Ord a0, Ord a1, Ord a2, Ord a) =>
+  Ord (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
 

@@ -11,15 +11,15 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Char (isUpper)
 import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment)
-import Text.Show.Deriving (deriveShow1)
-import qualified Data.Map.Strict as Map
-import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
+import Text.Show.Deriving (deriveShow1)
 
 data Value
   = PrimValue Prim
@@ -27,13 +27,13 @@ data Value
   | RowValue (Row Value Void)
   | Closure (Label MonoType) [Eval Value]
 
---data ValF a 
+--data ValF a
 --  = VLitVal Prim
 --  | VConVal Name [a]
 --  | VRowVal (Row Val Void)
 --  | VClosure (Label MonoType) [Eval a]
 --
---type Val = Fix ValF 
+--type Val = Fix ValF
 --
 --instance Show Val where
 --  show = project >>> (\case
@@ -53,7 +53,7 @@ data Value
 ----     Closure n as -> show ("Closure " <> show n <> ":" <> show (length as))
 
 instance Eq Value where
-  a == b = 
+  a == b =
     case (a, b) of
       (PrimValue p, PrimValue q) -> p == q
       (RowValue r, RowValue s) -> r == s
@@ -66,32 +66,33 @@ instance Show Value where
     Closure{} -> "<<function>>"
 
 ----instance Eq Value where
-----  a == b = 
+----  a == b =
 ----    case (project a, project b) of
 ----      (PrimValue p, PrimValue q) -> p == q
 ----      (RowValue r, RowValue s) -> r == s
 
-type ValueEnv = 
+type ValueEnv =
   ( Environment (Definition MonoType Ast)
-  , Environment Value 
+  , Environment Value
   )
 
-newtype Eval a = Eval { unEval :: Reader ValueEnv a } deriving
-  ( Functor
-  , Applicative
-  , Monad
-  , MonadReader ValueEnv 
-  )
+newtype Eval a = Eval {unEval :: Reader ValueEnv a}
+  deriving
+    ( Functor
+    , Applicative
+    , Monad
+    , MonadReader ValueEnv
+    )
 
-eval :: Ast -> Eval Value 
+eval :: Ast -> Eval Value
 eval =
   cata $ \case
     EVar (_, var) -> do
-       (_, env) <- ask
-       case Env.lookup var env of
-         Just val -> pure val
-         Nothing -> error ("Runtime error (1): " <> show var)
-    ELit prim -> 
+      (_, env) <- ask
+      case Env.lookup var env of
+        Just val -> pure val
+        Nothing -> error ("Runtime error (1): " <> show var)
+    ELit prim ->
       pure (PrimValue prim)
     EIf cond true false ->
       cond >>= \case
@@ -99,9 +100,9 @@ eval =
         PrimValue (PBool False) -> false
         _ -> error "Runtime error (2)"
     ELet (_, var) body expr -> do
-      val <- body 
+      val <- body
       localSecond (Env.insert var val) expr
-    ECall _ fun args -> 
+    ECall _ fun args ->
       evalCall fun args
     EOp2 (_, OLogicOr) a b ->
       a >>= \case
@@ -125,10 +126,10 @@ eval =
     EField field expr1 expr2 -> do
       e1 <- expr1
       evalRowCase (getRow e1) field expr2
- 
-evalCall :: Label MonoType -> [Eval Value] -> Eval Value 
-evalCall (t, fun) args 
-  | arity t > length args = 
+
+evalCall :: Label MonoType -> [Eval Value] -> Eval Value
+evalCall (t, fun) args
+  | arity t > length args =
     pure (Closure (t, fun) args)
   | arity t < length args =
     evalCall (t, fun) (take (arity t) args) >>= \case
@@ -136,7 +137,7 @@ evalCall (t, fun) args
   | isUpper (Text.head fun) = do
     as <- sequence args
     pure (ConValue fun as)
-  | otherwise = do 
+  | otherwise = do
     (env, vals) <- ask
     as <- sequence args
     case Env.lookup fun env of
@@ -145,24 +146,24 @@ evalCall (t, fun) args
         --error (show (zip (snd <$> toList vs) as))
         --traceShowM ">>>>>>>>>>>>>>>"
         localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
-        --localSecond (Env.inserts undefined) (eval body)
+      --localSecond (Env.inserts undefined) (eval body)
       _ ->
         case Env.lookup fun vals of
           Just (Closure g vs) -> evalCall g (vs <> args)
           _ -> error ("Runtime error (3): " <> show fun)
 
 ---- --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
----- --evalCall (t, fun) args 
+---- --evalCall (t, fun) args
 ---- --  | "i" == fun = do
 ---- --        (env, vals) <- ask
----- --        --let boo = Env.lookup fun vals 
+---- --        --let boo = Env.lookup fun vals
 ---- --        error (show vals)
 ---- --        --        Just (Closure g vs) -> do
 ---- --        --          error "XXX"
 ---- --        --          --evalCall g (vs <> args)
 ---- --        --        _ -> error ("Runtime error (r3) : " <> show fun)
 ---- --  | arity t > length args = pure (Closure (t, fun) args)
----- --  | isUpper (Text.head fun) = 
+---- --  | isUpper (Text.head fun) =
 ---- --      pure (ConValue fun args)
 ---- --  | otherwise = do
 ---- --      (env, vals) <- ask
@@ -186,19 +187,20 @@ evalRow =
     RExt name v row ->
       rExt name <$> eval v <*> row
 
-evalCase
-  :: Value
-  -> [([Label MonoType], Eval Value)]
-  -> Eval Value 
+evalCase ::
+  Value ->
+  [([Label MonoType], Eval Value)] ->
+  Eval Value
 evalCase _ [] = error "Runtime error: No matching clause"
-evalCase (ConValue name fields) (((_, con):vars, value):clauses)
+evalCase (ConValue name fields) (((_, con) : vars, value) : clauses)
   | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
   | otherwise = evalCase (ConValue name fields) clauses
 
-evalRowCase :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value 
+evalRowCase :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value
 evalRowCase row [(_, name), (_, v), (_, r)] =
   localSecond (Env.inserts [(v, p), (r, RowValue q)])
-  where (p, q) = splitRow name row
+ where
+  (p, q) = splitRow name row
 
 ---- --eval ::
 ---- --     ( MonadFix m
@@ -261,17 +263,17 @@ evalRowCase row [(_, name), (_, v), (_, r)] =
 --   -> m Value
 -- evalCall =
 --   undefined
----- --evalCall (t, fun) args 
+---- --evalCall (t, fun) args
 ---- --  | "i" == fun = do
 ---- --        (env, vals) <- ask
----- --        --let boo = Env.lookup fun vals 
+---- --        --let boo = Env.lookup fun vals
 ---- --        error (show vals)
 ---- --        --        Just (Closure g vs) -> do
 ---- --        --          error "XXX"
 ---- --        --          --evalCall g (vs <> args)
 ---- --        --        _ -> error ("Runtime error (r3) : " <> show fun)
 ---- --  | arity t > length args = pure (Closure (t, fun) args)
----- --  | isUpper (Text.head fun) = 
+---- --  | isUpper (Text.head fun) =
 ---- --      pure (ConValue fun args)
 ---- --  | otherwise = do
 ---- --      (env, vals) <- ask
@@ -346,7 +348,7 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 ---- --                   , Environment Value) m
 ---- --     )
 ---- --  => Row Value Void
----- --  -> [Label Type] 
+---- --  -> [Label Type]
 ---- --  -> m Value
 ---- --  -> m Value
 ---- ----evalRowCase (Fix RNil) ([(_, "{}")], value) = value

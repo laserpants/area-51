@@ -1,5 +1,5 @@
-module Pong.LLVM
-  where
+module Pong.LLVM where
+
 --  ( module LLVM.AST.AddrSpace
 --  , module LLVM.AST.Constant
 --  , module LLVM.AST.Float
