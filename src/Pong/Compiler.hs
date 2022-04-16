@@ -1399,13 +1399,13 @@ expx9_ =
 --   runState (beebop exp1) (1, emptyProgram)
 -- 
 
-xyz :: (MonadState (Int, Program MonoType Ast) m) 
+liftDef :: (MonadState (Int, Program MonoType Ast) m) 
     => Name 
     -> [Label MonoType]
     -> [Label MonoType]
     -> Ast
     -> m Ast
-xyz name vs args expr = do
+liftDef name vs args expr = do
   insertDef name def
   pure (eCall (typeOf def, name) (eVar <$> vs))
   where
@@ -1416,9 +1416,9 @@ xyz name vs args expr = do
 appArgs :: [Ast] -> Ast -> Ast
 appArgs xs = 
   project >>> (\case
-    ECall _ g ys -> do
+    ECall _ g ys ->
       eCall g (ys <> xs)
-    EVar v -> do
+    EVar v ->
       eCall v xs
     e ->
       error (show e))
@@ -1440,7 +1440,7 @@ bernie =
       defs <- programDefs
       let vs = freeVars e1 `without` (args <> defs)
           ys = extra (typeOf e1)
-      xyz name vs (args <> ys) $ if null ys
+      liftDef name vs (args <> ys) $ if null ys
          then e1
          else appArgs (eVar <$> ys) e1
 
@@ -1455,7 +1455,7 @@ bernie =
           let vs = freeVars (eCase e1 cs) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
-          xyz name vs ys (eCase e1 (fmap (second app) cs))
+          liftDef name vs ys (eCase e1 (fmap (second app) cs))
         else 
           pure (eCase e1 cs)
 
@@ -1471,7 +1471,7 @@ bernie =
           let vs = nub (freeVars (eIf e1 e2 e3)) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
-          xyz name vs ys (eIf e1 (app e2) (app e3))
+          liftDef name vs ys (eIf e1 (app e2) (app e3))
         else 
           pure (eIf e1 e2 e3)
 
@@ -1479,9 +1479,9 @@ bernie =
       f <- fun
       xs <- sequence args
       case project f of
-        ECall _ g ys -> do
+        ECall _ g ys ->
           pure (eCall g (ys <> xs))
-        EVar v -> do
+        EVar v ->
           pure (eCall v xs)
 
     ELet var expr1 expr2 -> do
@@ -1495,7 +1495,7 @@ bernie =
           let vs = nub (freeVars (eLet var e1 e2)) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
-          xyz name vs ys (eLet var e1 (app e2))
+          liftDef name vs ys (eLet var e1 (app e2))
         else 
           pure (eLet var e1 e2)
 
@@ -1510,7 +1510,7 @@ bernie =
           let vs = nub (freeVars (eField fs e1 e2)) `without` defs
               ys = extra t
               app = appArgs (eVar <$> ys)
-          xyz name vs ys (eField fs e1 (app e2))
+          liftDef name vs ys (eField fs e1 (app e2))
         else 
           pure (eField fs e1 e2)
 
@@ -1542,8 +1542,8 @@ bernie =
 -- ----    Just zz -> 
 -- ----      pure (typeOf zz, name)
 -- ----    _ -> do
--- ----      xyz <- ask
--- ----      case Env.lookup name xyz of
+-- ----      liftDef <- ask
+-- ----      case Env.lookup name liftDef of
 -- ----        Just (_, yy) ->
 -- ----          findCallTarget yy
 -- ----        _ ->
@@ -1559,8 +1559,8 @@ bernie =
 -- --    Just zz -> 
 -- --      pure (name, zz)
 -- --    _ -> do
--- --      xyz <- ask
--- --      case Env.lookup name xyz of
+-- --      liftDef <- ask
+-- --      case Env.lookup name liftDef of
 -- --        Just (_, yy) ->
 -- --          findCallTarget2 yy
 -- --        _ ->
@@ -1692,17 +1692,17 @@ typeCheck_ a =
     Right r = runParser expr "" a 
 
 baz124 :: Expr t () () Void -> Either TypeError TypedExpr
-baz124 e = 
-    runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
+baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
+  where
+    env = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
+
+
 --    runTypeChecker te $ do
 --        x <- tagExpr e
 --        y <- check x
 --        s <- get
 --        traceShowM s
 --        applySubstitution y
-  where
-    te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
-
 
 baz127 :: Text -> Value 
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
