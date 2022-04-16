@@ -292,7 +292,7 @@ mapTypes f =
     ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
     ELam a args e1 -> eLam a (fmap (first f) args) e1
     EApp t fun as -> eApp (f t) fun as
-    ECall a (t, fun) as -> embed3 ECall a (f t, fun) as
+    ECall a (t, fun) as -> eCall_ a (f t, fun) as
     EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
     EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
     ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
@@ -426,11 +426,11 @@ tRow :: Row (Type v q) Int -> Type v q
 tRow = embed1 TRow
 
 {-# INLINE tChar #-}
-tChar :: (Type v q)
+tChar :: Type v q
 tChar = embed TChar
 
 {-# INLINE tString #-}
-tString :: (Type v q)
+tString :: Type v q
 tString = embed TString
 
 {-# INLINE tGen #-}
@@ -488,6 +488,10 @@ eApp = embed3 EApp
 {-# INLINE eCall #-}
 eCall :: Label t -> [Expr t a0 a1 ()] -> Expr t a0 a1 ()
 eCall = embed3 ECall ()
+
+{-# INLINE eCall_ #-}
+eCall_ :: a2 -> Label t -> [Expr t a0 a1 a2] -> Expr t a0 a1 a2
+eCall_ = embed3 ECall 
 
 {-# INLINE eCase #-}
 eCase :: Expr t a0 a1 a2 -> [([Label t], Expr t a0 a1 a2)] -> Expr t a0 a1 a2

@@ -10,30 +10,31 @@ module Pong.LLVM.Emit where
 --import Data.Char (isUpper)
 --import Data.Foldable (foldlM, foldrM)
 --import Data.List (sortOn)
---import Data.String (IsString, fromString)
+import Data.String (IsString, fromString)
 --import Data.Tuple.Extra (dupe, first, second)
 --import Debug.Trace
 --import LLVM.AST.Attribute (ParameterAttribute)
---import Pong.LLVM hiding (Typed, typeOf, void)
---import Pong.Lang
+import Pong.LLVM hiding (Typed, typeOf, void)
+import Pong.Lang
+import Pong.Util
 --import TextShow (TextShow, showt)
 --import qualified Data.Map.Strict as Map
 --import qualified Data.Text as Text
---import qualified LLVM.AST as LLVM
+import qualified LLVM.AST as LLVM
 --import qualified LLVM.AST.IntegerPredicate as LLVM
 --import qualified LLVM.AST.Type as LLVM
 --import qualified LLVM.AST.Typed as LLVM
 --import qualified Pong.Util.Env as Env
---
---llvmRep :: (IsString s) => Name -> s
---llvmRep = fromString <<< unpack
---
---charPtr :: LLVM.Type
---charPtr = ptr i8
---
---namedReference :: Name -> LLVM.Type
---namedReference = NamedTypeReference . llvmRep
---
+
+llvmRep :: (IsString s) => Name -> s
+llvmRep = fromString <<< unpack
+
+charPtr :: LLVM.Type
+charPtr = ptr i8
+
+namedReference :: Name -> LLVM.Type
+namedReference = NamedTypeReference . llvmRep
+
 ---- | Translate a language type to equivalent LLVM type
 --llvmType :: Type -> LLVM.Type
 --llvmType =
