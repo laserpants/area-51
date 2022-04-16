@@ -24,21 +24,21 @@ data RowF e r a
 -- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
 
-data TypeF v g a
-  = TUnit
-  | TBool
-  | TInt
-  | TFloat
-  | TDouble
-  | TChar
-  | TString
-  | TCon Name [a]
-  | TArr a a
-  | TVar v
-  | TGen g
-  | TRow (Row (Type v g) Int)
+data TypeF v q a
+  = TUnit                          -- ^ Unit type
+  | TBool                          -- ^ Boolean type
+  | TInt                           -- ^ Integers (machine bounded)
+  | TFloat                         -- ^ Single-precision floating point number
+  | TDouble                        -- ^ Double-precision floating point number
+  | TChar                          -- ^ Char type
+  | TString                        -- ^ Unicode strings
+  | TCon Name [a]                  -- ^ Algebraic data-types
+  | TArr a a                       -- ^ Function type
+  | TVar v                         -- ^ Type variable (internal)
+  | TGen q                         -- ^ Quantified type variable  
+  | TRow (Row (Type v q) Int)      -- ^ Row types
 
-type Type v g = Fix (TypeF v g)
+type Type v q = Fix (TypeF v q)
 
 type MonoType = Type Int Void
 
@@ -152,11 +152,11 @@ deriving instance Foldable (RowF e r)
 deriving instance Traversable (RowF e r)
 
 -- Type
-deriving instance (Show v, Show g, Show a) => Show (TypeF v g a)
+deriving instance (Show v, Show q, Show a) => Show (TypeF v q a)
 
-deriving instance (Eq v, Eq g, Eq a) => Eq (TypeF v g a)
+deriving instance (Eq v, Eq q, Eq a) => Eq (TypeF v q a)
 
-deriving instance (Ord v, Ord g, Ord a) => Ord (TypeF v g a)
+deriving instance (Ord v, Ord q, Ord a) => Ord (TypeF v q a)
 
 deriveShow1 ''TypeF
 
@@ -164,11 +164,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor (TypeF v g)
+deriving instance Functor (TypeF v q)
 
-deriving instance Foldable (TypeF v g)
+deriving instance Foldable (TypeF v q)
 
-deriving instance Traversable (TypeF v g)
+deriving instance Traversable (TypeF v q)
 
 -- TCon
 deriving instance Show ConT

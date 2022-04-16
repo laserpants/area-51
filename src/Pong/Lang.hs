@@ -35,7 +35,7 @@ mapRowM f =
 normalizeRow :: Row e r -> Row e r
 normalizeRow = uncurry (flip foldRow) . unwindRow
 
-normalizeTypeRows :: Type v g -> Type v g
+normalizeTypeRows :: Type v q -> Type v q
 normalizeTypeRows =
   cata $ \case
     TRow r -> tRow (normalizeRow r)
@@ -191,7 +191,7 @@ freeIndex ts =
     [] -> 0
     vs -> succ (maximum vs)
 
-isConT :: ConT -> Type v g -> Bool
+isConT :: ConT -> Type v q -> Bool
 isConT con =
   project >>> \case
     TArr{}
@@ -307,11 +307,11 @@ mapTypes f =
       RExt name elem row -> rExt name (mapTypes f elem) row
 
 {-# INLINE foldType #-}
-foldType :: Type v g -> [Type v g] -> Type v g
+foldType :: Type v q -> [Type v q] -> Type v q
 foldType = foldr tArr
 
 {-# INLINE foldType1 #-}
-foldType1 :: [Type v g] -> Type v g
+foldType1 :: [Type v q] -> Type v q
 foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
@@ -384,27 +384,27 @@ insertDef = modifyProgram <$$> Map.insert
 ----   --pure (defs ! key)
 
 {-# INLINE tUnit #-}
-tUnit :: Type v g
+tUnit :: Type v q
 tUnit = embed TUnit
 
 {-# INLINE tBool #-}
-tBool :: Type v g
+tBool :: Type v q
 tBool = embed TBool
 
 {-# INLINE tInt #-}
-tInt :: Type v g
+tInt :: Type v q
 tInt = embed TInt
 
 {-# INLINE tFloat #-}
-tFloat :: Type v g
+tFloat :: Type v q
 tFloat = embed TFloat
 
 {-# INLINE tDouble #-}
-tDouble :: Type v g
+tDouble :: Type v q
 tDouble = embed TDouble
 
 {-# INLINE tArr #-}
-tArr :: Type v g -> Type v g -> Type v g
+tArr :: Type v q -> Type v q -> Type v q
 tArr = embed2 TArr
 
 infixr 1 `tArr`
@@ -415,27 +415,27 @@ infixr 1 `tArr`
 infixr 1 ~>
 
 {-# INLINE tCon #-}
-tCon :: Name -> [Type v g] -> Type v g
+tCon :: Name -> [Type v q] -> Type v q
 tCon = embed2 TCon
 
 {-# INLINE tVar #-}
-tVar :: v -> Type v g
+tVar :: v -> Type v q
 tVar = embed1 TVar
 
 {-# INLINE tRow #-}
-tRow :: Row (Type v g) Int -> Type v g
+tRow :: Row (Type v q) Int -> Type v q
 tRow = embed1 TRow
 
 {-# INLINE tChar #-}
-tChar :: (Type v g)
+tChar :: (Type v q)
 tChar = embed TChar
 
 {-# INLINE tString #-}
-tString :: (Type v g)
+tString :: (Type v q)
 tString = embed TString
 
 {-# INLINE tGen #-}
-tGen :: g -> Type v g
+tGen :: q -> Type v q
 tGen = embed1 TGen
 
 {-# INLINE rNil #-}
@@ -502,33 +502,33 @@ eField :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eField = embed3 EField
 
 {-# INLINE oAddInt #-}
-oAddInt :: (Type v g, Op2)
+oAddInt :: (Type v q, Op2)
 oAddInt = (tInt ~> tInt ~> tInt, OAdd)
 
 {-# INLINE oSubInt #-}
-oSubInt :: (Type v g, Op2)
+oSubInt :: (Type v q, Op2)
 oSubInt = (tInt ~> tInt ~> tInt, OSub)
 
 {-# INLINE oMulInt #-}
-oMulInt :: (Type v g, Op2)
+oMulInt :: (Type v q, Op2)
 oMulInt = (tInt ~> tInt ~> tInt, OMul)
 
 {-# INLINE oEqInt #-}
-oEqInt :: (Type v g, Op2)
+oEqInt :: (Type v q, Op2)
 oEqInt = (tInt ~> tInt ~> tBool, OEq)
 
 {-# INLINE oLtInt #-}
-oLtInt :: (Type v g, Op2)
+oLtInt :: (Type v q, Op2)
 oLtInt = (tInt ~> tInt ~> tBool, OLt)
 
 {-# INLINE oGtInt #-}
-oGtInt :: (Type v g, Op2)
+oGtInt :: (Type v q, Op2)
 oGtInt = (tInt ~> tInt ~> tBool, OGt)
 
 {-# INLINE oLtEInt #-}
-oLtEInt :: (Type v g, Op2)
+oLtEInt :: (Type v q, Op2)
 oLtEInt = (tInt ~> tInt ~> tBool, OLtE)
 
 {-# INLINE oGtEInt #-}
-oGtEInt :: (Type v g, Op2)
+oGtEInt :: (Type v q, Op2)
 oGtEInt = (tInt ~> tInt ~> tBool, OGtE)
