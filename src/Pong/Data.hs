@@ -5,13 +5,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Pong.Data where
 
-import Control.Newtype.Generics
-import Data.Eq.Deriving (deriveEq1)
+import Control.Newtype.Generics (Newtype)
 import Data.Map.Strict (Map)
-import Data.Ord.Deriving (deriveOrd1)
 import GHC.Generics (Generic)
-import Pong.Util (Void, Name, Text, Fix(..), List1)
-import Text.Show.Deriving (deriveShow1)
+import Pong.Util (Void, Name, Text, Fix(..), List1, deriveShow1, deriveEq1, deriveOrd1)
 
 data RowF e r a
   = RNil
@@ -42,7 +39,7 @@ type Type v g = Fix (TypeF v g)
 
 type MonoType = Type Int Void
 
-data TCon
+data ConT
   = VarT
   | ArrT
   | RowT
@@ -80,19 +77,19 @@ data Op2
 type Label t = (t, Name)
 
 data ExprF t a0 a1 a2 a
-  = EVar (Label t)
-  | ECon (Label a0)
-  | ELit Prim
-  | EIf a a a
-  | ELet (Label t) a a
-  | EApp a0 a [a]
-  | ELam a1 [Label t] a
-  | ECall a2 (Label t) [a]
-  | EOp1 (t, Op1) a 
-  | EOp2 (t, Op2) a a
-  | ECase a [([Label t], a)]
-  | ERow (Row (Expr t a0 a1 a2) (Label t))
-  | EField [Label t] a a
+  = EVar (Label t)                           -- ^ Variable
+  | ECon (Label a0)                          -- ^ Constructor application
+  | ELit Prim                                -- ^ Literal
+  | EIf a a a                                -- ^ If statement
+  | ELet (Label t) a a                       -- ^ Let-binding
+  | EApp a0 a [a]                            -- ^ Application
+  | ELam a1 [Label t] a                      -- ^ Lambda function
+  | ECall a2 (Label t) [a]                   -- ^ Function call
+  | EOp1 (t, Op1) a                          -- ^ Unary operator
+  | EOp2 (t, Op2) a a                        -- ^ Binary operator
+  | ECase a [([Label t], a)]                 -- ^ Match statement
+  | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
+  | EField [Label t] a a                     -- ^ Field accessor
 
 -- | Parameterized main expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
@@ -109,23 +106,23 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
-data Con
+data ConE
   = VarE
   | LitE
   | LamE
   | RowE
 
--- data Constructor =
---   Constructor
---     { conName :: Name
---     , conFields :: [Type]
---     }
+data Constructor t =
+  Constructor
+    { conName :: Name
+    , conFields :: [t]
+    }
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)
+  | Data Name [Constructor t]
 --   | Constant (Type, a)
 --   | External [Type] (Label Type)
---   | Data Name [Constructor]
 
 newtype Program t a =
   Program (Map Name (Definition t a))
@@ -169,18 +166,18 @@ deriving instance Foldable (TypeF v g)
 deriving instance Traversable (TypeF v g)
 
 -- TCon
-deriving instance Show TCon
+deriving instance Show ConT
 
-deriving instance Eq TCon
+deriving instance Eq ConT
 
-deriving instance Ord TCon
+deriving instance Ord ConT
 
 -- Con
-deriving instance Show Con
+deriving instance Show ConE
 
-deriving instance Eq Con
+deriving instance Eq ConE
 
-deriving instance Ord Con
+deriving instance Ord ConE
 
 -- Prim
 deriving instance Show Prim
@@ -222,23 +219,23 @@ deriving instance Foldable (ExprF t a0 a1 a2)
 
 deriving instance Traversable (ExprF t a0 a1 a2)
 
--- -- Constructor
--- deriving instance Show Constructor
+-- Constructor
+deriving instance (Show t) => Show (Constructor t)
 
--- deriving instance Eq Constructor
+deriving instance (Eq t) => Eq (Constructor t)
 
--- deriving instance Ord Constructor
+deriving instance (Ord t) => Ord (Constructor t)
 
 -- Definition
-deriving instance (Show d, Show a) => Show (Definition d a)
+deriving instance (Show t, Show a) => Show (Definition t a)
 
-deriving instance (Eq d, Eq a) => Eq (Definition d a)
+deriving instance (Eq t, Eq a) => Eq (Definition t a)
 
-deriving instance Functor (Definition d)
+deriving instance Functor (Definition t)
 
-deriving instance Foldable (Definition d)
+deriving instance Foldable (Definition t)
 
-deriving instance Traversable (Definition d)
+deriving instance Traversable (Definition t)
 
 -- Program
 deriving instance (Show t, Show a) => Show (Program t a)

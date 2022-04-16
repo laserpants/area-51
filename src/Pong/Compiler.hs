@@ -1465,7 +1465,7 @@ bernie =
       e1 <- expr1
       cs <- traverse sequence clauses
       let t = typeOf (head (snd <$> cs))
-      if isTCon ArrT t
+      if isConT ArrT t
         then do 
           defs <- gorkx
           name <- uniqueName "$match"
@@ -1481,7 +1481,7 @@ bernie =
       e2 <- expr2
       e3 <- expr3
       let t = typeOf e3
-      if isTCon ArrT t
+      if isConT ArrT t
         then do 
           defs <- gorkx
           name <- uniqueName "$if"
@@ -1505,7 +1505,7 @@ bernie =
       e1 <- expr1 
       e2 <- expr2 
       let t = typeOf e2
-      if isTCon ArrT t
+      if isConT ArrT t
         then do 
           defs <- gorkx
           name <- uniqueName "$let"
@@ -1520,7 +1520,7 @@ bernie =
       e1 <- expr1 
       e2 <- expr2 
       let t = typeOf e2
-      if isTCon ArrT t
+      if isConT ArrT t
         then do
           defs <- gorkx
           name <- uniqueName "$field"
@@ -1686,6 +1686,7 @@ t0t30 = PrimValue (PInt 2) == baz127 "let xs = Cons(lam(x) => x + 1, Nil()) in m
 t0t31 = PrimValue (PInt 3) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a(1) } in f(2)"
 t0t32 = PrimValue (PInt 5) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a } in f(2, 3)"
 t0t33 = PrimValue (PInt 5) == baz127 "let head = lam(xs) => match xs { | Cons(z, zs) => z } in head(Cons(5, Cons(2, Cons(3, Nil()))))"
+t0t34 = PrimValue (PInt 2) == baz127 "let elemAt1 = lam(xs) => match xs { | Cons(z, zs) => match zs { | Cons (y, ys) => y } } in elemAt1(Cons(5, Cons(2, Cons(3, Nil()))))"
  
 
 
@@ -1693,7 +1694,7 @@ t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8
     && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
     && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
     && t0t25 && t0t26 && t0t27 && t0t28 && t0t29 && t0t30 && t0t31 && t0t32
-    && t0t33
+    && t0t33 && t0t34
 
 
 typeCheck_ :: Text -> TypedExpr 

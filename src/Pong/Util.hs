@@ -5,6 +5,9 @@ module Pong.Util
   , module Data.Functor.Foldable
   , module Data.Fix
   , module Data.Void
+  , module Data.Eq.Deriving 
+  , module Data.Ord.Deriving 
+  , module Text.Show.Deriving
   , module Data.Map.Strict
   , module Data.Text
   , (<$$>)
@@ -28,13 +31,16 @@ module Pong.Util
 
 import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader
+import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix(..))
 import Data.Functor.Foldable
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
+import Data.Ord.Deriving (deriveOrd1)
 import Data.Text (Text, pack, unpack)
 import Data.Tuple.Extra
 import Data.Void (Void)
+import Text.Show.Deriving (deriveShow1)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 

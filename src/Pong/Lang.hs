@@ -78,7 +78,7 @@ class FreeIn f where
 
 instance FreeIn (Type Int g) where
   free =
-    nub .
+    nub <<<
     cata
       (\case
          TVar n -> [n]
@@ -89,11 +89,12 @@ instance FreeIn (Type Int g) where
 
 instance FreeIn (Row (Type Int g) Int) where
   free =
-    nub . 
-    cata (\case
-      RVar v -> [v]
-      RExt _ expr r -> free expr <> r
-      _ -> [])
+    nub <<<
+    cata 
+      (\case
+        RVar v -> [v]
+        RExt _ expr r -> free expr <> r
+        _ -> [])
 
 instance (FreeIn f) => FreeIn [f] where
   free = concatMap free
@@ -191,8 +192,8 @@ freeIndex ts =
     [] -> 0
     vs -> succ (maximum vs)
 
-isTCon :: TCon -> Type v g -> Bool
-isTCon con =
+isConT :: ConT -> Type v g -> Bool
+isConT con =
   project >>> \case
     TArr {}
       | ArrT == con -> True
@@ -202,8 +203,8 @@ isTCon con =
       | RowT == con -> True
     _ -> False
 
-isCon :: Con -> Expr t a0 a1 a2 -> Bool
-isCon con =
+isConE :: ConE -> Expr t a0 a1 a2 -> Bool
+isConE con =
   project >>> \case
     EVar {}
       | VarE == con -> True
@@ -336,8 +337,8 @@ emptyProgram = Program mempty
 -- modifyM :: (MonadState s m) => (s -> m s) -> m ()
 -- modifyM f = get >>= f >>= put
 
-modifyProgram ::
-     (MonadState (s, Program t a) m)
+modifyProgram 
+  :: (MonadState (s, Program t a) m)
   => (Map Name (Definition t a) -> Map Name (Definition t a))
   -> m ()
 modifyProgram = modify . second . over Program

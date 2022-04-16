@@ -83,8 +83,9 @@ eval =
        (_, env) <- ask
        case Env.lookup var env of
          Just val -> pure val
-         Nothing -> error ("Runtime error (1) : " <> show var)
-    ELit lit -> pure (PrimValue lit)
+         Nothing -> error ("Runtime error (1): " <> show var)
+    ELit prim -> 
+      pure (PrimValue prim)
     EIf cond true false ->
       cond >>= \case
         PrimValue (PBool True) -> true
@@ -93,7 +94,8 @@ eval =
     ELet (_, var) body expr -> do
       val <- body 
       localSecond (Env.insert var val) expr
-    ECall _ fun args -> evalCall fun args
+    ECall _ fun args -> 
+      evalCall fun args
     EOp2 (_, OLogicOr) a b ->
       a >>= \case
         PrimValue (PBool True) -> a
@@ -111,19 +113,19 @@ eval =
     ECase expr cs -> do
       e <- expr
       evalCase e cs
-    ERow row -> RowValue <$> evalRow row
+    ERow row -> 
+      RowValue <$> evalRow row
     EField field expr1 expr2 -> do
       e1 <- expr1
       evalRowCase (getRow e1) field expr2
  
 evalCall :: Label MonoType -> [Eval Value] -> Eval Value 
 evalCall (t, fun) args 
-  | arity t > length args = pure (Closure (t, fun) args)
-  | arity t < length args = do
-    evalCall (t, fun) (take (arity t) args) >>= 
-      \case
-        Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
-        _ -> error "??"
+  | arity t > length args = 
+    pure (Closure (t, fun) args)
+  | arity t < length args =
+    evalCall (t, fun) (take (arity t) args) >>= \case
+      Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
   | isUpper (Text.head fun) = do
     as <- sequence args
     pure (ConValue fun as)
@@ -139,7 +141,7 @@ evalCall (t, fun) args
         --localSecond (Env.inserts undefined) (eval body)
       _ -> case Env.lookup fun vals of
               Just (Closure g vs) -> evalCall g (vs <> args)
-              _ -> error ("Runtime error (3) : " <> show fun)
+              _ -> error ("Runtime error (3): " <> show fun)
 
 ---- --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
 ---- --evalCall (t, fun) args 
@@ -368,4 +370,3 @@ evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.from
 --deriveShow1 ''ValF
 
 --deriving instance Functor ValF
-
