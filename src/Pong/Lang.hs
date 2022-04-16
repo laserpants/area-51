@@ -7,15 +7,16 @@ module Pong.Lang where
 import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Char (isUpper)
-import Data.List (nub)
 import Data.List.NonEmpty (toList)
-import qualified Data.Map.Strict as Map
-import qualified Data.Text as Text
+import Data.Set ((\\))
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, (!), (<$$>), (<<<), (>>>))
+import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, (!), (<$$>), (<#>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -80,24 +81,24 @@ class FreeIn f where
 
 instance FreeIn (Type Int g) where
   free =
-    nub
+    Set.toList
       <<< cata
         ( \case
-            TVar n -> [n]
-            TCon _ ts -> concat ts
+            TVar n -> Set.singleton n
+            TCon _ ts -> Set.unions ts
             TArr t1 t2 -> t1 <> t2
-            TRow r -> free r
-            _ -> []
+            TRow r -> Set.fromList (free r)
+            _ -> mempty
         )
 
 instance FreeIn (Row (Type Int g) Int) where
   free =
-    nub
+    Set.toList
       <<< cata
         ( \case
-            RVar v -> [v]
-            RExt _ expr r -> free expr <> r
-            _ -> []
+            RVar v -> Set.singleton v
+            RExt _ expr r -> Set.fromList (free expr) <> r
+            _ -> mempty
         )
 
 instance (FreeIn f) => FreeIn [f] where
@@ -232,36 +233,34 @@ returnType = last <<< unwindType
 argTypes :: (Typed t) => t -> [Type Int g]
 argTypes = init <<< unwindType
 
-freeVars :: (Eq t) => Expr t a0 a1 a2 -> [Label t]
+freeVars :: (Eq t, Ord t) => Expr t a0 a1 a2 -> [Label t]
 freeVars =
-  nub
+  Set.toList
     <<< cata
       ( \case
           EVar v
-            | isUpper (Text.head (snd v)) -> []
-            | otherwise -> [v]
-          ECon _ -> []
-          ELit _ -> []
+            | isUpper (Text.head (snd v)) -> mempty
+            | otherwise -> Set.singleton v
+          ECon _ -> mempty
+          ELit _ -> mempty
           EIf e1 e2 e3 -> e1 <> e2 <> e3
-          ELet bind e1 e2 -> (e1 <> e2) `without` [bind]
-          ELam _ args expr -> expr `without` args
-          EApp _ fun args -> fun <> concat args
+          ELet bind e1 e2 -> Set.delete bind (e1 <> e2) 
+          ELam _ args expr -> expr \\ Set.fromList args
+          EApp _ fun args -> fun <> Set.unions args
           ECall _ fun args
-            | isUpper (Text.head (snd fun)) -> concat args
-            | otherwise -> fun : concat args
+            | isUpper (Text.head (snd fun)) -> Set.unions args
+            | otherwise -> Set.insert fun (Set.unions args)
           EOp1 _ e1 -> e1
           EOp2 _ e1 e2 -> e1 <> e2
-          ECase e1 cs ->
-            e1
-              <> ( cs >>= \(_ : vs, expr) ->
-                    expr `without` vs
-                 )
+          ECase e1 cs -> 
+            e1 <> 
+              Set.unions (cs <#> \(_ : vs, expr) -> expr \\ Set.fromList vs)
           ERow row ->
             (`cata` row) $ \case
-              RNil -> []
-              RVar v -> [v]
-              RExt _ elem r -> freeVars elem <> r
-          EField (_ : vs) e1 e2 -> e1 <> e2 `without` vs
+              RNil -> mempty
+              RVar v -> Set.singleton v
+              RExt _ elem r -> Set.fromList (freeVars elem) <> r
+          EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
 fromPolyType :: Map Name MonoType -> Type Int Name -> MonoType
