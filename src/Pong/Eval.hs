@@ -58,6 +58,13 @@ instance Eq Value where
       (PrimValue p, PrimValue q) -> p == q
       (RowValue r, RowValue s) -> r == s
 
+instance Show Value where
+  show = \case
+    PrimValue prim -> show prim
+    ConValue name vals -> show name <> " " <> show vals
+    RowValue row -> show row
+    Closure{} -> "<<function>>"
+
 ----instance Eq Value where
 ----  a == b = 
 ----    case (project a, project b) of
@@ -113,7 +120,7 @@ eval =
     ECase expr cs -> do
       e <- expr
       evalCase e cs
-    ERow row -> 
+    ERow row ->
       RowValue <$> evalRow row
     EField field expr1 expr2 -> do
       e1 <- expr1
@@ -139,9 +146,10 @@ evalCall (t, fun) args
         --traceShowM ">>>>>>>>>>>>>>>"
         localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
         --localSecond (Env.inserts undefined) (eval body)
-      _ -> case Env.lookup fun vals of
-              Just (Closure g vs) -> evalCall g (vs <> args)
-              _ -> error ("Runtime error (3): " <> show fun)
+      _ ->
+        case Env.lookup fun vals of
+          Just (Closure g vs) -> evalCall g (vs <> args)
+          _ -> error ("Runtime error (3): " <> show fun)
 
 ---- --evalCall :: (MonadFix m) => Label Type -> [Value m] -> EvalT m (Value m)
 ---- --evalCall (t, fun) args 
@@ -189,7 +197,7 @@ evalCase (ConValue name fields) (((_, con):vars, value):clauses)
 
 evalRowCase :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value 
 evalRowCase row [(_, name), (_, v), (_, r)] =
-  localSecond (Env.inserts [(v, p), (r, RowValue q)]) 
+  localSecond (Env.inserts [(v, p), (r, RowValue q)])
   where (p, q) = splitRow name row
 
 ---- --eval ::
@@ -353,10 +361,10 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 --evalProgram_ :: (Ast, [(Name, Definition MonoType Ast)]) -> Value
 --evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)
 
-evalProgram__ :: (Ast, Program MonoType Ast) -> Value 
+evalProgram__ :: (Ast, Program MonoType Ast) -> Value
 evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)
 
-evalProgram_ :: (Ast, [(Name, Definition MonoType Ast)]) -> Value 
+evalProgram_ :: (Ast, [(Name, Definition MonoType Ast)]) -> Value
 evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.fromList defs, mempty))
 
 --deriving instance (Show a) => Show (Eval a)

@@ -178,14 +178,6 @@ instance (Typed t) => Typed (Definition t a) where
 arity :: (Typed t) => t -> Int
 arity = pred <<< length <<< unwindType
 
---instance (Typed t) => Typed (Definition t a) where
---  typeOf =
---    \case
---      Function args (t, _) -> foldType undefined (typeOf . fst <$> toList args)
---       External args (t, _) -> foldType v args
---       Constant (t, _) -> typeOf t
---       Data {} -> error "Implementation error"
-
 freeIndex :: (FreeIn t) => [t] -> Int
 freeIndex ts =
   case free =<< ts of
@@ -257,21 +249,6 @@ freeVars =
         RVar v -> [v]
         RExt _ elem r -> freeVars elem <> r
     EField (_:vs) e1 e2 -> e1 <> e2 `without` vs)
-
--- --toPolyType :: Type -> PolyType
--- --toPolyType =
--- --  cata $ \case
--- --    TUnit -> tUnit
--- --    TBool -> tBool
--- --    TInt -> tInt
--- --    TFloat -> tFloat
--- --    TDouble -> tDouble
--- --    TChar -> tChar
--- --    TString -> tString
--- --    TCon con ts -> tCon con ts
--- --    TArr t1 t2 -> tArr t1 t2
--- --    TVar n -> tVar n
--- --    TRow row -> tRow (mapRow toPolyType row)
 
 fromPolyType :: Map Name MonoType -> Type Int Name -> MonoType
 fromPolyType vs = 

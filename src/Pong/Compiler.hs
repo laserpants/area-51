@@ -1,29 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
--- {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Pong.Compiler where
 
--- import Control.Arrow ((&&&))
--- import Control.Monad.Identity
--- import Control.Monad.Reader
--- import Control.Monad.Writer
--- import Data.Char (isUpper)
--- import Data.Function ((&))
--- import Data.List.NonEmpty (NonEmpty, (!!), fromList, toList)
--- import Data.Maybe (fromMaybe)
--- import Data.Void (Void)
--- import Debug.Trace
--- import Pong.TypeChecker (Substitution, apply, unify, runTypeChecker')
--- import Prelude hiding ((!!))
--- import qualified Control.Newtype.Generics as N
--- import qualified Data.List as List
--- import qualified Data.Text as Text
 import Control.Monad.State
 import Data.List (nub)
 import Data.List.NonEmpty (fromList, toList)
 import Data.Tuple.Extra (first, second, swap)
+import Debug.Trace
 import Pong.Data
 import Pong.Eval
 import Pong.Lang
@@ -35,11 +19,11 @@ import TextShow (showt)
 import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
 
--- -- from:
--- --   lam(a) => lam(b) => b
--- --
--- -- to: 
--- --   lamb[a, b] => b
+-- from:
+--   lam(a) => lam(b) => b
+--
+-- to: 
+--   lamb[a, b] => b
 combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 combineLambdas =
   cata $ \case
@@ -1439,12 +1423,11 @@ appxx xs =
     e ->
       error (show e))
 
---extra :: Typed t => t -> [Label MonoType]
 extra :: MonoType -> [Label MonoType]
 extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int .. ]]
 
-gorkx :: (MonadState (Int, Program MonoType Ast) m) => m [Label MonoType]
-gorkx = do
+programDefs :: (MonadState (Int, Program MonoType Ast) m) => m [Label MonoType]
+programDefs = do
   Program p <- gets snd
   pure (swap <$> Map.toList (Map.map typeOf p))
 
@@ -1454,7 +1437,7 @@ bernie =
     ELam t args expr1 -> do
       e1 <- expr1
       name <- uniqueName "$lam"
-      defs <- gorkx
+      defs <- programDefs
       let vs = freeVars e1 `without` (args <> defs)
           ys = extra (typeOf e1)
       xyz name vs (args <> ys) $ if null ys
@@ -1467,7 +1450,7 @@ bernie =
       let t = typeOf (head (snd <$> cs))
       if isConT ArrT t
         then do 
-          defs <- gorkx
+          defs <- programDefs
           name <- uniqueName "$match"
           let vs = freeVars (eCase e1 cs) `without` defs
               ys = extra t
@@ -1483,7 +1466,7 @@ bernie =
       let t = typeOf e3
       if isConT ArrT t
         then do 
-          defs <- gorkx
+          defs <- programDefs
           name <- uniqueName "$if"
           let vs = nub (freeVars (eIf e1 e2 e3)) `without` defs
               ys = extra t
@@ -1502,12 +1485,12 @@ bernie =
           pure (eCall v xs)
 
     ELet var expr1 expr2 -> do
-      e1 <- expr1 
-      e2 <- expr2 
+      e1 <- expr1
+      e2 <- expr2
       let t = typeOf e2
       if isConT ArrT t
         then do 
-          defs <- gorkx
+          defs <- programDefs
           name <- uniqueName "$let"
           let vs = nub (freeVars (eLet var e1 e2)) `without` defs
               ys = extra t
@@ -1522,7 +1505,7 @@ bernie =
       let t = typeOf e2
       if isConT ArrT t
         then do
-          defs <- gorkx
+          defs <- programDefs
           name <- uniqueName "$field"
           let vs = nub (freeVars (eField fs e1 e2)) `without` defs
               ys = extra t
@@ -1532,7 +1515,7 @@ bernie =
           pure (eField fs e1 e2)
 
     ECon con -> 
-        pure (eCall con [])
+      pure (eCall con [])
 
     EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
     EVar v -> pure (eVar v)
@@ -1688,6 +1671,8 @@ t0t32 = PrimValue (PInt 5) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, N
 t0t33 = PrimValue (PInt 5) == baz127 "let head = lam(xs) => match xs { | Cons(z, zs) => z } in head(Cons(5, Cons(2, Cons(3, Nil()))))"
 t0t34 = PrimValue (PInt 2) == baz127 "let elemAt1 = lam(xs) => match xs { | Cons(z, zs) => match zs { | Cons (y, ys) => y } } in elemAt1(Cons(5, Cons(2, Cons(3, Nil()))))"
 t0t35 = PrimValue (PFloat 15) == baz127 "let x = 5.0f * 3.0f in x"
+t0t36 = PrimValue (PInt 1) == baz127 "(lam(f) => lam(y) => f(y))(lam(x) => x + 1, 0)"
+t0t37 = PrimValue (PInt 5) == baz127 "let g = (lam(f) => lam(y) => f(y))(lam(x) => x + 1) in g(4)"
  
 
 
@@ -1695,7 +1680,7 @@ t0ta = t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8
     && t0t9 && t0t10 && t0t11 && t0t12 && t0t13 && t0t14 && t0t15 && t0t16
     && t0t17 && t0t18 && t0t19 && t0t20 && t0t21 && t0t22 && t0t23 && t0t24
     && t0t25 && t0t26 && t0t27 && t0t28 && t0t29 && t0t30 && t0t31 && t0t32
-    && t0t33 && t0t34 && t0t35
+    && t0t33 && t0t34 && t0t35 && t0t36 && t0t37
 
 
 typeCheck_ :: Text -> TypedExpr 
