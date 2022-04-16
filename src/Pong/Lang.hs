@@ -263,8 +263,8 @@ freeVars =
           EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
-fromPolyType :: Map Name MonoType -> Type Int Name -> MonoType
-fromPolyType vs =
+toMonoType :: Map Name MonoType -> Type Int Name -> MonoType
+toMonoType vs =
   cata $ \case
     TGen n ->
       case Map.lookup n vs of
@@ -280,7 +280,7 @@ fromPolyType vs =
     TCon con ts -> tCon con ts
     TArr t1 t2 -> tArr t1 t2
     TVar v -> tVar v
-    TRow row -> tRow (mapRow (fromPolyType vs) row)
+    TRow row -> tRow (mapRow (toMonoType vs) row)
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =

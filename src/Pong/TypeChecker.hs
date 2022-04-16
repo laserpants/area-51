@@ -26,20 +26,8 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util (Fix (..), Name, cata, embed, project, (!?), (<$$>))
 import Pong.Util.Env
-import TextShow (showt)
-
--- import Pong.Util
---   ( Fix(..)
---   , Map
---   , Name
---   , (!?)
---   , (<$$>)
---   , cata
---   , embed
---   , project
---   , trimLabel
---   )
 import qualified Pong.Util.Env as Env
+import TextShow (showt)
 
 newtype Substitution
   = Substitution (Map Int MonoType)
@@ -74,8 +62,7 @@ substitute sub =
     TDouble -> tDouble
     TChar -> tChar
     TString -> tString
-
---    TGen g -> tGen g
+    TGen{} -> error "Implementation error"
 
 rowSubstitute :: Map Int (Type Int g) -> Row (Type Int h) Int -> Row (Type Int g) Int
 rowSubstitute sub =
@@ -300,9 +287,9 @@ unifyM t1 t2 = do
 instantiate :: Type Int Name -> TypeChecker MonoType
 instantiate t = do
   ts <- traverse (\n -> tag >>= \t -> pure (n, tVar t)) (Set.toList (bound t))
-  pure (fromPolyType (Map.fromList ts) t)
+  pure (toMonoType (Map.fromList ts) t)
  where
-  bound :: Type a Name -> Set Name
+  bound :: (Ord q) => Type v q -> Set q
   bound =
     cata $ \case
       TGen n -> Set.singleton n
@@ -344,8 +331,8 @@ checkName :: (Int, Name) -> (Name -> TypeError) -> TypeChecker (Type Int Void, N
 checkName (t, var) toErr =
   asks (Env.lookup var)
     >>= \case
-      Just s -> do
-        t1 <- instantiate s
+      Just scheme -> do
+        t1 <- instantiate scheme
         unifyM (tVar t) t1
         pure (t1, var)
       _ -> throwError (toErr var)
