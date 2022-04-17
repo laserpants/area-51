@@ -28,9 +28,11 @@ spaces =
     (Lexer.skipLineComment "--")
     (Lexer.skipBlockComment "{-" "-}")
 
+{-# INLINE lexeme #-}
 lexeme :: Parser a -> Parser a
 lexeme = Lexer.lexeme spaces
 
+{-# INLINE symbol #-}
 symbol :: Text -> Parser Text
 symbol = Lexer.symbol spaces
 
@@ -52,9 +54,11 @@ commaSep parser = parser `sepBy` symbol ","
 commaSep1 :: Parser a -> Parser [a]
 commaSep1 parser = parser `sepBy1` symbol ","
 
+{-# INLINE args #-}
 args :: Parser a -> Parser [a]
 args = parens . commaSep
 
+{-# INLINE args1 #-}
 args1 :: Parser a -> Parser [a]
 args1 = parens . commaSep1
 
@@ -106,6 +110,7 @@ constructor = word (withInitial upperChar)
 identifier :: Parser Name
 identifier = word (withInitial (lowerChar <|> char '_'))
 
+{-# INLINE toLabel #-}
 toLabel :: t -> ((), t)
 toLabel = ((),)
 
@@ -122,7 +127,11 @@ expr = makeExprParser apps operator
               as -> eApp () f as
           )
   item =
-    litExpr <|> ifExpr <|> letExpr <|> lamExpr <|> caseExpr
+    litExpr 
+      <|> ifExpr 
+      <|> letExpr 
+      <|> lamExpr 
+      <|> caseExpr
       <|> rowExpr
       <|> fieldExpr
       <|> varExpr
@@ -209,13 +218,14 @@ caseClause = do
 rowExpr :: Parser SourceExpr
 rowExpr =
   braces $ do
-    fs <- commaSep field
+    fields <- commaSep field
     tail <- optional (symbol "|" *> identifier)
-    let row =
-          case fs of
+    pure $
+      eRow
+        ( case fields of
             [] -> rNil
-            _ -> foldr (uncurry rExt) (maybe rNil (rVar . toLabel) tail) fs
-    pure (eRow row)
+            _ -> foldr (uncurry rExt) (maybe rNil (rVar . toLabel) tail) fields
+        )
  where
   field = do
     lhs <- identifier
@@ -225,7 +235,10 @@ rowExpr =
 
 prim :: Parser Prim
 prim =
-  primUnit <|> primTrue <|> primFalse <|> primChar
+  primUnit
+    <|> primTrue
+    <|> primFalse
+    <|> primChar
     <|> primString
     <|> try primFloat
     <|> try primDouble

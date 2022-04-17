@@ -491,7 +491,7 @@ eCall = embed3 ECall ()
 
 {-# INLINE eCall_ #-}
 eCall_ :: a2 -> Label t -> [Expr t a0 a1 a2] -> Expr t a0 a1 a2
-eCall_ = embed3 ECall 
+eCall_ = embed3 ECall
 
 {-# INLINE eCase #-}
 eCase :: Expr t a0 a1 a2 -> [([Label t], Expr t a0 a1 a2)] -> Expr t a0 a1 a2

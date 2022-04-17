@@ -27,14 +27,14 @@ type Row e r = Fix (RowF e r)
 data TypeF v q a
   = TUnit                          -- ^ Unit type
   | TBool                          -- ^ Boolean type
-  | TInt                           -- ^ Integers (machine bounded)
+  | TInt                           -- ^ Type of integers (machine bounded)
   | TFloat                         -- ^ Single-precision floating point number
   | TDouble                        -- ^ Double-precision floating point number
   | TChar                          -- ^ Char type
   | TString                        -- ^ Unicode strings
   | TCon Name [a]                  -- ^ Algebraic data-types
-  | TArr a a                       -- ^ Function type
-  | TVar v                         -- ^ Type variable (internal)
+  | TArr a a                       -- ^ Function types
+  | TVar v                         -- ^ Type variable (monomorphic)
   | TGen q                         -- ^ Quantified type variable
   | TRow (Row (Type v q) Int)      -- ^ Row types
 
@@ -49,13 +49,13 @@ data ConT
 
 -- | Built-in language primitives
 data Prim
-  = PBool Bool
-  | PInt Int
-  | PFloat Float
-  | PDouble Double
-  | PChar Char
-  | PString Text
-  | PUnit
+  = PBool Bool                     -- ^ Booleans
+  | PInt Int                       -- ^ Integers (machine bounded)
+  | PFloat Float                   -- ^ Single-precision floating point number
+  | PDouble Double                 -- ^ Double-precision floating point number
+  | PChar Char                     -- ^ Char
+  | PString Text                   -- ^ Unicode strings
+  | PUnit                          -- ^ Unit value
 
 -- | Unary operators
 data Op1

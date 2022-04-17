@@ -3,6 +3,8 @@
 
 module Pong.Compiler where
 
+import Pong.LLVM (Operand)
+import Control.Monad.Reader
 import Control.Monad.State
 import Data.List (nub)
 import Data.List.NonEmpty (fromList, toList)
@@ -12,6 +14,7 @@ import Debug.Trace
 import Pong.Data
 import Pong.Eval
 import Pong.Lang
+import Pong.LLVM.Emit
 import Pong.Parser
 import Pong.TypeChecker
 import Pong.Util
@@ -1684,43 +1687,82 @@ bernie =
 -- --    def
 
 t0t0 = second snd (runState (bernie exp00) (1, emptyProgram)) == exp00_
+
 t0t1 = second snd (runState (bernie exp0) (1, emptyProgram)) == exp0_
+
 t0t2 = second snd (runState (bernie expx0) (1, emptyProgram)) == expx0_
+
 t0t3 = second snd (runState (bernie expx8) (1, emptyProgram)) == expx8_
+
 t0t4 = second snd (runState (bernie expx01) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == expx01_
+
 t0t5 = second snd (runState (bernie exp1) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == exp1_
+
 t0t6 = evalProgram__ expyx_ == PrimValue (PInt 125)
+
 t0t7 = evalProgram__ expyy_ == PrimValue (PInt 125)
+
 t0t8 = evalProgram__ exp0_ == PrimValue (PInt 5)
+
 t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == PrimValue (PInt 120)
+
 t0t10 = second snd (runState (bernie expx9) (1, emptyProgram)) == expx9_
+
 t0t11 = typeCheck_ exmp29_0 == exmp29_1
+
 t0t12 = typeCheck_ exmp30_0 == exmp30_1
+
 t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))) == PrimValue (PInt 2)
+
 t0t14 = typeCheck_ exmp31_0 == exmp31_1
+
 t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == PrimValue (PInt 2)
+
 t0t16 = PrimValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)"
+
 t0t17 = typeCheck_ "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)" == exmp34_1
+
 t0t18 = PrimValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5)"
+
 t0t19 = PrimValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)"
+
 t0t20 = PrimValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
+
 t0t21 = PrimValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
+
 t0t22 = PrimValue (PInt 2) == baz127 "let q = Cons(1, Cons(2, Nil())) in match q { Nil => 0 | Cons(x, xs) => match xs { Nil => 0 | Cons(y, ys) => y } }"
+
 t0t23 = RowValue rNil == baz127 "let q = { quantity = 123 } in let r = { price = 5 | q } in field { quantity = q | a } = r in field { price = p | b } = a in b"
+
 t0t24 = PrimValue (PInt 1010) == baz127 "let r = { price = 5, quantity = 3 } in field { quantity = s | q } = r in field { price = p | o } = q in if o == {} then 1010 else 1011"
+
 t0t25 = PrimValue (PInt 120) == baz127 "let fact = lam(n) => if n == 0 then 1 else n * fact(n - 1) in fact(5)"
+
 t0t26 = PrimValue (PInt 1) == baz127 "let f = lam(x) => 1 in let i = f in i(1)"
+
 t0t27 = PrimValue (PInt 12) == baz127 "let f = lam(x) => lam(y) => lam(z) => x + y + z in let g = f(1) in let h = g(2) in let i = h(3) in i + g(2, 3)"
+
 t0t28 = PrimValue (PInt 18) == baz127 "let h = 5 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in (g(f))(g(5)) + f(1)"
+
 t0t29 = PrimValue (PInt 254) == baz127 "let h = 123 + 1 in let g = lam(x) => x in let f = lam(y) => y + h in f(5) + f(1)"
+
 t0t30 = PrimValue (PInt 2) == baz127 "let xs = Cons(lam(x) => x + 1, Nil()) in match xs { | Cons(a, b) => a(1) }"
+
 t0t31 = PrimValue (PInt 3) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a(1) } in f(2)"
+
 t0t32 = PrimValue (PInt 5) == baz127 "let xs = Cons(lam(x) => lam(y) => x + y, Nil()) in let f = match xs { | Cons(a, b) => a } in f(2, 3)"
+
 t0t33 = PrimValue (PInt 5) == baz127 "let head = lam(xs) => match xs { | Cons(z, zs) => z } in head(Cons(5, Cons(2, Cons(3, Nil()))))"
+
 t0t34 = PrimValue (PInt 2) == baz127 "let elemAt1 = lam(xs) => match xs { | Cons(z, zs) => match zs { | Cons (y, ys) => y } } in elemAt1(Cons(5, Cons(2, Cons(3, Nil()))))"
+
 t0t35 = PrimValue (PFloat 15) == baz127 "let x = 5.0f * 3.0f in x"
+
 t0t36 = PrimValue (PInt 1) == baz127 "(lam(f) => lam(y) => f(y))(lam(x) => x + 1, 0)"
+
 t0t37 = PrimValue (PInt 5) == baz127 "let g = (lam(f) => lam(y) => f(y))(lam(x) => x + 1) in g(4)"
+
+t0t38 = PrimValue (PBool True) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5) == (let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f(5))"
 
 t0ta =
   t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8
@@ -1753,6 +1795,7 @@ t0ta =
     && t0t35
     && t0t36
     && t0t37
+    && t0t38
 
 typeCheck_ :: Text -> TypedExpr
 typeCheck_ a =
@@ -1779,6 +1822,17 @@ baz127 :: Text -> Value
 baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
  where
   Right q = let Right r = runParser expr "" p in baz124 r
+
+
+baz1277 :: Text -> IO ()
+--baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
+baz1277 p = runModule (buildProgram "foo" z) -- emitBody ast
+ where
+  z :: Program MonoType Ast
+  z = prog
+  (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
+  Right q = let Right r = runParser expr "" p in baz124 r
+
 
 -- --baz127b :: Text -> Value
 -- baz127b p = (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))

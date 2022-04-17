@@ -1,30 +1,48 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE RecordWildCards #-}
+-- {-# LANGUAGE RecordWildCards #-}
 
 module Pong.LLVM.Emit where
 
---import Control.Monad.Reader
 --import Control.Monad.Writer
 --import Data.Char (isUpper)
 --import Data.Foldable (foldlM, foldrM)
---import Data.List (sortOn)
-import Data.String (IsString, fromString)
 --import Data.Tuple.Extra (dupe, first, second)
 --import Debug.Trace
 --import LLVM.AST.Attribute (ParameterAttribute)
-import Pong.LLVM hiding (Typed, typeOf, void)
-import Pong.Lang
-import Pong.Util
 --import TextShow (TextShow, showt)
 --import qualified Data.Map.Strict as Map
 --import qualified Data.Text as Text
-import qualified LLVM.AST as LLVM
---import qualified LLVM.AST.IntegerPredicate as LLVM
---import qualified LLVM.AST.Type as LLVM
 --import qualified LLVM.AST.Typed as LLVM
 --import qualified Pong.Util.Env as Env
+import Control.Monad.Reader
+import Data.List (sortOn)
+import Data.String (IsString, fromString)
+import LLVM.Pretty
+import Pong.Data
+import Pong.LLVM hiding (Typed, typeOf, void)
+import Pong.Lang
+import Pong.Util
+import Pong.Util.Env (Environment (..))
+import qualified Data.Text.Lazy.IO as Text
+import qualified LLVM.AST as LLVM
+import qualified LLVM.AST.IntegerPredicate as LLVM
+import qualified LLVM.AST.Type as LLVM
+import qualified Pong.Util.Env as Env
+import qualified Data.Map.Strict as Map
+import Data.List.NonEmpty (toList)
+
+type CodeGenEnv = Environment (MonoType, Operand)
+
+newtype CodeGen a =
+  CodeGen
+    { getCodeGen :: ReaderT CodeGenEnv (IRBuilderT ModuleBuilder) a
+    }
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< unpack
@@ -35,30 +53,28 @@ charPtr = ptr i8
 namedReference :: Name -> LLVM.Type
 namedReference = NamedTypeReference . llvmRep
 
----- | Translate a language type to equivalent LLVM type
---llvmType :: Type -> LLVM.Type
---llvmType =
---  project >>> \case
---    TUnit -> StructureType False []
---    TBool {} -> LLVM.i1
---    TInt32 {} -> LLVM.i32
---    TInt64 {} -> LLVM.i64
---    TFloat {} -> LLVM.float
---    TDouble {} -> LLVM.double
---    TVar {} -> charPtr 
---    TChar {} -> error "Not implemented" -- TODO
---    TString {} -> error "Not implemented" -- TODO
---    TData name -> ptr (namedReference name)
-----    TOpaque -> charPtr
---    ty@TArr {} -> ptr (StructureType False [ptr funTy])
---      where types = llvmType <$> unwindType (embed ty)
---            funTy =
---              FunctionType
---                { argumentTypes = charPtr : init types
---                , resultType = last types
---                , isVarArg = False
---                }
---
+-- | Translate a language type to the equivalent LLVM type
+llvmType :: MonoType -> LLVM.Type
+llvmType =
+  project >>> \case
+    TUnit      -> StructureType False []
+    TBool   {} -> LLVM.i1
+    TInt    {} -> LLVM.i32
+    TFloat  {} -> LLVM.float
+    TDouble {} -> LLVM.double
+    TVar    {} -> charPtr
+    TChar   {} -> error "Not implemented" -- TODO
+    TString {} -> error "Not implemented" -- TODO
+    ty@TArr {} -> ptr (StructureType False [ptr funTy])
+      where 
+        types = llvmType <$> unwindType (embed ty)
+        funTy =
+          FunctionType
+            { argumentTypes = charPtr : init types
+            , resultType = last types
+            , isVarArg = False
+            }
+
 ----llvmFunType :: Operand -> LLVM.Type
 ----llvmFunType =
 ----  \case
@@ -70,44 +86,51 @@ namedReference = NamedTypeReference . llvmRep
 ----
 ----llvmRetType :: Operand -> LLVM.Type
 ----llvmRetType = resultType <<< llvmFunType
---llvmLiteral :: Literal -> Constant
---llvmLiteral =
---  \case
---    LBool True -> Int 1 1
---    LBool False -> Int 1 0
---    LInt32 n -> Int 32 (toInteger n)
---    LInt64 n -> Int 64 (toInteger n)
---    LFloat f -> Float (Single f)
---    LDouble d -> Float (Double d)
---    LChar c -> error "Not implemented" -- TODO
---    LString s -> error "Not implemented" -- TODO
---    LUnit -> Struct Nothing False []
---
---emitLit :: Literal -> CodeGen Operand
---emitLit = pure <<< ConstantOperand <<< llvmLiteral
---
---emitOp2Instr :: Op2 -> Operand -> Operand -> CodeGen Operand
---emitOp2Instr =
---  \case
---    OEqInt32 -> icmp LLVM.EQ
---    OAddInt32 -> add
---    OSubInt32 -> sub
---    OMulInt32 -> mul
---    OAddFloat -> fadd
---    OMulFloat -> fmul
---    OSubFloat -> fsub
---    ODivFloat -> fdiv
---    OAddDouble -> fadd
---    OMulDouble -> fmul
---    OSubDouble -> fsub
---    ODivDouble -> fdiv
---
---globalRef :: LLVM.Name -> LLVM.Type -> Operand
---globalRef name ty = ConstantOperand (GlobalReference ty name)
---
---functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
---functionRef name rty argtys = globalRef name (ptr (FunctionType rty argtys False))
---
+llvmPrim :: Prim -> Constant
+llvmPrim =
+  \case
+    PBool True -> Int 1 1
+    PBool False -> Int 1 0
+    PInt n -> Int 64 (toInteger n)
+    PFloat f -> Float (Single f)
+    PDouble d -> Float (Double d)
+    PChar c -> error "Not implemented" -- TODO
+    PString s -> error "Not implemented" -- TODO
+    PUnit -> Struct Nothing False []
+
+emitPrim :: Prim -> CodeGen Operand
+emitPrim = pure <<< ConstantOperand <<< llvmPrim
+
+emitOp1Instr :: (MonoType, Op1) -> Operand -> CodeGen Operand
+emitOp1Instr = 
+  \case
+    (_, ONot) -> undefined
+    (t, ONeg) | (tInt ~> tInt) == t -> undefined
+    (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
+    (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
+
+emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
+emitOp2Instr =
+  \case
+    (t, OEq) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.EQ
+    (t, OAdd) | (tInt ~> tInt ~> tInt) == t -> add
+    (t, OSub) | (tInt ~> tInt ~> tInt) == t -> sub
+    (t, OMul) | (tInt ~> tInt ~> tInt) == t -> mul
+    (t, OAdd) | (tFloat ~> tFloat ~> tFloat) == t -> fadd
+    (t, OAdd) | (tDouble ~> tDouble ~> tDouble) == t -> fadd
+    (t, OMul) | (tFloat ~> tFloat ~> tFloat) == t -> fmul
+    (t, OMul) | (tDouble ~> tDouble ~> tDouble) == t -> fmul
+    (t, OSub) | (tFloat ~> tFloat ~> tFloat) == t -> fsub
+    (t, OSub) | (tDouble ~> tDouble ~> tDouble) == t -> fsub
+    (t, ODiv) | (tFloat ~> tFloat ~> tFloat) == t -> fdiv
+    (t, ODiv) | (tDouble ~> tDouble ~> tDouble) == t -> fdiv
+
+globalRef :: LLVM.Name -> LLVM.Type -> Operand
+globalRef name ty = ConstantOperand (GlobalReference ty name)
+
+functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
+functionRef name rty argtys = globalRef name (ptr (FunctionType rty argtys False))
+
 ----buildDataType :: (MonadModuleBuilder m) => Name -> [Constructor] -> m ()
 ----buildDataType tyName cstrs = do
 ----  tp <- typedef (llvmRep tyName) (Just (StructureType False [i8]))
@@ -147,7 +170,7 @@ namedReference = NamedTypeReference . llvmRep
 --                (llvmType body)
 --            pure [(name, (t, op))]
 --          Constant lit -> do
---            let constant = llvmLiteral lit
+--            let constant = llvmPrim lit
 --            op <- global (llvmRep name) (LLVM.typeOf constant) constant
 --            pure [(name, (t, op))]
 --          Data tyName cstrs -> do
@@ -192,40 +215,43 @@ namedReference = NamedTypeReference . llvmRep
 --                   (getCodeGen $ emitBody (snd body) >>= ret)
 --                   (Env.inserts args env))
 --        _ -> pure ()
---
---emitBody :: Ast -> CodeGen Operand
---emitBody =
---  cata $ \case
---    ELit lit -> emitLit lit
---    EIf expr1 expr2 expr3 ->
---      mdo ifOp <- expr1
---          condBr ifOp thenBlock elseBlock
---          thenBlock <- block `named` "then"
---          thenOp <- expr2
---          br mergeBlock
---          elseBlock <- block `named` "else"
---          elseOp <- expr3
---          br mergeBlock
---          mergeBlock <- block `named` "ifcont"
---          phi [(thenOp, thenBlock), (elseOp, elseBlock)]
---    EOp2 op expr1 expr2 -> do
---      a <- expr1
---      b <- expr2
---      emitOp2Instr op a b
---    EVar (t, name) ->
---      Env.askLookup name >>= \case
---        Just (_, op) | isTCon ArrT t -> 
---          emitCall (t, name) []
---          -- ??? TODO
---        Just (_, op) -> pure op
---        _ -> error ("Not in scope: '" <> show name <> "'")
---    ECase expr clss -> emitCase expr (sortOn fst clss)
---    ECall () fun args -> emitCall fun args
---
-----        Just (t1, op) | isTCon ArrT t -> do
-----          emitCall (t, name) []
---emitCase ::
---     CodeGen Operand -> [([Label Type], CodeGen Operand)] -> CodeGen Operand
+
+emitBody :: Ast -> CodeGen Operand
+emitBody =
+  cata $ \case
+    ELit lit -> emitPrim lit
+    EIf expr1 expr2 expr3 -> mdo 
+      ifOp <- expr1
+      condBr ifOp thenBlock elseBlock
+      thenBlock <- block `named` "then"
+      thenOp <- expr2
+      br mergeBlock
+      elseBlock <- block `named` "else"
+      elseOp <- expr3
+      br mergeBlock
+      mergeBlock <- block `named` "ifcont"
+      phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+    EOp1 op expr1 -> do
+      a <- expr1
+      emitOp1Instr op a 
+    EOp2 op expr1 expr2 -> do
+      a <- expr1
+      b <- expr2
+      emitOp2Instr op a b
+    EVar (t, name) -> 
+      Env.askLookup name >>= \case
+        Just (_, op) | isConT ArrT t -> do
+          emitCall (t, name) []
+        Just (_, op) -> 
+          pure op
+        _ -> 
+          error ("Not in scope: '" <> show name <> "'")
+    ECase expr clss -> emitCase expr (sortOn fst clss)
+    ECall () fun args -> emitCall fun args
+
+emitCase ::
+     CodeGen Operand -> [([Label MonoType], CodeGen Operand)] -> CodeGen Operand
+emitCase expr cs = undefined
 --emitCase expr cs = mdo
 --  e <- expr
 --  m <- loadFromOffset 0 e
@@ -257,8 +283,9 @@ namedReference = NamedTypeReference . llvmRep
 --      pure ((r, cb), blk)
 --  end <- block `named` "end"
 --  phi (blocks <#> fst)
---
---emitCall :: Label Type -> [CodeGen Operand] -> CodeGen Operand
+
+emitCall :: Label MonoType -> [CodeGen Operand] -> CodeGen Operand
+emitCall = undefined
 --emitCall (t, fun) args = do
 --  as <- sequence args
 --  Env.askLookup fun >>= \case
@@ -390,8 +417,8 @@ namedReference = NamedTypeReference . llvmRep
 ----emitBody :: Ast -> CodeGen Operand
 ----emitBody =
 ----  cata $ \case
-----    ELit lit -> 
-----      emitLit lit
+----    ELit prim -> 
+----      emitPrim prim
 ----    EIf expr1 expr2 expr3 ->
 ----      mdo ifOp <- expr1
 ----          condBr ifOp thenBlock elseBlock
@@ -549,3 +576,61 @@ namedReference = NamedTypeReference . llvmRep
 --loadFromOffset offs op = do
 --  p <- gep op [int32 0, int32 offs]
 --  load p 0
+
+buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
+buildProgram name (Program defs) = do
+  buildModule (llvmRep name) $ do
+    env <-
+      Env.fromList . concat <$$> forEachDef defs $ \name t ->
+        \case
+          Function args (t1, _) ->
+            pure
+              [ ( name
+                , ( t
+                  , functionRef
+                      (llvmRep name)
+                      (llvmType t1)
+                      (llvmType . fst <$> toList args)
+                  )
+                )
+              ]
+    forEachDef defs $ \name t ->
+      \case
+        Function args (t1, body) ->
+          void $
+            function
+              (llvmRep name)
+              (toList args <#> llvmType *** llvmRep)
+              (llvmType t1)
+              (\ops -> do
+                runReaderT
+                  (getCodeGen $ emitBody body >>= ret)
+                  (Env.inserts [(n, (t, op)) | (op, (t, n)) <- zip ops (toList args)] env))
+        _ ->
+          pure ()
+
+forEachDef
+  :: (Monad m)
+  => Map Name (Definition MonoType a)
+  -> (Name -> MonoType -> Definition MonoType a -> m c)
+  -> m [c]
+forEachDef map f =
+  forM (Map.toList map) (\(name, def) -> f name (typeOf def) def)
+
+runModule :: LLVM.Module -> IO ()
+runModule = Text.putStrLn . ppll 
+
+-- CodeGen
+deriving instance Functor CodeGen
+
+deriving instance Applicative CodeGen
+
+deriving instance Monad CodeGen
+
+deriving instance (MonadReader CodeGenEnv) CodeGen
+
+deriving instance MonadFix CodeGen
+
+deriving instance MonadIRBuilder CodeGen
+
+deriving instance MonadModuleBuilder CodeGen

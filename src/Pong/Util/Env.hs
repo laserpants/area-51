@@ -3,40 +3,41 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
-module Pong.Util.Env
-  ( empty
-  , insert
-  , inserts
-  , insertWith
-  , fromList
-  , fromListWith
-  , toList
-  , union
-  , elems
-  , domain
-  , lookup
-  , findWithDefault
-  , findWithDefaultEmpty
-  , isMember
-  , update
-  , alter
-  , delete
-  , map
-  , askLookup
-  , Environment(..)
-  ) where
+
+module Pong.Util.Env (
+  empty,
+  insert,
+  inserts,
+  insertWith,
+  fromList,
+  fromListWith,
+  toList,
+  union,
+  elems,
+  domain,
+  lookup,
+  findWithDefault,
+  findWithDefaultEmpty,
+  isMember,
+  update,
+  alter,
+  delete,
+  map,
+  askLookup,
+  Environment (..),
+) where
 
 import Control.Monad.Reader
 import Control.Newtype.Generics (Newtype, over, pack, unpack)
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Util (Name, (<$$>))
 import Prelude hiding (insert, lookup, map)
-import qualified Data.Map.Strict as Map
 
-newtype Environment a =
-  Environment (Map Name a)
+newtype Environment a
+  = Environment (Map Name a)
 
 {-# INLINE empty #-}
 empty :: Environment a
@@ -44,7 +45,7 @@ empty = mempty
 
 {-# INLINE insert #-}
 insert :: Name -> a -> Environment a -> Environment a
-insert = over Environment <$$> Map.insert 
+insert = over Environment <$$> Map.insert
 
 {-# INLINE inserts #-}
 inserts :: [(Name, a)] -> Environment a -> Environment a
@@ -59,7 +60,7 @@ fromList = pack . Map.fromList
 
 {-# INLINE fromListWith #-}
 fromListWith :: (a -> a -> a) -> [(Name, a)] -> Environment a
-fromListWith = pack <$$> Map.fromListWith 
+fromListWith = pack <$$> Map.fromListWith
 
 {-# INLINE toList #-}
 toList :: Environment a -> [(Name, a)]
@@ -95,7 +96,7 @@ isMember name = Map.member name . unpack
 
 {-# INLINE update #-}
 update :: (a -> Maybe a) -> Name -> Environment a -> Environment a
-update = over Environment <$$> Map.update 
+update = over Environment <$$> Map.update
 
 {-# INLINE alter #-}
 alter :: (Maybe a -> Maybe a) -> Name -> Environment a -> Environment a
@@ -107,7 +108,7 @@ delete = over Environment . Map.delete
 
 {-# INLINE map #-}
 map :: (a -> b) -> Environment a -> Environment b
-map = over Environment . Map.map 
+map = over Environment . Map.map
 
 {-# INLINE askLookup #-}
 askLookup :: (MonadReader (Environment a) m) => Name -> m (Maybe a)
