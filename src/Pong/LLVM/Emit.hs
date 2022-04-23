@@ -1,11 +1,13 @@
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RecursiveDo #-}
--- {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Pong.LLVM.Emit where
 
@@ -13,29 +15,30 @@ module Pong.LLVM.Emit where
 --import Data.Char (isUpper)
 --import Data.Foldable (foldlM, foldrM)
 --import Data.Tuple.Extra (dupe, first, second)
---import Debug.Trace
 --import LLVM.AST.Attribute (ParameterAttribute)
 --import TextShow (TextShow, showt)
 --import qualified Data.Map.Strict as Map
 --import qualified Data.Text as Text
---import qualified LLVM.AST.Typed as LLVM
 --import qualified Pong.Util.Env as Env
 import Control.Monad.Reader
 import Data.List (sortOn)
+import Data.List.NonEmpty (toList)
 import Data.String (IsString, fromString)
+import Data.Tuple.Extra (uncurry3)
+import Debug.Trace
 import LLVM.Pretty
 import Pong.Data
 import Pong.LLVM hiding (Typed, typeOf, void)
 import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment (..))
+import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy.IO as Text
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
+import qualified LLVM.AST.Typed as LLVM
 import qualified Pong.Util.Env as Env
-import qualified Data.Map.Strict as Map
-import Data.List.NonEmpty (toList)
 
 type CodeGenEnv = Environment (MonoType, Operand)
 
@@ -56,24 +59,25 @@ namedReference = NamedTypeReference . llvmRep
 -- | Translate a language type to the equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
 llvmType =
-  project >>> \case
-    TUnit      -> StructureType False []
-    TBool   {} -> LLVM.i1
-    TInt    {} -> LLVM.i32
-    TFloat  {} -> LLVM.float
-    TDouble {} -> LLVM.double
-    TVar    {} -> charPtr
-    TChar   {} -> error "Not implemented" -- TODO
-    TString {} -> error "Not implemented" -- TODO
-    ty@TArr {} -> ptr (StructureType False [ptr funTy])
-      where 
-        types = llvmType <$> unwindType (embed ty)
-        funTy =
-          FunctionType
-            { argumentTypes = charPtr : init types
-            , resultType = last types
-            , isVarArg = False
-            }
+  project >>> 
+    \case
+      TUnit      -> StructureType False []
+      TBool   {} -> LLVM.i1
+      TInt    {} -> LLVM.i64
+      TFloat  {} -> LLVM.float
+      TDouble {} -> LLVM.double
+      TVar    {} -> charPtr
+      TChar   {} -> error "Not implemented" -- TODO
+      TString {} -> error "Not implemented" -- TODO
+      ty@TArr {} -> ptr (StructureType False [ptr funTy])
+        where
+          types = llvmType <$> unwindType (embed ty)
+          funTy =
+            FunctionType
+              { argumentTypes = charPtr : init types
+              , resultType = last types
+              , isVarArg = False
+              }
 
 ----llvmFunType :: Operand -> LLVM.Type
 ----llvmFunType =
@@ -102,7 +106,7 @@ emitPrim :: Prim -> CodeGen Operand
 emitPrim = pure <<< ConstantOperand <<< llvmPrim
 
 emitOp1Instr :: (MonoType, Op1) -> Operand -> CodeGen Operand
-emitOp1Instr = 
+emitOp1Instr =
   \case
     (_, ONot) -> undefined
     (t, ONeg) | (tInt ~> tInt) == t -> undefined
@@ -124,6 +128,7 @@ emitOp2Instr =
     (t, OSub) | (tDouble ~> tDouble ~> tDouble) == t -> fsub
     (t, ODiv) | (tFloat ~> tFloat ~> tFloat) == t -> fdiv
     (t, ODiv) | (tDouble ~> tDouble ~> tDouble) == t -> fdiv
+    o -> error (show o)
 
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
 globalRef name ty = ConstantOperand (GlobalReference ty name)
@@ -238,20 +243,32 @@ emitBody =
       a <- expr1
       b <- expr2
       emitOp2Instr op a b
-    EVar (t, name) -> 
+    EVar (t, name) ->
       Env.askLookup name >>= \case
-        Just (_, op) | isConT ArrT t -> do
+        Just (_, op) | isConT ArrT t ->
           emitCall (t, name) []
-        Just (_, op) -> 
+        Just (_, op) ->
           pure op
-        _ -> 
+        _ ->
           error ("Not in scope: '" <> show name <> "'")
-    ECase expr clss -> emitCase expr (sortOn fst clss)
-    ECall () fun args -> emitCall fun args
+    ECase expr clauses ->
+      emitCase expr (sortOn fst clauses)
+    ECall () fun args ->
+      emitCall fun args
+    ELet (t, name) expr1 expr2 -> do
+      e1 <- expr1
+      local (Env.insert name (t, e1)) expr2
 
-emitCase ::
-     CodeGen Operand -> [([Label MonoType], CodeGen Operand)] -> CodeGen Operand
-emitCase expr cs = undefined
+emitCase 
+  :: CodeGen Operand 
+  -> [([Label MonoType], CodeGen Operand)] 
+  -> CodeGen Operand
+emitCase expr cs = do
+  e <- expr
+  traceShowM ">>>>>>>>>>"
+  traceShowM e
+  traceShowM "<<<<<<<<<<"
+  undefined
 --emitCase expr cs = mdo
 --  e <- expr
 --  m <- loadFromOffset 0 e
@@ -284,13 +301,81 @@ emitCase expr cs = undefined
 --  end <- block `named` "end"
 --  phi (blocks <#> fst)
 
+xcall fun t0 t1 as = do
+  as1 <- traverse (uncurry3 cast) (zip3 as ts1 ts2)
+  r <- call fun (zip as1 (repeat []))
+  case (project rt1, project rt2) of
+    _ | rt1 == rt2 -> pure r
+    (TInt, TVar {}) ->
+      ptrtoint r (llvmType tInt)
+  where
+    ts1, ts2 :: [MonoType]
+    ts1 = unwindType t0
+    ts2 = unwindType t1
+    rt1 = last ts1
+    rt2 = last ts2
+    cast op t1 t2 =
+      case (project t1, project t2) of
+        _ | t1 == t2 -> pure op
+        (TInt, TVar {}) ->
+          inttoptr op charPtr
+
 emitCall :: Label MonoType -> [CodeGen Operand] -> CodeGen Operand
-emitCall = undefined
---emitCall (t, fun) args = do
---  as <- sequence args
---  Env.askLookup fun >>= \case
+
+emitCall (t, "Nil") args = do
+  as <- sequence args
+  error "boooo"
+
+emitCall (t, "Cons") args = do
+  as <- sequence args
+  error "zoooo"
+
+emitCall (t, fun) args = do
+  as <- sequence args
+  Env.askLookup fun >>= \case
+    Just (t0, op@(LocalReference PointerType {..} _)) -> do
+--      let sty = StructureType False [i8, llvmType t0]
+--      p <- bitcast op (ptr sty)
+      p0 <- gep op [int32 0, int32 0]
+      p1 <- gep op [int32 0, int32 1]
+      n <- load p0 0
+      fun <- load p1 0
+----      as1 <- forM_ [2..2] $ \i -> do -- TODO
+----        q <- gep p [int32 0, int32 i]
+----        load q 0
+      --fun <- bitcast xp (llvmType t0)
+      --emitPrim (PInt 32)
+      traceShowM "======="
+      traceShowM t
+      traceShowM t0
+      xcall fun t t0 as
+      --call fun (zip as (repeat []))
+
+    Just (t0, op) -> do
+      case compare (arity t) (length args) of
+        EQ -> do
+          -- call op (zip as (repeat []))
+          xcall op t t0 as
+        GT -> do
+          let sty = StructureType False [i8, LLVM.typeOf op] --  : (LLVM.typeOf <$> as))
+          struct <- malloc sty
+          p0 <- gep struct [int32 0, int32 0]
+          p1 <- gep struct [int32 0, int32 1]
+          store p0 0 (int8 0) -- (fromIntegral (length as)))
+          store p1 0 op
+          --forM_ (as `zip` [2 ..]) $ \(arg, i) -> do
+          --  q <- gep struct [int32 0, int32 i]
+          --  store q 0 arg
+          --traceShowM "************************"
+          --traceShowM struct
+          --traceShowM "************************"
+          pure struct
+          -- error "FOO"
+    x ->
+      error (show x)
 --    Just (t0, op@(LocalReference PointerType {..} _)) -> do
 --      a <- bitcast op charPtr
+--      undefined
 --      h <- loadFromOffset 0 op
 --      x <- inttoptr (ConstantOperand (Int 32 9991)) charPtr -- TODO: TEMP
 --      -- TEMP
@@ -583,6 +668,13 @@ buildProgram name (Program defs) = do
     env <-
       Env.fromList . concat <$$> forEachDef defs $ \name t ->
         \case
+          Extern args t1 -> do
+            op <-
+              extern
+                (llvmRep name)
+                (llvmType <$> args)
+                (llvmType t1)
+            pure [ ( name, (t, op) ) ]
           Function args (t1, _) ->
             pure
               [ ( name
@@ -612,10 +704,18 @@ buildProgram name (Program defs) = do
 forEachDef
   :: (Monad m)
   => Map Name (Definition MonoType a)
-  -> (Name -> MonoType -> Definition MonoType a -> m c)
-  -> m [c]
+  -> (Name -> MonoType -> Definition MonoType a -> m e)
+  -> m [e]
 forEachDef map f =
   forM (Map.toList map) (\(name, def) -> f name (typeOf def) def)
+
+malloc :: (MonadIRBuilder m) => LLVM.Type -> m Operand
+malloc ty = do
+  size <- zext (ConstantOperand (sizeof ty)) i64
+  m <- allocate size
+  bitcast m (ptr ty)
+  where
+    allocate size = call (functionRef "gc_malloc" charPtr [i64]) [(size, [])]
 
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll 

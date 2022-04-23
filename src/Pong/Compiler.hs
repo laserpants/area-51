@@ -3,24 +3,30 @@
 
 module Pong.Compiler where
 
-import Pong.LLVM (Operand)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.List (nub)
 import Data.List.NonEmpty (fromList, toList)
-import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second, swap)
 import Debug.Trace
+import LLVM.Pretty
 import Pong.Data
 import Pong.Eval
-import Pong.Lang
+import Pong.LLVM (Operand)
 import Pong.LLVM.Emit
+import Pong.Lang
 import Pong.Parser
 import Pong.TypeChecker
 import Pong.Util
-import qualified Pong.Util.Env as Env
+import System.Exit
+import System.Process
+import System.IO.Temp
+import System.IO.Unsafe (unsafePerformIO)
 import Text.Megaparsec (runParser)
 import TextShow (showt)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text.Lazy as TL
+import qualified Pong.Util.Env as Env
 
 -- from:
 --   lam(a) => lam(b) => b
@@ -1726,6 +1732,8 @@ t0t18 = PrimValue (PInt 6) == baz127 "(let r = { a = lam(x) => x + 1 } in field 
 
 t0t19 = PrimValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in (field { a = f | q } = r in f)(5)"
 
+t0t19b = PrimValue (PInt 6) == baz127 "let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f(5)"
+
 t0t20 = PrimValue (PInt 2) == baz127 "(let f = lam(x) => x + 1 in f)(1)"
 
 t0t21 = PrimValue (PInt 2) == baz127 "(if 5 == 0 then lam(x) => x else lam(y) => y + 1)(1)"
@@ -1764,6 +1772,8 @@ t0t37 = PrimValue (PInt 5) == baz127 "let g = (lam(f) => lam(y) => f(y))(lam(x) 
 
 t0t38 = PrimValue (PBool True) == baz127 "(let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f)(5) == (let r = { a = lam(x) => x + 1 } in field { a = f | q } = r in f(5))"
 
+t0t39 = 5 == unsafePerformIO (baz1278 "let id = lam(x) => x in id(5)")
+
 t0ta =
   t0t0 && t0t1 && t0t2 && t0t3 && t0t4 && t0t5 && t0t6 && t0t7 && t0t8
     && t0t9
@@ -1777,6 +1787,7 @@ t0ta =
     && t0t17
     && t0t18
     && t0t19
+    && t0t19b
     && t0t20
     && t0t21
     && t0t22
@@ -1796,6 +1807,7 @@ t0ta =
     && t0t36
     && t0t37
     && t0t38
+    && t0t39
 
 typeCheck_ :: Text -> TypedExpr
 typeCheck_ a =
@@ -1819,19 +1831,54 @@ baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
 
 baz127 :: Text -> Value
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
-baz127 p = evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
+baz127 p = do
+  traceShow q $
+    evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
  where
   Right q = let Right r = runParser expr "" p in baz124 r
 
 
 baz1277 :: Text -> IO ()
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
-baz1277 p = runModule (buildProgram "foo" z) -- emitBody ast
- where
-  z :: Program MonoType Ast
-  z = prog
-  (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
-  Right q = let Right r = runParser expr "" p in baz124 r
+baz1277 p = do
+--    traceShowM prog2
+    runModule (buildProgram "foo" prog2) -- emitBody ast
+  where
+    prog2 = prog <> Program
+      (Map.fromList 
+        [ ("main", Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
+        , ("gc_malloc", Extern [tInt] (tVar 0))
+        ])
+    (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
+    Right q = let Right r = runParser expr "" p in baz124 r
+
+
+baz1278 :: Text -> IO Int
+--baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
+baz1278 p = do
+-- cat out9.ll | clang memory.c -xir -lgc -o out - && ./out ; echo $?
+--    traceShowM prog2
+    --(_, f) <- openTempFile "" ""
+    --dir <- getCurrentDirectory
+    --traceShowM f
+    (_, Just one, _, _) <- createProcess (proc "echo" [ "target triple = \"x86_64-redhat-linux-gnu\"" <> TL.unpack zz1 ]) { std_out = CreatePipe }
+    (_, _, _, h) <- createProcess (proc "clang" [ "memory.c", "-xir", "-lgc", "-o", "out", "-" ]) 
+        { std_in = UseHandle one 
+        , cwd = Just "/home/laserpants/code/area-51"
+        }
+    waitForProcess h
+    (_, _, _, g) <- createProcess (proc "/home/laserpants/code/area-51/out" [])
+    ExitFailure c <- waitForProcess g
+    pure c
+  where
+    zz1 = ppll (buildProgram "foo" prog2) -- emitBody ast
+    prog2 = prog <> Program
+      (Map.fromList 
+        [ ("main", Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
+        , ("gc_malloc", Extern [tInt] (tVar 0))
+        ])
+    (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
+    Right q = let Right r = runParser expr "" p in baz124 r
 
 
 -- --baz127b :: Text -> Value

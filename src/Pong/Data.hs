@@ -3,6 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Pong.Data where
 
@@ -124,10 +125,9 @@ data Constructor t = Constructor
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)
+  | Constant (t, a)
+  | Extern [t] t
   | Data Name [Constructor t]
-
---   | Constant (Type, a)
---   | External [Type] (Label Type)
 
 newtype Program t a
   = Program (Map Name (Definition t a))
@@ -254,5 +254,7 @@ deriving instance (Show t, Show a) => Show (Program t a)
 deriving instance (Eq t, Eq a) => Eq (Program t a)
 
 deriving instance Generic (Program t a)
+
+deriving instance Semigroup (Program t a)
 
 instance Newtype (Program t a)
