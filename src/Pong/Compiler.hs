@@ -1,11 +1,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Pong.Compiler where
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Char (isUpper)
 import Data.List (nub)
+import Data.Maybe (fromMaybe)
 import Data.List.NonEmpty (fromList, toList)
 import Data.Tuple.Extra (first, second, swap)
 import Debug.Trace
@@ -18,12 +21,14 @@ import Pong.Lang
 import Pong.Parser
 import Pong.TypeChecker
 import Pong.Util
+import Pong.Util.Env (Environment)
 import System.Exit
 import System.Process
 import System.IO.Temp
 import System.IO.Unsafe (unsafePerformIO)
 import Text.Megaparsec (runParser)
 import TextShow (showt)
+import qualified Data.Text as Text
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy as TL
 import qualified Pong.Util.Env as Env
@@ -1041,8 +1046,8 @@ exp0_ =
       (eCall ((tInt ~> tInt) ~> tInt, "h") [eCall (tInt ~> tInt, "$lam2") []])
   , Program
       ( Map.fromList
-          [ ("$lam1", Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
-          , ("$lam2", Function (fromList [(tInt, "x")]) (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
+          [ (Right ((tInt ~> tInt) ~> tInt, "$lam1"), Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
+          , (Right (tInt ~> tInt, "$lam2"), Function (fromList [(tInt, "x")]) (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
           ]
       )
   )
@@ -1089,11 +1094,11 @@ exp00_ =
   , Program
       ( Map.fromList
           [
-            ( "$lam1"
+            ( Right (tInt ~> tInt ~> tInt ~> tInt, "$lam1")
             , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
             )
           ,
-            ( "$let2"
+            ( Right (tInt ~> tInt ~> tInt ~> tInt, "$let2")
             , Function
                 (fromList [(tInt, "z"), (tInt, "$v1"), (tInt, "$v2")])
                 ( tInt
@@ -1146,7 +1151,7 @@ expx0_ =
   , Program
       ( Map.fromList
           [
-            ( "$if1"
+            ( Right (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
             , Function
                 (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
                 ( tInt
@@ -1176,7 +1181,7 @@ expx01_ =
   , Program
       ( Map.fromList
           [
-            ( "$if1"
+            ( Right (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
             , Function
                 (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
                 ( tInt
@@ -1186,7 +1191,7 @@ expx01_ =
                     (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
                 )
             )
-          , ("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
+          , (Right (tInt ~> tInt ~> tInt, "g"), Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
           ]
       )
   )
@@ -1212,7 +1217,7 @@ expx8_ =
   , Program
       ( Map.fromList
           [
-            ( "$lam1"
+            ( Right ((tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$lam1")
             , Function (fromList [(tInt ~> tInt, "f"), (tInt, "x"), (tInt, "$v1")]) (tInt, eCall (tInt ~> tInt, "f") [eVar (tInt, "$v1")])
             )
           ]
@@ -1295,10 +1300,10 @@ exp1_ =
       )
   , Program
       ( Map.fromList
-          [ ("$if3", Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]) (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])))
-          , ("$lam1", Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
-          , ("$lam2", Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
-          , ("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
+          [ (Right (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if3"), Function (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")]) (tInt, eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")]) (eCall (tInt ~> tInt ~> tInt, "g") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])))
+          , (Right ((tInt ~> tInt) ~> tInt, "$lam1"), Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
+          , (Right (tInt ~> tInt ~> tInt ~> tInt, "$lam2"), Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
+          , (Right (tInt ~> tInt ~> tInt, "g"), Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))
           ]
       )
   )
@@ -1357,7 +1362,7 @@ expx9_ =
   , Program
       ( Map.fromList
           [
-            ( "$lam1"
+            ( Right ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1")
             , Function
                 (fromList [(tInt ~> tInt, "fact"), (tInt, "n")])
                 ( tInt
@@ -1472,12 +1477,13 @@ liftDef ::
   Ast ->
   m Ast
 liftDef name vs args expr = do
-  insertDef name def
+  insertDef (bananas name t ts) def  -- TODO
   pure (eCall (typeOf def, name) (eVar <$> vs))
- where
-  t = typeOf expr
-  as = vs <> args `without` [(t, name)]
-  def = Function (fromList as) (t, expr)
+  where
+    ts = fst <$> as
+    t = typeOf expr
+    as = vs <> args `without` [(t, name)]
+    def = Function (fromList as) (t, expr)
 
 appArgs :: [Ast] -> Ast -> Ast
 appArgs xs =
@@ -1497,7 +1503,13 @@ extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int ..]]
 programDefs :: (MonadState (Int, Program MonoType Ast) m) => m [Label MonoType]
 programDefs = do
   Program p <- gets snd
-  pure (swap <$> Map.toList (Map.map typeOf p))
+  pure (
+        Map.toList p <#> \case
+                          (Left name, def) ->
+                            (typeOf def, name)
+                          (Right label, _) ->
+                            label
+                        )
 
 bernie :: (MonadState (Int, Program MonoType Ast) m) => TypedExpr -> m Ast
 bernie =
@@ -1542,11 +1554,9 @@ bernie =
     EApp t fun args -> do
       f <- fun
       xs <- sequence args
-      case project f of
-        ECall _ g ys ->
-          pure (eCall g (ys <> xs))
-        EVar v ->
-          pure (eCall v xs)
+      pure $ case project f of
+        ECall _ g ys -> eCall g (ys <> xs)
+        EVar v -> eCall v xs
     ELet var expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
@@ -1582,6 +1592,117 @@ bernie =
     expr -> do
       e <- sequence expr
       error (show e)
+
+mcbride :: (MonadReader (Environment (Name, [Ast])) m, MonadState (Int, Program MonoType Ast) m) => Ast -> m Ast
+mcbride =
+  para $
+    \case
+      expr@(ELet (t, name) (e1, _) (_, body)) ->
+        case project e1 of
+          ECall _ (_, fun) args | arity t > length args -> do
+            aaa <- local (Env.insert name (fun, args)) body
+            pure (eLet (t, name) e1 aaa)
+          EVar (_, fun) | arity t > 0 -> do
+            bbb <- local (Env.insert name (fun, [])) body
+            pure (eLet (t, name) e1 bbb)
+          _ ->
+            cataBody (snd <$> expr)
+      expr ->
+        cataBody (snd <$> expr)
+  where
+    cataBody :: (MonadReader (Environment (Name, [Ast])) m, MonadState (Int, Program MonoType Ast) m) => ExprF MonoType Void Void () (m Ast) -> m Ast
+    cataBody =
+      \case
+        ECall () (t, fun) args | isUpper (Text.head fun) -> do
+          as <- sequence args
+          pure (eCall (t, fun) as)
+        ECall () (t, fun) args -> do
+          --traceShowM "vvvvvvvvvvvvvvvvvvvvvvv"
+          --traceShowM (typeOf zz :: MonoType)
+          (xx, zz) <- asks (fromMaybe (fun, []) . Env.lookup fun)
+          yyy <- bopp (t, xx)
+          --traceShowM t
+          --traceShowM xx
+          --traceShowM zz
+          as <- sequence args
+          pure (eCall (t, yyy) as)
+        expr ->
+          embed <$> sequence expr
+
+--getAbc :: (MonadReader (Environment (Name, [Ast])) m, MonadState (Int, Program MonoType Ast) m) => Name -> m (Name, [Ast])
+--getAbc name = asks (fromMaybe (name, []) . Env.lookup name)
+
+bopp (t, fun) = do
+  Program defs <- gets snd
+  case defs !? Right (t, fun) of
+    Just {} ->
+      pure fun
+    _ ->
+      case defs !? Left fun of
+        Just def -> do
+          let t0 = typeOf def
+          case runTypeChecker' (freeIndex [t0, t]) mempty (unify t0 t) of
+               Right sub
+                 | sub /= mempty -> do
+                   name <- uniqueName "$def"
+                   insertDef (Right (t, name)) ((apply sub def)) -- =<< preprocess (fmap xx123 (apply sub def))
+                   pure name
+        Nothing ->
+          error ("Impl. error: " <> show fun)
+
+--getDef :: (MonadReader (Environment (Name, [Ast])) m, MonadState (Int, Program MonoType Ast) m) => (MonoType, Name) -> m (Definition MonoType Ast)
+--getDef (t, name) = do
+--  env <- ask
+--  case Env.lookup name env of
+--    _ ->
+--      undefined
+----    Just fun ->
+----      getFoo (t, fun)
+----    Nothing -> do
+----      getFoo (t, name)
+--
+--getFoo :: (MonadState (Int, Program MonoType Ast) m) => Label MonoType -> m (Definition MonoType Ast)
+--getFoo key = do
+--  Program defs <- gets snd
+--  case defs !? key of
+--    Just z -> 
+--      pure z
+--    _ ->
+--      error "Impl. error"
+
+
+--getFoo :: (MonadState (Int, Program MonoType Ast) m) => Name -> m (Definition MonoType Ast)
+--getFoo name = do
+--  Program defs <- gets snd
+--  case defs !? name of
+--    Just z -> 
+--      pure z
+--    _ ->
+--      error "Impl. error"
+--
+--getDef :: (MonadReader (Environment (Name, [Ast])) m, MonadState (Int, Program MonoType Ast) m) => Name -> m (Definition MonoType Ast)
+--getDef name = do
+--  env <- ask
+--  case Env.lookup name env of
+--    Just (fun, yy) ->
+--      getFoo fun
+--    Nothing -> do
+--      getFoo name
+
+--          local (Env.insert name (Left (fun, args))) body
+--  cata $ \case
+--    expr -> embed <$> sequence expr
+
+--perry3 :: (MonadState (Int, Program MonoType Ast) m) => Ast -> m Ast
+--perry3 =
+--  cata $ \case
+--
+----    ECall _ fun args ->
+----      undefined
+--
+--    expr -> do
+--      e <- sequence expr
+--      pure (embed e)
 
 -- --perry2 :: (MonadState (Int, Program Ast) m) => Ast -> m Ast
 -- --perry2 ast = do
@@ -1700,9 +1821,11 @@ t0t2 = second snd (runState (bernie expx0) (1, emptyProgram)) == expx0_
 
 t0t3 = second snd (runState (bernie expx8) (1, emptyProgram)) == expx8_
 
-t0t4 = second snd (runState (bernie expx01) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == expx01_
+t0t4 = second snd (runState (bernie expx01) (1, 
+        Program (Map.fromList [(Right (tInt ~> tInt ~> tInt, "g"), Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == expx01_
 
-t0t5 = second snd (runState (bernie exp1) (1, Program (Map.fromList [("g", Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == exp1_
+t0t5 = second snd (runState (bernie exp1) (1, 
+        Program (Map.fromList [(Right (tInt ~> tInt ~> tInt, "g"), Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == exp1_
 
 t0t6 = evalProgram__ expyx_ == PrimValue (PInt 125)
 
@@ -1723,6 +1846,8 @@ t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))
 t0t14 = typeCheck_ exmp31_0 == exmp31_1
 
 t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == PrimValue (PInt 2)
+
+--
 
 t0t16 = PrimValue (PInt 2) == baz127 "let xs = Nil() in let f = lam(x) => x + 1 in (match xs { Cons(y, ys) => f | Nil => f })(1)"
 
@@ -1807,7 +1932,7 @@ t0ta =
     && t0t36
     && t0t37
     && t0t38
-    && t0t39
+--    && t0t39
 
 typeCheck_ :: Text -> TypedExpr
 typeCheck_ a =
@@ -1832,22 +1957,39 @@ baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
 baz127 :: Text -> Value
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
 baz127 p = do
-  traceShow q $
-    evalProgram__ (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
+  --traceShow z $
+  --  traceShow zzz $
+  --    --traceShow q $ 
+  traceShow "--- x"
+    $ traceShow x
+      $ traceShow "--- z"
+        $ traceShow z
+          $ traceShow "--- xx"
+            $ traceShow xx
+              $ traceShow "--- zz"
+                $ traceShow zz
+                  $ traceShow "--- <<"
+                    $ evalProgram__ (xx, zz)
  where
+  (xx, (_, zz)) = runReader (runStateT (mcbride x) (1, z)) mempty
+  (x :: Ast, z :: Program MonoType Ast) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
   Right q = let Right r = runParser expr "" p in baz124 r
 
 
 baz1277 :: Text -> IO ()
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
 baz1277 p = do
---    traceShowM prog2
+    traceShowM "vvvvvvvvvvvvvvvvvvvvv"
+    let (Program p) = prog in mapM_ traceShowM (Map.toList p)
+    traceShowM "vvvvvvvvvvvvvvvvvvvvv"
+    let (Program p) = prog2 in mapM_ traceShowM (Map.toList p)
+    traceShowM "vvvvvvvvvvvvvvvvvvvvv"
     runModule (buildProgram "foo" prog2) -- emitBody ast
   where
     prog2 = prog <> Program
       (Map.fromList 
-        [ ("main", Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
-        , ("gc_malloc", Extern [tInt] (tVar 0))
+        [ (Right (undefined, "main"), Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
+        , (Right (undefined, "gc_malloc"), Extern [tInt] (tVar 0))
         ])
     (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
     Right q = let Right r = runParser expr "" p in baz124 r
@@ -1857,7 +1999,9 @@ baz1278 :: Text -> IO Int
 --baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
 baz1278 p = do
 -- cat out9.ll | clang memory.c -xir -lgc -o out - && ./out ; echo $?
---    traceShowM prog2
+    traceShowM "vvvvvvvvvvvvvvvvvvvvv"
+    let (Program p) = prog2 in mapM_ traceShowM (Map.toList p)
+    traceShowM "vvvvvvvvvvvvvvvvvvvvv"
     --(_, f) <- openTempFile "" ""
     --dir <- getCurrentDirectory
     --traceShowM f
@@ -1874,8 +2018,8 @@ baz1278 p = do
     zz1 = ppll (buildProgram "foo" prog2) -- emitBody ast
     prog2 = prog <> Program
       (Map.fromList 
-        [ ("main", Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
-        , ("gc_malloc", Extern [tInt] (tVar 0))
+        [ (Right (undefined, "main"), Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
+        , (Right (undefined, "gc_malloc"), Extern [tInt] (tVar 0))
         ])
     (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
     Right q = let Right r = runParser expr "" p in baz124 r
@@ -1905,7 +2049,7 @@ expyx_ =
   , Program
       ( Map.fromList
           [
-            ( "$lam1"
+            ( Right (undefined, "$lam1")
             , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
             )
           ]
@@ -1924,7 +2068,7 @@ expyy_ =
   , Program
       ( Map.fromList
           [
-            ( "$lam1"
+            ( Right (undefined, "$lam1")
             , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
             )
           ]

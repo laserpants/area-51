@@ -285,19 +285,27 @@ label_ = do
   t <- type_
   pure (t, name)
 
-def :: Parser (Name, Definition (Type v Name) SourceExpr)
-def =
-  functionDef -- <|> constantDef -- <|> externalDef <|> dataDef
- where
-  functionDef = do
-    keyword "def"
-    name <- identifier
-    args <- parens (some label_)
-    symbol ":"
-    t <- type_
-    symbol "="
-    e <- expr
-    pure (name, Function (fromList args) (t, e))
+def :: (Ord v) => Parser (ProgKey (Type v Name), Definition (Type v Name) SourceExpr)
+def = 
+    functionDef -- <|> constantDef -- <|> externalDef <|> dataDef
+  where
+    functionDef = do
+      keyword "def"
+      name <- identifier
+      args <- parens (some label_)
+      symbol ":"
+      t <- type_
+      symbol "="
+      e <- expr
+      let ts = fst <$> args
+      pure (bananas name t ts, Function (fromList args) (t, e))
+
+bananas name t ts = 
+  if any (isConT VarT) (t:ts) 
+                   then -- Template
+                     Left name 
+                   else 
+                     Right (foldType t ts, name)
 
 --      constantDef = do
 --        keyword "const"
@@ -308,7 +316,7 @@ def =
 --        e <- expr
 --        pure (name, Constant (t, e))
 
-program :: Parser (Program (Type v Name) SourceExpr)
+program :: (Ord v) => Parser (Program (Type v Name) SourceExpr)
 program = do
   defs <- many def
   pure (Program (Map.fromList defs))

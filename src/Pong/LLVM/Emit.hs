@@ -14,24 +14,27 @@ module Pong.LLVM.Emit where
 --import Control.Monad.Writer
 --import Data.Char (isUpper)
 --import Data.Foldable (foldlM, foldrM)
---import Data.Tuple.Extra (dupe, first, second)
 --import LLVM.AST.Attribute (ParameterAttribute)
---import TextShow (TextShow, showt)
 --import qualified Data.Map.Strict as Map
 --import qualified Data.Text as Text
 --import qualified Pong.Util.Env as Env
+
 import Control.Monad.Reader
+import Control.Monad.State
+import Data.Function ((&))
 import Data.List (sortOn)
 import Data.List.NonEmpty (toList)
 import Data.String (IsString, fromString)
-import Data.Tuple.Extra (uncurry3)
+import Data.Tuple.Extra (first, second, uncurry3)
 import Debug.Trace
 import LLVM.Pretty
 import Pong.Data
 import Pong.LLVM hiding (Typed, typeOf, void)
 import Pong.Lang
+import Pong.TypeChecker
 import Pong.Util
 import Pong.Util.Env (Environment (..))
+import TextShow (TextShow, showt)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy.IO as Text
 import qualified LLVM.AST as LLVM
@@ -40,12 +43,15 @@ import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
 import qualified Pong.Util.Env as Env
 
-type CodeGenEnv = Environment (MonoType, Operand)
+type CodeGenEnv = Environment (Either (Name, [Ast]) (MonoType, Operand))
 
 newtype CodeGen a =
   CodeGen
-    { getCodeGen :: ReaderT CodeGenEnv (IRBuilderT ModuleBuilder) a
+    { getCodeGen :: StateT (Int, Program MonoType Ast) (ReaderT CodeGenEnv (IRBuilderT ModuleBuilder)) a
     }
+
+runCodeGen :: CodeGenEnv -> Program MonoType Ast -> CodeGen a -> IRBuilderT ModuleBuilder a
+runCodeGen env prog (CodeGen code) = runReaderT (evalStateT code (1, prog)) env
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< unpack
@@ -59,7 +65,7 @@ namedReference = NamedTypeReference . llvmRep
 -- | Translate a language type to the equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
 llvmType =
-  project >>> 
+  project >>>
     \case
       TUnit      -> StructureType False []
       TBool   {} -> LLVM.i1
@@ -105,8 +111,20 @@ llvmPrim =
 emitPrim :: Prim -> CodeGen Operand
 emitPrim = pure <<< ConstantOperand <<< llvmPrim
 
+--emitPrim :: Prim -> CodeGen Operand
+__emitPrim :: (Monad m) => Prim -> IRBuilderT m Operand
+__emitPrim = pure <<< ConstantOperand <<< llvmPrim
+
 emitOp1Instr :: (MonoType, Op1) -> Operand -> CodeGen Operand
 emitOp1Instr =
+  \case
+    (_, ONot) -> undefined
+    (t, ONeg) | (tInt ~> tInt) == t -> undefined
+    (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
+    (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
+
+__emitOp1Instr :: (MonoType, Op1) -> Operand -> IRBuilderT m Operand
+__emitOp1Instr =
   \case
     (_, ONot) -> undefined
     (t, ONeg) | (tInt ~> tInt) == t -> undefined
@@ -129,6 +147,24 @@ emitOp2Instr =
     (t, ODiv) | (tFloat ~> tFloat ~> tFloat) == t -> fdiv
     (t, ODiv) | (tDouble ~> tDouble ~> tDouble) == t -> fdiv
     o -> error (show o)
+
+__emitOp2Instr :: (Monad m) => (MonoType, Op2) -> Operand -> Operand -> IRBuilderT m Operand
+__emitOp2Instr =
+  \case
+    (t, OEq) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.EQ
+    (t, OAdd) | (tInt ~> tInt ~> tInt) == t -> add
+    (t, OSub) | (tInt ~> tInt ~> tInt) == t -> sub
+    (t, OMul) | (tInt ~> tInt ~> tInt) == t -> mul
+    (t, OAdd) | (tFloat ~> tFloat ~> tFloat) == t -> fadd
+    (t, OAdd) | (tDouble ~> tDouble ~> tDouble) == t -> fadd
+    (t, OMul) | (tFloat ~> tFloat ~> tFloat) == t -> fmul
+    (t, OMul) | (tDouble ~> tDouble ~> tDouble) == t -> fmul
+    (t, OSub) | (tFloat ~> tFloat ~> tFloat) == t -> fsub
+    (t, OSub) | (tDouble ~> tDouble ~> tDouble) == t -> fsub
+    (t, ODiv) | (tFloat ~> tFloat ~> tFloat) == t -> fdiv
+    (t, ODiv) | (tDouble ~> tDouble ~> tDouble) == t -> fdiv
+    o -> error (show o)
+
 
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
 globalRef name ty = ConstantOperand (GlobalReference ty name)
@@ -221,43 +257,235 @@ functionRef name rty argtys = globalRef name (ptr (FunctionType rty argtys False
 --                   (Env.inserts args env))
 --        _ -> pure ()
 
+--bap :: Expr MonoType Void Void () -> CodeGen Ast
+--bap = undefined
+--
+--zap :: ExprF MonoType Void Void () (Ast, CodeGen Operand) -> CodeGen Ast
+--zap x = 
+--  (cata bap x)
+--    where
+--      y = project x
+--  project >>> cata ( \case
+--    EVar _ -> undefined
+--  )
+
+--___emitBody 
+--  :: (MonadModuleBuilder m, MonadFix m, MonadReader CodeGenEnv m, MonadState (Int, Program MonoType Ast) m) 
+--  => Ast 
+--  -> IRBuilderT m Operand
+___emitBody :: Ast -> CodeGen Operand
+___emitBody =
+  para $
+    \case
+      ELet (t, name) (Fix (ECall _ (_, fun) args), _) (_, body)
+        | arity t > length args ->
+          local (Env.insert name (Left (fun, args))) body
+      expr ->
+        cataBody (snd <$> expr)
+  where
+    cataBody =
+      \case
+--        ELet (t, name) expr1 expr2 -> do
+--          e1 <- expr1
+--          p <- alloca (LLVM.typeOf e1) Nothing 0
+--          store p 0 e1
+--          local (Env.insert name (Right (t, p))) expr2
+--        ELit lit ->
+--          __emitPrim lit
+--        EIf expr1 expr2 expr3 -> mdo
+--          ifOp <- expr1
+--          condBr ifOp thenBlock elseBlock
+--          thenBlock <- block `named` "then"
+--          thenOp <- expr2
+--          br mergeBlock
+--          elseBlock <- block `named` "else"
+--          elseOp <- expr3
+--          br mergeBlock
+--          mergeBlock <- block `named` "ifcont"
+--          phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+--        EOp1 op expr1 -> do
+--          a <- expr1
+--          __emitOp1Instr op a
+--        EOp2 op expr1 expr2 -> do
+--          a <- expr1
+--          b <- expr2
+--          __emitOp2Instr op a b
+        _ -> do
+          let zzz = undefined :: Ast
+          function
+            ""
+            undefined
+            undefined
+            (\ops ->
+              lift (___emitBody zzz >>= ret))
+
+  --      EVar (t, name) ->
+  --        Env.askLookup name >>= \case
+  --          Just (Right (_, op)) | isConT ArrT t ->
+  --            emitCall (t, name) []
+  --          Just (Right (_, op)) ->
+  --            pure op
+  --          _ ->
+  --            error "1111"
+    --            Just (Left ast) ->
+    --              emitBody ast
+    --        _ ->
+    --          error ("Not in scope: '" <> show name <> "'")
+  --      ECase expr clauses ->
+  --        emitCase expr (sortOn fst clauses)
+  --      ECall () fun args -> do
+  --        as <- sequence args
+  --        emitCall fun as
+
+--zarf :: (MonadModuleBuilder m, MonadFix m, MonadReader CodeGenEnv m, MonadState (Int, Program MonoType Ast) m) => IRBuilderT (IRBuilderT m) ()
+--zarf = lift (___emitBody undefined >>= ret)
+
 emitBody :: Ast -> CodeGen Operand
 emitBody =
-  cata $ \case
-    ELit lit -> emitPrim lit
-    EIf expr1 expr2 expr3 -> mdo 
-      ifOp <- expr1
-      condBr ifOp thenBlock elseBlock
-      thenBlock <- block `named` "then"
-      thenOp <- expr2
-      br mergeBlock
-      elseBlock <- block `named` "else"
-      elseOp <- expr3
-      br mergeBlock
-      mergeBlock <- block `named` "ifcont"
-      phi [(thenOp, thenBlock), (elseOp, elseBlock)]
-    EOp1 op expr1 -> do
-      a <- expr1
-      emitOp1Instr op a 
-    EOp2 op expr1 expr2 -> do
-      a <- expr1
-      b <- expr2
-      emitOp2Instr op a b
-    EVar (t, name) ->
-      Env.askLookup name >>= \case
-        Just (_, op) | isConT ArrT t ->
-          emitCall (t, name) []
-        Just (_, op) ->
-          pure op
-        _ ->
-          error ("Not in scope: '" <> show name <> "'")
-    ECase expr clauses ->
-      emitCase expr (sortOn fst clauses)
-    ECall () fun args ->
-      emitCall fun args
-    ELet (t, name) expr1 expr2 -> do
-      e1 <- expr1
-      local (Env.insert name (t, e1)) expr2
+  para $
+    \case
+      ELet (t, name) (Fix (ECall _ (_, fun) args), _) (_, body)
+        | arity t > length args ->
+          local (Env.insert name (Left (fun, args))) body
+      expr ->
+        cataBody (snd <$> expr)
+  where
+    cataBody =
+      \case
+        ELet (t, name) expr1 expr2 -> do
+          e1 <- expr1
+          p <- alloca (LLVM.typeOf e1) Nothing 0
+          store p 0 e1
+          local (Env.insert name (Right (t, p))) expr2
+        ELit lit ->
+          emitPrim lit
+        EIf expr1 expr2 expr3 -> mdo
+          ifOp <- expr1
+          condBr ifOp thenBlock elseBlock
+          thenBlock <- block `named` "then"
+          thenOp <- expr2
+          br mergeBlock
+          elseBlock <- block `named` "else"
+          elseOp <- expr3
+          br mergeBlock
+          mergeBlock <- block `named` "ifcont"
+          phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+        EOp1 op expr1 -> do
+          a <- expr1
+          emitOp1Instr op a
+        EOp2 op expr1 expr2 -> do
+          a <- expr1
+          b <- expr2
+          emitOp2Instr op a b
+        EVar (t, name) ->
+          Env.askLookup name >>= \case
+            Just (Right (_, op)) | isConT ArrT t ->
+              emitCall (t, name) []
+            Just (Right (_, op)) ->
+              pure op
+            Just (Left ast) -> do
+              traceShowM "*(*(*(*("
+              traceShowM ast
+              undefined -- emitBody ast
+            _ ->
+              error ("Not in scope: '" <> show name <> "'")
+        ECase expr clauses ->
+          emitCase expr (sortOn fst clauses)
+        ECall () fun args -> do
+          as <- sequence args
+          emitCall fun as
+--      flip cata zz $ \case
+--        _ -> 
+--          undefined
+--      dd <- zap expr
+--      --let ee = dd  :: Int
+--      --undefined
+--      --let dd = sequence zz 
+--      --ee <- dd 
+--      ----    dd = embed zz 
+--      ----let dd = sequence zz 
+--      ----ee <- dd
+--      ----let ff = ee 
+--      undefined -- emitBody_ dd
+--      snd <$> expr & \case
+--        ELet (t, name) expr1 expr2 -> do
+--          e1 <- expr1
+--          p <- alloca (LLVM.typeOf e1) Nothing 0
+--          store p 0 e1
+--          local (Env.insert name (Right (t, p))) expr2
+--        ELit lit -> 
+--          emitPrim lit
+--        EIf expr1 expr2 expr3 -> mdo
+--          ifOp <- expr1
+--          condBr ifOp thenBlock elseBlock
+--          thenBlock <- block `named` "then"
+--          thenOp <- expr2
+--          br mergeBlock
+--          elseBlock <- block `named` "else"
+--          elseOp <- expr3
+--          br mergeBlock
+--          mergeBlock <- block `named` "ifcont"
+--          phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+--        EOp1 op expr1 -> do
+--          a <- expr1
+--          emitOp1Instr op a 
+--        EOp2 op expr1 expr2 -> do
+--          a <- expr1
+--          b <- expr2
+--          emitOp2Instr op a b
+--        EVar (t, name) ->
+--          Env.askLookup name >>= \case
+--            Just (Right (_, op)) | isConT ArrT t ->
+--              emitCall (t, name) []
+--            Just (Right (_, op)) ->
+--              pure op
+----            Just (Left ast) ->
+----              emitBody ast
+--            _ ->
+--              error ("Not in scope: '" <> show name <> "'")
+--        ECase expr clauses ->
+--          emitCase expr (sortOn fst clauses)
+--        ECall () fun args ->
+--          emitCall fun args
+
+--  cata $ \case
+--    ELit lit -> 
+--      emitPrim lit
+--    EIf expr1 expr2 expr3 -> mdo
+--      ifOp <- expr1
+--      condBr ifOp thenBlock elseBlock
+--      thenBlock <- block `named` "then"
+--      thenOp <- expr2
+--      br mergeBlock
+--      elseBlock <- block `named` "else"
+--      elseOp <- expr3
+--      br mergeBlock
+--      mergeBlock <- block `named` "ifcont"
+--      phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+--    EOp1 op expr1 -> do
+--      a <- expr1
+--      emitOp1Instr op a 
+--    EOp2 op expr1 expr2 -> do
+--      a <- expr1
+--      b <- expr2
+--      emitOp2Instr op a b
+--    EVar (t, name) ->
+--      Env.askLookup name >>= \case
+--        Just (Right (_, op)) | isConT ArrT t ->
+--          emitCall (t, name) []
+--        Just (Right (_, op)) ->
+--          pure op
+--        Just (Left ast) ->
+--          emitBody ast
+--        _ ->
+--          error ("Not in scope: '" <> show name <> "'")
+--    ECase expr clauses ->
+--      emitCase expr (sortOn fst clauses)
+--    ECall () fun args ->
+--      emitCall fun args
+--    ELet (t, name) expr1 expr2 -> do
+--      e1 <- expr1
+--      local (Env.insert name (Right (t, e1))) expr2
 
 emitCase 
   :: CodeGen Operand 
@@ -301,78 +529,172 @@ emitCase expr cs = do
 --  end <- block `named` "end"
 --  phi (blocks <#> fst)
 
-xcall fun t0 t1 as = do
-  as1 <- traverse (uncurry3 cast) (zip3 as ts1 ts2)
-  r <- call fun (zip as1 (repeat []))
-  case (project rt1, project rt2) of
-    _ | rt1 == rt2 -> pure r
-    (TInt, TVar {}) ->
-      ptrtoint r (llvmType tInt)
-  where
-    ts1, ts2 :: [MonoType]
-    ts1 = unwindType t0
-    ts2 = unwindType t1
-    rt1 = last ts1
-    rt2 = last ts2
-    cast op t1 t2 =
-      case (project t1, project t2) of
-        _ | t1 == t2 -> pure op
-        (TInt, TVar {}) ->
-          inttoptr op charPtr
+--xcall f fun t0 t1 as 
+--  | any (isConT VarT) ts2 = 
+--    case runTypeChecker' (freeIndex [t0, t1]) mempty (unify t0 t1) of
+--      Right sub -> do
+--        traceShowM f
+--        traceShowM fun
+--        traceShowM sub
+--        error "*********"
+--      _ ->
+--        error "/////////"
+--  | otherwise = do 
+--    call fun (zip as (repeat []))
+----  as1 <- traverse (uncurry3 cast) (zip3 as ts1 ts2)
+----  r <- call fun (zip as1 (repeat []))
+----  case (project rt1, project rt2) of
+----    _ | rt1 == rt2 -> pure r
+----    (TInt, TVar {}) ->
+----      ptrtoint r (llvmType tInt)
+--  where
+--    ts1, ts2 :: [MonoType]
+--    ts1 = unwindType t0
+--    ts2 = unwindType t1
+----    rt1 = last ts1
+----    rt2 = last ts2
+----    cast op t1 t2 =
+----      case (project t1, project t2) of
+----        _ | t1 == t2 -> pure op
+----        (TInt, TVar {}) ->
+----          inttoptr op charPtr
 
-emitCall :: Label MonoType -> [CodeGen Operand] -> CodeGen Operand
 
-emitCall (t, "Nil") args = do
-  as <- sequence args
-  error "boooo"
+--emitCall (t, "Nil") args = do
+--  as <- sequence args
+--  error "boooo"
+--
+--emitCall (t, "Cons") args = do
+--  as <- sequence args
+--  error "zoooo"
 
-emitCall (t, "Cons") args = do
-  as <- sequence args
-  error "zoooo"
+--gork :: Name -> p -> CodeGen Name
+gork f sub = do
+  (_, Program p) <- get 
+  case Map.lookup f p of
+    Just def -> do
+      let name = "xxx"
+          Function args (t1, body) = apply sub def
 
-emitCall (t, fun) args = do
-  as <- sequence args
-  Env.askLookup fun >>= \case
-    Just (t0, op@(LocalReference PointerType {..} _)) -> do
---      let sty = StructureType False [i8, llvmType t0]
---      p <- bitcast op (ptr sty)
-      p0 <- gep op [int32 0, int32 0]
-      p1 <- gep op [int32 0, int32 1]
-      n <- load p0 0
-      fun <- load p1 0
-----      as1 <- forM_ [2..2] $ \i -> do -- TODO
-----        q <- gep p [int32 0, int32 i]
-----        load q 0
-      --fun <- bitcast xp (llvmType t0)
-      --emitPrim (PInt 32)
-      traceShowM "======="
-      traceShowM t
-      traceShowM t0
-      xcall fun t t0 as
+      traceShowM body
+      traceShowM args
+      traceShowM "xxxxxxxx"
+
+      function
+        (llvmRep name)
+        (toList args <#> llvmType *** llvmRep)
+        (llvmType t1)
+        (\ops -> do
+          let foo = [(n, Right (t, op)) | (op, (t, n)) <- zip ops (toList args)]
+          traceShowM foo
+          lift (local (Env.inserts foo) (emitBody body >>= ret))
+          --  undefined -- (Env.inserts [(n, Right (t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
+          --  undefined -- (Program defs)
+          --  undefined -- (emitBody body >>= ret)
+          --  let env = mempty
+          --  runReaderT
+          --    (lift (getCodeGen $ emitBody body >>= ret))
+          --    (Env.inserts [(n, (t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
+          )
+
+      --insertDef name (apply sub def)
+      --pure name
+    Nothing ->
+      error "Implementation error"
+
+zopp :: IRBuilderT CodeGen ()
+zopp = undefined
+
+--runCodeGenX :: CodeGenEnv -> Program MonoType Ast -> CodeGen a -> IRBuilderT CodeGen a
+--runCodeGenX env prog (CodeGen code) = undefined -- runReaderT (evalStateT code (1, prog)) env
+
+emitCall :: Label MonoType -> [Operand] -> CodeGen Operand
+emitCall (t, f) as = do
+  undefined
+----  as <- sequence args
+--  Env.askLookup f >>= \case
+--    Just (Right (t0, op@(LocalReference PointerType {..} _))) -> do
+----      let sty = StructureType False [i8, llvmType t0]
+----      p <- bitcast op (ptr sty)
+--      p0 <- gep op [int32 0, int32 0]
+--      p1 <- gep op [int32 0, int32 1]
+--      n <- load p0 0
+--      fun <- load p1 0
+------      as1 <- forM_ [2..2] $ \i -> do -- TODO
+------        q <- gep p [int32 0, int32 i]
+------        load q 0
+--      --fun <- bitcast xp (llvmType t0)
+--      --emitPrim (PInt 32)
+--      traceShowM "======="
+--      traceShowM f
+--      traceShowM t
+--      traceShowM t0
+--      undefined
+--      --xcall f fun t t0 as
+--      --call fun (zip as (repeat []))
+--
+--    Just (Right (t0, op)) -> do
+--      case compare (arity t) (length as) of
+--        EQ -> do
+--          --traceShowM ">>>>>>>>>>>>"
+--          --traceShowM t
+--          --traceShowM t0
+--          --traceShowM "<<<<<<<<<<<<"
+--          if t == t0
+--             then 
+--               call op (zip as (repeat []))
+--             else 
+--               case runTypeChecker' (freeIndex [t, t0]) mempty (unify t t0) of
+--                 Right sub -> do
+--                   g <- gork f sub
+--                   call g (zip as (repeat []))
+--
+--          --xcall f op t t0 as
+--        GT -> do
+--          let sty = StructureType False [i8, LLVM.typeOf op] --  : (LLVM.typeOf <$> as))
+--          struct <- malloc sty
+--          p0 <- gep struct [int32 0, int32 0]
+--          p1 <- gep struct [int32 0, int32 1]
+--          store p0 0 (int8 0) -- (fromIntegral (length as)))
+--          store p1 0 op
+--          --forM_ (as `zip` [2 ..]) $ \(arg, i) -> do
+--          --  q <- gep struct [int32 0, int32 i]
+--          --  store q 0 arg
+--          --traceShowM "************************"
+--          --traceShowM struct
+--          --traceShowM "************************"
+--          pure struct
+--          -- error "FOO"
+--    Just (Left (fun, args)) -> do
+--      xs <- traverse emitBody args
+--      emitCall (t, fun) (xs <> as)
+--
       --call fun (zip as (repeat []))
 
-    Just (t0, op) -> do
-      case compare (arity t) (length args) of
-        EQ -> do
-          -- call op (zip as (repeat []))
-          xcall op t t0 as
-        GT -> do
-          let sty = StructureType False [i8, LLVM.typeOf op] --  : (LLVM.typeOf <$> as))
-          struct <- malloc sty
-          p0 <- gep struct [int32 0, int32 0]
-          p1 <- gep struct [int32 0, int32 1]
-          store p0 0 (int8 0) -- (fromIntegral (length as)))
-          store p1 0 op
-          --forM_ (as `zip` [2 ..]) $ \(arg, i) -> do
-          --  q <- gep struct [int32 0, int32 i]
-          --  store q 0 arg
-          --traceShowM "************************"
-          --traceShowM struct
-          --traceShowM "************************"
-          pure struct
-          -- error "FOO"
-    x ->
-      error (show x)
+--    Just (Left ast) -> do
+--      traceShowM "///////////"
+--      traceShowM t
+--      traceShowM (typeOf ast :: MonoType)
+--      traceShowM ast
+--
+--      let t1 = typeOf ast :: MonoType
+--          Right sub = runTypeChecker' (freeIndex [t, t1]) mempty (unify t t1)
+--          ast1 = apply sub ast
+--
+--      traceShowM sub
+--      traceShowM ast1
+--      traceShowM as
+--
+--      emitBody ast1 
+--
+      --name <- uniqueName_ "$h"
+      --x <- emitBody ast
+
+--    case runTypeChecker' (freeIndex [t0, t1]) mempty (unify t0 t1) of
+--      Right sub -> do
+--
+--    x ->
+--      error (show x)
 --    Just (t0, op@(LocalReference PointerType {..} _)) -> do
 --      a <- bitcast op charPtr
 --      undefined
@@ -666,7 +988,7 @@ buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram name (Program defs) = do
   buildModule (llvmRep name) $ do
     env <-
-      Env.fromList . concat <$$> forEachDef defs $ \name t ->
+      Env.fromList . concat <$$> forEachDef defs $ \(_, name) t ->
         \case
           Extern args t1 -> do
             op <-
@@ -674,11 +996,12 @@ buildProgram name (Program defs) = do
                 (llvmRep name)
                 (llvmType <$> args)
                 (llvmType t1)
-            pure [ ( name, (t, op) ) ]
+            pure [ ( name, Right (t, op) ) ]
           Function args (t1, _) ->
             pure
               [ ( name
-                , ( t
+                , Right 
+                  ( t
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -686,7 +1009,7 @@ buildProgram name (Program defs) = do
                   )
                 )
               ]
-    forEachDef defs $ \name t ->
+    forEachDef defs $ \(_, name) t ->
       \case
         Function args (t1, body) ->
           void $
@@ -695,19 +1018,50 @@ buildProgram name (Program defs) = do
               (toList args <#> llvmType *** llvmRep)
               (llvmType t1)
               (\ops -> do
-                runReaderT
-                  (getCodeGen $ emitBody body >>= ret)
-                  (Env.inserts [(n, (t, op)) | (op, (t, n)) <- zip ops (toList args)] env))
+                runCodeGen 
+                  (Env.inserts [(n, Right (t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
+                  (Program defs)
+                  (emitBody body >>= ret)
+                --runReaderT
+                --  (getCodeGen $ emitBody body >>= ret)
+                --  (Env.inserts [(n, (t, op)) | (op, (t, n)) <- zip ops (toList args)] env))
+                )
         _ ->
           pure ()
 
+--runCodeGen :: (Monad m) => StateT (Int, Program MonoType Ast)  (ReaderT CodeGenEnv m) a -> CodeGenEnv -> Program MonoType Ast -> IRBuilderT ModuleBuilder ()
+--runCodeGen a env prog = yy
+--  where
+--    yy = runReaderT zz env
+----    zz :: ReaderT CodeGenEnv m (Int, Program MonoType Ast)
+--    zz = execStateT a (1, prog)
+
+uniqueName_ :: Name -> CodeGen Name
+uniqueName_ prefix = do
+  n <- gets fst
+  modify (first succ)
+  pure (prefix <> showt n)
+
+__uniqueName_ :: (MonadState (Int, Program MonoType Ast) m) => Name -> IRBuilderT m Name
+__uniqueName_ prefix = do
+  n <- gets fst
+  modify (first succ)
+  pure (prefix <> showt n)
+
 forEachDef
   :: (Monad m)
-  => Map Name (Definition MonoType a)
-  -> (Name -> MonoType -> Definition MonoType a -> m e)
+  => Map (ProgKey MonoType) (Definition MonoType a)
+  -> (Label MonoType -> MonoType -> Definition MonoType a -> m e)
   -> m [e]
-forEachDef map f =
-  forM (Map.toList map) (\(name, def) -> f name (typeOf def) def)
+forEachDef = undefined
+
+--forEachDef
+--  :: (Monad m)
+--  => Map Name (Definition MonoType a)
+--  -> (Name -> MonoType -> Definition MonoType a -> m e)
+--  -> m [e]
+--forEachDef map f =
+--  forM (Map.toList map) (\(name, def) -> f name (typeOf def) def)
 
 malloc :: (MonadIRBuilder m) => LLVM.Type -> m Operand
 malloc ty = do
@@ -728,6 +1082,8 @@ deriving instance Applicative CodeGen
 deriving instance Monad CodeGen
 
 deriving instance (MonadReader CodeGenEnv) CodeGen
+
+deriving instance (MonadState (Int, Program MonoType Ast)) CodeGen
 
 deriving instance MonadFix CodeGen
 

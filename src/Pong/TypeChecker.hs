@@ -62,7 +62,7 @@ substitute sub =
     TDouble -> tDouble
     TChar -> tChar
     TString -> tString
-    TGen{} -> error "Implementation error"
+    TGen {} -> error "Implementation error"
 
 rowSubstitute :: Map Int (Type Int g) -> Row (Type Int h) Int -> Row (Type Int g) Int
 rowSubstitute sub =
@@ -83,7 +83,7 @@ instance Substitutable MonoType where
 instance (Functor f) => Substitutable (f MonoType) where
   apply = fmap . apply
 
-instance Substitutable (Expr MonoType MonoType a1 a2) where
+instance (Substitutable a0, Substitutable a2) => Substitutable (Expr MonoType a0 a1 a2) where
   apply sub =
     cata $ \case
       EVar name -> eVar (subst name)
@@ -96,6 +96,7 @@ instance Substitutable (Expr MonoType MonoType a1 a2) where
       EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
       EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
       ERow row -> eRow (mapRow (apply sub) row)
+      ECall t fun args -> eCall_ (apply sub t) (subst fun) args
       e -> embed e
    where
     subst = first (apply sub)
@@ -126,10 +127,13 @@ instance Substitutable (Row MonoType Int) where
 --
 ---- --instance Substitutable PolyType where
 ---- --  apply = substitute . (toPolyType <$>) . unpack
-----
----- instance Substitutable Void where
-----   apply _ void = void
---
+
+instance Substitutable Void where
+  apply = const id
+
+instance Substitutable () where
+  apply _ = const ()
+
 --Instance (Substitutable t, Substitutable a0) => Substitutable (Expr t a0 a1 a2) where
 --  apply sub =
 --    cata $ \case
@@ -171,6 +175,13 @@ instance Substitutable (Row MonoType Int) where
 ----       Constant (t, expr) -> Constant (apply sub t, apply sub expr)
 ----       Data name ctors -> Data name (apply sub <$> ctors)
 ----       External args (t, name) -> External (apply sub <$> args) (apply sub t, name)
+
+instance (Substitutable t, Substitutable (Expr t a0 a1 a2)) => 
+  Substitutable (Definition t (Expr t a0 a1 a2)) 
+    where
+      apply sub = 
+        \case 
+          Function args (t, body) -> Function (first (apply sub) <$> args) (apply sub t, apply sub body)
 
 compose :: Substitution -> Substitution -> Substitution
 compose = over2 Substitution fun
@@ -275,7 +286,7 @@ unify t1 t2 =
       | t1 == t2 -> pure mempty
       | otherwise -> throwError UnificationError
 
-applySubstitution :: Expr MonoType MonoType a1 a2 -> TypeChecker (Expr MonoType MonoType a1 a2)
+applySubstitution :: (Substitutable a2) => Expr MonoType MonoType a1 a2 -> TypeChecker (Expr MonoType MonoType a1 a2)
 applySubstitution e = gets (apply . snd) <*> pure e
 
 unifyM :: MonoType -> MonoType -> TypeChecker ()

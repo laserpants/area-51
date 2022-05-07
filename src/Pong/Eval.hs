@@ -10,9 +10,11 @@ module Pong.Eval where
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Char (isUpper)
+import Data.Either.Extra (rights)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
+import Data.Tuple.Extra (first)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
@@ -103,6 +105,8 @@ eval =
       val <- body
       localSecond (Env.insert var val) expr
     ECall _ fun args ->
+      --traceShow "== ***************** == "
+      --  $ traceShow fun
       evalCall fun args
     EOp2 (_, OLogicOr) a b ->
       a >>= \case
@@ -364,10 +368,19 @@ evalOp2 _ _ _ = error "Runtime error (6)"
 --evalProgram_ (ast, defs) = runReader (eval ast) (Env.fromList defs, mempty)
 
 evalProgram__ :: (Ast, Program MonoType Ast) -> Value
-evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)
+evalProgram__ (ast, Program p) = evalProgram_ (ast, ork (Map.toList p))
 
-evalProgram_ :: (Ast, [(Name, Definition MonoType Ast)]) -> Value
-evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.fromList defs, mempty))
+ork :: [(ProgKey MonoType, Definition MonoType Ast)] -> [(Label MonoType, Definition MonoType Ast)]
+ork = concatMap $ 
+  \case
+    (Right key, def) -> [(key, def)]
+    _ -> []
+
+--evalProgram_ :: (Ast, [(Name, Definition MonoType Ast)]) -> Value
+evalProgram_ :: (Ast, [(Label MonoType, Definition MonoType Ast)]) -> Value
+evalProgram_ (ast, defs) = runIdentity (runReaderT (unEval (eval ast)) (Env.fromList (transf defs), mempty))
+  where
+    transf = (first snd <$>)
 
 --deriving instance (Show a) => Show (Eval a)
 --

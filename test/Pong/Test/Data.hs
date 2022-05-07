@@ -1005,7 +1005,7 @@ fragment17_2 =
 --    ])
 --
 --
-fragment17_8 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment17_8 :: (Ast, [(Label MonoType, Definition MonoType Ast)])
 fragment17_8 =
   ( eOp2
       oAddInt
@@ -1014,40 +1014,42 @@ fragment17_8 =
       (eCall
          (tInt ~> tInt ~> tInt, ".g3")
          [eLit (PInt 4), eLit (PInt 5)])
-  , [ (".f0", Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
-    , ( ".f1"
+  , [ ( (undefined, ".f0")
+      , Function (fromList [(tVar 2, "x")]) (tVar 2, eVar (tVar 2, "x")))
+    , ( (undefined, ".f1")
       , Function
           (fromList [(tVar 22, "x"), (tVar 22, "y")])
           (tVar 22, eOp2 (tVar 22 ~> tVar 22 ~> tVar 22, OAdd) (eVar (tVar 22, "x")) (eVar (tVar 22, "y"))))
-    , ( ".f2"
+    , ( (undefined, ".f2")
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
           , eCall
               (tInt ~> tInt ~> tInt, ".g0")
               [eLit (PInt 2), eVar (tInt, ".v0")]))
-    , ( ".f3"
+    , ( (undefined, ".f3")
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
           , eCall
               (tInt ~> tInt, ".h0")
               [eVar (tInt, ".v0")]))
-    , ( ".g0"
+    , ( (undefined, ".g0")
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
           (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
-    , ( ".g1"
+    , ( (undefined, ".g1")
       , Function
           (fromList [(tInt ~> tInt, "x"), (tInt, ".v0")])
           ( tInt
           , eCall (tInt ~> tInt, "x") [eVar (tInt, ".v0")]))
-    , (".g2", Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
-    , ( ".g3"
+    , ( (undefined, ".g2")
+      , Function (fromList [(tInt, "x")]) (tInt, eVar (tInt, "x")))
+    , ( (undefined, ".g3")
       , Function
           (fromList [(tInt, "x"), (tInt, "y")])
           (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))))
-    , ( ".h0"
+    , ( (undefined, ".h0")
       , Function
           (fromList [(tInt, ".v0")])
           ( tInt
@@ -1132,10 +1134,10 @@ fragment18_2 =
 --                    [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
 --    ])
 
-fragment18_4 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment18_4 :: (Ast, [(Label MonoType, Definition MonoType Ast)])
 fragment18_4 =
   ( eCall (tInt ~> tInt, ".f0") [eLit (PInt 5)]
-  , [ ( ".f0"
+  , [ ( (tInt ~> tInt, ".f0")
       , Function
           (fromList [(tInt, "n")])
           ( tInt
@@ -1237,7 +1239,7 @@ fragment20_2 =
       , pure (PrimValue (PInt 100)))
     ]
 
-fragment20_3 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_3 :: (Ast, [(Label MonoType, Definition MonoType Ast)])
 fragment20_3 =
   ( eCase
       (eCall
@@ -1251,7 +1253,7 @@ fragment20_3 =
       ]
   , [])
 
-fragment20_4 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_4 :: (Ast, [(Label MonoType, Definition MonoType Ast)])
 fragment20_4 =
   ( eCase
       (eCall
@@ -1266,7 +1268,7 @@ fragment20_4 =
       ]
   , [])
 
-fragment20_5 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_5 :: (Ast, [(Label MonoType, Definition MonoType Ast)])
 fragment20_5 =
  ( eCase
      (eCall
@@ -1282,7 +1284,7 @@ fragment20_5 =
  , [])
 
 
-fragment20_6 :: (Ast, [(Name, Definition MonoType Ast)])
+fragment20_6 :: (Ast, [(Label MonoType, Definition MonoType Ast)])
 fragment20_6 =
   ( eCase
       (eCall (tCon "List" [tInt], "Nil") [])

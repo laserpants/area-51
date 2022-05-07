@@ -21,26 +21,29 @@ import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
 mapRow f =
-  cata $ \case
-    RNil -> rNil
-    RVar v -> rVar v
-    RExt name elem row -> rExt name (f elem) row
+  cata $
+    \case
+      RNil -> rNil
+      RVar v -> rVar v
+      RExt name elem row -> rExt name (f elem) row
 
 mapRowM :: (Monad m) => (e -> m f) -> Row e r -> m (Row f r)
 mapRowM f =
-  cata $ \case
-    RNil -> pure rNil
-    RVar v -> pure (rVar v)
-    RExt name elem row -> rExt name <$> f elem <*> row
+  cata $
+    \case
+      RNil -> pure rNil
+      RVar v -> pure (rVar v)
+      RExt name elem row -> rExt name <$> f elem <*> row
 
 normalizeRow :: Row e r -> Row e r
 normalizeRow = uncurry (flip foldRow) . unwindRow
 
 normalizeTypeRows :: Type v q -> Type v q
 normalizeTypeRows =
-  cata $ \case
-    TRow r -> tRow (normalizeRow r)
-    t -> embed t
+  cata $
+    \case
+      TRow r -> tRow (normalizeRow r)
+      t -> embed t
 
 {-# INLINE foldRow #-}
 foldRow :: Row e r -> Map Name [e] -> Row e r
@@ -52,15 +55,17 @@ foldRow1 = foldRow rNil
 
 unwindRow :: Row e r -> (Map Name [e], Row e r)
 unwindRow row = (foldr (uncurry (Map.insertWith (<>))) mempty fields, leaf)
- where
-  fields =
-    (`para` row) $ \case
-      RExt label ty (_, rest) -> (label, [ty]) : rest
-      _ -> []
-  leaf =
-    (`cata` row) $ \case
-      RExt _ _ r -> r
-      t -> embed t
+  where
+    fields =
+      (`para` row) $
+        \case
+          RExt label ty (_, rest) -> (label, [ty]) : rest
+          _ -> []
+    leaf =
+      (`cata` row) $
+        \case
+          RExt _ _ r -> r
+          t -> embed t
 
 splitRow :: Name -> Row e r -> (e, Row e r)
 splitRow name row =
@@ -72,9 +77,9 @@ splitRow name row =
             _ -> Map.insert name es m
       )
   )
- where
-  Just (e : es) = Map.lookup name m
-  (m, k) = unwindRow row
+  where
+    Just (e : es) = Map.lookup name m
+    (m, k) = unwindRow row
 
 class FreeIn f where
   free :: f -> [Int]
@@ -120,25 +125,27 @@ instance Typed Void where
 
 instance (Typed g) => Typed (Type Int g) where
   typeOf =
-    cata $ \case
-      TUnit -> tUnit
-      TBool -> tBool
-      TInt -> tInt
-      TFloat -> tFloat
-      TDouble -> tDouble
-      TChar -> tChar
-      TString -> tString
-      TCon con ts -> tCon con ts
-      TArr t1 t2 -> tArr t1 t2
-      TVar v -> tVar v
-      TGen g -> typeOf g
-      TRow row ->
-        tRow
-          ( (`cata` row) $ \case
-              RNil -> rNil
-              RVar v -> rVar v
-              RExt name elem r -> rExt name (typeOf elem) r
-          )
+    cata $
+      \case
+        TUnit -> tUnit
+        TBool -> tBool
+        TInt -> tInt
+        TFloat -> tFloat
+        TDouble -> tDouble
+        TChar -> tChar
+        TString -> tString
+        TCon con ts -> tCon con ts
+        TArr t1 t2 -> tArr t1 t2
+        TVar v -> tVar v
+        TGen g -> typeOf g
+        TRow row ->
+          tRow
+            ( (`cata` row) $
+                \case
+                  RNil -> rNil
+                  RVar v -> rVar v
+                  RExt name elem r -> rExt name (typeOf elem) r
+            )
 
 instance Typed Prim where
   typeOf =
@@ -153,30 +160,32 @@ instance Typed Prim where
 
 instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
   typeOf =
-    cata $ \case
-      RNil -> tRow rNil
-      RVar (t, _) -> typeOf t
-      RExt name elem r ->
-        let TRow row = project r
-         in tRow (rExt name (typeOf elem) row)
+    cata $
+      \case
+        RNil -> tRow rNil
+        RVar (t, _) -> typeOf t
+        RExt name elem r ->
+          let TRow row = project r
+           in tRow (rExt name (typeOf elem) row)
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
   typeOf =
-    cata $ \case
-      EVar (t, _) -> typeOf t
-      ECon (t, _) -> typeOf t
-      ELit lit -> typeOf lit
-      EIf _ _ e3 -> e3
-      ELet _ _ e3 -> e3
-      ELam _ args expr -> foldType expr (typeOf . fst <$> args)
-      EApp t fun as -> typeOf t
-      ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
-      EOp1 (t, _) _ -> returnType t
-      EOp2 (t, _) _ _ -> returnType t
-      ECase _ [] -> error "Empty case statement"
-      ECase _ cs -> head (snd <$> cs)
-      ERow r -> typeOf r
-      EField _ _ e -> e
+    cata $
+      \case
+        EVar (t, _) -> typeOf t
+        ECon (t, _) -> typeOf t
+        ELit lit -> typeOf lit
+        EIf _ _ e3 -> e3
+        ELet _ _ e3 -> e3
+        ELam _ args expr -> foldType expr (typeOf . fst <$> args)
+        EApp t fun as -> typeOf t
+        ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
+        EOp1 (t, _) _ -> returnType t
+        EOp2 (t, _) _ _ -> returnType t
+        ECase _ [] -> error "Empty case statement"
+        ECase _ cs -> head (snd <$> cs)
+        ERow r -> typeOf r
+        EField _ _ e -> e
 
 instance (Typed t) => Typed (Definition t a) where
   typeOf =
@@ -256,54 +265,59 @@ freeVars =
             e1
               <> Set.unions (cs <#> \(_ : vs, expr) -> expr \\ Set.fromList vs)
           ERow row ->
-            (`cata` row) $ \case
-              RNil -> mempty
-              RVar v -> Set.singleton v
-              RExt _ elem r -> Set.fromList (freeVars elem) <> r
+            (`cata` row) 
+              ( \case
+                RNil -> mempty
+                RVar v -> Set.singleton v
+                RExt _ elem r -> Set.fromList (freeVars elem) <> r
+              )
           EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
 toMonoType :: Map Name MonoType -> Type Int Name -> MonoType
 toMonoType vs =
-  cata $ \case
-    TGen n ->
-      case Map.lookup n vs of
-        Nothing -> error "Implementation error"
-        Just t -> t
-    TUnit -> tUnit
-    TBool -> tBool
-    TInt -> tInt
-    TFloat -> tFloat
-    TDouble -> tDouble
-    TChar -> tChar
-    TString -> tString
-    TCon con ts -> tCon con ts
-    TArr t1 t2 -> tArr t1 t2
-    TVar v -> tVar v
-    TRow row -> tRow (mapRow (toMonoType vs) row)
+  cata
+    ( \case
+        TGen n ->
+          case Map.lookup n vs of
+            Nothing -> error "Implementation error"
+            Just t -> t
+        TUnit -> tUnit
+        TBool -> tBool
+        TInt -> tInt
+        TFloat -> tFloat
+        TDouble -> tDouble
+        TChar -> tChar
+        TString -> tString
+        TCon con ts -> tCon con ts
+        TArr t1 t2 -> tArr t1 t2
+        TVar v -> tVar v
+        TRow row -> tRow (mapRow (toMonoType vs) row)
+    )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =
-  cata $ \case
-    EVar (t, v) -> eVar (f t, v)
-    ECon (t, c) -> eCon (f t, c)
-    ELit lit -> eLit lit
-    EIf e1 e2 e3 -> eIf e1 e2 e3
-    ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
-    ELam a args e1 -> eLam a (fmap (first f) args) e1
-    EApp t fun as -> eApp (f t) fun as
-    ECall a (t, fun) as -> eCall_ a (f t, fun) as
-    EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
-    EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
-    ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
-    ERow r -> eRow (mapRowTypes r)
-    EField fs e1 e2 -> eField (first f <$> fs) e1 e2
- where
-  mapRowTypes =
-    cata $ \case
-      RNil -> rNil
-      RVar (t, v) -> rVar (f t, v)
-      RExt name elem row -> rExt name (mapTypes f elem) row
+  cata $
+    \case
+      EVar (t, v) -> eVar (f t, v)
+      ECon (t, c) -> eCon (f t, c)
+      ELit lit -> eLit lit
+      EIf e1 e2 e3 -> eIf e1 e2 e3
+      ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
+      ELam a args e1 -> eLam a (fmap (first f) args) e1
+      EApp t fun as -> eApp (f t) fun as
+      ECall a (t, fun) as -> eCall_ a (f t, fun) as
+      EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
+      EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
+      ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
+      ERow r -> eRow (mapRowTypes r)
+      EField fs e1 e2 -> eField (first f <$> fs) e1 e2
+  where
+    mapRowTypes =
+      cata $ \case
+        RNil -> rNil
+        RVar (t, v) -> rVar (f t, v)
+        RExt name elem row -> rExt name (mapTypes f elem) row
 
 {-# INLINE foldType #-}
 foldType :: Type v q -> [Type v q] -> Type v q
@@ -318,7 +332,7 @@ insertArgs :: [(t, Name)] -> Environment t -> Environment t
 insertArgs = Env.inserts . (swap <$>)
 
 {-# INLINE emptyProgram #-}
-emptyProgram :: Program t a
+emptyProgram :: (Ord t) => Program t a
 emptyProgram = Program mempty
 
 --programTypeEnv :: (Typed t) => Program t a -> Environment MonoType
@@ -327,9 +341,11 @@ emptyProgram = Program mempty
 -- modifyM :: (MonadState s m) => (s -> m s) -> m ()
 -- modifyM f = get >>= f >>= put
 
+--  (Map Name (Definition t a) -> Map Name (Definition t a)) ->
+
 modifyProgram ::
   (MonadState (s, Program t a) m) =>
-  (Map Name (Definition t a) -> Map Name (Definition t a)) ->
+  (Map (ProgKey t) (Definition t a) -> Map (ProgKey t) (Definition t a)) ->
   m ()
 modifyProgram = modify . second . over Program
 
@@ -345,7 +361,8 @@ modifyProgram = modify . second . over Program
 ----   --let zzz = modify f p
 ----   -- modify . over Program
 
-insertDef :: (MonadState (s, Program t a) m) => Name -> Definition t a -> m ()
+--insertDef :: (MonadState (s, Program t a) m) => Name -> Definition t a -> m ()
+insertDef :: (Ord t) => (MonadState (s, Program t a) m) => ProgKey t -> Definition t a -> m ()
 insertDef = modifyProgram <$$> Map.insert
 
 ---- --updateDef ::

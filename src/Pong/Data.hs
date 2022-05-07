@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Pong.Data where
 
@@ -68,8 +68,8 @@ data Op2
   = OEq        -- ^ Equality
   | OLt        -- ^ Less than
   | OGt        -- ^ Greater than
-  | OLtE       -- ^ Less than or equal
-  | OGtE       -- ^ Greater than or equal
+  | OLtE       -- ^ Less than or equal to
+  | OGtE       -- ^ Greater than or equal to
   | OAdd       -- ^ Addition
   | OSub       -- ^ Subtraction
   | OMul       -- ^ Multiplication
@@ -82,10 +82,10 @@ type Label t = (t, Name)
 
 data ExprF t a0 a1 a2 a
   = EVar (Label t)                           -- ^ Variable
-  | ECon (Label a0)                          -- ^ Constructor application
+  | ECon (Label a0)                          -- ^ Data constructor 
   | ELit Prim                                -- ^ Literal
   | EIf a a a                                -- ^ If statement
-  | ELet (Label t) a a                       -- ^ Let-binding
+  | ELet (Label t) a a                       -- ^ Let binding
   | EApp a0 a [a]                            -- ^ Application
   | ELam a1 [Label t] a                      -- ^ Lambda function
   | ECall a2 (Label t) [a]                   -- ^ Function call
@@ -95,7 +95,7 @@ data ExprF t a0 a1 a2 a
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
   | EField [Label t] a a                     -- ^ Field accessor
 
--- | Parameterized main expression language grammar
+-- | Parameterized expression language grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
 -- | Source expression annotated with numeric tags to facilitate type checking
@@ -129,8 +129,10 @@ data Definition t a
   | Extern [t] t
   | Data Name [Constructor t]
 
+type ProgKey t = Either Name (Label t)
+
 newtype Program t a
-  = Program (Map Name (Definition t a))
+  = Program (Map (ProgKey t) (Definition t a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -255,6 +257,6 @@ deriving instance (Eq t, Eq a) => Eq (Program t a)
 
 deriving instance Generic (Program t a)
 
-deriving instance Semigroup (Program t a)
+deriving instance (Ord t) => Semigroup (Program t a)
 
 instance Newtype (Program t a)
