@@ -212,3 +212,198 @@ main(z) =
 
 
 
+
+
+-- ///////////////////
+
+
+let
+  id =
+    lam(x) => 
+      x
+  in
+    let
+      g =
+        id
+      in
+        (g(id))(f(5))
+
+
+--
+
+
+def
+  id(x : a) : a =
+    x
+
+let
+  f =
+    lam(g) =>
+      g(5)
+  in
+    f(id)
+
+
+--
+
+
+let
+  id =
+    lam(x) =>
+      x
+  in
+    let
+      f =
+        lam(g) =>
+          g(5)
+      in
+        f(id)
+
+
+let id = lam(x) => x in let f = lam(g) => g(5) in f(id)
+
+
+t2 -> t2
+
+$lam1(x : t2) : t2 = 
+  x : t2                      ( template )
+
+(int -> t6) -> t6
+
+$lam2(g : int -> t6) : t6 =
+  [g : int -> t6](5)          ( template )
+
+
+--
+
+let f = lam(g) => g(1) in let const5 = lam(x) => 5 in f(const5)
+
+$lam1(g : int -> t3) : t3 =
+  [g : int -> t3](1)
+
+$lam2(x : t6) : int =
+  5
+
+
+
+let 
+  f : (int -> t1) -> t1 = 
+    lam(g) => 
+      g(1) 
+  in 
+    let 
+      const5 : t2 -> int = 
+        lam(x) => 
+          5 
+      in 
+        <f : (int -> int) -> int>(const5 : int -> int)
+
+
+--
+
+
+def
+  const(x : a, y : b) : a =
+    x
+
+let
+  f =
+    const(5)
+  in
+    f(3)
+
+
+--
+
+
+let
+  const(x : a, y : b) : a =
+    x
+  in
+    let
+      f =
+        const(5)
+      in
+        f(3)
+
+
+
+
+
+===
+
+let 
+  f : (int -> t1) -> t1 = 
+    lam(g) => 
+      g(1) 
+  in 
+    let 
+      const5 : t2 -> int = 
+        lam(x) => 
+          5 
+      in 
+        <f : (int -> int) -> int>(const5 : int -> int)
+
+
+let 
+  f : (int -> t1) -> t1 = 
+    lam(g) => 
+      g(1) 
+  in 
+    let
+      f_0 : (int -> int) -> int =
+        lam(g) => 
+          g(1) 
+      in
+        let 
+          const5 : t2 -> int = 
+            lam(x) => 
+              5 
+          in 
+            let 
+              const5_0 : int -> int = 
+                lam(x) => 
+                  5 
+              in
+                <f_0 : (int -> int) -> int>(const5_0 : int -> int)
+
+
+
+let 
+  id : t1 -> t1 = 
+    lam(x) => 
+      x 
+    in 
+      let 
+        f : (int -> t2) -> t2 = 
+          lam(g) => 
+            g(5) 
+          in 
+            <f : (int -> int) -> int>(id : int -> int)
+
+
+let 
+  id : t1 -> t1 = 
+    lam(x) => 
+      x 
+    in 
+      let
+        id_0 : int -> int = 
+          lam(x) => 
+            x 
+        in
+          let 
+            f : (int -> t2) -> t2 = 
+              lam(g) => 
+                g(5) 
+              in 
+                let
+                  f_0 : (int -> int) -> int =
+                    lam(g) => 
+                      g(5) 
+                  in
+                    <f : (int -> int) -> int>(id : int -> int)
+
+
+
+
