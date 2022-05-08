@@ -7,6 +7,7 @@ module Pong.Lang where
 import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Char (isUpper)
+import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Set ((\\))
@@ -86,25 +87,43 @@ class FreeIn f where
 
 instance FreeIn (Type Int g) where
   free =
-    Set.toList
-      <<< cata
-        ( \case
-            TVar n -> Set.singleton n
-            TCon _ ts -> Set.unions ts
-            TArr t1 t2 -> t1 <> t2
-            TRow r -> Set.fromList (free r)
-            _ -> mempty
+    nub <<<
+      cata ( 
+        \case
+          TVar n -> [n]
+          TCon _ ts -> join ts
+          TArr t1 t2 -> t1 <> t2
+          TRow row -> free row
+          _ -> []
         )
+
+--    Set.toList
+--      <<< cata
+--        ( \case
+--            TVar n -> Set.singleton n
+--            TCon _ ts -> Set.unions ts
+--            TArr t1 t2 -> t1 <> t2
+--            TRow r -> Set.fromList (free r)
+--            _ -> mempty
+--        )
 
 instance FreeIn (Row (Type Int g) Int) where
   free =
-    Set.toList
-      <<< cata
-        ( \case
-            RVar v -> Set.singleton v
-            RExt _ expr r -> Set.fromList (free expr) <> r
-            _ -> mempty
-        )
+    nub <<<
+      cata ( 
+        \case
+          RVar v -> [v]
+          RExt _ t r -> free t <> r
+          _ -> []
+      )
+
+--    Set.toList
+--      <<< cata
+--        ( \case
+--            RVar v -> Set.singleton v
+--            RExt _ expr r -> Set.fromList (free expr) <> r
+--            _ -> mempty
+--        )
 
 instance (FreeIn f) => FreeIn [f] where
   free = concatMap free
@@ -242,6 +261,22 @@ returnType = last <<< unwindType
 argTypes :: (Typed t) => t -> [Type Int g]
 argTypes = init <<< unwindType
 
+-- | Predicate to test if the type contains at least one type variable
+isTemplate :: Type v q -> Bool
+isTemplate = 
+  cata $
+    \case
+      TVar {} -> True
+      TArr t1 t2 -> t1 || t2
+      TCon _ ts -> or ts
+      TRow row ->
+        ( (`cata` row) $
+            \case
+              RExt _ t r -> isTemplate t || r
+              _ -> False
+        )
+      _ -> False
+
 freeVars :: (Eq t, Ord t) => Expr t a0 a1 a2 -> [Label t]
 freeVars =
   Set.toList
@@ -297,21 +332,22 @@ toMonoType vs =
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =
-  cata $
-    \case
-      EVar (t, v) -> eVar (f t, v)
-      ECon (t, c) -> eCon (f t, c)
-      ELit lit -> eLit lit
-      EIf e1 e2 e3 -> eIf e1 e2 e3
-      ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
-      ELam a args e1 -> eLam a (fmap (first f) args) e1
-      EApp t fun as -> eApp (f t) fun as
-      ECall a (t, fun) as -> eCall_ a (f t, fun) as
-      EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
-      EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
-      ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
-      ERow r -> eRow (mapRowTypes r)
-      EField fs e1 e2 -> eField (first f <$> fs) e1 e2
+  cata 
+    ( \case
+        EVar (t, v) -> eVar (f t, v)
+        ECon (t, c) -> eCon (f t, c)
+        ELit lit -> eLit lit
+        EIf e1 e2 e3 -> eIf e1 e2 e3
+        ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
+        ELam a args e1 -> eLam a (fmap (first f) args) e1
+        EApp t fun as -> eApp (f t) fun as
+        ECall a (t, fun) as -> eCall_ a (f t, fun) as
+        EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
+        EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
+        ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
+        ERow r -> eRow (mapRowTypes r)
+        EField fs e1 e2 -> eField (first f <$> fs) e1 e2
+    )
   where
     mapRowTypes =
       cata $ \case

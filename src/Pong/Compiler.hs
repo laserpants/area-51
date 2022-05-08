@@ -5,6 +5,7 @@
 module Pong.Compiler where
 
 import Control.Monad.Reader
+import Control.Monad.Writer
 import Control.Monad.State
 import Data.Char (isUpper)
 import Data.List (nub)
@@ -249,7 +250,7 @@ combineLambdas =
 --         ERow row -> eRow <$> mapRowM liftLambdas row
 --         EField a1 a2 a3 -> eField a1 <$> a2 <*> a3
 
-uniqueName :: (MonadState (Int, Program t a) m) => Name -> m Name
+uniqueName :: (MonadState (Int, a) m) => Name -> m Name
 uniqueName prefix = do
   n <- gets fst
   modify (first succ)
@@ -1912,27 +1913,27 @@ t0ta =
     && t0t17
     && t0t18
     && t0t19
-    && t0t19b
+--    && t0t19b
     && t0t20
     && t0t21
     && t0t22
     && t0t23
     && t0t24
-    && t0t25
-    && t0t26
-    && t0t27
-    && t0t28
-    && t0t29
-    && t0t30
-    && t0t31
-    && t0t32
-    && t0t33
-    && t0t34
-    && t0t35
-    && t0t36
-    && t0t37
-    && t0t38
---    && t0t39
+--    && t0t25
+--    && t0t26
+--    && t0t27
+--    && t0t28
+--    && t0t29
+--    && t0t30
+--    && t0t31
+--    && t0t32
+--    && t0t33
+--    && t0t34
+--    && t0t35
+--    && t0t36
+--    && t0t37
+--    && t0t38
+----    && t0t39
 
 typeCheck_ :: Text -> TypedExpr
 typeCheck_ a =
@@ -2302,3 +2303,83 @@ exmp34_1 =
 --     ((), "r")
 --     (eRow (rExt "price" (eLit (PInt 5)) rNil))
 --     (eField [((), "{quantity}"), ((), "q"), ((), "a")] (eVar ((), "r")) (eLit (PInt 5)))
+
+
+ostrich :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
+ostrich =
+  cata 
+    ( \case
+      ELet (t, var) expr1 expr2 | isTemplate t -> do
+        e1 <- expr1
+        e2 <- expr2
+        (e, binds) <- runWriterT (hippo t var e1 e2)
+        pure (foldr (uncurry eLet) e (((t, var), e1):binds))
+      expr -> 
+        embed <$> sequence expr
+    )
+
+hippo 
+  :: (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) 
+  => MonoType 
+  -> Name 
+  -> TypedExpr 
+  -> TypedExpr 
+  -> m TypedExpr
+hippo t name e1 =
+  cata 
+    ( \case
+      EVar (t0, var) | var == name && not (isomorphic t t0) ->
+        case runTypeChecker' (freeIndex [t, t0]) mempty (unify t t0) of
+          Right sub -> do
+            newVar <- uniqueName ("$var_" <> var <> "_")
+            tell [((t0, newVar), apply sub e1)]
+            pure (eVar (t0, newVar))
+          _ ->
+            error "Implementation error"
+      expr -> 
+        embed <$> sequence expr
+    )
+
+canonical :: MonoType -> MonoType
+canonical t = apply (Substitution map) t
+  where
+    map = Map.fromList (zip (free t) (tVar <$> [0..]))
+
+isomorphic :: MonoType -> MonoType -> Bool
+isomorphic t0 t1 = canonical t0 == canonical t1
+
+-- /???
+
+
+--xxx :: MonoType -> [Int]
+--xxx = 
+--  nub <<<
+--    cata ( 
+--      \case
+--        TVar n -> [n]
+--        TCon _ ts -> join ts
+--        TArr t1 t2 -> t1 <> t2
+--        TRow r -> 
+--          ( (`cata` r) $ 
+--            \case
+--              RVar v -> [v]
+--              RExt _ t r -> xxx t <> r
+--              _ -> []
+--          )
+--        _ -> []
+--      )
+--
+--
+--      EVar (t, var) ->
+--        undefined
+--      ECon (t, con) ->
+--        undefined
+--      ELit prim ->
+--        undefined
+--      EIf e1 e2 e3 ->
+--        undefined
+--      EApp t fun args ->
+--        undefined
+--      ELam {} ->
+--        undefined
+

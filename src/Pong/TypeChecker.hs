@@ -50,29 +50,31 @@ runTypeChecker = runTypeChecker' (1 :: Int)
 
 substitute :: Map Int (Type Int s) -> Type Int t -> Type Int s
 substitute sub =
-  cata $ \case
-    TVar n -> fromMaybe (tVar n) (sub !? n)
-    TCon c ts -> tCon c ts
-    TArr t1 t2 -> tArr t1 t2
-    TRow row -> tRow (rowSubstitute sub row)
-    TUnit -> tUnit
-    TBool -> tBool
-    TInt -> tInt
-    TFloat -> tFloat
-    TDouble -> tDouble
-    TChar -> tChar
-    TString -> tString
-    TGen {} -> error "Implementation error"
+  cata $ 
+    \case
+      TVar n -> fromMaybe (tVar n) (sub !? n)
+      TCon c ts -> tCon c ts
+      TArr t1 t2 -> tArr t1 t2
+      TRow row -> tRow (rowSubstitute sub row)
+      TUnit -> tUnit
+      TBool -> tBool
+      TInt -> tInt
+      TFloat -> tFloat
+      TDouble -> tDouble
+      TChar -> tChar
+      TString -> tString
+      TGen {} -> error "Implementation error"
 
 rowSubstitute :: Map Int (Type Int g) -> Row (Type Int h) Int -> Row (Type Int g) Int
 rowSubstitute sub =
-  cata $ \case
-    RNil -> rNil
-    RExt name t row -> rExt name (substitute sub t) row
-    RVar n ->
-      case project <$> (sub !? n) of
-        Just (TRow r) -> r
-        _ -> rVar n
+  cata $ 
+    \case
+      RNil -> rNil
+      RExt name t row -> rExt name (substitute sub t) row
+      RVar n ->
+        case project <$> (sub !? n) of
+          Just (TRow r) -> r
+          _ -> rVar n
 
 class Substitutable a where
   apply :: Substitution -> a -> a
@@ -85,19 +87,20 @@ instance (Functor f) => Substitutable (f MonoType) where
 
 instance (Substitutable a0, Substitutable a2) => Substitutable (Expr MonoType a0 a1 a2) where
   apply sub =
-    cata $ \case
-      EVar name -> eVar (subst name)
-      ECon con -> eCon (first (apply sub) con)
-      ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
-      ELam t args expr -> eLam t (subst <$> args) expr
-      EApp t fun args -> eApp (apply sub t) fun args
-      ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
-      EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
-      EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
-      EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
-      ERow row -> eRow (mapRow (apply sub) row)
-      ECall t fun args -> eCall_ (apply sub t) (subst fun) args
-      e -> embed e
+    cata $ 
+      \case
+        EVar name -> eVar (subst name)
+        ECon con -> eCon (first (apply sub) con)
+        ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
+        ELam t args expr -> eLam t (subst <$> args) expr
+        EApp t fun args -> eApp (apply sub t) fun args
+        ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
+        EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
+        EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
+        EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
+        ERow row -> eRow (mapRow (apply sub) row)
+        ECall t fun args -> eCall_ (apply sub t) (subst fun) args
+        e -> embed e
    where
     subst = first (apply sub)
 
@@ -196,21 +199,22 @@ tagLabel name = (,) <$> tag <*> pure name
 
 tagExpr :: Expr t () () Void -> TypeChecker TaggedExpr
 tagExpr =
-  cata $ \case
-    EVar (_, name) -> eVar <$> tagLabel name
-    ECon (_, con) -> eCon <$> tagLabel con
-    ELit prim -> pure (eLit prim)
-    EIf e1 e2 e3 -> eIf <$> e1 <*> e2 <*> e3
-    ELet (_, name) e1 e2 -> eLet <$> tagLabel name <*> e1 <*> e2
-    EApp _ fun args -> eApp <$> tag <*> fun <*> sequence args
-    ELam _ args expr -> eLam () <$> traverse (tagLabel . snd) args <*> expr
-    EOp1 (_, op) e1 -> eOp1 <$> tagOp op <*> e1
-    EOp2 (_, op) e1 e2 -> eOp2 <$> tagOp op <*> e1 <*> e2
-    ECase e1 cs ->
-      eCase <$> e1
-        <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
-    ERow row -> eRow <$> tagRow row
-    EField f e1 e2 -> eField <$> traverse (tagLabel . snd) f <*> e1 <*> e2
+  cata $ 
+    \case
+      EVar (_, name) -> eVar <$> tagLabel name
+      ECon (_, con) -> eCon <$> tagLabel con
+      ELit prim -> pure (eLit prim)
+      EIf e1 e2 e3 -> eIf <$> e1 <*> e2 <*> e3
+      ELet (_, name) e1 e2 -> eLet <$> tagLabel name <*> e1 <*> e2
+      EApp _ fun args -> eApp <$> tag <*> fun <*> sequence args
+      ELam _ args expr -> eLam () <$> traverse (tagLabel . snd) args <*> expr
+      EOp1 (_, op) e1 -> eOp1 <$> tagOp op <*> e1
+      EOp2 (_, op) e1 e2 -> eOp2 <$> tagOp op <*> e1 <*> e2
+      ECase e1 cs ->
+        eCase <$> e1
+          <*> traverse (firstM (traverse (tagLabel . snd)) <=< sequence) cs
+      ERow row -> eRow <$> tagRow row
+      EField f e1 e2 -> eField <$> traverse (tagLabel . snd) f <*> e1 <*> e2
 
 tagOp :: op -> TypeChecker (Int, op)
 tagOp op = (,) <$> tag <*> pure op
@@ -219,10 +223,11 @@ tagRow ::
   Row (Expr t () () Void) (Label t) ->
   TypeChecker (Row TaggedExpr (Label Int))
 tagRow =
-  cata $ \case
-    RNil -> pure rNil
-    RVar (_, var) -> rVar <$> tagLabel var
-    RExt name expr row -> rExt name <$> tagExpr expr <*> row
+  cata $ 
+    \case
+      RNil -> pure rNil
+      RVar (_, var) -> rVar <$> tagLabel var
+      RExt name expr row -> rExt name <$> tagExpr expr <*> row
 
 tag :: MonadState (Int, a) m => m Int
 tag = do
@@ -449,19 +454,21 @@ checkRowCase (Fix (TRow row)) args expr = do
 --        TGen g -> tGen g
 
 unopType :: Op1 -> Type v Name
-unopType = \case
-  ONot -> tBool ~> tBool
-  ONeg -> tGen "a0" ~> tGen "a0"
+unopType = 
+  \case
+    ONot -> tBool ~> tBool
+    ONeg -> tGen "a0" ~> tGen "a0"
 
 binopType :: Op2 -> Type v Name
-binopType = \case
-  OEq -> tGen "a0" ~> tGen "a0" ~> tBool
-  OAdd -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-  OSub -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-  OMul -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-  ODiv -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-  OLogicOr -> tBool ~> tBool ~> tBool
-  OLogicAnd -> tBool ~> tBool ~> tBool
+binopType = 
+  \case
+    OEq -> tGen "a0" ~> tGen "a0" ~> tBool
+    OAdd -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+    OSub -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+    OMul -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+    ODiv -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+    OLogicOr -> tBool ~> tBool ~> tBool
+    OLogicAnd -> tBool ~> tBool ~> tBool
 
 checkCases ::
   TypedExpr ->
