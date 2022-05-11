@@ -20,6 +20,7 @@ executable pong
   main-is: Main.hs
   other-modules:
       Pong.Compiler
+      Pong.Compiler2
       Pong.Data
       Pong.Eval
       Pong.Lang

@@ -4,6 +4,7 @@
 
 module Pong.Compiler where
 
+import Control.Newtype.Generics
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
@@ -14,6 +15,7 @@ import Data.List.NonEmpty (fromList, toList)
 import Data.Tuple.Extra (first, second, swap)
 import Debug.Trace
 import LLVM.Pretty
+import Pong.Compiler2
 import Pong.Data
 import Pong.Eval
 import Pong.LLVM (Operand)
@@ -21,7 +23,7 @@ import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Parser
 import Pong.TypeChecker
-import Pong.Util
+import Pong.Util (Name, Text, Void, (<$$>), (<#>), (!?), embed, project, cata, para)
 import Pong.Util.Env (Environment)
 import System.Exit
 import System.Process
@@ -39,11 +41,6 @@ import qualified Pong.Util.Env as Env
 --
 -- to:
 --   lamb[a, b] => b
-combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
-combineLambdas =
-  cata $ \case
-    ELam t xs (Fix (ELam _ ys expr)) -> eLam t (xs <> ys) expr
-    e -> embed e
 
 -- -- from:
 -- --   (g(x))(y)
@@ -250,11 +247,6 @@ combineLambdas =
 --         ERow row -> eRow <$> mapRowM liftLambdas row
 --         EField a1 a2 a3 -> eField a1 <$> a2 <*> a3
 
-uniqueName :: (MonadState (Int, a) m) => Name -> m Name
-uniqueName prefix = do
-  n <- gets fst
-  modify (first succ)
-  pure (prefix <> showt n)
 
 -- alignCallSigns :: (MonadState (Int, Program PreAst) m) => PreAst -> m PreAst
 -- alignCallSigns =
@@ -1470,129 +1462,6 @@ expx9_ =
 --   runState (beebop exp1) (1, emptyProgram)
 --
 
-liftDef ::
-  (MonadState (Int, Program MonoType Ast) m) =>
-  Name ->
-  [Label MonoType] ->
-  [Label MonoType] ->
-  Ast ->
-  m Ast
-liftDef name vs args expr = do
-  insertDef (bananas name t ts) def  -- TODO
-  pure (eCall (typeOf def, name) (eVar <$> vs))
-  where
-    ts = fst <$> as
-    t = typeOf expr
-    as = vs <> args `without` [(t, name)]
-    def = Function (fromList as) (t, expr)
-
-appArgs :: [Ast] -> Ast -> Ast
-appArgs xs =
-  project
-    >>> ( \case
-            ECall _ g ys ->
-              eCall g (ys <> xs)
-            EVar v ->
-              eCall v xs
-            e ->
-              error (show e)
-        )
-
-extra :: MonoType -> [Label MonoType]
-extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int ..]]
-
-programDefs :: (MonadState (Int, Program MonoType Ast) m) => m [Label MonoType]
-programDefs = do
-  Program p <- gets snd
-  pure (
-        Map.toList p <#> \case
-                          (Left name, def) ->
-                            (typeOf def, name)
-                          (Right label, _) ->
-                            label
-                        )
-
-bernie :: (MonadState (Int, Program MonoType Ast) m) => TypedExpr -> m Ast
-bernie =
-  cata $ \case
-    ELam t args expr1 -> do
-      e1 <- expr1
-      name <- uniqueName "$lam"
-      defs <- programDefs
-      let vs = freeVars e1 `without` (args <> defs)
-          ys = extra (typeOf e1)
-      liftDef name vs (args <> ys) $
-        if null ys
-          then e1
-          else appArgs (eVar <$> ys) e1
-    ECase expr1 clauses -> do
-      e1 <- expr1
-      cs <- traverse sequence clauses
-      let t = typeOf (head (snd <$> cs))
-      if isConT ArrT t
-        then do
-          defs <- programDefs
-          name <- uniqueName "$match"
-          let vs = freeVars (eCase e1 cs) `without` defs
-              ys = extra t
-              app = appArgs (eVar <$> ys)
-          liftDef name vs ys (eCase e1 (fmap (second app) cs))
-        else pure (eCase e1 cs)
-    EIf expr1 expr2 expr3 -> do
-      e1 <- expr1
-      e2 <- expr2
-      e3 <- expr3
-      let t = typeOf e3
-      if isConT ArrT t
-        then do
-          defs <- programDefs
-          name <- uniqueName "$if"
-          let vs = nub (freeVars (eIf e1 e2 e3)) `without` defs
-              ys = extra t
-              app = appArgs (eVar <$> ys)
-          liftDef name vs ys (eIf e1 (app e2) (app e3))
-        else pure (eIf e1 e2 e3)
-    EApp t fun args -> do
-      f <- fun
-      xs <- sequence args
-      pure $ case project f of
-        ECall _ g ys -> eCall g (ys <> xs)
-        EVar v -> eCall v xs
-    ELet var expr1 expr2 -> do
-      e1 <- expr1
-      e2 <- expr2
-      let t = typeOf e2
-      if isConT ArrT t
-        then do
-          defs <- programDefs
-          name <- uniqueName "$let"
-          let vs = nub (freeVars (eLet var e1 e2)) `without` defs
-              ys = extra t
-              app = appArgs (eVar <$> ys)
-          liftDef name vs ys (eLet var e1 (app e2))
-        else pure (eLet var e1 e2)
-    EField fs expr1 expr2 -> do
-      e1 <- expr1
-      e2 <- expr2
-      let t = typeOf e2
-      if isConT ArrT t
-        then do
-          defs <- programDefs
-          name <- uniqueName "$field"
-          let vs = nub (freeVars (eField fs e1 e2)) `without` defs
-              ys = extra t
-              app = appArgs (eVar <$> ys)
-          liftDef name vs ys (eField fs e1 (app e2))
-        else pure (eField fs e1 e2)
-    ECon con ->
-      pure (eCall con [])
-    EOp2 op a1 a2 -> eOp2 op <$> a1 <*> a2
-    EVar v -> pure (eVar v)
-    ELit l -> pure (eLit l)
-    ERow row -> eRow <$> mapRowM bernie row
-    expr -> do
-      e <- sequence expr
-      error (show e)
 
 mcbride :: (MonadReader (Environment (Name, [Ast])) m, MonadState (Int, Program MonoType Ast) m) => Ast -> m Ast
 mcbride =
@@ -1814,18 +1683,18 @@ bopp (t, fun) = do
 -- --  def ->
 -- --    def
 
-t0t0 = second snd (runState (bernie exp00) (1, emptyProgram)) == exp00_
+t0t0 = second snd (runState (compile exp00) (1, emptyProgram)) == exp00_
 
-t0t1 = second snd (runState (bernie exp0) (1, emptyProgram)) == exp0_
+t0t1 = second snd (runState (compile exp0) (1, emptyProgram)) == exp0_
 
-t0t2 = second snd (runState (bernie expx0) (1, emptyProgram)) == expx0_
+t0t2 = second snd (runState (compile expx0) (1, emptyProgram)) == expx0_
 
-t0t3 = second snd (runState (bernie expx8) (1, emptyProgram)) == expx8_
+t0t3 = second snd (runState (compile expx8) (1, emptyProgram)) == expx8_
 
-t0t4 = second snd (runState (bernie expx01) (1, 
+t0t4 = second snd (runState (compile expx01) (1, 
         Program (Map.fromList [(Right (tInt ~> tInt ~> tInt, "g"), Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == expx01_
 
-t0t5 = second snd (runState (bernie exp1) (1, 
+t0t5 = second snd (runState (compile exp1) (1, 
         Program (Map.fromList [(Right (tInt ~> tInt ~> tInt, "g"), Function (fromList [(tInt, "x"), (tInt, "y")]) (tInt, eLit (PInt 1)))]))) == exp1_
 
 t0t6 = evalProgram__ expyx_ == PrimValue (PInt 125)
@@ -1834,19 +1703,19 @@ t0t7 = evalProgram__ expyy_ == PrimValue (PInt 125)
 
 t0t8 = evalProgram__ exp0_ == PrimValue (PInt 5)
 
-t0t9 = evalProgram__ (second snd (runState (bernie expx9) (1, emptyProgram))) == PrimValue (PInt 120)
+t0t9 = evalProgram__ (second snd (runState (compile expx9) (1, emptyProgram))) == PrimValue (PInt 120)
 
-t0t10 = second snd (runState (bernie expx9) (1, emptyProgram)) == expx9_
+t0t10 = second snd (runState (compile expx9) (1, emptyProgram)) == expx9_
 
 t0t11 = typeCheck_ exmp29_0 == exmp29_1
 
 t0t12 = typeCheck_ exmp30_0 == exmp30_1
 
-t0t13 = evalProgram__ (second snd (runState (bernie exmp30_1) (1, emptyProgram))) == PrimValue (PInt 2)
+t0t13 = evalProgram__ (second snd (runState (compile exmp30_1) (1, emptyProgram))) == PrimValue (PInt 2)
 
 t0t14 = typeCheck_ exmp31_0 == exmp31_1
 
-t0t15 = evalProgram__ (second snd (runState (bernie exmp31_1) (1, emptyProgram))) == PrimValue (PInt 2)
+t0t15 = evalProgram__ (second snd (runState (compile exmp31_1) (1, emptyProgram))) == PrimValue (PInt 2)
 
 --
 
@@ -1946,7 +1815,7 @@ typeCheck_ a =
 baz124 :: Expr t () () Void -> Either TypeError TypedExpr
 baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
  where
-  env = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
+  env = Env.inserts [("id", tGen "a0" ~> tGen "a0"), ("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
 
 --    runTypeChecker te $ do
 --        x <- tagExpr e
@@ -1956,7 +1825,7 @@ baz124 = runTypeChecker env . (applySubstitution <=< check <=< tagExpr)
 --        applySubstitution y
 
 baz127 :: Text -> Value
---baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
+--baz127 p = evalProgram__ (second snd (runState (perry2 =<< compile (combineLambdas q)) (1, emptyProgram)))
 baz127 p = do
   --traceShow z $
   --  traceShow zzz $
@@ -1973,12 +1842,12 @@ baz127 p = do
                     $ evalProgram__ (xx, zz)
  where
   (xx, (_, zz)) = runReader (runStateT (mcbride x) (1, z)) mempty
-  (x :: Ast, z :: Program MonoType Ast) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
+  (x :: Ast, z :: Program MonoType Ast) = second snd (runState (compile (combineLambdas q)) (1, emptyProgram))
   Right q = let Right r = runParser expr "" p in baz124 r
 
 
 baz1277 :: Text -> IO ()
---baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
+--baz127 p = evalProgram__ (second snd (runState (perry2 =<< compile (combineLambdas q)) (1, emptyProgram)))
 baz1277 p = do
     traceShowM "vvvvvvvvvvvvvvvvvvvvv"
     let (Program p) = prog in mapM_ traceShowM (Map.toList p)
@@ -1992,12 +1861,12 @@ baz1277 p = do
         [ (Right (undefined, "main"), Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
         , (Right (undefined, "gc_malloc"), Extern [tInt] (tVar 0))
         ])
-    (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
+    (ast, prog) = second snd (runState (compile (combineLambdas q)) (1, emptyProgram))
     Right q = let Right r = runParser expr "" p in baz124 r
 
 
 baz1278 :: Text -> IO Int
---baz127 p = evalProgram__ (second snd (runState (perry2 =<< bernie (combineLambdas q)) (1, emptyProgram)))
+--baz127 p = evalProgram__ (second snd (runState (perry2 =<< compile (combineLambdas q)) (1, emptyProgram)))
 baz1278 p = do
 -- cat out9.ll | clang memory.c -xir -lgc -o out - && ./out ; echo $?
     traceShowM "vvvvvvvvvvvvvvvvvvvvv"
@@ -2022,18 +1891,18 @@ baz1278 p = do
         [ (Right (undefined, "main"), Function (fromList [(tUnit, "a")]) (typeOf ast, ast))
         , (Right (undefined, "gc_malloc"), Extern [tInt] (tVar 0))
         ])
-    (ast, prog) = second snd (runState (bernie (combineLambdas q)) (1, emptyProgram))
+    (ast, prog) = second snd (runState (compile (combineLambdas q)) (1, emptyProgram))
     Right q = let Right r = runParser expr "" p in baz124 r
 
 
 -- --baz127b :: Text -> Value
--- baz127b p = (second snd (runState (bernie (combineLambdas q)) (1, emptyProgram)))
+-- baz127b p = (second snd (runState (compile (combineLambdas q)) (1, emptyProgram)))
 --   where Right q = let Right r = runParser expr "" p in baz124 r
 --
 --
 -- --baz128 :: Text -> Value
--- --baz128 p = second snd (runState (perry2 =<< bernie q) (1, emptyProgram))
--- baz128 p = second snd (runState (bernie q) (1, emptyProgram))
+-- --baz128 p = second snd (runState (perry2 =<< compile q) (1, emptyProgram))
+-- baz128 p = second snd (runState (compile q) (1, emptyProgram))
 --   where Right q = let Right r = runParser expr "" p in baz124 r
 --
 --
@@ -2305,49 +2174,6 @@ exmp34_1 =
 --     (eField [((), "{quantity}"), ((), "q"), ((), "a")] (eVar ((), "r")) (eLit (PInt 5)))
 
 
-ostrich :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
-ostrich =
-  cata 
-    ( \case
-      ELet (t, var) expr1 expr2 | isTemplate t -> do
-        e1 <- expr1
-        e2 <- expr2
-        (e, binds) <- runWriterT (hippo t var e1 e2)
-        pure (foldr (uncurry eLet) e (((t, var), e1):binds))
-      expr -> 
-        embed <$> sequence expr
-    )
-
-hippo 
-  :: (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) 
-  => MonoType 
-  -> Name 
-  -> TypedExpr 
-  -> TypedExpr 
-  -> m TypedExpr
-hippo t name e1 =
-  cata 
-    ( \case
-      EVar (t0, var) | var == name && not (isomorphic t t0) ->
-        case runTypeChecker' (freeIndex [t, t0]) mempty (unify t t0) of
-          Right sub -> do
-            newVar <- uniqueName ("$var_" <> var <> "_")
-            tell [((t0, newVar), apply sub e1)]
-            pure (eVar (t0, newVar))
-          _ ->
-            error "Implementation error"
-      expr -> 
-        embed <$> sequence expr
-    )
-
-canonical :: MonoType -> MonoType
-canonical t = apply (Substitution map) t
-  where
-    map = Map.fromList (zip (free t) (tVar <$> [0..]))
-
-isomorphic :: MonoType -> MonoType -> Bool
-isomorphic t0 t1 = canonical t0 == canonical t1
-
 -- /???
 
 
@@ -2383,3 +2209,67 @@ isomorphic t0 t1 = canonical t0 == canonical t1
 --      ELam {} ->
 --        undefined
 
+xx123 =
+  typeCheck_ "id(5)"
+
+xx124 =
+  runState (runWriterT 
+      (replaceTemplates 
+           (tVar 0 ~> tVar 0) 
+           "id" 
+           (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x"))) 
+           xx123)
+      ) (1,1)
+
+
+xx125 :: (MonadState (Int, a) m) => m TypedExpr
+xx125 =
+  specializeDef_
+    (tGen "a" ~> tGen "a", "id") 
+    (Function (fromList [(tGen "a", "x")]) (tGen "a", eVar (tGen "a", "x")))
+    (eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 5)])
+--  specializeDef 
+--    (tVar 0 ~> tVar 0, "id")
+--    [(tVar 0, "x")]
+--    (tVar 0, eVar (tVar 0, "x"))
+--    (eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 5)])
+  where
+    r :: Program (Type Int Name) TypedExpr
+    r = oiouo q
+    q :: Program (Type Int Name) SourceExpr
+    q = p
+    Right p = runParser program "" "def id(x : a0) : a0 = x"
+
+
+oiouo :: Program (Type Int Name) SourceExpr -> Program (Type Int Name) TypedExpr
+oiouo p = over Program (fmap rtcx2) p
+  where
+    te = programToTypeEnv p
+--    rtcx2 :: Definition a SourceExpr -> Definition a TypedExpr
+    rtcx2 = \case
+      Function args (t, body) ->
+        case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr body) of
+          Right r ->
+            Function args (t, r)
+          _ ->
+            undefined
+
+programToTypeEnv :: Program (Type Int Name) SourceExpr -> Environment (Type Int Name)
+programToTypeEnv p = Env.fromList (swap <$> yy123 (unpack p))
+
+
+--programToTypeEnv p = Env.fromList foo -- (undefined . typeOf <$$> Map.toList (unpack p))
+--  where
+--    foo :: [(Name, Type Int Name)]
+--    foo = undefined
+----    xx :: [(ProgKey p, Definition p q)]
+--    xx = Map.toList (unpack p)
+
+--  where
+--    te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programToTypeEnv p)
+--    rtcx2 :: Definition Type SourceExpr -> Definition Type TypedExpr
+--    rtcx2 (Function args (t, e)) =
+--              case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr e) of
+--                Left err -> error (show err)
+--                Right r -> Function args (t, r)
+--    rtcx2 _ = error "TODO"

@@ -302,22 +302,24 @@ unifyM t1 t2 = do
 
 instantiate :: Type Int Name -> TypeChecker MonoType
 instantiate t = do
-  ts <- traverse (\n -> tag >>= \t -> pure (n, tVar t)) (Set.toList (bound t))
+  ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
   pure (toMonoType (Map.fromList ts) t)
- where
-  bound :: (Ord q) => Type v q -> Set q
-  bound =
-    cata $ \case
+
+boundVars :: Type Int Name -> Set Name
+boundVars =
+  cata 
+    ( \case
       TGen n -> Set.singleton n
       TCon _ ts -> Set.unions ts
       TArr t1 t2 -> Set.union t1 t2
       TRow r ->
         (`cata` r)
           ( \case
-              RExt _ r a -> Set.union (bound r) a
+              RExt _ r a -> Set.union (boundVars r) a
               _ -> mempty
           )
       _ -> mempty
+    )
 
 generalize :: MonoType -> TypeChecker (Type Int Name)
 generalize t = do

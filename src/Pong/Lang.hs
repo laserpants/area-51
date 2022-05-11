@@ -97,16 +97,6 @@ instance FreeIn (Type Int g) where
           _ -> []
         )
 
---    Set.toList
---      <<< cata
---        ( \case
---            TVar n -> Set.singleton n
---            TCon _ ts -> Set.unions ts
---            TArr t1 t2 -> t1 <> t2
---            TRow r -> Set.fromList (free r)
---            _ -> mempty
---        )
-
 instance FreeIn (Row (Type Int g) Int) where
   free =
     nub <<<
@@ -116,14 +106,6 @@ instance FreeIn (Row (Type Int g) Int) where
           RExt _ t r -> free t <> r
           _ -> []
       )
-
---    Set.toList
---      <<< cata
---        ( \case
---            RVar v -> Set.singleton v
---            RExt _ expr r -> Set.fromList (free expr) <> r
---            _ -> mempty
---        )
 
 instance (FreeIn f) => FreeIn [f] where
   free = concatMap free
@@ -142,29 +124,30 @@ class Typed t where
 instance Typed Void where
   typeOf _ = tCon "Void" []
 
-instance (Typed g) => Typed (Type Int g) where
+instance Typed (Type Int g) where
   typeOf =
-    cata $
-      \case
-        TUnit -> tUnit
-        TBool -> tBool
-        TInt -> tInt
-        TFloat -> tFloat
-        TDouble -> tDouble
-        TChar -> tChar
-        TString -> tString
-        TCon con ts -> tCon con ts
-        TArr t1 t2 -> tArr t1 t2
-        TVar v -> tVar v
-        TGen g -> typeOf g
-        TRow row ->
-          tRow
-            ( (`cata` row) $
-                \case
-                  RNil -> rNil
-                  RVar v -> rVar v
-                  RExt name elem r -> rExt name (typeOf elem) r
-            )
+    cata 
+      ( \case
+          TUnit -> tUnit
+          TBool -> tBool
+          TInt -> tInt
+          TFloat -> tFloat
+          TDouble -> tDouble
+          TChar -> tChar
+          TString -> tString
+          TCon con ts -> tCon con ts
+          TArr t1 t2 -> tArr t1 t2
+          TVar v -> tVar v
+          TGen g -> error "????" -- tGen "XX" -- undefined -- typeOf g
+          TRow row ->
+            tRow
+              ( (`cata` row) $
+                  \case
+                    RNil -> rNil
+                    RVar v -> rVar v
+                    RExt name elem r -> rExt name (typeOf elem) r
+              )
+      )
 
 instance Typed Prim where
   typeOf =
@@ -300,7 +283,7 @@ freeVars =
             e1
               <> Set.unions (cs <#> \(_ : vs, expr) -> expr \\ Set.fromList vs)
           ERow row ->
-            (`cata` row) 
+            (`cata` row)
               ( \case
                 RNil -> mempty
                 RVar v -> Set.singleton v
@@ -350,10 +333,12 @@ mapTypes f =
     )
   where
     mapRowTypes =
-      cata $ \case
-        RNil -> rNil
-        RVar (t, v) -> rVar (f t, v)
-        RExt name elem row -> rExt name (mapTypes f elem) row
+      cata 
+        ( \case
+            RNil -> rNil
+            RVar (t, v) -> rVar (f t, v)
+            RExt name elem row -> rExt name (mapTypes f elem) row
+        )
 
 {-# INLINE foldType #-}
 foldType :: Type v q -> [Type v q] -> Type v q
@@ -384,6 +369,12 @@ modifyProgram ::
   (Map (ProgKey t) (Definition t a) -> Map (ProgKey t) (Definition t a)) ->
   m ()
 modifyProgram = modify . second . over Program
+
+toProgKey :: Name -> Type v q -> [Type v q] -> ProgKey (Type v q)
+toProgKey name t ts = 
+  if any (isConT VarT) (t:ts)
+     then Left name
+     else Right (foldType t ts, name)
 
 ---- modifyProgramM ::
 ----      (MonadState (Int, Program a) m)

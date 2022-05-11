@@ -298,14 +298,7 @@ def =
       symbol "="
       e <- expr
       let ts = fst <$> args
-      pure (bananas name t ts, Function (fromList args) (t, e))
-
-bananas name t ts = 
-  if any (isConT VarT) (t:ts) 
-                   then -- Template
-                     Left name 
-                   else 
-                     Right (foldType t ts, name)
+      pure (toProgKey name t ts, Function (fromList args) (t, e))
 
 --      constantDef = do
 --        keyword "const"

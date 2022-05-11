@@ -27,8 +27,10 @@ module Pong.Util (
   asksFirst,
   localSecond,
   asksSecond,
+  getAndModify,
 ) where
 
+import Control.Monad.State
 import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader
 import Data.Eq.Deriving (deriveEq1)
@@ -120,3 +122,9 @@ localSecond = local . second
 {-# INLINE asksSecond #-}
 asksSecond :: MonadReader (q, r) m => (r -> a) -> m a
 asksSecond = asks . (snd >>>)
+
+getAndModify :: (MonadState s m) => (s -> s) -> m s
+getAndModify f = do
+  s <- get
+  modify f
+  pure s
