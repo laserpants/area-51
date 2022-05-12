@@ -2221,7 +2221,6 @@ xx124 =
            xx123)
       ) (1,1)
 
-
 xx125 :: (MonadState (Int, a) m) => m TypedExpr
 xx125 =
   specializeDef_
@@ -2239,7 +2238,6 @@ xx125 =
     q :: Program (Type Int Name) SourceExpr
     q = p
     Right p = runParser program "" "def id(x : a0) : a0 = x"
-
 
 oiouo :: Program (Type Int Name) SourceExpr -> Program (Type Int Name) TypedExpr
 oiouo p = over Program (fmap rtcx2) p
