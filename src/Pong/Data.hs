@@ -41,6 +41,8 @@ data TypeF v q a
 
 type Type v q = Fix (TypeF v q)
 
+newtype Scheme = Scheme (Type Void Name)
+
 type MonoType = Type Int Void
 
 data ConT

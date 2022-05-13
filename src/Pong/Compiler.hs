@@ -1,9 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
 
 module Pong.Compiler where
 
+import Control.Monad.Except
 import Control.Newtype.Generics
 import Control.Monad.Reader
 import Control.Monad.Writer
@@ -2223,7 +2225,7 @@ xx124 =
 
 xx125 :: (MonadState (Int, a) m) => m TypedExpr
 xx125 =
-  specializeDef_
+  specializeDef
     (tGen "a" ~> tGen "a", "id") 
     (Function (fromList [(tGen "a", "x")]) (tGen "a", eVar (tGen "a", "x")))
     (eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 5)])
@@ -2234,23 +2236,38 @@ xx125 =
 --    (eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 5)])
   where
     r :: Program (Type Int Name) TypedExpr
-    r = oiouo q
-    q :: Program (Type Int Name) SourceExpr
-    q = p
+    r = annotateProgram p
     Right p = runParser program "" "def id(x : a0) : a0 = x"
 
-oiouo :: Program (Type Int Name) SourceExpr -> Program (Type Int Name) TypedExpr
-oiouo p = over Program (fmap rtcx2) p
+xx888 :: (MonadState (Int, a) m) => m ()
+xx888 = do
+--  forEachDef q undefined
+  traceShowM r
+  pure ()
+    where
+      Program q = r
+      r :: Program (Type Int Name) TypedExpr
+      r = annotateProgram p
+      Right p = runParser program "" "def id(x : a0) : a0 = x"
+
+annotateProgram :: Program (Type Int Name) SourceExpr -> Program (Type Int Name) TypedExpr
+annotateProgram p =
+  traceShow te
+    $ over Program (fmap rtcx2) p
   where
+    runTypeChecker' n env m = runState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+    runTypeChecker = runTypeChecker' (1 :: Int)
     te = programToTypeEnv p
 --    rtcx2 :: Definition a SourceExpr -> Definition a TypedExpr
     rtcx2 = \case
       Function args (t, body) ->
-        case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr body) of
-          Right r ->
-            Function args (t, r)
-          _ ->
-            undefined
+        traceShow (insertArgs (toList args) te)
+          $ case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr body) of
+            (Right r, (_, s)) -> do
+              traceShow s
+                $ Function args (t, r)
+            _ ->
+              undefined
 
 programToTypeEnv :: Program (Type Int Name) SourceExpr -> Environment (Type Int Name)
 programToTypeEnv p = Env.fromList (swap <$> yy123 (unpack p))

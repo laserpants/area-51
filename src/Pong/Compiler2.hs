@@ -3,14 +3,18 @@
 
 module Pong.Compiler2 where
 
+import Pong.Parser
 import Control.Newtype.Generics
 import Control.Monad.State
 import Control.Monad.Writer
+import Data.Function (on)
 import Data.Functor ((<&>))
+import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second, swap)
 import Pong.Data
+import Debug.Trace
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util hiding (unpack)
@@ -109,35 +113,55 @@ makeDef name expr f = do
 --specializeFun =
 --  undefined
 
-specializeDef_
+instantiateDef 
+  :: (MonadState (Int, a) m) 
+  => (ProgKey (Type Int Name), Definition (Type Int Name) SourceExpr)
+  -> m (ProgKey MonoType, Definition MonoType SourceExpr)
+instantiateDef = 
+  \case
+    (_, Function args (_, body)) -> do
+--      ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
+--      let sub = toMonoType (Map.fromList ts)
+      undefined
+
+specializeDef
   :: (MonadState (Int, a) m) 
   => Label (Type Int Name)
   -> Definition (Type Int Name) (Expr (Type Int Name) (Type Int Name) () Void)
   -> TypedExpr 
   -> m TypedExpr
-specializeDef_ (t, name) def expr = do
+specializeDef (t, name) def expr = do
   ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
   let sub = toMonoType (Map.fromList ts)
   case def of
-    Function args (t0, body) ->
-      specializeDef     
-        (sub t, name)
-        (toList (first sub <$> args))
-        (sub t0, mapTypes sub body)
-        expr
+    Function args (_, body) -> do
+      let e1 = eLam () (toList (first sub <$> args)) (mapTypes sub body)
+          t1 = sub t
+      (e, binds) <- runWriterT (replaceTemplates t1 name e1 expr)
+      --traceShowM "***"
+      --traceShowM (unique binds)
+      --traceShowM "***"
+      --pure (foldr (uncurry eLet) e (((t1, name), e1) : unique binds))
+      pure (foldr (uncurry eLet) e (unique binds))
 
-specializeDef 
-  :: (MonadState (Int, a) m) 
-  => Label MonoType
-  -> [Label MonoType] 
-  -> (MonoType, TypedExpr) 
-  -> TypedExpr 
-  -> m TypedExpr
-specializeDef (t, name) args (_, body) e2 = do
-  (e, binds) <- runWriterT (replaceTemplates t name e1 e2)
-  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
-  where 
-    e1 = eLam () args body
+--      specializeDef     
+--        (sub t, name)
+--        (toList (first sub <$> args))
+--        (sub t0, mapTypes sub body)
+--        expr
+--
+--specializeDef 
+--  :: (MonadState (Int, a) m) 
+--  => Label MonoType
+--  -> [Label MonoType] 
+--  -> (MonoType, TypedExpr) 
+--  -> TypedExpr 
+--  -> m TypedExpr
+--specializeDef (t, name) args (_, body) e2 = do
+--  (e, binds) <- runWriterT (replaceTemplates t name e1 e2)
+--  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
+--  where 
+--    e1 = eLam () args body
 
 specializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
 specializeLets =
@@ -147,10 +171,13 @@ specializeLets =
           e1 <- expr1
           e2 <- expr2
           (e, binds) <- runWriterT (replaceTemplates t var e1 e2)
-          pure (foldr (uncurry eLet) e (((t, var), e1) : binds))
+          pure (foldr (uncurry eLet) e (((t, var), e1) : unique binds))
         expr ->
           embed <$> sequence expr
     )
+
+unique :: [((MonoType, a1), a2)] -> [((MonoType, a1), a2)]
+unique = nubBy (on (==) (fst . fst))
 
 replaceTemplates ::
   (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
