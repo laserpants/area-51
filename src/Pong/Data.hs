@@ -25,7 +25,7 @@ data RowF e r a
 -- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
 
-data TypeF v q a
+data TypeF v s a
   = TUnit                          -- ^ Unit type
   | TBool                          -- ^ Boolean type
   | TInt                           -- ^ Type of integers (machine bounded)
@@ -36,19 +36,19 @@ data TypeF v q a
   | TCon Name [a]                  -- ^ Algebraic data-types
   | TArr a a                       -- ^ Function types
   | TVar v                         -- ^ Type variable (monomorphic)
-  | TGen q                         -- ^ Quantified type variable
-  | TRow (Row (Type v q) Int)      -- ^ Row types
+  | TGen s                         -- ^ Quantified type variable
+  | TRow (Row (Type v s) Int)      -- ^ Row types
 
-type Type v q = Fix (TypeF v q)
+type Type v s = Fix (TypeF v s)
 
 newtype Scheme = Scheme (Type Void Name)
 
 type MonoType = Type Int Void
 
 data ConT
-  = VarT
-  | ArrT
-  | RowT
+  = VarT                           -- ^ Type is a TVar 
+  | ArrT                           -- ^ Type is a TArr
+  | RowT                           -- ^ Type is a TRow
 
 -- | Built-in language primitives
 data Prim
@@ -62,22 +62,22 @@ data Prim
 
 -- | Unary operators
 data Op1
-  = ONot       -- ^ Logical NOT
-  | ONeg       -- ^ Negation
+  = ONot                           -- ^ Logical NOT
+  | ONeg                           -- ^ Negation
 
 -- | Binary operators
 data Op2
-  = OEq        -- ^ Equality
-  | OLt        -- ^ Less than
-  | OGt        -- ^ Greater than
-  | OLtE       -- ^ Less than or equal to
-  | OGtE       -- ^ Greater than or equal to
-  | OAdd       -- ^ Addition
-  | OSub       -- ^ Subtraction
-  | OMul       -- ^ Multiplication
-  | ODiv       -- ^ Division
-  | OLogicOr   -- ^ Logical OR
-  | OLogicAnd  -- ^ Logical AND
+  = OEq                            -- ^ Equality
+  | OLt                            -- ^ Less than
+  | OGt                            -- ^ Greater than
+  | OLtE                           -- ^ Less than or equal to
+  | OGtE                           -- ^ Greater than or equal to
+  | OAdd                           -- ^ Addition
+  | OSub                           -- ^ Subtraction
+  | OMul                           -- ^ Multiplication
+  | ODiv                           -- ^ Division
+  | OLogicOr                       -- ^ Logical OR
+  | OLogicAnd                      -- ^ Logical AND
 
 -- | A label is a typed identifier
 type Label t = (t, Name)
@@ -89,7 +89,7 @@ data ExprF t a0 a1 a2 a
   | EIf a a a                                -- ^ If statement
   | ELet (Label t) a a                       -- ^ Let binding
   | EApp a0 a [a]                            -- ^ Application
-  | ELam a1 [Label t] a                      -- ^ Lambda function
+  | ELam a1 [Label t] a                      -- ^ Lambda abstraction
   | ECall a2 (Label t) [a]                   -- ^ Function call
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
@@ -97,13 +97,16 @@ data ExprF t a0 a1 a2 a
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
   | EField [Label t] a a                     -- ^ Field accessor
 
--- | Parameterized expression language grammar
+-- | Parameterized expression grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
--- | Source expression annotated with numeric tags to facilitate type checking
+-- | Untyped source expression 
+type SourceExpr = Expr () () () Void
+
+-- | Source expression annotated with numeric tags to support type inference
 type TaggedExpr = Expr Int Int () Void
 
--- | Typed source expression
+-- | Type annotated source expression
 type TypedExpr = Expr MonoType MonoType () Void
 
 -- | Typed intermediate representation
@@ -112,13 +115,13 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
-{- ORMOLU_ENABLE -}
-
 data ConE
-  = VarE
-  | LitE
-  | LamE
-  | RowE
+  = VarE                           -- ^ Expression is an EVar
+  | LitE                           -- ^ Expression is an ELit
+  | LamE                           -- ^ Expression is an ELam
+  | RowE                           -- ^ Expression is an ERow
+
+{- ORMOLU_ENABLE -}
 
 data Constructor t = Constructor
   { conName :: Name
@@ -131,10 +134,8 @@ data Definition t a
   | Extern [t] t
   | Data Name [Constructor t]
 
-type ProgKey t = Either Name (Label t)
-
 newtype Program t a
-  = Program (Map (ProgKey t) (Definition t a))
+  = Program (Map (Label t) (Definition t a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -156,11 +157,11 @@ deriving instance Foldable (RowF e r)
 deriving instance Traversable (RowF e r)
 
 -- Type
-deriving instance (Show v, Show q, Show a) => Show (TypeF v q a)
+deriving instance (Show v, Show s, Show a) => Show (TypeF v s a)
 
-deriving instance (Eq v, Eq q, Eq a) => Eq (TypeF v q a)
+deriving instance (Eq v, Eq s, Eq a) => Eq (TypeF v s a)
 
-deriving instance (Ord v, Ord q, Ord a) => Ord (TypeF v q a)
+deriving instance (Ord v, Ord s, Ord a) => Ord (TypeF v s a)
 
 deriveShow1 ''TypeF
 
@@ -168,11 +169,22 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor (TypeF v q)
+deriving instance Functor (TypeF v s)
 
-deriving instance Foldable (TypeF v q)
+deriving instance Foldable (TypeF v s)
 
-deriving instance Traversable (TypeF v q)
+deriving instance Traversable (TypeF v s)
+
+-- Scheme
+deriving instance Show Scheme
+
+deriving instance Eq Scheme
+
+deriving instance Ord Scheme
+
+deriving instance Generic Scheme
+
+instance Newtype Scheme
 
 -- TCon
 deriving instance Show ConT
@@ -257,8 +269,8 @@ deriving instance (Show t, Show a) => Show (Program t a)
 
 deriving instance (Eq t, Eq a) => Eq (Program t a)
 
-deriving instance Generic (Program t a)
-
 deriving instance (Ord t) => Semigroup (Program t a)
+
+deriving instance Generic (Program t a)
 
 instance Newtype (Program t a)

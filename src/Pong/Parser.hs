@@ -5,6 +5,7 @@
 module Pong.Parser where
 
 import Control.Monad.Combinators.Expr
+import qualified Control.Newtype.Generics as Generics
 import Data.Functor (($>))
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
@@ -37,13 +38,13 @@ symbol :: Text -> Parser Text
 symbol = Lexer.symbol spaces
 
 parens :: Parser a -> Parser a
-parens = between (symbol "(") (symbol ")")
+parens = symbol "(" `between` symbol ")"
 
 brackets :: Parser a -> Parser a
-brackets = between (symbol "[") (symbol "]")
+brackets = symbol "[" `between` symbol "]"
 
 braces :: Parser a -> Parser a
-braces = between (symbol "{") (symbol "}")
+braces = symbol "{" `between` symbol "}"
 
 surroundedBy :: Parser Text -> Parser a -> Parser a
 surroundedBy parser = between parser parser
@@ -101,8 +102,8 @@ validChar = alphaNumChar <|> char '_'
 withInitial :: Parser Char -> Parser Text
 withInitial parser = do
   c <- parser
-  cs <- many validChar
-  pure (pack (c : cs))
+  chars <- many validChar
+  pure (pack (c : chars))
 
 constructor :: Parser Name
 constructor = word (withInitial upperChar)
@@ -114,44 +115,44 @@ identifier = word (withInitial (lowerChar <|> char '_'))
 toLabel :: t -> ((), t)
 toLabel = ((),)
 
-type SourceExpr = Expr () () () Void
-
 expr :: Parser SourceExpr
 expr = makeExprParser apps operator
- where
-  apps = do
-    f <- parens expr <|> item
-    optional (args expr)
-      >>= ( fromMaybe [] >>> pure <<< \case
-              [] -> f
-              as -> eApp () f as
-          )
-  item =
-    litExpr 
-      <|> ifExpr 
-      <|> letExpr 
-      <|> lamExpr 
-      <|> caseExpr
-      <|> rowExpr
-      <|> fieldExpr
-      <|> varExpr
-      <|> conExpr
+  where
+    apps = do
+      f <- parens expr <|> item
+      optional (args expr)
+        >>= ( fromMaybe [] >>> pure <<< \case
+                [] -> f
+                as -> eApp () f as
+            )
+    item =
+      litExpr
+        <|> ifExpr
+        <|> letExpr
+        <|> lamExpr
+        <|> caseExpr
+        <|> rowExpr
+        <|> fieldExpr
+        <|> varExpr
+        <|> conExpr
+
+fix7, fix6, fix4, fix3, fix2 :: [Operator Parser SourceExpr]
+fix7 = [InfixL (eOp2 ((), OMul) <$ symbol "*")]
+fix6 =
+  [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
+  , InfixL (eOp2 ((), OSub) <$ symbol "-")
+  ]
+fix4 = [InfixN (eOp2 ((), OEq) <$ symbol "==")]
+fix3 = [InfixR (eOp2 ((), OLogicAnd) <$ symbol "&&")]
+fix2 = [InfixR (eOp2 ((), OLogicOr) <$ symbol "||")]
 
 operator :: [[Operator Parser SourceExpr]]
 operator =
-  -- 7
-  [ [InfixL (eOp2 ((), OMul) <$ symbol "*")]
-  , -- 6
-
-    [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
-    , InfixL (eOp2 ((), OSub) <$ symbol "-")
-    ]
-  , -- 4
-    [InfixN (eOp2 ((), OEq) <$ symbol "==")]
-  , -- 3
-    [InfixR (eOp2 ((), OLogicAnd) <$ symbol "&&")]
-  , -- 2
-    [InfixR (eOp2 ((), OLogicOr) <$ symbol "||")]
+  [ fix7
+  , fix6
+  , fix4
+  , fix3
+  , fix2
   ]
 
 varExpr :: Parser SourceExpr
@@ -226,12 +227,12 @@ rowExpr =
             [] -> rNil
             _ -> foldr (uncurry rExt) (maybe rNil (rVar . toLabel) tail) fields
         )
- where
-  field = do
-    lhs <- identifier
-    symbol "="
-    rhs <- expr
-    pure (lhs, rhs)
+  where
+    field = do
+      lhs <- identifier
+      symbol "="
+      rhs <- expr
+      pure (lhs, rhs)
 
 prim :: Parser Prim
 prim =
@@ -243,73 +244,75 @@ prim =
     <|> try primFloat
     <|> try primDouble
     <|> primIntegral
- where
-  primUnit = symbol "()" $> PUnit
-  primTrue = keyword "true" $> PBool True
-  primFalse = keyword "false" $> PBool False
-  primChar = PChar <$> surroundedBy (symbol "'") printChar
-  primString = lexeme (PString . pack <$> chars)
-  primFloat = do
-    f <- lexeme (Lexer.float <* (char 'f' <|> char 'F'))
-    pure (PFloat f)
-  primDouble = do
-    d <- lexeme Lexer.float
-    pure $ PDouble (realToFrac d)
-  primIntegral = PInt <$> lexeme Lexer.decimal
-  chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
+  where
+    primUnit = symbol "()" $> PUnit
+    primTrue = keyword "true" $> PBool True
+    primFalse = keyword "false" $> PBool False
+    primChar = PChar <$> surroundedBy (symbol "'") printChar
+    primString = lexeme (PString . pack <$> chars)
+    primFloat = do
+      f <- lexeme (Lexer.float <* (char 'f' <|> char 'F'))
+      pure (PFloat f)
+    primDouble = do
+      d <- lexeme Lexer.float
+      pure $ PDouble (realToFrac d)
+    primIntegral = PInt <$> lexeme Lexer.decimal
+    chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
-type_ :: Parser (Type v Name)
-type_ = makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
- where
-  item =
-    keyword "unit" $> tUnit
-      <|> keyword "bool" $> tBool
-      <|> keyword "int" $> tInt
-      <|> keyword "float" $> tFloat
-      <|> keyword "double" $> tDouble
-      <|> keyword "char" $> tChar
-      <|> keyword "string" $> tString
-      <|> conType
-      <|> genType
-  conType = do
-    con <- constructor
-    ts <- many type_
-    pure (tCon con ts)
-  genType =
-    tGen <$> identifier
+scheme :: Parser Scheme
+scheme = Scheme <$> typeParser
+  where
+    typeParser =
+      makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
+    item =
+      keyword "unit" $> tUnit
+        <|> keyword "bool" $> tBool
+        <|> keyword "int" $> tInt
+        <|> keyword "float" $> tFloat
+        <|> keyword "double" $> tDouble
+        <|> keyword "char" $> tChar
+        <|> keyword "string" $> tString
+        <|> conType
+        <|> genType
+    conType = do
+      con <- constructor
+      ts <- many typeParser
+      pure (tCon con ts)
+    genType =
+      tGen <$> identifier
 
-label_ :: Parser (Label (Type v Name))
-label_ = do
+schemeLabel :: Parser (Label Scheme)
+schemeLabel = do
   name <- identifier
   symbol ":"
-  t <- type_
+  t <- scheme
   pure (t, name)
 
-def :: (Ord v) => Parser (ProgKey (Type v Name), Definition (Type v Name) SourceExpr)
-def = 
-    functionDef -- <|> constantDef -- <|> externalDef <|> dataDef
+def :: Parser (Label Scheme, Definition Scheme SourceExpr)
+def = functionDef -- <|> constantDef -- <|> externalDef <|> dataDef
   where
     functionDef = do
       keyword "def"
       name <- identifier
-      args <- parens (some label_)
+      args <- parens (some schemeLabel)
       symbol ":"
-      t <- type_
+      Scheme t <- scheme
       symbol "="
       e <- expr
-      let ts = fst <$> args
-      pure (toProgKey name t ts, Function (fromList args) (t, e))
+      let ts = Generics.unpack . fst <$> args
+          fun = Function (fromList args) (Scheme t, e)
+      pure ((Scheme (foldType t ts), name), fun)
 
 --      constantDef = do
 --        keyword "const"
 --        name <- identifier
 --        symbol ":"
---        t <- type_
+--        t <- scheme
 --        symbol "="
 --        e <- expr
 --        pure (name, Constant (t, e))
 
-program :: (Ord v) => Parser (Program (Type v Name) SourceExpr)
+program :: Parser (Program Scheme SourceExpr)
 program = do
   defs <- many def
   pure (Program (Map.fromList defs))

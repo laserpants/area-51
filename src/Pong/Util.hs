@@ -6,12 +6,12 @@ module Pong.Util (
   module Data.Fix,
   module Data.Void,
   module Data.Eq.Deriving,
+  module Data.Functor,
   module Data.Ord.Deriving,
   module Text.Show.Deriving,
   module Data.Map.Strict,
   module Data.Text,
   (<$$>),
-  (<#>),
   Name,
   Names,
   Algebra,
@@ -30,11 +30,12 @@ module Pong.Util (
   getAndModify,
 ) where
 
-import Control.Monad.State
 import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader
+import Control.Monad.State
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
+import Data.Functor ((<&>))
 import Data.Functor.Foldable
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
@@ -42,7 +43,7 @@ import qualified Data.Map.Strict as Map
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
-import Data.Tuple.Extra
+import Data.Tuple.Extra (first, second)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
 
@@ -55,12 +56,6 @@ without = foldr (filter <<< (/=))
 (<$$>) f = ((f <$>) <$>)
 
 infixl 4 <$$>
-
-{-# INLINE (<#>) #-}
-(<#>) :: (Functor f) => f a -> (a -> b) -> f b
-(<#>) = flip (<$>)
-
-infixl 1 <#>
 
 type Name = Text
 

@@ -52,7 +52,7 @@ inserts :: [(Name, a)] -> Environment a -> Environment a
 inserts = flip (foldr (uncurry insert))
 
 insertWith :: (a -> a -> a) -> Name -> a -> Environment a -> Environment a
-insertWith f key val = over Environment (Map.insertWith f key val)
+insertWith fun key val = over Environment (Map.insertWith fun key val)
 
 {-# INLINE fromList #-}
 fromList :: [(Name, a)] -> Environment a
