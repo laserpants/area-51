@@ -7,10 +7,10 @@ module Pong.Test.Data where
 -- import Control.Monad.Reader
 -- import Data.List.NonEmpty (fromList, toList)
 -- --import qualified Data.Map.Strict as Map
--- import Data.Void
--- import Pong.Data
--- import Pong.Eval
--- import Pong.Lang
+import Data.Void
+import Pong.Data
+import Pong.Eval
+import Pong.Lang
 -- import Pong.Util
 -- import Pong.Util.Env (Environment)
 -- --import qualified Pong.Util.Env as Env
@@ -455,124 +455,124 @@ module Pong.Test.Data where
 -- ----           f(lam(x) => x)(g(b))
 -- ----   in
 -- ----     z(lam(x) => x, lam(x) => x, 1)
--- fragment13_0 :: Expr () () () Void
--- fragment13_0 =
---   eLet
---     ((), "z")
---     (eLam ()
---        [((), "f")]
---        (eLam ()
---           [((), "g")]
---           (eLam ()
---              [((), "b")]
---              (eApp
---                 ()
---                 (eApp () (eVar ((), "f")) [eLam () [((), "x")] (eVar ((), "x"))])
---                 [eApp () (eVar ((), "g")) [eVar ((), "b")]]))))
---     (eApp
---        ()
---        (eVar ((), "z"))
---        [ eLam () [((), "x")] (eVar ((), "x"))
---        , eLam () [((), "x")] (eVar ((), "x"))
---        , eLit (PInt 1)
---        ])
--- 
--- fragment13_1 :: Expr Int Int () Void
--- fragment13_1 =
---   eLet
---     (1, "z")
---     (eLam ()
---        [(2, "f")]
---        (eLam ()
---           [(3, "g")]
---           (eLam ()
---              [(4, "b")]
---              (eApp
---                 5
---                 (eApp 6 (eVar (7, "f")) [eLam () [(8, "x")] (eVar (9, "x"))])
---                 [eApp 10 (eVar (11, "g")) [eVar (12, "b")]]))))
---     (eApp
---        13
---        (eVar (14, "z"))
---        [ eLam () [(15, "x")] (eVar (16, "x"))
---        , eLam () [(17, "x")] (eVar (18, "x"))
---        , eLit (PInt 1)
---        ])
--- 
+fragment13_0 :: SourceExpr
+fragment13_0 =
+  eLet
+    ((), "z")
+    (eLam ()
+       [((), "f")]
+       (eLam ()
+          [((), "g")]
+          (eLam ()
+             [((), "b")]
+             (eApp
+                ()
+                (eApp () (eVar ((), "f")) [eLam () [((), "x")] (eVar ((), "x"))])
+                [eApp () (eVar ((), "g")) [eVar ((), "b")]]))))
+    (eApp
+       ()
+       (eVar ((), "z"))
+       [ eLam () [((), "x")] (eVar ((), "x"))
+       , eLam () [((), "x")] (eVar ((), "x"))
+       , eLit (PInt 1)
+       ])
+
+fragment13_1 :: TaggedExpr
+fragment13_1 =
+  eLet
+    (1, "z")
+    (eLam ()
+       [(2, "f")]
+       (eLam ()
+          [(3, "g")]
+          (eLam ()
+             [(4, "b")]
+             (eApp
+                5
+                (eApp 6 (eVar (7, "f")) [eLam () [(8, "x")] (eVar (9, "x"))])
+                [eApp 10 (eVar (11, "g")) [eVar (12, "b")]]))))
+    (eApp
+       13
+       (eVar (14, "z"))
+       [ eLam () [(15, "x")] (eVar (16, "x"))
+       , eLam () [(17, "x")] (eVar (18, "x"))
+       , eLit (PInt 1)
+       ])
+
 -- --fragment15_0 :: Expr Int () () Void
 -- --fragment15_0 = eApp () (eVar (1, "f")) [eLit (PInt 1)]
 -- 
--- row_0, row_1, row_0_1, row_1_1, row_2, row_3, row_4, row_5, row_6, row_7, row_8, row_9, row_10, row_11, row_12, row_13, row_14, row_15, row_16, row_17, row_20, row_21, row_22, row_23, row_24, row_25, row_26, row_27, row_28, row_29, row_30, row_31, row_32, row_33, row_34, row_35, row_36, row_37, row_38, row_39, row_40, row_41 
---   :: Row MonoType Int
--- row_0 = rExt "name" (tVar 0) (rVar 1)
--- row_1 = rExt "id" tInt (rExt "name" tString rNil)
--- 
--- row_0_1 = rVar 1
--- row_1_1 = rExt "id" tInt rNil
--- 
--- row_2 = rExt "name" tString (rExt "id" tInt rNil)
--- row_3 = rExt "id" tString (rExt "name" tInt rNil)
--- 
--- row_4 = rExt "name" tString (rExt "id" tInt rNil)
--- row_5 = rExt "id" tInt (rExt "name" tString rNil)
--- 
--- row_6 = rExt "name" tString (rVar 0)
--- row_7 = rExt "name" tString (rVar 0)
--- 
--- row_8 = rExt "a" tString (rVar 0)
--- row_9 = rExt "b" tString (rVar 0)
--- 
--- row_10 = rExt "name" tString (rVar 0)
--- row_11 = rExt "name" tString (rVar 1)
--- 
--- row_12 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString rNil))
--- row_13 = rExt "id" tInt (rVar 0)
--- 
--- row_14 = rExt "pw" tString (rExt "name" tString (rVar 0))
--- row_15 = rVar 0
--- 
--- row_16 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString (rVar 0)))
--- row_17 = rExt "id" tInt (rVar 0)
--- 
--- row_20 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
--- row_21 = rExt "shoeSize" tFloat (rExt "id" tInt (rExt "name" tString rNil))
--- 
--- row_22 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
--- row_23 = rExt "shoeSize" tFloat (rVar 0)
--- 
--- row_24 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
--- row_25 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
--- 
--- row_26 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
--- row_27 = rVar 0
--- 
--- row_28 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt rNil))
--- row_29 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
--- 
--- row_30 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt rNil))
--- row_31 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
--- 
--- row_32 = rVar 0
--- row_33 = rVar 1
--- 
--- row_34 = rExt "a" tInt (rVar 0)
--- row_35 = rExt "a" tInt (rVar 0)
--- 
--- row_36 = rExt "a" tInt (rVar 0)
--- row_37 = rExt "a" tInt (rVar 1)
--- 
--- row_38 = rExt "a" tInt rNil
--- row_39 = rExt "a" tInt (rVar 1)
--- 
--- row_40 = rExt "a" tInt rNil
--- row_41 = rExt "a" tInt rNil
--- 
--- type_0, type_1, type_2, type_3 :: MonoType
--- type_0 = tRow (rExt "name" (tVar 0) (rVar 1))
--- type_1 = tRow (rExt "id" tInt (rExt "name" tString rNil))
--- type_2 = tRow (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
--- type_3 = tRow (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
--- 
+row_0, row_1, row_0_1, row_1_1, row_2, row_3, row_4, row_5, row_6, row_7, row_8, row_9, row_10, row_11, row_12, row_13, row_14, row_15, row_16, row_17, row_20, row_21, row_22, row_23, row_24, row_25, row_26, row_27, row_28, row_29, row_30, row_31, row_32, row_33, row_34, row_35, row_36, row_37, row_38, row_39, row_40, row_41 
+  :: Row MonoType Int
+row_0 = rExt "name" (tVar 0) (rVar 1)
+row_1 = rExt "id" tInt (rExt "name" tString rNil)
+
+row_0_1 = rVar 1
+row_1_1 = rExt "id" tInt rNil
+
+row_2 = rExt "name" tString (rExt "id" tInt rNil)
+row_3 = rExt "id" tString (rExt "name" tInt rNil)
+
+row_4 = rExt "name" tString (rExt "id" tInt rNil)
+row_5 = rExt "id" tInt (rExt "name" tString rNil)
+
+row_6 = rExt "name" tString (rVar 0)
+row_7 = rExt "name" tString (rVar 0)
+
+row_8 = rExt "a" tString (rVar 0)
+row_9 = rExt "b" tString (rVar 0)
+
+row_10 = rExt "name" tString (rVar 0)
+row_11 = rExt "name" tString (rVar 1)
+
+row_12 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString rNil))
+row_13 = rExt "id" tInt (rVar 0)
+
+row_14 = rExt "pw" tString (rExt "name" tString (rVar 0))
+row_15 = rVar 0
+
+row_16 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString (rVar 0)))
+row_17 = rExt "id" tInt (rVar 0)
+
+row_20 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+row_21 = rExt "shoeSize" tFloat (rExt "id" tInt (rExt "name" tString rNil))
+
+row_22 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
+row_23 = rExt "shoeSize" tFloat (rVar 0)
+
+row_24 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+row_25 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
+
+row_26 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+row_27 = rVar 0
+
+row_28 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt rNil))
+row_29 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
+
+row_30 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt rNil))
+row_31 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
+
+row_32 = rVar 0
+row_33 = rVar 1
+
+row_34 = rExt "a" tInt (rVar 0)
+row_35 = rExt "a" tInt (rVar 0)
+
+row_36 = rExt "a" tInt (rVar 0)
+row_37 = rExt "a" tInt (rVar 1)
+
+row_38 = rExt "a" tInt rNil
+row_39 = rExt "a" tInt (rVar 1)
+
+row_40 = rExt "a" tInt rNil
+row_41 = rExt "a" tInt rNil
+
+type_0, type_1, type_2, type_3 :: MonoType
+type_0 = tRow (rExt "name" (tVar 0) (rVar 1))
+type_1 = tRow (rExt "id" tInt (rExt "name" tString rNil))
+type_2 = tRow (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
+type_3 = tRow (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
+
 -- --
 -- ----fragment13_2 :: Expr Type () () Void
 -- ----fragment13_2 =
@@ -598,13 +598,13 @@ module Pong.Test.Data where
 -- ----       , eLam [(undefined, "x")] (eVar (undefined, "x"))
 -- ----       , eLit (PInt 1)
 -- ----       ])
--- 
--- fragment14_0 :: MonoType
--- fragment14_0 = tCon "Cons" [tVar 0, tVar 1]
--- 
--- fragment14_1 :: MonoType
--- fragment14_1 = tCon "Cons" [tInt, tCon "Cons" [tInt, tCon "Nil" []]]
--- 
+
+fragment14_0 :: MonoType
+fragment14_0 = tCon "Cons" [tVar 0, tVar 1]
+
+fragment14_1 :: MonoType
+fragment14_1 = tCon "Cons" [tInt, tCon "Cons" [tInt, tCon "Nil" []]]
+
 -- --fragment15_1 :: Expr Type () () Void
 -- --fragment15_1 =
 -- --  eLet
@@ -636,27 +636,27 @@ module Pong.Test.Data where
 -- --          (tInt ~> tInt, "h")
 -- --          (eApp () (eVar (tInt ~> tInt ~> tInt, "g")) [eLit (PInt 6)])
 -- --          (eApp () (eVar (tInt ~> tInt, "h")) [eLit (PInt 7)])))
--- 
--- fragment16_1 :: Expr Int Int () Void
--- fragment16_1 =
---   eLet
---     (1, "id")
---     (eLam () [(2, "x")] (eVar (3, "x")))
---     (eApp 4 (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) [eLit (PInt 1)])
--- 
--- fragment16_2 :: Expr MonoType MonoType () Void
--- fragment16_2 =
---   eLet
---     (tVar 2 ~> tVar 2, "id")
---     (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
---     (eApp
---        tInt
---        (eApp
---           (tInt ~> tInt)
---           (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
---           [eVar (tInt ~> tInt, "id")])
---        [eLit (PInt 1)])
--- 
+
+fragment16_1 :: TaggedExpr
+fragment16_1 =
+  eLet
+    (1, "id")
+    (eLam () [(2, "x")] (eVar (3, "x")))
+    (eApp 4 (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) [eLit (PInt 1)])
+
+fragment16_2 :: TypedExpr
+fragment16_2 =
+  eLet
+    (tVar 2 ~> tVar 2, "id")
+    (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eApp
+       tInt
+       (eApp
+          (tInt ~> tInt)
+          (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
+          [eVar (tInt ~> tInt, "id")])
+       [eLit (PInt 1)])
+
 -- ----
 -- ---- let
 -- ----   id =
@@ -674,66 +674,60 @@ module Pong.Test.Data where
 -- ----             f(2)
 -- ----           in
 -- ----             id(g)(id(3)) + f(4, 5)
--- 
--- fragment17_1 :: Expr () () () Void
--- fragment17_1 =
---   eLet
---     ((), "id")
---     (eLam () [((), "x")] (eVar ((), "x")))
---     (eLet
---        ((), "f")
---        (eLam ()
---           [((), "x")]
---           (eLam () [((), "y")] (eOp2 ((), OAdd) (eVar ((), "x")) (eVar ((), "y")))))
---        (eLet
---           ((), "g")
---           (eApp () (eVar ((), "f")) [eLit (PInt 2)])
---           (eOp2
---              ((), OAdd)
---              (eApp
---                 ()
---                 (eApp () (eVar ((), "id")) [eVar ((), "g")])
---                 [eApp () (eVar ((), "id")) [eLit (PInt 3)]])
---              (eApp () (eVar ((), "f")) [eLit (PInt 4), eLit (PInt 5)]))))
--- 
--- fragment17_2 :: Expr (Type Int g) (Type Int g) () Void
--- fragment17_2 =
---   eLet
---     (tVar 2 ~> tVar 2, "id")
---     (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
---     (eLet
---        (tVar 6 ~> tVar 6 ~> tVar 6, "f")
---        (eLam ()
---           [(tVar 6, "x")]
---           (eLam ()
---              [(tVar 6, "y")]
---              (eOp2 (tVar 6 ~> tVar 6 ~> tVar 6, OAdd) (eVar (tVar 6, "x")) (eVar (tVar 6, "y")))))
--- --       (tVar 22 ~> tVar 22 ~> tVar 22, "f")
--- --       (eLam ()
--- --          [(tVar 22, "x")]
--- --          (eLam ()
--- --             [(tVar 22, "y")]
--- --             (eOp2 (tVar 22 ~> tVar 22 ~> tVar 22, OAdd) (eVar (tVar 22, "x")) (eVar (tVar 22, "y")))))
---        (eLet
---           (tInt ~> tInt, "g")
---           (eApp
---              (tInt ~> tInt)
---              (eVar (tInt ~> tInt ~> tInt, "f"))
---              [eLit (PInt 2)])
---           (eOp2
---              oAddInt
---              (eApp
---                 tInt
---                 (eApp
---                    (tInt ~> tInt)
---                    (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
---                    [eVar (tInt ~> tInt, "g")])
---                 [eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]])
---              (eApp
---                 tInt
---                 (eVar (tInt ~> tInt ~> tInt, "f"))
---                 [eLit (PInt 4), eLit (PInt 5)]))))
--- 
+
+fragment17_1 :: SourceExpr
+fragment17_1 =
+  eLet
+    ((), "id")
+    (eLam () [((), "x")] (eVar ((), "x")))
+    (eLet
+       ((), "f")
+       (eLam ()
+          [((), "x")]
+          (eLam () [((), "y")] (eOp2 ((), OAdd) (eVar ((), "x")) (eVar ((), "y")))))
+       (eLet
+          ((), "g")
+          (eApp () (eVar ((), "f")) [eLit (PInt 2)])
+          (eOp2
+             ((), OAdd)
+             (eApp
+                ()
+                (eApp () (eVar ((), "id")) [eVar ((), "g")])
+                [eApp () (eVar ((), "id")) [eLit (PInt 3)]])
+             (eApp () (eVar ((), "f")) [eLit (PInt 4), eLit (PInt 5)]))))
+
+fragment17_2 :: TypedExpr
+fragment17_2 =
+  eLet
+    (tVar 2 ~> tVar 2, "id")
+    (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
+    (eLet
+       (tVar 6 ~> tVar 6 ~> tVar 6, "f")
+       (eLam ()
+          [(tVar 6, "x")]
+          (eLam ()
+             [(tVar 6, "y")]
+             (eOp2 (tVar 6 ~> tVar 6 ~> tVar 6, OAdd) (eVar (tVar 6, "x")) (eVar (tVar 6, "y")))))
+       (eLet
+          (tInt ~> tInt, "g")
+          (eApp
+             (tInt ~> tInt)
+             (eVar (tInt ~> tInt ~> tInt, "f"))
+             [eLit (PInt 2)])
+          (eOp2
+             oAddInt
+             (eApp
+                tInt
+                (eApp
+                   (tInt ~> tInt)
+                   (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
+                   [eVar (tInt ~> tInt, "g")])
+                [eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]])
+             (eApp
+                tInt
+                (eVar (tInt ~> tInt ~> tInt, "f"))
+                [eLit (PInt 4), eLit (PInt 5)]))))
+
 -- ----
 -- ---- let
 -- ----   id =
@@ -1067,25 +1061,25 @@ module Pong.Test.Data where
 -- --           n * f(n - 1)
 -- --   in
 -- --     f(5)
--- 
--- fragment18_1 :: Expr () () () Void
--- fragment18_1 =
---   eLet
---     ((), "f")
---     (eLam ()
---        [((), "n")]
---        (eIf
---           (eOp2 ((), OEq) (eLit (PInt 0)) (eVar ((), "n")))
---           (eLit (PInt 1))
---           (eOp2
---              ((), OMul)
---              (eVar ((), "n"))
---              (eApp
---                 ()
---                 (eVar ((), "f"))
---                 [eOp2 ((), OSub) (eVar ((), "n")) (eLit (PInt 1))]))))
---     (eApp () (eVar ((), "f")) [eLit (PInt 5)])
--- 
+
+fragment18_1 :: SourceExpr
+fragment18_1 =
+  eLet
+    ((), "f")
+    (eLam ()
+       [((), "n")]
+       (eIf
+          (eOp2 ((), OEq) (eLit (PInt 0)) (eVar ((), "n")))
+          (eLit (PInt 1))
+          (eOp2
+             ((), OMul)
+             (eVar ((), "n"))
+             (eApp
+                ()
+                (eVar ((), "f"))
+                [eOp2 ((), OSub) (eVar ((), "n")) (eLit (PInt 1))]))))
+    (eApp () (eVar ((), "f")) [eLit (PInt 5)])
+
 -- ---- let
 -- ----   f =
 -- ----     lam(n) => 
@@ -1098,23 +1092,24 @@ module Pong.Test.Data where
 -- ----     f(5)
 -- ----
 -- --fragment18_2 :: Expr (Type s Int) (Type s Int) () Void
--- fragment18_2 =
---   eLet
---     (tInt ~> tInt, "f")
---     (eLam ()
---        [(tInt, "n")]
---        (eIf
---           (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
---           (eLit (PInt 1))
---           (eOp2
---              oMulInt
---              (eVar (tInt, "n"))
---              (eApp
---                 tInt
---                 (eVar (tInt ~> tInt, "f"))
---                 [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
---     (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
--- 
+fragment18_2 :: TypedExpr
+fragment18_2 =
+  eLet
+    (tInt ~> tInt, "f")
+    (eLam ()
+       [(tInt, "n")]
+       (eIf
+          (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+          (eLit (PInt 1))
+          (eOp2
+             oMulInt
+             (eVar (tInt, "n"))
+             (eApp
+                tInt
+                (eVar (tInt ~> tInt, "f"))
+                [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]))))
+    (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
+
 -- --fragment18_3 :: (PreAst, [(Name, Definition Type PreAst)])
 -- --fragment18_3 =
 -- --  ( eApp tInt (eVar (tInt ~> tInt, ".f0")) [eLit (PInt 5)]
@@ -1304,15 +1299,15 @@ module Pong.Test.Data where
 -- ---- }
 -- ----
 -- ---- field { b = x | r } = ( a = 1, b = 2, c = 3 } in x
--- 
--- fragment21_0 :: Expr () a0 a1 a2
--- fragment21_0 = 
---   eField 
---       [((), "b"), ((), "x"), ((), "r")]
---       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
---       (eVar ((), "x"))
---         
--- 
+
+fragment21_0 :: SourceExpr
+fragment21_0 = 
+  eField 
+      [((), "b"), ((), "x"), ((), "r")]
+      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+      (eVar ((), "x"))
+        
+
 -- ---- match ( a = 1, b = 2, c = 3 } {
 -- ----   | q =>
 -- ----     1
@@ -1326,19 +1321,19 @@ module Pong.Test.Data where
 -- --        [ ([((), "q")], eLit (PInt 1)) 
 -- --        ]
 -- --
--- 
--- fragment21_1 :: TypedExpr
--- fragment21_1 = 
---   eField 
---       [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
---       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
---       (eVar (tInt, "x"))
--- 
--- --  eCase 
--- --      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
--- --        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
--- --        ]
--- 
+
+fragment21_1 :: TypedExpr
+fragment21_1 = 
+  eField 
+      [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
+      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+      (eVar (tInt, "x"))
+
+--  eCase 
+--      (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+--        [ ([(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "{b}"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")], eVar (tInt, "x")) 
+--        ]
+
 -- fragment21_2 :: Ast
 -- fragment21_2 = 
 --   eField

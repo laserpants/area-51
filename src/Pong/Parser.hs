@@ -12,6 +12,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
+import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Lang
 import Pong.Util (Name, (<<<), (>>>))
@@ -76,6 +77,8 @@ keywords =
   , "true"
   , "false"
   , "def"
+  , "const"
+  , "extern"
   , "bool"
   , "int"
   , "float"
@@ -260,10 +263,12 @@ prim =
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
 scheme :: Parser Scheme
-scheme = Scheme <$> typeParser
+scheme = Scheme <$> type_
+
+type_ :: Parser (Type Void Name)
+type_ =
+    makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
-    typeParser =
-      makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
     item =
       keyword "unit" $> tUnit
         <|> keyword "bool" $> tBool
@@ -276,43 +281,43 @@ scheme = Scheme <$> typeParser
         <|> genType
     conType = do
       con <- constructor
-      ts <- many typeParser
+      ts <- many type_
       pure (tCon con ts)
     genType =
       tGen <$> identifier
 
-schemeLabel :: Parser (Label Scheme)
-schemeLabel = do
+arg :: Parser (Label (Type Void Name))
+arg = do
   name <- identifier
   symbol ":"
-  t <- scheme
+  t <- type_
   pure (t, name)
 
-def :: Parser (Label Scheme, Definition Scheme SourceExpr)
-def = functionDef -- <|> constantDef -- <|> externalDef <|> dataDef
+def :: Parser (Label Scheme, Definition () SourceExpr)
+def = functionDef <|> constantDef -- <|> externalDef <|> dataDef -- TODO
   where
     functionDef = do
       keyword "def"
       name <- identifier
-      args <- parens (some schemeLabel)
+      args <- parens (some arg)
       symbol ":"
-      Scheme t <- scheme
+      t <- type_
       symbol "="
       e <- expr
-      let ts = Generics.unpack . fst <$> args
-          fun = Function (fromList args) (Scheme t, e)
+      let ts = fst <$> args
+          fun = Function (fromList (first (const ()) <$> args)) ((), e)
       pure ((Scheme (foldType t ts), name), fun)
 
---      constantDef = do
---        keyword "const"
---        name <- identifier
---        symbol ":"
---        t <- scheme
---        symbol "="
---        e <- expr
---        pure (name, Constant (t, e))
+    constantDef = do
+      keyword "const"
+      name <- identifier
+      symbol ":"
+      t <- type_
+      symbol "="
+      e <- expr
+      pure ((Scheme t, name), Constant ((), e))
 
-program :: Parser (Program Scheme SourceExpr)
+program :: Parser (Program Scheme () SourceExpr)
 program = do
   defs <- many def
   pure (Program (Map.fromList defs))

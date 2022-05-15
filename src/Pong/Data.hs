@@ -41,9 +41,12 @@ data TypeF v s a
 
 type Type v s = Fix (TypeF v s)
 
-newtype Scheme = Scheme (Type Void Name)
-
 type MonoType = Type Int Void
+
+type PolyType = Type Int Name
+
+-- | Polymorphic type scheme
+newtype Scheme = Scheme (Type Void Name)
 
 data ConT
   = VarT                           -- ^ Type is a TVar 
@@ -134,8 +137,8 @@ data Definition t a
   | Extern [t] t
   | Data Name [Constructor t]
 
-newtype Program t a
-  = Program (Map (Label t) (Definition t a))
+newtype Program s t a
+  = Program (Map (Label s) (Definition t a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -265,12 +268,12 @@ deriving instance Foldable (Definition t)
 deriving instance Traversable (Definition t)
 
 -- Program
-deriving instance (Show t, Show a) => Show (Program t a)
+deriving instance (Show s, Show t, Show a) => Show (Program s t a)
 
-deriving instance (Eq t, Eq a) => Eq (Program t a)
+deriving instance (Eq s, Eq t, Eq a) => Eq (Program s t a)
 
-deriving instance (Ord t) => Semigroup (Program t a)
+deriving instance (Ord s, Ord t) => Semigroup (Program s t a)
 
-deriving instance Generic (Program t a)
+deriving instance Generic (Program s t a)
 
-instance Newtype (Program t a)
+instance Newtype (Program s t a)

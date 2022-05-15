@@ -1,13 +1,15 @@
--- -- {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- -- {-# LANGUAGE OverloadedStrings #-}
 -- -- {-# LANGUAGE LambdaCase #-}
 -- -- 
 -- -- import Data.List.NonEmpty (toList, fromList)
--- import Control.Monad.Reader
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
 -- -- import Control.Monad.State
 -- -- import Control.Monad.Writer
 -- -- import Text.Megaparsec (runParser)
--- -- import Control.Newtype.Generics
+import Control.Newtype.Generics
 -- -- import Data.Map.Strict (Map, (!))
 -- -- import Data.Tuple.Extra (swap, second)
 -- -- import Data.Void
@@ -16,22 +18,24 @@
 -- -- import LLVM.IRBuilder.Module
 -- -- import LLVM.Pretty
 -- -- import Pong.Compiler
--- import Pong.Data
+import Pong.Data
 -- import Pong.Eval
--- import Pong.Parser
+import Pong.Parser
 -- -- import Pong.LLVM.Emit
--- import Pong.Lang
--- import Pong.Test.Data
+import Pong.Lang
+import Pong.Test.Data
+import Text.Megaparsec 
 -- -- import Pong.Test.Drivers
--- import Pong.TypeChecker
+import Pong.TypeChecker
 -- -- import Pong.Util (Name, (<$$>), cata)
--- import Pong.Util (Fix(..))
--- import Test.Hspec
--- -- import qualified Data.Map.Strict as Map
+import Pong.Util (Fix(..), Name)
+import Test.Hspec
+import qualified Data.Map.Strict as Map
 -- -- import qualified Data.Text.Lazy.IO as Text
 -- -- import qualified LLVM.AST as LLVM
 -- -- import qualified LLVM.AST.Type as LLVM
--- -- import qualified Pong.Util.Env as Env
+import qualified Pong.Util.Env as Env
+import Pong.Util.Env
 -- -- 
 -- -- --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 -- -- 
@@ -49,10 +53,16 @@
 -- -- 
 -- -- toProgram :: [(Name, Definition Type a)] -> Program a
 -- -- toProgram = Program . Map.fromList
--- -- 
--- main :: IO ()
--- main =
---   hspec $ do
+
+runTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
+runTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+
+runTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
+runTypeChecker = runTypeChecker' (1 :: Int)
+
+main :: IO ()
+main =
+  hspec $ do
 -- -- --    describe "fillParams" $ do
 -- -- --      it "#1" (fillParams fragment1_0 == fragment1_1)
 -- -- --      it "#2" (fillParams fragment10_0 == fragment10_1)
@@ -83,36 +93,36 @@
 -- -- --    describe "replaceVarLets" $ do
 -- -- --      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
 -- -- --      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
---     describe "typeCheck" $ do
---       it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
---       it "#2" (Right fragment16_2 == runTypeChecker' (8 :: Int) mempty (applySubstitution =<< check fragment16_1))
---       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment17_1))
---       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment18_1))
---       it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment21_0))
---     describe "unify" $ do
---       it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
---       it "#2" (let Right sub = runUnifyRows row_0  row_1 in normalizeRow (apply sub row_0 :: Row MonoType Int) == row_1)
---       it "#3" (let Right sub = runUnify type_0 type_1 in normalizeTypeRows (apply sub type_0 :: MonoType) == type_1)
---       it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: MonoType in normalizeTypeRows u == type_3)
---       it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
---       it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row MonoType Int in normalizeRow q == row_5)
---       it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row MonoType Int in normalizeRow q == row_7)
---       it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
---       it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row MonoType Int; s = apply sub row_11 :: Row MonoType Int in normalizeRow q == normalizeRow s)
---       it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row MonoType Int in normalizeRow q == normalizeRow row_12)
---       it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
---       it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
---       it "#13" (let Right sub = runUnifyRows row_20 row_21 in normalizeRow (apply sub row_20 :: Row MonoType Int) == normalizeRow (apply sub row_21))
---       it "#14" (let Right sub = runUnifyRows row_22 row_23 in normalizeRow (apply sub row_22 :: Row MonoType Int) == normalizeRow (apply sub row_23))
---       it "#15" (let Right sub = runUnifyRows row_24 row_25 in normalizeRow (apply sub row_24 :: Row MonoType Int) == normalizeRow (apply sub row_25))
---       it "#16" (let Right sub = runUnifyRows row_26 row_27 in normalizeRow (apply sub row_26 :: Row MonoType Int) == normalizeRow (apply sub row_27))
---       it "#17" (let Right sub = runUnifyRows row_28 row_29 in normalizeRow (apply sub row_28 :: Row MonoType Int) == normalizeRow (apply sub row_29))
---       it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
---       it "#19" (let Right sub = runUnifyRows row_32 row_33 in normalizeRow (apply sub row_32 :: Row MonoType Int) == normalizeRow (apply sub row_33))
---       it "#20" (let Right sub = runUnifyRows row_34 row_35 in normalizeRow (apply sub row_34 :: Row MonoType Int) == normalizeRow (apply sub row_35))
---       it "#21" (let Right sub = runUnifyRows row_36 row_37 in normalizeRow (apply sub row_36 :: Row MonoType Int) == normalizeRow (apply sub row_37))
---       it "#22" (let Right sub = runUnifyRows row_38 row_39 in normalizeRow (apply sub row_38 :: Row MonoType Int) == normalizeRow (apply sub row_39))
---       it "#23" (let Right sub = runUnifyRows row_40 row_41 in normalizeRow (apply sub row_40 :: Row MonoType Int) == normalizeRow (apply sub row_41))
+     describe "typeCheck" $ do
+       it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
+       it "#2" (Right fragment16_2 == runTypeChecker' (8 :: Int) mempty (applySubstitution =<< inferExpr fragment16_1))
+       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment17_1))
+       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment18_1))
+       it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment21_0))
+     describe "unify" $ do
+       it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
+       it "#2" (let Right sub = runUnifyRows row_0  row_1 in normalizeRow (apply sub row_0 :: Row MonoType Int) == row_1)
+       it "#3" (let Right sub = runUnify type_0 type_1 in normalizeTypeRows (apply sub type_0 :: MonoType) == type_1)
+       it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: MonoType in normalizeTypeRows u == type_3)
+       it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
+       it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row MonoType Int in normalizeRow q == row_5)
+       it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row MonoType Int in normalizeRow q == row_7)
+       it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
+       it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row MonoType Int; s = apply sub row_11 :: Row MonoType Int in normalizeRow q == normalizeRow s)
+       it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row MonoType Int in normalizeRow q == normalizeRow row_12)
+       it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
+       it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
+       it "#13" (let Right sub = runUnifyRows row_20 row_21 in normalizeRow (apply sub row_20 :: Row MonoType Int) == normalizeRow (apply sub row_21))
+       it "#14" (let Right sub = runUnifyRows row_22 row_23 in normalizeRow (apply sub row_22 :: Row MonoType Int) == normalizeRow (apply sub row_23))
+       it "#15" (let Right sub = runUnifyRows row_24 row_25 in normalizeRow (apply sub row_24 :: Row MonoType Int) == normalizeRow (apply sub row_25))
+       it "#16" (let Right sub = runUnifyRows row_26 row_27 in normalizeRow (apply sub row_26 :: Row MonoType Int) == normalizeRow (apply sub row_27))
+       it "#17" (let Right sub = runUnifyRows row_28 row_29 in normalizeRow (apply sub row_28 :: Row MonoType Int) == normalizeRow (apply sub row_29))
+       it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
+       it "#19" (let Right sub = runUnifyRows row_32 row_33 in normalizeRow (apply sub row_32 :: Row MonoType Int) == normalizeRow (apply sub row_33))
+       it "#20" (let Right sub = runUnifyRows row_34 row_35 in normalizeRow (apply sub row_34 :: Row MonoType Int) == normalizeRow (apply sub row_35))
+       it "#21" (let Right sub = runUnifyRows row_36 row_37 in normalizeRow (apply sub row_36 :: Row MonoType Int) == normalizeRow (apply sub row_37))
+       it "#22" (let Right sub = runUnifyRows row_38 row_39 in normalizeRow (apply sub row_38 :: Row MonoType Int) == normalizeRow (apply sub row_39))
+       it "#23" (let Right sub = runUnifyRows row_40 row_41 in normalizeRow (apply sub row_40 :: Row MonoType Int) == normalizeRow (apply sub row_41))
 -- --    describe "alignCallSigns" $ do
 -- --      it "#1" (alignCallSigns_ fragment17_5 == fragment17_6)
 -- -- --    describe "replaceFunArgs" $ do
@@ -197,17 +207,17 @@
 -- -- --preprocess_ :: (TypedExpr, [(Name, Definition Type TypedExpr)]) -> (PreAst, [(Name, Definition Type PreAst)])
 -- -- preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 -- -- 
---  
--- runUnify t1 t2 =  runTypeChecker' (freeIndex [t1, t2]) mempty (unify t1 t2)
---  
--- runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
---  
+
+runUnify t1 t2 =  runTypeChecker' (freeIndex [t1, t2]) mempty (unify t1 t2)
+
+runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
+
 --  
 -- -- 
 -- -- 
 -- -- 
 -- -- --testx444 =
--- -- --  runTypeChecker mempty (applySubstitution =<< check =<< tagExpr fragment21_0)
+-- -- --  runTypeChecker mempty (applySubstitution =<< infer =<< tagExpr fragment21_0)
 -- -- 
 -- -- 
 -- -- 
@@ -621,14 +631,14 @@
 -- --     te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programToTypeEnv p)
 -- --     rtcx2 :: Definition Type SourceExpr -> Definition Type TypedExpr
 -- --     rtcx2 (Function args (t, e)) =
--- --               case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< check =<< tagExpr e) of
+-- --               case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< infer =<< tagExpr e) of
 -- --                 Left err -> error (show err)
 -- --                 Right r -> Function args (t, r)
 -- --     rtcx2 _ = error "TODO"
 -- -- 
 -- -- 
 -- -- baz123 e = 
--- --     runTypeChecker te (applySubstitution =<< check =<< tagExpr e)
+-- --     runTypeChecker te (applySubstitution =<< infer =<< tagExpr e)
 -- --   where
 -- --     te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] mempty
 -- -- 
@@ -682,7 +692,7 @@
 -- --     --q = flip runState p $ preprocess (Function (fromList []) (undefined, undefined))
 -- --     --p = Program (Map.fromList [ ("foo1", Function (fromList [(undefined, "a")]) (undefined, a2)) ])
 -- --     --a3 = preprocess (Function (fromList []) (typeOf a2, a2))
--- --     Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])]) (applySubstitution =<< check =<< tagExpr a1)
+-- --     Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])]) (applySubstitution =<< infer =<< tagExpr a1)
 -- --     Right a1 = runParser expr "" 
 -- --          "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
 -- -- 
@@ -709,7 +719,7 @@
 -- -- p123 :: Program TypedExpr
 -- -- p123 = Program (Map.fromList [("main", Function (fromList [(tInt, "x")]) (typeOf a2, a2))])
 -- --     where
--- --     Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])]) (applySubstitution =<< check =<< tagExpr a1)
+-- --     Right a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])]) (applySubstitution =<< infer =<< tagExpr a1)
 -- --     Right a1 = runParser expr "" 
 -- --          "let xs = Nil() in match xs { Cons(y, ys) => match ys { Cons(z, zs) => 1 } | Nil => 2 }"
 -- -- 
@@ -742,7 +752,7 @@
 -- -- ----      a4
 -- -- --  where
 -- -- --    Right a1 = foox123
--- -- --    a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< check =<< tagExpr a1)
+-- -- --    a2 = runTypeChecker (Env.fromList [("Nil", tCon "List" [tGen 0]), ("Cons", tGen 0 ~> tCon "List" [tGen 0] ~> tCon "List" [tGen 0])]) (applySubstitution =<< infer =<< tagExpr a1)
 -- -- 
 -- -- 
 -- -- 
@@ -781,3 +791,31 @@
 -- -- -- ===
 -- -- --
 -- -- --  let h = 100 + 1 in [$lam1([$lam2], $lam1(5))]
+
+hello1 =
+  runParser program "" 
+    "\
+    \def id(x : a) : a = x\
+    \\r\n\
+    \def id1(x : int) : int = x\
+    \\r\n\
+    \def fact(n : int) : int =\
+    \  if 0 == n\
+    \    then\
+    \      1\
+    \    else\
+    \      n * fact(n - 1)\
+    \\r\n\
+    \def main(a : unit) : int =\
+    \  fact(5)\
+    \\r\n\
+    \const tot : int =\
+    \  5\
+    \\r\n\
+    \const foo : a -> a =\
+    \  lam(x) =>\
+    \    x\
+    \"
+
+hello2 =
+  let Right (Program p) = hello1 in mapM_ print (Map.toList p)

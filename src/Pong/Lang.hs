@@ -4,14 +4,13 @@
 
 module Pong.Lang where
 
--- import Control.Newtype.Generics
-
+import Control.Newtype.Generics (unpack)
 import Control.Monad.State
 import Data.Char (isUpper)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
-import Data.Set ((\\))
+import Data.Set (Set, (\\))
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Tuple (swap)
@@ -91,7 +90,7 @@ splitRow name row =
 class FreeIn f where
   free :: f -> [Int]
 
-instance FreeIn MonoType where
+instance FreeIn (Type Int s) where
   free =
     nub
       <<< cata
@@ -103,7 +102,7 @@ instance FreeIn MonoType where
             _ -> []
         )
 
-instance FreeIn (Row MonoType Int) where
+instance FreeIn (Row (Type Int s) Int) where
   free =
     nub
       <<< cata
@@ -113,13 +112,13 @@ instance FreeIn (Row MonoType Int) where
             _ -> []
         )
 
-instance (FreeIn f) => FreeIn [f] where
+instance (Foldable f, Functor f, FreeIn a) => FreeIn (f a) where
   free = concatMap free
 
-instance (FreeIn e) => FreeIn (Environment e) where
-  free =
-    \case
-      Environment env -> free (Map.elems env)
+--instance (FreeIn e) => FreeIn (Environment e) where
+--  free =
+--    \case
+--      Environment env -> free (Map.elems env)
 
 class Typed t where
   typeOf :: t -> MonoType
@@ -302,14 +301,15 @@ freeVars =
           EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
-toMonoType :: (Ord s) => Map s MonoType -> Type v s -> MonoType
+toMonoType :: (Ord s) => Map s MonoType -> Type Int s -> MonoType
 toMonoType vs =
   cata
     ( \case
-        TGen n ->
-          case Map.lookup n vs of
+        TGen s ->
+          case Map.lookup s vs of
             Nothing -> error "Implementation error"
             Just t -> t
+        TVar n -> tVar n
         TUnit -> tUnit
         TBool -> tBool
         TInt -> tInt
@@ -320,6 +320,23 @@ toMonoType vs =
         TCon con ts -> tCon con ts
         TArr t1 t2 -> tArr t1 t2
         TRow row -> tRow (mapRow (toMonoType vs) row)
+    )
+
+toPolyType :: MonoType -> PolyType
+toPolyType = 
+  cata
+    ( \case
+        TVar n -> tVar n
+        TUnit -> tUnit
+        TBool -> tBool
+        TInt -> tInt
+        TFloat -> tFloat
+        TDouble -> tDouble
+        TChar -> tChar
+        TString -> tString
+        TCon con ts -> tCon con ts
+        TArr t1 t2 -> tArr t1 t2
+        TRow row -> tRow (mapRow toPolyType row)
     )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
@@ -349,6 +366,22 @@ mapTypes f =
             RExt name elem row -> rExt name (mapTypes f elem) row
         )
 
+boundVars :: Type v Name -> Set Name
+boundVars = 
+  cata 
+    ( \case
+      TGen s -> Set.singleton s
+      TCon _ ts -> Set.unions ts
+      TArr t1 t2 -> Set.union t1 t2
+      TRow row ->
+        (`cata` row)
+          ( \case
+              RExt _ r a -> Set.union (boundVars r) a
+              _ -> mempty
+          )
+      _ -> mempty
+    )
+
 {-# INLINE foldType #-}
 foldType :: Type v s -> [Type v s] -> Type v s
 foldType = foldr tArr
@@ -362,7 +395,7 @@ insertArgs :: [(t, Name)] -> Environment t -> Environment t
 insertArgs = Env.inserts . (swap <$>)
 
 {-# INLINE emptyProgram #-}
-emptyProgram :: (Ord t) => Program t a
+emptyProgram :: (Ord s, Ord t) => Program s t a
 emptyProgram = Program mempty
 
 -- --programTypeEnv :: (Typed t) => Program t a -> Environment MonoType
