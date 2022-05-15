@@ -428,11 +428,10 @@ inferExpr =
       (f, e2) <- inferRowCase (typeOf e1) field expr2
       pure (eField f e1 e2)
  
+type TypedClause = ([Label MonoType], TypedExpr)
+
 inferRowCase ::
-  MonoType ->
-  [Label Int] ->
-  TypeChecker TypedExpr ->
-  TypeChecker ([Label MonoType], TypedExpr)
+  MonoType -> [Label Int] -> TypeChecker TypedExpr -> TypeChecker TypedClause
 inferRowCase (Fix (TRow row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
@@ -468,9 +467,7 @@ binopType =
     OLogicAnd -> tBool ~> tBool ~> tBool
 
 inferCases ::
-  TypedExpr ->
-  [([Label Int], TypeChecker TypedExpr)] ->
-  TypeChecker [([Label MonoType], TypedExpr)]
+  TypedExpr -> [([Label Int], TypeChecker TypedExpr)] -> TypeChecker [TypedClause]
 inferCases expr clauses = do
   cs <- traverse inferClause clauses
   let t : ts = snd <$> cs
@@ -481,10 +478,7 @@ inferCases expr clauses = do
         secondM applySubstitution <=< uncurry (inferCase (typeOf expr))
 
 inferCase ::
-  MonoType ->
-  [Label Int] ->
-  TypeChecker TypedExpr ->
-  TypeChecker ([Label MonoType], TypedExpr)
+  MonoType -> [Label Int] -> TypeChecker TypedExpr -> TypeChecker TypedClause
 inferCase mt (con : vs) expr = do
   (t, _) <- lookupName con ConstructorNotInScope
   let ts = unwindType t
