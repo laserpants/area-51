@@ -73,8 +73,8 @@ unwindRow row = (toMap fields, leaf)
             r -> embed r
         )
 
-splitRow :: Name -> Row e r -> (e, Row e r)
-splitRow name row =
+restrictRow :: Name -> Row e r -> (e, Row e r)
+restrictRow name row =
   ( e
   , normalizeRow
       ( foldRow k $

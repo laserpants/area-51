@@ -436,7 +436,7 @@ inferRowCase ::
 inferRowCase (Fix (TRow row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
-      let (r1, q) = splitRow label row
+      let (r1, q) = restrictRow label row
       let [t0, t1, t2] = tVar <$> [u0, u1, u2] 
       unifyM t1 r1
       unifyM t2 (tRow q)

@@ -15,9 +15,9 @@ import Pong.Util (Fix (..), List1, Name, Text, Void, deriveEq1, deriveOrd1, deri
 {- ORMOLU_DISABLE -}
 
 data RowF e r a
-  = RNil
-  | RVar r
-  | RExt Name e a
+  = RNil                           -- ^ Empty row
+  | RVar r                         -- ^ Row variable
+  | RExt Name e a                  -- ^ Row extension
 
 -- | A row is a sequence of labeled fields. Rows encode the internal structure
 -- of records, both at the type and expression level. A row can be either open
