@@ -87,6 +87,23 @@ class AnyType t where
 instance AnyType MonoType where
   promote = toPolyType
 
+instance AnyType (Type Void Name) where
+  promote = 
+    cata
+      ( \case
+          TGen s -> tGen s
+          TUnit -> tUnit
+          TBool -> tBool
+          TInt -> tInt
+          TFloat -> tFloat
+          TDouble -> tDouble
+          TChar -> tChar
+          TString -> tString
+          TCon con ts -> tCon con ts
+          TArr t1 t2 -> tArr t1 t2
+          TRow row -> tRow (mapRow promote row)
+      )
+
 instance AnyType PolyType where
   promote = id
 

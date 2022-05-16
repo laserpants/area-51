@@ -1,8 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
--- -- {-# LANGUAGE OverloadedStrings #-}
--- -- {-# LANGUAGE LambdaCase #-}
--- -- 
--- -- import Data.List.NonEmpty (toList, fromList)
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
+
+import Data.List.NonEmpty (toList, fromList)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -10,32 +11,32 @@ import Control.Monad.State
 -- -- import Control.Monad.Writer
 -- -- import Text.Megaparsec (runParser)
 import Control.Newtype.Generics
--- -- import Data.Map.Strict (Map, (!))
--- -- import Data.Tuple.Extra (swap, second)
+import Data.Void
+import Data.Map.Strict (Map)
+import Data.Tuple.Extra (swap, first, second)
 -- -- import Data.Void
--- -- import Debug.Trace
+import Debug.Trace
 -- -- import LLVM.IRBuilder
 -- -- import LLVM.IRBuilder.Module
 -- -- import LLVM.Pretty
--- -- import Pong.Compiler
+import Pong.Compiler2
 import Pong.Data
 -- import Pong.Eval
 import Pong.Parser
 -- -- import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Test.Data
-import Text.Megaparsec 
+import Text.Megaparsec (runParser)
 -- -- import Pong.Test.Drivers
 import Pong.TypeChecker
--- -- import Pong.Util (Name, (<$$>), cata)
-import Pong.Util (Fix(..), Name)
+import Pong.Util (Fix(..), Name, (<&>), (<$$>), project)
 import Test.Hspec
 import qualified Data.Map.Strict as Map
 -- -- import qualified Data.Text.Lazy.IO as Text
 -- -- import qualified LLVM.AST as LLVM
 -- -- import qualified LLVM.AST.Type as LLVM
 import qualified Pong.Util.Env as Env
-import Pong.Util.Env
+import Pong.Util.Env (Environment(..))
 -- -- 
 -- -- --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 -- -- 
@@ -59,6 +60,13 @@ runTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n,
 
 runTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
 runTypeChecker = runTypeChecker' (1 :: Int)
+
+funTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
+funTypeChecker' n env m = runState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+
+funTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
+funTypeChecker = funTypeChecker' (1 :: Int)
+
 
 main :: IO ()
 main =
@@ -574,7 +582,7 @@ runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (uni
 -- --     xx2
 -- --     --evalProgram_ (eCall (tInt ~> tInt, "main") [eLit (PInt 1)], Map.toList r)
 -- --   where
--- --     gork = zz2 <$> xx0
+-- --     translate2 = zz2 <$> xx0
 -- --     Program xx0 = let Program z = q in Program (compileDef0 <$> z) 
 -- -- --    xx0 = execState (forEachDefX q zz2) emptyProgram
 -- --     --xx0 = over Program (zz2 <$$>) r
@@ -612,7 +620,7 @@ runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (uni
 -- -- --    xx3 :: Program Ast
 -- -- --    xx3 = over Program (convertFunApps <$$>) xx2
 -- -- --    q = oiouo p
--- -- --    --te = programToTypeEnv p
+-- -- --    --te = programEnv p
 -- -- --    --Right p = runParser program "" "def foo(n : int) : int = 5 def main(a : int) : int = foo(1)"
 -- -- --    --Right p = runParser program "" "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) \ndef main(a : int) : int = fact(5)"
 -- -- --    --Right p = runParser program "" "def fact(n : int) : int = if n == 0 then 1 else n * fact(n - 1) -- This is a comment \ndef main(a : int) : int = fact(5)"
@@ -628,7 +636,7 @@ runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (uni
 -- -- oiouo :: Program SourceExpr -> Program TypedExpr
 -- -- oiouo p = over Program (rtcx2 <$>) p
 -- --   where
--- --     te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programToTypeEnv p)
+-- --     te = Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programEnv p)
 -- --     rtcx2 :: Definition Type SourceExpr -> Definition Type TypedExpr
 -- --     rtcx2 (Function args (t, e)) =
 -- --               case runTypeChecker (insertArgs (toList args) te) (applySubstitution =<< infer =<< tagExpr e) of
@@ -792,30 +800,181 @@ runUnifyRows r1 r2 =  runTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (uni
 -- -- --
 -- -- --  let h = 100 + 1 in [$lam1([$lam2], $lam1(5))]
 
+hello2 = mapM_ print (Map.toList p)
+  where
+    Program p = q
+    q :: Program Scheme () SourceExpr 
+    Right q = hello1 
+
+hello3 :: TypeChecker (Program MonoType MonoType TypedExpr)
+hello3 = do
+  Program z <- translate1 q
+--  mapM_ traceShowM (Map.toList z)
+  Program g <- translate2 (Program z)
+  Program h <- translate2b (Program g)
+--  traceShowM "------------------"
+--  mapM_ traceShowM (Map.toList g)
+  pure (Program h)
+  where
+    q :: Program Scheme () SourceExpr 
+    Right q = hello1 
+
+--hello4 :: (MonadState (Int, Program MonoType MonoType Ast) m) => m ()
+hello4 :: State (Int, Program MonoType MonoType Ast) (Program MonoType MonoType Ast)
+hello4 = 
+  case funTypeChecker mempty hello3 of
+    (Right p, (n, _)) -> do
+      --x <- flip runStateT (n, emptyProgram) $ do
+      --traceShowM p
+      --traceShowM "==="
+      x <- translate3 p
+      (_, z) <- get
+      pure (x <> z)
+      --traceShowM "=1="
+      ----mapM_ traceShowM x
+      --traceShowM x
+      --traceShowM "=2="
+      --traceShowM z
+      --pure ()
+    _ ->
+      error "TODO"
+
+hello5 :: IO ()
+hello5 = mapM_ traceShowM (Map.toList q)
+  where
+    Program q = evalState hello4 (1, emptyProgram) 
+
+programEnv :: (AnyType s) => Program s t a -> Environment PolyType
+programEnv program =
+  Env.fromList (Map.keys (unpack program) <&> swap . first promote)
+
+forEachDefM 
+  :: (Monad m, Ord s1, Ord s2) 
+  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2)) 
+  -> Program s1 t1 a1 
+  -> m (Program s2 t2 a2)
+forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
+
+forEachDefEnvM 
+  :: (MonadReader TypeEnv m, Ord s1, Ord s2, AnyType s1) 
+  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2)) 
+  -> Program s1 t1 a1
+  -> m (Program s2 t2 a2)
+forEachDefEnvM f p = local (<> programEnv p) (forEachDefM f p)
+
+translate1 
+  :: Program Scheme () SourceExpr
+  -> TypeChecker (Program MonoType () SourceExpr)
+translate1 = 
+  forEachDefM 
+    ( \case 
+      ((Scheme s, name), def) -> do
+        t <- instantiate (promote s)
+        pure ((t, name), def)
+    )
+
+translate2 
+  :: Program MonoType () SourceExpr
+  -> TypeChecker (Program MonoType MonoType TypedExpr)
+translate2 = 
+  forEachDefEnvM 
+    ( \case
+      ((t0, name), Function args (_, expr)) -> do
+        e <- do
+          lam <- inferTypes (eLam () (toList args) expr)
+          unifyM t0 (typeOf lam) 
+          applySubstitution lam
+        let ELam () as body = project e
+        pure ((typeOf e, name), Function (fromList as) (typeOf body, body))
+      ((_, name), Constant (_, expr)) -> do
+        const <- inferTypes expr
+        pure ((typeOf const, name), Constant (typeOf const, const))
+      _ ->
+        error "TODO"
+    )
+  where
+    inferTypes = tagExpr >=> inferExpr >=> applySubstitution
+
+translate2b
+  :: Program MonoType MonoType TypedExpr
+  -> TypeChecker (Program MonoType MonoType TypedExpr)
+translate2b = 
+  forEachDefM 
+    ( \case
+      (key, Function args (t, expr)) -> do
+        e <- specializeLets expr
+        pure (key, Function args (t, e))
+      (key, Constant (t, expr)) -> do
+        e <- specializeLets expr
+        pure (key, Constant (t, e))
+      _ ->
+        error "TODO"
+    )
+
+
+translate3 
+  :: (MonadState (Int, Program MonoType MonoType Ast) m) 
+  => Program MonoType MonoType TypedExpr
+  -> m (Program MonoType MonoType Ast)
+translate3 = 
+  forEachDefM 
+    ( \case
+      (key, Function args (t, expr)) -> do
+        e <- compile expr
+        pure (key, Function args (t, e))
+      (key, Constant (t, expr)) -> do
+        e <- compile expr
+        pure (key, Constant (t, e))
+      _ ->
+        error "TODO"
+    )
+
+--forEachDef 
+--  :: Program s t a 
+--  => (Definition t a -> m (Definition t a))
+--  -> m (Program s t a)
+--forEachDef =
+--  undefined
+
 hello1 =
   runParser program "" 
     "\
-    \def id(x : a) : a = x\
+    \def ident(x : a0) : a0 = x\
     \\r\n\
-    \def id1(x : int) : int = x\
+    \def zoo(a : unit) : int = ident(5)\
     \\r\n\
-    \def fact(n : int) : int =\
-    \  if 0 == n\
-    \    then\
-    \      1\
-    \    else\
-    \      n * fact(n - 1)\
-    \\r\n\
-    \def main(a : unit) : int =\
-    \  fact(5)\
-    \\r\n\
-    \const tot : int =\
-    \  5\
-    \\r\n\
-    \const foo : a -> a =\
-    \  lam(x) =>\
-    \    x\
+    \def foo(x : unit) : int =\
+    \  let id =\
+    \    lam(x) => \
+    \      x\
+    \    in\
+    \      id(5)\
     \"
 
-hello2 =
-  let Right (Program p) = hello1 in mapM_ print (Map.toList p)
+--hello1 =
+--  runParser program "" 
+--    "\
+--    \def id(x : a) : a =\
+--    \  x\
+--    \\r\n\
+--    \def id1(x : int) : int =\
+--    \  x\
+--    \\r\n\
+--    \def fact(n : int) : int =\
+--    \  if n == 0\
+--    \    then\
+--    \      1\
+--    \    else\
+--    \      n * fact(n - 1)\
+--    \\r\n\
+--    \def main(a : unit) : int =\
+--    \  fact(5)\
+--    \\r\n\
+--    \const tot : int =\
+--    \  5\
+--    \\r\n\
+--    \const foo : a -> a =\
+--    \  lam(x) =>\
+--    \    x\
+--    \"
+--

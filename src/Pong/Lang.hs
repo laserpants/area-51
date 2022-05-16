@@ -4,7 +4,7 @@
 
 module Pong.Lang where
 
-import Control.Newtype.Generics (unpack)
+import Control.Newtype.Generics (over, unpack)
 import Control.Monad.State
 import Data.Char (isUpper)
 import Data.List (nub)
@@ -129,9 +129,9 @@ instance (Typed t) => FreeIn (Expr t t a1 a2) where
 instance Typed MonoType where
   typeOf = id
 
--- instance Typed Void where
---   typeOf _ = tCon "Void" []
---
+instance Typed Void where
+  typeOf _ = tCon "Void" []
+
 -- instance Typed (Type Int s) where
 --   typeOf =
 --     cata
@@ -252,22 +252,6 @@ returnType = last <<< unwindType
 {-# INLINE argTypes #-}
 argTypes :: (Typed t) => t -> [MonoType]
 argTypes = init <<< unwindType
-
--- -- | Predicate to test if the type contains at least one type variable
--- isTemplate :: Type v s -> Bool
--- isTemplate =
---   cata $
---     \case
---       TVar {} -> True
---       TArr t1 t2 -> t1 || t2
---       TCon _ ts -> or ts
---       TRow row ->
---         ( (`cata` row) $
---             \case
---               RExt _ t r -> isTemplate t || r
---               _ -> False
---         )
---       _ -> False
 
 freeVars :: (Eq t, Ord t) => Expr t a0 a1 a2 -> [Label t]
 freeVars =
@@ -405,13 +389,13 @@ emptyProgram = Program mempty
 -- -- modifyM f = get >>= f >>= put
 --
 -- --  (Map Name (Definition t a) -> Map Name (Definition t a)) ->
---
--- modifyProgram ::
---   (MonadState (s, Program t a) m) =>
---   (Map (ProgKey t) (Definition t a) -> Map (ProgKey t) (Definition t a)) ->
---   m ()
--- modifyProgram = modify . second . over Program
---
+
+modifyProgram ::
+  (MonadState (r, Program s t a) m) =>
+  (Map (Label s) (Definition t a) -> Map (Label s) (Definition t a)) ->
+  m ()
+modifyProgram = modify . second . over Program
+
 -- toProgKey :: Name -> Type v s -> [Type v s] -> ProgKey (Type v s)
 -- toProgKey name t ts =
 --   if any (isConT VarT) (t:ts)
@@ -429,11 +413,11 @@ emptyProgram = Program mempty
 -- ----   --p <- Control.Newtype.Generics.unpack <$> get
 -- ----   --let zzz = modify f p
 -- ----   -- modify . over Program
---
--- --insertDef :: (MonadState (s, Program t a) m) => Name -> Definition t a -> m ()
--- insertDef :: (Ord t) => (MonadState (s, Program t a) m) => ProgKey t -> Definition t a -> m ()
--- insertDef = modifyProgram <$$> Map.insert
---
+
+--insertDef :: (MonadState (s, Program t a) m) => Name -> Definition t a -> m ()
+insertDef :: (Ord s) => (MonadState (r, Program s t a) m) => Label s -> Definition t a -> m ()
+insertDef = modifyProgram <$$> Map.insert
+
 -- ---- --updateDef ::
 -- ---- --     (MonadState (Program a) m)
 -- ---- --  => (Definition Type a -> Maybe (Definition Type a))
