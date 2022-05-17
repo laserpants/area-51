@@ -107,6 +107,9 @@ instance AnyType (Type Void Name) where
 instance AnyType PolyType where
   promote = id
 
+instance AnyType Scheme where
+  promote (Scheme s) = promote s
+
 class Substitutable a where
   apply :: Substitution -> a -> a
 
@@ -361,10 +364,12 @@ unifyM t1 t2 = do
   sub1 <- unify (apply sub t1) (apply sub t2)
   modify (second (sub1 <>))
 
-instantiate :: PolyType -> TypeChecker MonoType
+instantiate :: (AnyType t) => t -> TypeChecker MonoType
 instantiate ty = do
-  ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars ty))
-  pure (toMonoType (Map.fromList ts) ty)
+  ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
+  pure (toMonoType (Map.fromList ts) t)
+    where
+      t = promote ty
 
 generalize :: MonoType -> TypeChecker PolyType
 generalize t = do

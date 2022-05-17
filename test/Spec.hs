@@ -67,7 +67,6 @@ funTypeChecker' n env m = runState (runReaderT (runExceptT (unpack m)) env) (n, 
 funTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
 funTypeChecker = funTypeChecker' (1 :: Int)
 
-
 main :: IO ()
 main =
   hspec $ do
@@ -819,6 +818,37 @@ hello3 = do
     q :: Program Scheme () SourceExpr 
     Right q = hello1 
 
+hello3x :: TypeChecker (Program Scheme MonoType TypedExpr)
+hello3x = do
+--  mapM_ traceShowM (Map.toList z)
+  Program g <- translate2x q
+  Program h <- translate2bx (Program g)
+  mapM_ traceShowM (Map.toList h)
+  traceShowM "------------------"
+  pure (Program h)
+  where
+    q :: Program Scheme () SourceExpr 
+    Right q = hello1 
+
+hello4x :: State (Int, Program Scheme MonoType Ast) (Program Scheme MonoType Ast)
+hello4x = 
+  case funTypeChecker mempty hello3x of
+    (Right p, (n, _)) -> do
+      --x <- flip runStateT (n, emptyProgram) $ do
+      --traceShowM p
+      --traceShowM "==="
+      x <- translate3x p
+      (_, z) <- get
+      pure (x <> z)
+      --traceShowM "=1="
+      ----mapM_ traceShowM x
+      --traceShowM x
+      --traceShowM "=2="
+      --traceShowM z
+      --pure ()
+    _ ->
+      error "TODO"
+
 --hello4 :: (MonadState (Int, Program MonoType MonoType Ast) m) => m ()
 hello4 :: State (Int, Program MonoType MonoType Ast) (Program MonoType MonoType Ast)
 hello4 = 
@@ -838,6 +868,16 @@ hello4 =
       --pure ()
     _ ->
       error "TODO"
+
+--hello5x :: IO ()
+--hello5x = mapM_ traceShowM (Map.toList q)
+--  where
+--    Program q = evalState hello4x (1, emptyProgram) 
+
+hello5X :: IO ()
+hello5X = mapM_ traceShowM (Map.toList q)
+  where
+    Program q = evalState hello4x (1, emptyProgram) 
 
 hello5 :: IO ()
 hello5 = mapM_ traceShowM (Map.toList q)
@@ -869,9 +909,32 @@ translate1 =
   forEachDefM 
     ( \case 
       ((Scheme s, name), def) -> do
-        t <- instantiate (promote s)
+        t <- instantiate s
         pure ((t, name), def)
     )
+
+translate2x
+  :: Program Scheme () SourceExpr
+  -> TypeChecker (Program Scheme MonoType TypedExpr)
+translate2x = 
+  forEachDefEnvM 
+    ( \case
+      ((scheme, name), Function args (_, expr)) -> do
+        e <- do
+          lam <- inferTypes (eLam () (toList args) expr)
+          t0 <- instantiate scheme
+          unifyM t0 (typeOf lam) 
+          applySubstitution lam
+        let ELam () as body = project e
+        pure ((scheme, name), Function (fromList as) (typeOf body, body))
+      ((scheme, name), Constant (_, expr)) -> do
+        const <- inferTypes expr
+        pure ((scheme, name), Constant (typeOf const, const))
+      _ ->
+        error "TODO"
+    )
+  where
+    inferTypes = tagExpr >=> inferExpr >=> applySubstitution
 
 translate2 
   :: Program MonoType () SourceExpr
@@ -885,7 +948,7 @@ translate2 =
           unifyM t0 (typeOf lam) 
           applySubstitution lam
         let ELam () as body = project e
-        pure ((typeOf e, name), Function (fromList as) (typeOf body, body))
+        pure ((t0, name), Function (fromList as) (typeOf body, body))
       ((_, name), Constant (_, expr)) -> do
         const <- inferTypes expr
         pure ((typeOf const, name), Constant (typeOf const, const))
@@ -894,6 +957,22 @@ translate2 =
     )
   where
     inferTypes = tagExpr >=> inferExpr >=> applySubstitution
+
+translate2bx
+  :: Program Scheme MonoType TypedExpr
+  -> TypeChecker (Program Scheme MonoType TypedExpr)
+translate2bx = 
+  forEachDefM 
+    ( \case
+      (key, Function args (t, expr)) -> do
+        e <- specializeLets expr
+        pure (key, Function args (t, e))
+      (key, Constant (t, expr)) -> do
+        e <- specializeLets expr
+        pure (key, Constant (t, e))
+      _ ->
+        error "TODO"
+    )
 
 translate2b
   :: Program MonoType MonoType TypedExpr
@@ -911,6 +990,22 @@ translate2b =
         error "TODO"
     )
 
+translate3x
+  :: (MonadState (Int, Program Scheme MonoType Ast) m) 
+  => Program Scheme MonoType TypedExpr
+  -> m (Program Scheme MonoType Ast)
+translate3x = 
+  forEachDefM 
+    ( \case
+      (key, Function args (t, expr)) -> do
+        e <- compileX expr
+        pure (key, Function args (t, e))
+      (key, Constant (t, expr)) -> do
+        e <- compileX expr
+        pure (key, Constant (t, e))
+      _ ->
+        error "TODO"
+    )
 
 translate3 
   :: (MonadState (Int, Program MonoType MonoType Ast) m) 
@@ -936,12 +1031,31 @@ translate3 =
 --forEachDef =
 --  undefined
 
+--zoff :: Program Scheme t a -> Program PolyType t a
+--zoff = over Program (Map.mapKeys (first promote))
+
+--hello1 =
+--  runParser program "" 
+--    "\
+--    \def foo(x : unit) : int =\
+--    \  let id = lam(x) => x in id(5)\
+--    \"
+
+-- hello1 =
+--   runParser program "" 
+--     "\
+--     \def ident(x : a0) : a0 = x\
+--     \\r\n\
+--     \def foo(x : unit) : int = ident(5)\
+--     \"
+
 hello1 =
   runParser program "" 
     "\
     \def ident(x : a0) : a0 = x\
     \\r\n\
-    \def zoo(a : unit) : int = ident(5)\
+    \def zoo(a : unit) : int =\
+    \  ident(5)\
     \\r\n\
     \def foo(x : unit) : int =\
     \  let id =\
