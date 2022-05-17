@@ -63,14 +63,14 @@ uniqueName prefix = do
 extra :: MonoType -> [Label MonoType]
 extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int ..]]
 
-programDefsX :: (MonadState (Int, Program Scheme MonoType Ast) m) => m [Name]
-programDefsX = snd <$$> gets (Map.keys . unpack . snd)
+programDefs :: (MonadState (Int, Program Scheme MonoType Ast) m) => m [Name]
+programDefs = snd <$$> gets (Map.keys . unpack . snd)
 
-programDefs :: (MonadState (Int, Program MonoType MonoType Ast) m) => m [Label MonoType]
-programDefs = gets (Map.keys . unpack . snd)
+--programDefs :: (MonadState (Int, Program MonoType MonoType Ast) m) => m [Label MonoType]
+--programDefs = gets (Map.keys . unpack . snd)
 
---insertDefX :: (MonadState (r, Program Scheme t a) m) => Label MonoType -> Definition t a -> m ()
---insertDefX a b = modifyProgram (Map.insert (first zz3 a) b)
+--insertDef :: (MonadState (r, Program Scheme t a) m) => Label MonoType -> Definition t a -> m ()
+--insertDef a b = modifyProgram (Map.insert (first zz3 a) b)
 --  where
 --    zz3 = Scheme . zz2
 --
@@ -96,7 +96,7 @@ toScheme ::
   MonoType -> 
   m (Type Void Name)
 toScheme ty = do
-  defs <- programDefsX
+  defs <- programDefs
   pure (fromMono (Map.fromList (free ty `zip` names)) ty)
   where
     names = ["a" <> showt i | i <- [0 :: Int ..]]
@@ -116,14 +116,14 @@ toScheme ty = do
             TRow row -> tRow (mapRow (fromMono vars) row)
         )
 
-liftDefX ::
+liftDef ::
   (MonadState (Int, Program Scheme MonoType Ast) m) =>
   Name ->
   [Label MonoType] ->
   [Label MonoType] ->
   Ast ->
   m Ast
-liftDefX name vs args expr = do
+liftDef name vs args expr = do
   s <- toScheme (foldType t ts)
   insertDef (Scheme s, name) def
   pure (eCall (typeOf def, name) (eVar <$> vs))
@@ -133,58 +133,58 @@ liftDefX name vs args expr = do
     as = vs <> args `without` [(t, name)]
     def = Function (fromList as) (t, expr)
 
-liftDef ::
-  (MonadState (Int, Program MonoType MonoType Ast) m) =>
-  Name ->
-  [Label MonoType] ->
-  [Label MonoType] ->
-  Ast ->
-  m Ast
-liftDef name vs args expr = do
-  insertDef (foldType t ts, name) def
-  pure (eCall (typeOf def, name) (eVar <$> vs))
-  where
-    t = typeOf expr
-    ts = fst <$> as
-    as = vs <> args `without` [(t, name)]
-    def = Function (fromList as) (t, expr)
+--liftDef ::
+--  (MonadState (Int, Program MonoType MonoType Ast) m) =>
+--  Name ->
+--  [Label MonoType] ->
+--  [Label MonoType] ->
+--  Ast ->
+--  m Ast
+--liftDef name vs args expr = do
+--  insertDef (foldType t ts, name) def
+--  pure (eCall (typeOf def, name) (eVar <$> vs))
+--  where
+--    t = typeOf expr
+--    ts = fst <$> as
+--    as = vs <> args `without` [(t, name)]
+--    def = Function (fromList as) (t, expr)
 
-makeDefX ::
+makeDef ::
   (MonadState (Int, Program Scheme MonoType Ast) m) =>
   Name ->
   Ast ->
   ((Ast -> Ast) -> Ast) ->
   m Ast
-makeDefX name expr f =
+makeDef name expr f =
   if isConT ArrT t
     then do
-      defs <- programDefsX
+      defs <- programDefs
       ndef <- uniqueName name
       let vs = freeVars expr `withoutX` defs 
           ys = extra t
-      liftDefX ndef vs ys (f $ appArgs (eVar <$> ys))
+      liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
     else 
       pure expr
   where
     t = typeOf expr
 
-makeDef ::
-  (MonadState (Int, Program MonoType MonoType Ast) m) =>
-  Name ->
-  Ast ->
-  ((Ast -> Ast) -> Ast) ->
-  m Ast
-makeDef name expr f = 
-  if isConT ArrT t
-    then do
-      defs <- programDefs
-      ndef <- uniqueName name
-      let vs = freeVars expr `without` defs
-          ys = extra t
-      liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
-    else pure expr
-  where
-    t = typeOf expr
+--makeDef ::
+--  (MonadState (Int, Program MonoType MonoType Ast) m) =>
+--  Name ->
+--  Ast ->
+--  ((Ast -> Ast) -> Ast) ->
+--  m Ast
+--makeDef name expr f = 
+--  if isConT ArrT t
+--    then do
+--      defs <- programDefs
+--      ndef <- uniqueName name
+--      let vs = freeVars expr `without` defs
+--          ys = extra t
+--      liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
+--    else pure expr
+--  where
+--    t = typeOf expr
 
 -- --specializeFun 
 -- --  :: (MonadState (Int, a) m) 
@@ -245,14 +245,14 @@ specializeDef (t, name) args (_, body) e2 = do
   where 
     e1 = eLam () args body
 
---specializeDefX
+--specializeDef
 --  :: (MonadState (Int, a) m) 
 --  => Name
 --  -> [Label MonoType] 
 --  -> (MonoType, TypedExpr) 
 --  -> TypedExpr 
 --  -> m TypedExpr
---specializeDefX name args (t, body) e2 = do
+--specializeDef name args (t, body) e2 = do
 --  (e, binds) <- runWriterT (replaceTemplates ty name e1 e2)
 --  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
 --  where 
@@ -325,60 +325,14 @@ basfddd t1 t2 = runTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
 withoutX :: [Label s] -> [Name] -> [Label s]
 withoutX = foldr (\lab -> filter ((/=) lab . snd)) 
 
-compileX :: (MonadState (Int, Program Scheme MonoType Ast) m) => TypedExpr -> m Ast
-compileX =
-  cata $ \case
-    ELam t args expr1 -> do
-      e1 <- expr1
-      defs <- programDefsX
-      ndef <- uniqueName "$lam"
-      let vs = freeVars e1 `withoutX` ((snd <$> args) <> defs)
-          ys = extra (typeOf e1)
-      liftDefX ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
-    ECase expr1 clauses -> do
-      e1 <- expr1
-      cs <- traverse sequence clauses
-      makeDefX "$match" (eCase e1 cs) (\app -> eCase e1 (second app <$> cs))
-    EIf expr1 expr2 expr3 -> do
-      e1 <- expr1
-      e2 <- expr2
-      e3 <- expr3
-      makeDefX "$if" (eIf e1 e2 e3) (\app -> eIf e1 (app e2) (app e3))
-    EApp t fun args -> do
-      f <- fun
-      xs <- sequence args
-      pure
-        ( case project f of
-            ECall _ g ys -> eCall g (ys <> xs)
-            EVar v -> eCall v xs
-        )
-    ELet var expr1 expr2 -> do
-      e1 <- expr1
-      e2 <- expr2
-      makeDefX "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))
-    EField fs expr1 expr2 -> do
-      e1 <- expr1
-      e2 <- expr2
-      makeDefX "$field" (eField fs e1 e2) (\app -> eField fs e1 (app e2))
-    ECon con ->
-      pure (eCall con [])
-    EOp1 op a1 ->
-      eOp1 op <$> a1
-    EOp2 op a1 a2 ->
-      eOp2 op <$> a1 <*> a2
-    EVar v -> pure (eVar v)
-    ELit l -> pure (eLit l)
-    ERow row ->
-      eRow <$> mapRowM compileX row
-
-compile :: (MonadState (Int, Program MonoType MonoType Ast) m) => TypedExpr -> m Ast
+compile :: (MonadState (Int, Program Scheme MonoType Ast) m) => TypedExpr -> m Ast
 compile =
   cata $ \case
     ELam t args expr1 -> do
       e1 <- expr1
       defs <- programDefs
       ndef <- uniqueName "$lam"
-      let vs = freeVars e1 `without` (args <> defs)
+      let vs = freeVars e1 `withoutX` ((snd <$> args) <> defs)
           ys = extra (typeOf e1)
       liftDef ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
     ECase expr1 clauses -> do
@@ -416,3 +370,49 @@ compile =
     ELit l -> pure (eLit l)
     ERow row ->
       eRow <$> mapRowM compile row
+
+--compile :: (MonadState (Int, Program MonoType MonoType Ast) m) => TypedExpr -> m Ast
+--compile =
+--  cata $ \case
+--    ELam t args expr1 -> do
+--      e1 <- expr1
+--      defs <- programDefs
+--      ndef <- uniqueName "$lam"
+--      let vs = freeVars e1 `without` (args <> defs)
+--          ys = extra (typeOf e1)
+--      liftDef ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
+--    ECase expr1 clauses -> do
+--      e1 <- expr1
+--      cs <- traverse sequence clauses
+--      makeDef "$match" (eCase e1 cs) (\app -> eCase e1 (second app <$> cs))
+--    EIf expr1 expr2 expr3 -> do
+--      e1 <- expr1
+--      e2 <- expr2
+--      e3 <- expr3
+--      makeDef "$if" (eIf e1 e2 e3) (\app -> eIf e1 (app e2) (app e3))
+--    EApp t fun args -> do
+--      f <- fun
+--      xs <- sequence args
+--      pure
+--        ( case project f of
+--            ECall _ g ys -> eCall g (ys <> xs)
+--            EVar v -> eCall v xs
+--        )
+--    ELet var expr1 expr2 -> do
+--      e1 <- expr1
+--      e2 <- expr2
+--      makeDef "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))
+--    EField fs expr1 expr2 -> do
+--      e1 <- expr1
+--      e2 <- expr2
+--      makeDef "$field" (eField fs e1 e2) (\app -> eField fs e1 (app e2))
+--    ECon con ->
+--      pure (eCall con [])
+--    EOp1 op a1 ->
+--      eOp1 op <$> a1
+--    EOp2 op a1 a2 ->
+--      eOp2 op <$> a1 <*> a2
+--    EVar v -> pure (eVar v)
+--    ELit l -> pure (eLit l)
+--    ERow row ->
+--      eRow <$> mapRowM compile row
