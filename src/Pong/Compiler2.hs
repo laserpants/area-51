@@ -3,26 +3,26 @@
 
 module Pong.Compiler2 where
 
+-- import Data.Functor ((<&>))
+-- import Debug.Trace
 -- import Pong.Parser
+-- import qualified Data.Set as Set
 import Control.Monad.Except
 import Control.Monad.Reader
-import Control.Newtype.Generics
 import Control.Monad.State
 import Control.Monad.Writer
+import Control.Newtype.Generics
 import Data.Function (on)
--- import Data.Functor ((<&>))
 import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
-import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second, swap)
 import Pong.Data
--- import Debug.Trace
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util hiding (unpack)
-import TextShow (showt)
--- import qualified Data.Set as Set
 import Pong.Util.Env (Environment(..))
+import TextShow (showt)
+import qualified Data.Map.Strict as Map
 
 canonical :: MonoType -> MonoType
 canonical t = xapply (XSubstitution map) t
@@ -31,14 +31,6 @@ canonical t = xapply (XSubstitution map) t
 
 isomorphic :: MonoType -> MonoType -> Bool
 isomorphic t0 t1 = canonical t0 == canonical t1
-
---canonical :: MonoType -> MonoType
---canonical t = apply (Substitution map) t
---  where
---    map = Map.fromList (free t `zip` (tVar <$> [0 ..]))
---
---isomorphic :: MonoType -> MonoType -> Bool
---isomorphic t0 t1 = canonical t0 == canonical t1
 
 --combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 --combineLambdas =
@@ -71,11 +63,8 @@ uniqueName prefix = do
 extra :: MonoType -> [Label MonoType]
 extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int ..]]
 
-programDefs :: (MonadState (Int, Program Scheme MonoType Ast) m) => m [Name]
+programDefs :: (MonadState (Int, Program Scheme t a) m) => m [Name]
 programDefs = snd <$$> gets (Map.keys . unpack . snd)
-
---programDefs :: (MonadState (Int, Program MonoType MonoType Ast) m) => m [Label MonoType]
---programDefs = gets (Map.keys . unpack . snd)
 
 --insertDef :: (MonadState (r, Program Scheme t a) m) => Label MonoType -> Definition t a -> m ()
 --insertDef a b = modifyProgram (Map.insert (first zz3 a) b)
@@ -126,22 +115,6 @@ liftDef name vs args expr = do
     as = vs <> args `without` [(t, name)]
     def = Function (fromList as) (t, expr)
 
---liftDef ::
---  (MonadState (Int, Program MonoType MonoType Ast) m) =>
---  Name ->
---  [Label MonoType] ->
---  [Label MonoType] ->
---  Ast ->
---  m Ast
---liftDef name vs args expr = do
---  insertDef (foldType t ts, name) def
---  pure (eCall (typeOf def, name) (eVar <$> vs))
---  where
---    t = typeOf expr
---    ts = fst <$> as
---    as = vs <> args `without` [(t, name)]
---    def = Function (fromList as) (t, expr)
-
 makeDef ::
   (MonadState (Int, Program Scheme MonoType Ast) m) =>
   Name ->
@@ -153,7 +126,7 @@ makeDef name expr f =
     then do
       defs <- programDefs
       ndef <- uniqueName name
-      let vs = freeVars expr `withoutX` defs 
+      let vs = freeVars expr `exclude` defs 
           ys = extra t
       liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
     else 
@@ -312,7 +285,7 @@ xreplaceTemplates t name e1 =
         ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
           pure (eLet (t0, var) expr1 expr2)
         EVar (t0, var) | var == name && not (isomorphic t t0) ->
-          case xbasfddd t t0 of
+          case getSubst t t0 of
             Right sub -> do
               newVar <- uniqueName ("$var_" <> var <> "_")
               tell [((t0, newVar), xapply sub e1)]
@@ -322,6 +295,9 @@ xreplaceTemplates t name e1 =
         expr -> 
           embed <$> sequence (expr <&> snd)
     )
+  where
+    getSubst t1 t2 = 
+      xrunTypeChecker'' (freeIndex [t1, t2]) mempty (xunify t1 t2)
 
 --replaceTemplates ::
 --  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
@@ -355,10 +331,8 @@ xrunTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (
 
 --basfddd t1 t2 = runTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
 
-xbasfddd t1 t2 = xrunTypeChecker'' (freeIndex [t1, t2]) mempty (xunify t1 t2)
-
-withoutX :: [Label s] -> [Name] -> [Label s]
-withoutX = foldr (\lab -> filter ((/=) lab . snd)) 
+exclude :: [Label s] -> [Name] -> [Label s]
+exclude = foldr (\label -> filter ((/=) label . snd)) 
 
 compile :: (MonadState (Int, Program Scheme MonoType Ast) m) => TypedExpr -> m Ast
 compile =
@@ -367,7 +341,7 @@ compile =
       e1 <- expr1
       defs <- programDefs
       ndef <- uniqueName "$lam"
-      let vs = freeVars e1 `withoutX` ((snd <$> args) <> defs)
+      let vs = freeVars e1 `exclude` ((snd <$> args) <> defs)
           ys = extra (typeOf e1)
       liftDef ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
     ECase expr1 clauses -> do

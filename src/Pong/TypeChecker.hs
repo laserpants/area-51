@@ -144,20 +144,20 @@ instance (XSubstitutable a0, XSubstitutable a2, XSubstitutable t) => XSubstituta
   xapply sub =
     cata $
       \case
-        EVar name -> eVar (subst name)
+        EVar name -> eVar (applyFst name)
         ECon con -> eCon (first (xapply sub) con)
-        ELet bind expr1 expr2 -> eLet (subst bind) expr1 expr2
-        ELam t args expr -> eLam t (subst <$> args) expr
+        ELet bind expr1 expr2 -> eLet (applyFst bind) expr1 expr2
+        ELam t args expr -> eLam t (applyFst <$> args) expr
         EApp t fun args -> eApp (xapply sub t) fun args
-        ECase expr cs -> eCase expr (first (fmap subst) <$> cs)
+        ECase expr cs -> eCase expr (first (fmap applyFst) <$> cs)
         EOp1 (t, op) expr1 -> eOp1 (xapply sub t, op) expr1
         EOp2 (t, op) expr1 expr2 -> eOp2 (xapply sub t, op) expr1 expr2
-        EField field expr1 expr2 -> eField (subst <$> field) expr1 expr2
+        EField field expr1 expr2 -> eField (applyFst <$> field) expr1 expr2
         ERow row -> eRow (mapRow (xapply sub) row)
-        ECall t fun args -> eCall_ (xapply sub t) (subst fun) args
+        ECall t fun args -> eCall_ (xapply sub t) (applyFst fun) args
         e -> embed e
     where
-      subst = first (xapply sub)
+      applyFst = first (xapply sub)
 
 --instance (Substitutable a0, Substitutable a2, Substitutable t) => Substitutable (Expr t a0 a1 a2) where
 --  apply sub =
