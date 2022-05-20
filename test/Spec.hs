@@ -82,7 +82,6 @@ xfunTypeChecker = xfunTypeChecker' (1 :: Int)
 main :: IO ()
 main =
   hspec $ do
-    pure ()
 -- -- --    describe "fillParams" $ do
 -- -- --      it "#1" (fillParams fragment1_0 == fragment1_1)
 -- -- --      it "#2" (fillParams fragment10_0 == fragment10_1)
@@ -113,8 +112,8 @@ main =
 -- -- --    describe "replaceVarLets" $ do
 -- -- --      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
 -- -- --      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
---     describe "typeCheck" $ do
---       it "#1" (Right fragment13_1 == runTypeChecker mempty (tagExpr fragment13_0))
+     describe "typeCheck" $ do
+       it "#1" (Right fragment13_1 == xrunTypeChecker mempty (xtagExpr fragment13_0))
 --       it "#2" (Right fragment16_2 == runTypeChecker' (8 :: Int) mempty (applySubstitution =<< inferExpr fragment16_1))
 --       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment17_1))
 --       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment18_1))
