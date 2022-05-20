@@ -25,12 +25,20 @@ import TextShow (showt)
 import Pong.Util.Env (Environment(..))
 
 canonical :: MonoType -> MonoType
-canonical t = apply (Substitution map) t
+canonical t = xapply (XSubstitution map) t
   where
     map = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
 isomorphic :: MonoType -> MonoType -> Bool
 isomorphic t0 t1 = canonical t0 == canonical t1
+
+--canonical :: MonoType -> MonoType
+--canonical t = apply (Substitution map) t
+--  where
+--    map = Map.fromList (free t `zip` (tVar <$> [0 ..]))
+--
+--isomorphic :: MonoType -> MonoType -> Bool
+--isomorphic t0 t1 = canonical t0 == canonical t1
 
 --combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 --combineLambdas =
@@ -100,21 +108,6 @@ toScheme ty = do
   pure (fromMono (Map.fromList (free ty `zip` names)) ty)
   where
     names = ["a" <> showt i | i <- [0 :: Int ..]]
-    fromMono vars = 
-      cata
-        ( \case
-            TVar n -> tGen (vars ! n)
-            TUnit -> tUnit
-            TBool -> tBool
-            TInt -> tInt
-            TFloat -> tFloat
-            TDouble -> tDouble
-            TChar -> tChar
-            TString -> tString
-            TCon con ts -> tCon con ts
-            TArr t1 t2 -> tArr t1 t2
-            TRow row -> tRow (mapRow (fromMono vars) row)
-        )
 
 liftDef ::
   (MonadState (Int, Program Scheme MonoType Ast) m) =>
@@ -232,18 +225,18 @@ makeDef name expr f =
 -- --        (sub t0, mapTypes sub body)
 -- --        expr
 
-specializeDef 
-  :: (MonadState (Int, a) m) 
-  => Label MonoType
-  -> [Label MonoType] 
-  -> (MonoType, TypedExpr) 
-  -> TypedExpr 
-  -> m TypedExpr
-specializeDef (t, name) args (_, body) e2 = do
-  (e, binds) <- runWriterT (replaceTemplates t name e1 e2)
-  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
-  where 
-    e1 = eLam () args body
+--specializeDef 
+--  :: (MonadState (Int, a) m) 
+--  => Label MonoType
+--  -> [Label MonoType] 
+--  -> (MonoType, TypedExpr) 
+--  -> TypedExpr 
+--  -> m TypedExpr
+--specializeDef (t, name) args (_, body) e2 = do
+--  (e, binds) <- runWriterT (replaceTemplates t name e1 e2)
+--  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
+--  where 
+--    e1 = eLam () args body
 
 --specializeDef
 --  :: (MonadState (Int, a) m) 
@@ -277,39 +270,52 @@ isTemplate =
       _ -> 
         False
 
-specializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
-specializeLets =
+xspecializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
+xspecializeLets =
   cata
     ( \case
         ELet (t, var) expr1 expr2 | isTemplate t -> do
           e1 <- expr1
           e2 <- expr2
-          (e, binds) <- runWriterT (replaceTemplates t var e1 e2)
+          (e, binds) <- runWriterT (xreplaceTemplates t var e1 e2)
           pure (foldr (uncurry eLet) e (((t, var), e1) : unique binds))
         expr ->
           embed <$> sequence expr
     )
 
+--specializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
+--specializeLets =
+--  cata
+--    ( \case
+--        ELet (t, var) expr1 expr2 | isTemplate t -> do
+--          e1 <- expr1
+--          e2 <- expr2
+--          (e, binds) <- runWriterT (replaceTemplates t var e1 e2)
+--          pure (foldr (uncurry eLet) e (((t, var), e1) : unique binds))
+--        expr ->
+--          embed <$> sequence expr
+--    )
+
 unique :: [((MonoType, a1), a2)] -> [((MonoType, a1), a2)]
 unique = nubBy (on (==) (fst . fst))
 
-replaceTemplates ::
+xreplaceTemplates ::
   (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
   MonoType ->
   Name ->
   TypedExpr ->
   TypedExpr ->
   m TypedExpr
-replaceTemplates t name e1 =
+xreplaceTemplates t name e1 =
   para
     ( \case
         ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
           pure (eLet (t0, var) expr1 expr2)
         EVar (t0, var) | var == name && not (isomorphic t t0) ->
-          case basfddd t t0 of
+          case xbasfddd t t0 of
             Right sub -> do
               newVar <- uniqueName ("$var_" <> var <> "_")
-              tell [((t0, newVar), apply sub e1)]
+              tell [((t0, newVar), xapply sub e1)]
               pure (eVar (t0, newVar))
             _ ->
               error "Implementation error"
@@ -317,10 +323,39 @@ replaceTemplates t name e1 =
           embed <$> sequence (expr <&> snd)
     )
 
-runTypeChecker'' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
-runTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+--replaceTemplates ::
+--  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
+--  MonoType ->
+--  Name ->
+--  TypedExpr ->
+--  TypedExpr ->
+--  m TypedExpr
+--replaceTemplates t name e1 =
+--  para
+--    ( \case
+--        ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
+--          pure (eLet (t0, var) expr1 expr2)
+--        EVar (t0, var) | var == name && not (isomorphic t t0) ->
+--          case basfddd t t0 of
+--            Right sub -> do
+--              newVar <- uniqueName ("$var_" <> var <> "_")
+--              tell [((t0, newVar), apply sub e1)]
+--              pure (eVar (t0, newVar))
+--            _ ->
+--              error "Implementation error"
+--        expr -> 
+--          embed <$> sequence (expr <&> snd)
+--    )
 
-basfddd t1 t2 = runTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
+xrunTypeChecker'' :: Int -> XTypeEnv -> XTypeChecker a -> Either TypeError a
+xrunTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+
+--runTypeChecker'' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
+--runTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+
+--basfddd t1 t2 = runTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
+
+xbasfddd t1 t2 = xrunTypeChecker'' (freeIndex [t1, t2]) mempty (xunify t1 t2)
 
 withoutX :: [Label s] -> [Name] -> [Label s]
 withoutX = foldr (\lab -> filter ((/=) lab . snd)) 

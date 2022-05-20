@@ -90,6 +90,9 @@ restrictRow name row =
 class FreeIn f where
   free :: f -> [Int]
 
+instance FreeIn Scheme where
+  free _ = []
+
 instance FreeIn (Type Int s) where
   free =
     nub
@@ -285,15 +288,14 @@ freeVars =
           EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
-toMonoType :: (Ord s) => Map s MonoType -> Type Int s -> MonoType
-toMonoType vs =
+toMonoTypeX :: Map Name MonoType -> Type Void Name -> MonoType
+toMonoTypeX vs = 
   cata
     ( \case
         TGen s ->
           case Map.lookup s vs of
             Nothing -> error "Implementation error"
             Just t -> t
-        TVar n -> tVar n
         TUnit -> tUnit
         TBool -> tBool
         TInt -> tInt
@@ -303,25 +305,46 @@ toMonoType vs =
         TString -> tString
         TCon con ts -> tCon con ts
         TArr t1 t2 -> tArr t1 t2
-        TRow row -> tRow (mapRow (toMonoType vs) row)
+        TRow row -> tRow (mapRow (toMonoTypeX vs) row)
     )
 
-toPolyType :: MonoType -> PolyType
-toPolyType = 
-  cata
-    ( \case
-        TVar n -> tVar n
-        TUnit -> tUnit
-        TBool -> tBool
-        TInt -> tInt
-        TFloat -> tFloat
-        TDouble -> tDouble
-        TChar -> tChar
-        TString -> tString
-        TCon con ts -> tCon con ts
-        TArr t1 t2 -> tArr t1 t2
-        TRow row -> tRow (mapRow toPolyType row)
-    )
+--toMonoType :: (Ord s) => Map s MonoType -> Type Int s -> MonoType
+--toMonoType vs =
+--  cata
+--    ( \case
+--        TGen s ->
+--          case Map.lookup s vs of
+--            Nothing -> error "Implementation error"
+--            Just t -> t
+--        TVar n -> tVar n
+--        TUnit -> tUnit
+--        TBool -> tBool
+--        TInt -> tInt
+--        TFloat -> tFloat
+--        TDouble -> tDouble
+--        TChar -> tChar
+--        TString -> tString
+--        TCon con ts -> tCon con ts
+--        TArr t1 t2 -> tArr t1 t2
+--        TRow row -> tRow (mapRow (toMonoType vs) row)
+--    )
+
+--toPolyType :: MonoType -> PolyType
+--toPolyType = 
+--  cata
+--    ( \case
+--        TVar n -> tVar n
+--        TUnit -> tUnit
+--        TBool -> tBool
+--        TInt -> tInt
+--        TFloat -> tFloat
+--        TDouble -> tDouble
+--        TChar -> tChar
+--        TString -> tString
+--        TCon con ts -> tCon con ts
+--        TArr t1 t2 -> tArr t1 t2
+--        TRow row -> tRow (mapRow toPolyType row)
+--    )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =

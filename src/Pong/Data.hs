@@ -43,8 +43,6 @@ type Type v s = Fix (TypeF v s)
 
 type MonoType = Type Int Void
 
-type PolyType = Type Int Name
-
 -- | Polymorphic type scheme
 newtype Scheme = Scheme (Type Void Name)
 
