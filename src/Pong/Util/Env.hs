@@ -114,6 +114,8 @@ map = over Environment . Map.map
 askLookup :: (MonadReader (Environment a) m) => Name -> m (Maybe a)
 askLookup = asks . lookup
 
+-- Typeclass instances
+
 deriving instance (Show a) => Show (Environment a)
 
 deriving instance (Eq a) => Eq (Environment a)

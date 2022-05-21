@@ -28,6 +28,7 @@ module Pong.Util (
   localSecond,
   asksSecond,
   getAndModify,
+  varSequence,
 ) where
 
 import Control.Arrow ((***), (<<<), (>>>))
@@ -46,6 +47,7 @@ import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
+import TextShow (showt)
 
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
@@ -123,3 +125,6 @@ getAndModify f = do
   s <- get
   modify f
   pure s
+
+varSequence :: Text -> [a] -> [(a, Text)]
+varSequence prefix names = names `zip` [prefix <> showt i | i <- [0 :: Int ..]]

@@ -4,8 +4,8 @@
 
 module Pong.Lang where
 
-import Control.Newtype.Generics (over, unpack)
 import Control.Monad.State
+import Control.Newtype.Generics (over, unpack)
 import Data.Char (isUpper)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
@@ -118,11 +118,6 @@ instance FreeIn (Row (Type Int s) Int) where
 instance (Foldable f, Functor f, FreeIn a) => FreeIn (f a) where
   free = concatMap free
 
---instance (FreeIn e) => FreeIn (Environment e) where
---  free =
---    \case
---      Environment env -> free (Map.elems env)
-
 class Typed t where
   typeOf :: t -> MonoType
 
@@ -134,31 +129,6 @@ instance Typed MonoType where
 
 instance Typed Void where
   typeOf _ = tCon "Void" []
-
--- instance Typed (Type Int s) where
---   typeOf =
---     cata
---       ( \case
---           TUnit -> tUnit
---           TBool -> tBool
---           TInt -> tInt
---           TFloat -> tFloat
---           TDouble -> tDouble
---           TChar -> tChar
---           TString -> tString
---           TCon con ts -> tCon con ts
---           TArr t1 t2 -> tArr t1 t2
---           TVar v -> tVar v
---           TGen g -> error "????" -- tGen "XX" -- undefined -- typeOf g
---           TRow row ->
---             tRow
---               ( (`cata` row) $
---                   \case
---                     RNil -> rNil
---                     RVar v -> rVar v
---                     RExt name elem r -> rExt name (typeOf elem) r
---               )
---       )
 
 instance Typed Prim where
   typeOf =
@@ -203,7 +173,8 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
 instance (Typed t) => Typed (Definition t a) where
   typeOf =
     \case
-      Function args (t, _) -> foldType (typeOf t) (typeOf . fst <$> toList args)
+      Function args (t, _) -> 
+        foldType (typeOf t) (typeOf . fst <$> toList args)
 
 {-# INLINE arity #-}
 arity :: (Typed t) => t -> Int
@@ -288,8 +259,8 @@ freeVars =
           EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
-toMonoTypeX :: Map Name MonoType -> Type Void Name -> MonoType
-toMonoTypeX vs = 
+toMonoType :: Map Name MonoType -> Type Void Name -> MonoType
+toMonoType vs =
   cata
     ( \case
         TGen s ->
@@ -305,7 +276,7 @@ toMonoTypeX vs =
         TString -> tString
         TCon con ts -> tCon con ts
         TArr t1 t2 -> tArr t1 t2
-        TRow row -> tRow (mapRow (toMonoTypeX vs) row)
+        TRow row -> tRow (mapRow (toMonoType vs) row)
     )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
@@ -336,19 +307,19 @@ mapTypes f =
         )
 
 boundVars :: Type v Name -> Set Name
-boundVars = 
-  cata 
+boundVars =
+  cata
     ( \case
-      TGen s -> Set.singleton s
-      TCon _ ts -> Set.unions ts
-      TArr t1 t2 -> Set.union t1 t2
-      TRow row ->
-        (`cata` row)
-          ( \case
-              RExt _ r a -> Set.union (boundVars r) a
-              _ -> mempty
-          )
-      _ -> mempty
+        TGen s -> Set.singleton s
+        TCon _ ts -> Set.unions ts
+        TArr t1 t2 -> Set.union t1 t2
+        TRow row ->
+          (`cata` row)
+            ( \case
+                RExt _ r a -> Set.union (boundVars r) a
+                _ -> mempty
+            )
+        _ -> mempty
     )
 
 {-# INLINE foldType #-}
@@ -367,75 +338,20 @@ insertArgs = Env.inserts . (swap <$>)
 emptyProgram :: (Ord s, Ord t) => Program s t a
 emptyProgram = Program mempty
 
--- --programTypeEnv :: (Typed t) => Program t a -> Environment MonoType
--- --programTypeEnv p = Env.fromList (typeOf <$$> Map.toList (unpack p))
--- --
--- -- modifyM :: (MonadState s m) => (s -> m s) -> m ()
--- -- modifyM f = get >>= f >>= put
---
--- --  (Map Name (Definition t a) -> Map Name (Definition t a)) ->
-
+{-# INLINE modifyProgram #-}
 modifyProgram ::
   (MonadState (r, Program s t a) m) =>
   (Map (Label s) (Definition t a) -> Map (Label s) (Definition t a)) ->
   m ()
 modifyProgram = modify . second . over Program
 
--- toProgKey :: Name -> Type v s -> [Type v s] -> ProgKey (Type v s)
--- toProgKey name t ts =
---   if any (isConT VarT) (t:ts)
---      then Left name
---      else Right (foldType t ts, name)
---
--- ---- modifyProgramM ::
--- ----      (MonadState (Int, Program a) m)
--- ----   => (Map Name (Definition Type a) -> m (Map Name (Definition Type a)))
--- ----   -> m ()
--- ---- modifyProgramM f = do
--- ----   (n, Program p) <- get
--- ----   x <- f p
--- ----   put (n, Program x)
--- ----   --p <- Control.Newtype.Generics.unpack <$> get
--- ----   --let zzz = modify f p
--- ----   -- modify . over Program
-
---insertDef :: (MonadState (s, Program t a) m) => Name -> Definition t a -> m ()
-insertDef :: (Ord s) => (MonadState (r, Program s t a) m) => Label s -> Definition t a -> m ()
+insertDef ::
+  (Ord s) =>
+  (MonadState (r, Program s t a) m) =>
+  Label s ->
+  Definition t a ->
+  m ()
 insertDef = modifyProgram <$$> Map.insert
-
--- ---- --updateDef ::
--- ---- --     (MonadState (Program a) m)
--- ---- --  => (Definition Type a -> Maybe (Definition Type a))
--- ---- --  -> Name
--- ---- --  -> m ()
--- ---- --updateDef = modifyProgram <$$> Map.update
--- ----
--- ---- --forEachDef ::
--- ---- --     (MonadState (Program a) m)
--- ---- --  => (Definition Type a -> m (Definition Type a))
--- ---- --  -> m ()
--- ---- forEachDef run = do
--- ----   Program defs <- gets snd
--- ----   forM_ (Map.keys defs) $ \key -> do
--- ----     Program defs <- gets snd
--- ----     def <- run (defs ! key)
--- ----     insertDef key def
--- --
--- --forEachDefX (Program defs) run = do
--- --  --Program defs <- get
--- --  forM_ (Map.keys defs) $ \key -> do
--- --    def <- run (defs ! key)
--- --    insertDef key def
--- --
--- ---- --lookupDef :: (MonadState (Int, Program a) m) => Name -> m (Definition Type a)
--- ---- lookupDef key = do
--- ----   Program defs <- gets snd
--- ----   case defs !? key of
--- ----     Just z -> pure z
--- ----     Nothing ->
--- ----       error (show defs)
--- ----   --traceShowM defs
--- ----   --pure (defs ! key)
 
 {-# INLINE tUnit #-}
 tUnit :: Type v s

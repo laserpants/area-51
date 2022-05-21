@@ -3,10 +3,6 @@
 
 module Pong.Compiler2 where
 
--- import Data.Functor ((<&>))
--- import Debug.Trace
--- import Pong.Parser
--- import qualified Data.Set as Set
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -25,7 +21,7 @@ import TextShow (showt)
 import qualified Data.Map.Strict as Map
 
 canonical :: MonoType -> MonoType
-canonical t = xapply (XSubstitution map) t
+canonical t = apply (Substitution map) t
   where
     map = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
@@ -62,42 +58,10 @@ uniqueName prefix = do
   pure (prefix <> showt n)
 
 extra :: MonoType -> [Label MonoType]
-extra t = zip (argTypes t) ["$v" <> showt m | m <- [1 :: Int ..]]
+extra = tail . varSequence "$v" . argTypes
 
 programDefs :: (MonadState (Int, Program Scheme t a) m) => m [Name]
 programDefs = snd <$$> gets (Map.keys . unpack . snd)
-
---insertDef :: (MonadState (r, Program Scheme t a) m) => Label MonoType -> Definition t a -> m ()
---insertDef a b = modifyProgram (Map.insert (first zz3 a) b)
---  where
---    zz3 = Scheme . zz2
---
---    zz2 :: MonoType -> Type Void Name
---    zz2 =
---      cata
---        ( \case
---            TVar _ -> tGen "FOO"
---            TUnit -> tUnit
---            TBool -> tBool
---            TInt -> tInt
---            TFloat -> tFloat
---            TDouble -> tDouble
---            TChar -> tChar
---            TString -> tString
---            TCon con ts -> tCon con ts
---            TArr t1 t2 -> tArr t1 t2
---            TRow row -> tRow (mapRow zz2 row)
---        )
-
-toScheme :: 
-  (MonadState (Int, Program Scheme MonoType Ast) m) =>
-  MonoType -> 
-  m (Type Void Name)
-toScheme ty = do
-  defs <- programDefs
-  pure (fromMono (Map.fromList (free ty `zip` names)) ty)
-  where
-    names = ["a" <> showt i | i <- [0 :: Int ..]]
 
 liftDef ::
   (MonadState (Int, Program Scheme MonoType Ast) m) =>
@@ -107,8 +71,8 @@ liftDef ::
   Ast ->
   m Ast
 liftDef name vs args expr = do
-  s <- toScheme (foldType t ts)
-  insertDef (Scheme s, name) def
+  let ty = foldType t ts
+  insertDef (toScheme "a" (free ty) ty, name) def
   pure (eCall (typeOf def, name) (eVar <$> vs))
   where
     t = typeOf expr
@@ -134,24 +98,6 @@ makeDef name expr f =
       pure expr
   where
     t = typeOf expr
-
---makeDef ::
---  (MonadState (Int, Program MonoType MonoType Ast) m) =>
---  Name ->
---  Ast ->
---  ((Ast -> Ast) -> Ast) ->
---  m Ast
---makeDef name expr f = 
---  if isConT ArrT t
---    then do
---      defs <- programDefs
---      ndef <- uniqueName name
---      let vs = freeVars expr `without` defs
---          ys = extra t
---      liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
---    else pure expr
---  where
---    t = typeOf expr
 
 -- --specializeFun 
 -- --  :: (MonadState (Int, a) m) 
@@ -212,21 +158,6 @@ specializeDef (t, name) args (_, body) e2 = do
   where 
     e1 = eLam () args body
 
---specializeDef
---  :: (MonadState (Int, a) m) 
---  => Name
---  -> [Label MonoType] 
---  -> (MonoType, TypedExpr) 
---  -> TypedExpr 
---  -> m TypedExpr
---specializeDef name args (t, body) e2 = do
---  (e, binds) <- runWriterT (replaceTemplates ty name e1 e2)
---  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
---  where 
---    ty = foldType t ts
---    ts = fst <$> args
---    e1 = eLam () args body
-
 -- | Predicate to test if the type contains at least one type variable
 isTemplate :: Type v s -> Bool
 isTemplate =
@@ -257,19 +188,6 @@ xspecializeLets =
           embed <$> sequence expr
     )
 
---specializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
---specializeLets =
---  cata
---    ( \case
---        ELet (t, var) expr1 expr2 | isTemplate t -> do
---          e1 <- expr1
---          e2 <- expr2
---          (e, binds) <- runWriterT (replaceTemplates t var e1 e2)
---          pure (foldr (uncurry eLet) e (((t, var), e1) : unique binds))
---        expr ->
---          embed <$> sequence expr
---    )
-
 unique :: [((MonoType, a1), a2)] -> [((MonoType, a1), a2)]
 unique = nubBy (on (==) (fst . fst))
 
@@ -289,7 +207,7 @@ xreplaceTemplates t name e1 =
           case getSubst t t0 of
             Right sub -> do
               newVar <- uniqueName ("$var_" <> var <> "_")
-              tell [((t0, newVar), xapply sub e1)]
+              tell [((t0, newVar), apply sub e1)]
               pure (eVar (t0, newVar))
             _ ->
               error "Implementation error"
@@ -298,33 +216,9 @@ xreplaceTemplates t name e1 =
     )
   where
     getSubst t1 t2 = 
-      xrunTypeChecker'' (freeIndex [t1, t2]) mempty (xunify t1 t2)
+      xrunTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
 
---replaceTemplates ::
---  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
---  MonoType ->
---  Name ->
---  TypedExpr ->
---  TypedExpr ->
---  m TypedExpr
---replaceTemplates t name e1 =
---  para
---    ( \case
---        ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
---          pure (eLet (t0, var) expr1 expr2)
---        EVar (t0, var) | var == name && not (isomorphic t t0) ->
---          case basfddd t t0 of
---            Right sub -> do
---              newVar <- uniqueName ("$var_" <> var <> "_")
---              tell [((t0, newVar), apply sub e1)]
---              pure (eVar (t0, newVar))
---            _ ->
---              error "Implementation error"
---        expr -> 
---          embed <$> sequence (expr <&> snd)
---    )
-
-xrunTypeChecker'' :: Int -> XTypeEnv -> XTypeChecker a -> Either TypeError a
+xrunTypeChecker'' :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
 xrunTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
 
 --runTypeChecker'' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
@@ -335,7 +229,10 @@ xrunTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (
 exclude :: [Label s] -> [Name] -> [Label s]
 exclude = foldr (\label -> filter ((/=) label . snd)) 
 
-compile :: (MonadState (Int, Program Scheme MonoType Ast) m) => TypedExpr -> m Ast
+compile 
+  :: (MonadState (Int, Program Scheme MonoType Ast) m) 
+  => TypedExpr 
+  -> m Ast
 compile =
   cata $ \case
     ELam t args expr1 -> do

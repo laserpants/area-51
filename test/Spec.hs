@@ -56,10 +56,10 @@ import Pong.Util.Env (Environment(..))
 -- -- toProgram :: [(Name, Definition Type a)] -> Program a
 -- -- toProgram = Program . Map.fromList
 
-xrunTypeChecker' :: Int -> XTypeEnv -> XTypeChecker a -> Either TypeError a
+xrunTypeChecker' :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
 xrunTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
 
-xrunTypeChecker :: XTypeEnv -> XTypeChecker a -> Either TypeError a
+xrunTypeChecker :: TypeEnv -> TypeChecker a -> Either TypeError a
 xrunTypeChecker = xrunTypeChecker' (1 :: Int)
 
 --runTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
@@ -68,10 +68,10 @@ xrunTypeChecker = xrunTypeChecker' (1 :: Int)
 --runTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
 --runTypeChecker = runTypeChecker' (1 :: Int)
 
-xfunTypeChecker' :: Int -> XTypeEnv -> XTypeChecker a -> (Either TypeError a, (Int, XSubstitution))
+xfunTypeChecker' :: Int -> TypeEnv -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
 xfunTypeChecker' n env m = runState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
 
-xfunTypeChecker :: XTypeEnv -> XTypeChecker a -> (Either TypeError a, (Int, XSubstitution))
+xfunTypeChecker :: TypeEnv -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
 xfunTypeChecker = xfunTypeChecker' (1 :: Int)
 
 --funTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
@@ -114,8 +114,8 @@ main =
 -- -- --      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
 -- -- --      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
      describe "typeCheck" $ do
-       it "#1" (Right fragment13_1 == xrunTypeChecker mempty (xtagExpr fragment13_0))
-       it "#2" (Right fragment16_2 == xrunTypeChecker' (8 :: Int) mempty (xapplySubstitution =<< xinferExpr fragment16_1))
+       it "#1" (Right fragment13_1 == xrunTypeChecker mempty (tagExpr fragment13_0))
+       it "#2" (Right fragment16_2 == xrunTypeChecker' (8 :: Int) mempty (applySubstitution =<< inferExpr fragment16_1))
 --       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment17_1))
 --       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment18_1))
 --       it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment21_0))
@@ -228,9 +228,9 @@ main =
 -- -- preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 -- -- 
 
-runUnify t1 t2 = xrunTypeChecker' (freeIndex [t1, t2]) mempty (xunify t1 t2)
+runUnify t1 t2 = xrunTypeChecker' (freeIndex [t1, t2]) mempty (unify t1 t2)
 
-runUnifyRows r1 r2 =  xrunTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (xunifyRows r1 r2)
+runUnifyRows r1 r2 =  xrunTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
 
 --  
 -- -- 
@@ -831,7 +831,7 @@ runUnifyRows r1 r2 =  xrunTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (xu
 --    q :: Program Scheme () SourceExpr 
 --    Right q = hello1 
 
-hello3x :: XTypeChecker (Program Scheme MonoType TypedExpr)
+hello3x :: TypeChecker (Program Scheme MonoType TypedExpr)
 hello3x = do
 --  mapM_ traceShowM (Map.toList z)
   Program g <- translate2x q
@@ -933,7 +933,7 @@ hello5x = mapM_ traceShowM (Map.toList q)
 --  where
 --    Program q = evalState hello4 (1, emptyProgram) 
 
-xprogramEnv :: Program Scheme t a -> XTypeEnv
+xprogramEnv :: Program Scheme t a -> TypeEnv
 xprogramEnv program =
   Env.fromList (Map.keys (unpack program) <&> swap . first Right )
 
@@ -964,7 +964,7 @@ xfoldDefsM f a = foldrM f a . Map.toList . unpack
 --forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
 xforEachDefEnvM 
-  :: (MonadReader XTypeEnv m) 
+  :: (MonadReader TypeEnv m) 
   => ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) 
   -> Program Scheme t1 a1
   -> m (Program Scheme t2 a2)
@@ -990,16 +990,16 @@ xforEachDefEnvM f p = local (<> xprogramEnv p) (xforEachDefM f p)
 
 translate2x
   :: Program Scheme () SourceExpr
-  -> XTypeChecker (Program Scheme MonoType TypedExpr)
+  -> TypeChecker (Program Scheme MonoType TypedExpr)
 translate2x = 
   xforEachDefEnvM 
     ( \case
       ((scheme, name), Function args (_, expr)) -> do
         e <- do
           lam <- inferTypes (eLam () (toList args) expr)
-          t0 <- xinstantiate scheme
-          xunifyM t0 (typeOf lam) 
-          xapplySubstitution lam
+          t0 <- instantiate scheme
+          unifyM t0 (typeOf lam) 
+          applySubstitution lam
         let ELam () as body = project e
         pure ((scheme, name), Function (fromList as) (typeOf body, body))
       ((scheme, name), Constant (_, expr)) -> do
@@ -1021,7 +1021,7 @@ translate2x =
         error "TODO"
     )
   where
-    inferTypes = xtagExpr >=> xinferExpr >=> xapplySubstitution
+    inferTypes = tagExpr >=> inferExpr >=> applySubstitution
 
 --translate2
 --  :: Program Scheme () SourceExpr
@@ -1071,7 +1071,7 @@ translate2x =
 zork 
   :: (Label Scheme, Definition MonoType TypedExpr) 
   -> TypedExpr 
-  -> XTypeChecker TypedExpr
+  -> TypeChecker TypedExpr
 zork ((scheme, name), def) e =
   case def of
     Function args body -> do
@@ -1082,7 +1082,7 @@ zork ((scheme, name), def) e =
 
 translate2bx
   :: Program Scheme MonoType TypedExpr
-  -> XTypeChecker (Program Scheme MonoType TypedExpr)
+  -> TypeChecker (Program Scheme MonoType TypedExpr)
 translate2bx p = 
   xforEachDefM 
     ( \case
