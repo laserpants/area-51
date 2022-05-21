@@ -32,6 +32,7 @@ canonical t = xapply (XSubstitution map) t
 isomorphic :: MonoType -> MonoType -> Bool
 isomorphic t0 t1 = canonical t0 == canonical t1
 
+-- TODO: keep?
 --combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 --combineLambdas =
 --  cata $
@@ -198,18 +199,18 @@ makeDef name expr f =
 -- --        (sub t0, mapTypes sub body)
 -- --        expr
 
---specializeDef 
---  :: (MonadState (Int, a) m) 
---  => Label MonoType
---  -> [Label MonoType] 
---  -> (MonoType, TypedExpr) 
---  -> TypedExpr 
---  -> m TypedExpr
---specializeDef (t, name) args (_, body) e2 = do
---  (e, binds) <- runWriterT (replaceTemplates t name e1 e2)
---  pure (foldr (uncurry eLet) e (((t, name), e1) : binds))
---  where 
---    e1 = eLam () args body
+specializeDef 
+  :: (MonadState (Int, a) m) 
+  => Label MonoType
+  -> [Label MonoType] 
+  -> (MonoType, TypedExpr) 
+  -> TypedExpr 
+  -> m TypedExpr
+specializeDef (t, name) args (_, body) e2 = do
+  (e, binds) <- runWriterT (xreplaceTemplates t name e1 e2)
+  pure (foldr (uncurry eLet) e binds)
+  where 
+    e1 = eLam () args body
 
 --specializeDef
 --  :: (MonadState (Int, a) m) 
@@ -379,49 +380,3 @@ compile =
     ELit l -> pure (eLit l)
     ERow row ->
       eRow <$> mapRowM compile row
-
---compile :: (MonadState (Int, Program MonoType MonoType Ast) m) => TypedExpr -> m Ast
---compile =
---  cata $ \case
---    ELam t args expr1 -> do
---      e1 <- expr1
---      defs <- programDefs
---      ndef <- uniqueName "$lam"
---      let vs = freeVars e1 `without` (args <> defs)
---          ys = extra (typeOf e1)
---      liftDef ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
---    ECase expr1 clauses -> do
---      e1 <- expr1
---      cs <- traverse sequence clauses
---      makeDef "$match" (eCase e1 cs) (\app -> eCase e1 (second app <$> cs))
---    EIf expr1 expr2 expr3 -> do
---      e1 <- expr1
---      e2 <- expr2
---      e3 <- expr3
---      makeDef "$if" (eIf e1 e2 e3) (\app -> eIf e1 (app e2) (app e3))
---    EApp t fun args -> do
---      f <- fun
---      xs <- sequence args
---      pure
---        ( case project f of
---            ECall _ g ys -> eCall g (ys <> xs)
---            EVar v -> eCall v xs
---        )
---    ELet var expr1 expr2 -> do
---      e1 <- expr1
---      e2 <- expr2
---      makeDef "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))
---    EField fs expr1 expr2 -> do
---      e1 <- expr1
---      e2 <- expr2
---      makeDef "$field" (eField fs e1 e2) (\app -> eField fs e1 (app e2))
---    ECon con ->
---      pure (eCall con [])
---    EOp1 op a1 ->
---      eOp1 op <$> a1
---    EOp2 op a1 a2 ->
---      eOp2 op <$> a1 <*> a2
---    EVar v -> pure (eVar v)
---    ELit l -> pure (eLit l)
---    ERow row ->
---      eRow <$> mapRowM compile row

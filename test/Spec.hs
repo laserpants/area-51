@@ -7,6 +7,7 @@ import Data.List.NonEmpty (toList, fromList)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Foldable (foldrM)
 -- -- import Control.Monad.State
 -- -- import Control.Monad.Writer
 -- -- import Text.Megaparsec (runParser)
@@ -114,7 +115,7 @@ main =
 -- -- --      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
      describe "typeCheck" $ do
        it "#1" (Right fragment13_1 == xrunTypeChecker mempty (xtagExpr fragment13_0))
---       it "#2" (Right fragment16_2 == runTypeChecker' (8 :: Int) mempty (applySubstitution =<< inferExpr fragment16_1))
+       it "#2" (Right fragment16_2 == xrunTypeChecker' (8 :: Int) mempty (xapplySubstitution =<< xinferExpr fragment16_1))
 --       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment17_1))
 --       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment18_1))
 --       it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment21_0))
@@ -947,6 +948,14 @@ xforEachDefM
   -> m (Program s2 t2 a2)
 xforEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
+xfoldDefsM
+  :: (Monad m)
+  => ((Label s, Definition t a) -> r -> m r)
+  -> r
+  -> Program s t a
+  -> m r
+xfoldDefsM f a = foldrM f a . Map.toList . unpack
+
 --forEachDefM 
 --  :: (Monad m, Ord s1, Ord s2) 
 --  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2)) 
@@ -1059,21 +1068,35 @@ translate2x =
 --  where
 --    inferTypes = tagExpr >=> inferExpr >=> applySubstitution
 
+zork 
+  :: (Label Scheme, Definition MonoType TypedExpr) 
+  -> TypedExpr 
+  -> XTypeChecker TypedExpr
+zork ((scheme, name), def) e =
+  case def of
+    Function args body -> do
+      let as = toList args
+      specializeDef (foldType (fst body) (fst <$> as), name) as body e
+    _ ->
+      pure e
+
 translate2bx
   :: Program Scheme MonoType TypedExpr
   -> XTypeChecker (Program Scheme MonoType TypedExpr)
-translate2bx = 
+translate2bx p = 
   xforEachDefM 
     ( \case
       (key, Function args (t, expr)) -> do
         e <- xspecializeLets expr
-        pure (key, Function args (t, e))
+        e1 <- xfoldDefsM zork e p 
+        pure (key, Function args (t, e1))
       (key, Constant (t, expr)) -> do
         e <- xspecializeLets expr
-        pure (key, Constant (t, e))
+        e1 <- xfoldDefsM zork e p 
+        pure (key, Constant (t, e1))
       _ ->
         error "TODO"
-    )
+    ) p
 
 --translate2b
 --  :: Program Scheme MonoType TypedExpr
@@ -1158,13 +1181,13 @@ translate3 =
 --    \  let id = lam(x) => x in id(5)\
 --    \"
 
--- hello1 =
---   runParser program "" 
---     "\
---     \def ident(x : a0) : a0 = x\
---     \\r\n\
---     \def foo(x : unit) : int = ident(5)\
---     \"
+hello1 =
+  runParser program "" 
+    "\
+    \def ident(x : a0) : a0 = x\
+    \\r\n\
+    \def foo(x : unit) : int = ident(5)\
+    \"
 
 -- hello1 =
 --   runParser program "" 
@@ -1182,30 +1205,30 @@ translate3 =
 --     \      id(5)\
 --     \"
 
-hello1 =
-  runParser program "" 
-    "\
-    \def id(x : a) : a =\
-    \  x\
-    \\r\n\
-    \def id1(x : int) : int =\
-    \  x\
-    \\r\n\
-    \def fact(n : int) : int =\
-    \  if n == 0\
-    \    then\
-    \      1\
-    \    else\
-    \      n * fact(n - 1)\
-    \\r\n\
-    \def main(a : unit) : int =\
-    \  fact(5)\
-    \\r\n\
-    \const tot : int =\
-    \  5\
-    \\r\n\
-    \const foo : a -> a =\
-    \  lam(x) =>\
-    \    x\
-    \"
-
+-- hello1 =
+--   runParser program "" 
+--     "\
+--     \def id(x : a) : a =\
+--     \  x\
+--     \\r\n\
+--     \def id1(x : int) : int =\
+--     \  x\
+--     \\r\n\
+--     \def fact(n : int) : int =\
+--     \  if n == 0\
+--     \    then\
+--     \      1\
+--     \    else\
+--     \      n * fact(n - 1)\
+--     \\r\n\
+--     \def main(a : unit) : int =\
+--     \  fact(5)\
+--     \\r\n\
+--     \const tot : int =\
+--     \  5\
+--     \\r\n\
+--     \const foo : a -> a =\
+--     \  lam(x) =>\
+--     \    x\
+--     \"
+-- 
