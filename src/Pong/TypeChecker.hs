@@ -15,17 +15,17 @@ import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Foldable (foldrM)
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Tuple.Extra (first, firstM, second, secondM)
+import Data.Tuple.Extra (first, firstM, second, secondM, swap)
 import Debug.Trace
 import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Fix (..), Name, Void, cata, embed, project, varSequence, (!), (!?), (<$$>), (<<<), (>>>))
+import Pong.Util (Fix (..), Name, Void, cata, embed, project, varSequence, (!), (!?), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import qualified Pong.Util.Env as Env
 
 newtype Substitution
@@ -43,7 +43,21 @@ data TypeError
   | ConstructorNotInScope Name
   | IllFormedExpression
 
--- TODO: runTypeChecker =
+evalTypeChecker :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
+evalTypeChecker n env (TypeChecker c) =
+  evalState (runReaderT (runExceptT c) env) (n, mempty)
+
+runTypeChecker ::
+  Int ->
+  TypeEnv ->
+  TypeChecker a ->
+  (Either TypeError a, (Int, Substitution))
+runTypeChecker n env (TypeChecker c) =
+  runState (runReaderT (runExceptT c) env) (n, mempty)
+
+programEnv :: Program Scheme t a -> TypeEnv
+programEnv program =
+  Env.fromList (Map.keys (unpack program) <&> swap . first Right)
 
 -- Substitution
 
@@ -90,7 +104,10 @@ instance Substitutable MonoType where
 instance (Functor f, Substitutable a) => Substitutable (f a) where
   apply = fmap . apply
 
-instance (Substitutable a0, Substitutable a2, Substitutable t) => Substitutable (Expr t a0 a1 a2) where
+instance
+  (Substitutable a0, Substitutable a2, Substitutable t) =>
+  Substitutable (Expr t a0 a1 a2)
+  where
   apply sub =
     cata $
       \case
@@ -241,50 +258,27 @@ instantiate (Scheme t) = do
   ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
   pure (toMonoType (Map.fromList ts) t)
 
-toScheme :: Name -> [Int] -> MonoType -> Scheme
-toScheme prefix vars = Scheme <<< go
-  where
-    names = Map.fromList (varSequence prefix vars)
-    go =
-      cata
-        ( \case
-            TVar n -> tGen (names ! n)
-            TUnit -> tUnit
-            TBool -> tBool
-            TInt -> tInt
-            TFloat -> tFloat
-            TDouble -> tDouble
-            TChar -> tChar
-            TString -> tString
-            TCon con ts -> tCon con ts
-            TArr t1 t2 -> tArr t1 t2
-            TRow row -> tRow (mapRow go row)
-        )
-
 generalize :: MonoType -> TypeChecker Scheme
 generalize t = do
   env <- ask
   t1 <- applySubstitution t
   let vars = filter (`notElem` free env) (free t1)
   pure (toScheme "a" vars t1)
---      ixs = Map.fromList (varSequence "a" vars)
---  pure (fromMono ixs t1)
 
 -- Type inference
 
 lookupName :: Label Int -> (Name -> TypeError) -> TypeChecker (MonoType, Name)
-lookupName (t, var) toErr =
-  asks (Env.lookup var)
-    >>= \case
-      Just (Right s) -> do
-        ty <- instantiate s
-        unifyM (tVar t) ty
-        pure (ty, var)
-      Just (Left ty) -> do
-        unifyM (tVar t) ty
-        pure (ty, var)
-      _ ->
-        throwError (toErr var)
+lookupName (t, var) toErr = do
+  ty <- getTy
+  unifyM (tVar t) ty
+  pure (ty, var)
+  where
+    getTy =
+      asks (Env.lookup var)
+        >>= \case
+          Just (Right s) -> instantiate s
+          Just (Left ty) -> pure ty
+          _ -> throwError (toErr var)
 
 inferExpr :: TaggedExpr -> TypeChecker TypedExpr
 inferExpr =
@@ -369,17 +363,17 @@ unopType =
   Scheme
     <<< \case
       ONot -> tBool ~> tBool
-      ONeg -> tGen "a0" ~> tGen "a0"
+      ONeg -> tGen "a" ~> tGen "a"
 
 binopType :: Op2 -> Scheme
 binopType =
   Scheme
     <<< \case
-      OEq -> tGen "a0" ~> tGen "a0" ~> tBool
-      OAdd -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-      OSub -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-      OMul -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
-      ODiv -> tGen "a0" ~> tGen "a0" ~> tGen "a0"
+      OEq -> tGen "a" ~> tGen "a" ~> tBool
+      OAdd -> tGen "a" ~> tGen "a" ~> tGen "a"
+      OSub -> tGen "a" ~> tGen "a" ~> tGen "a"
+      OMul -> tGen "a" ~> tGen "a" ~> tGen "a"
+      ODiv -> tGen "a" ~> tGen "a" ~> tGen "a"
       OLogicOr -> tBool ~> tBool ~> tBool
       OLogicAnd -> tBool ~> tBool ~> tBool
 

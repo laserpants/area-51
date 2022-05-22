@@ -299,7 +299,7 @@ def = functionDef <|> constantDef -- <|> externalDef <|> dataDef -- TODO
     functionDef = do
       keyword "def"
       name <- identifier
-      args <- parens (some arg)
+      args <- parens (commaSep1 arg)
       symbol ":"
       t <- type_
       symbol "="

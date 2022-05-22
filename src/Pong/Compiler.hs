@@ -7,24 +7,24 @@ module Pong.Compiler where
 
 -- import Control.Monad.Except
 -- import Control.Newtype.Generics
--- import Control.Monad.Reader
--- import Control.Monad.Writer
--- import Control.Monad.State
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Control.Monad.State
 -- import Data.Char (isUpper)
 -- import Data.List (nub)
 -- import Data.Maybe (fromMaybe)
--- import Data.List.NonEmpty (fromList, toList)
--- import Data.Tuple.Extra (first, second, swap)
+import Data.List.NonEmpty (fromList, toList)
+import Data.Tuple.Extra (first, second, swap)
 -- import Debug.Trace
 -- import LLVM.Pretty
--- import Pong.Compiler2
--- import Pong.Data
--- import Pong.Eval
--- import Pong.LLVM (Operand)
--- import Pong.LLVM.Emit
--- import Pong.Lang
--- import Pong.Parser
--- import Pong.TypeChecker
+import Pong.Compiler2
+import Pong.Data
+import Pong.Eval
+import Pong.LLVM (Operand)
+import Pong.LLVM.Emit
+import Pong.Lang
+import Pong.Parser
+import Pong.TypeChecker
 -- import Pong.Util (Name, Text, Void, (<$$>), (<#>), (!?), embed, project, cata, para)
 -- import Pong.Util.Env (Environment)
 -- import System.Exit
@@ -34,7 +34,7 @@ module Pong.Compiler where
 -- import Text.Megaparsec (runParser)
 -- import TextShow (showt)
 -- import qualified Data.Text as Text
--- import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map
 -- import qualified Data.Text.Lazy as TL
 -- import qualified Pong.Util.Env as Env
 -- 
@@ -1006,27 +1006,27 @@ module Pong.Compiler where
 -- -- --    args1 = eVar <$> zip ts names
 -- -- --    names = ["$v" <> showt m | m <- [1 :: Int .. ]]
 -- --
--- 
--- --  let
--- --    h =
--- --      lam(r) =>
--- --        r(4)
--- --    in
--- --      h(lam(x) => x + 1)
--- exp0 =
---   eLet
---     ((tInt ~> tInt) ~> tInt, "h")
---     ( eLam
---         ()
---         [(tInt ~> tInt, "r")]
---         (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)])
---     )
---     ( eApp
---         tInt
---         (eVar ((tInt ~> tInt) ~> tInt, "h"))
---         [eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))]
---     )
--- 
+
+--  let
+--    h =
+--      lam(r) =>
+--        r(4)
+--    in
+--      h(lam(x) => x + 1)
+exp0 =
+  eLet
+    ((tInt ~> tInt) ~> tInt, "h")
+    ( eLam
+        ()
+        [(tInt ~> tInt, "r")]
+        (eApp tInt (eVar (tInt ~> tInt, "r")) [eLit (PInt 4)])
+    )
+    ( eApp
+        tInt
+        (eVar ((tInt ~> tInt) ~> tInt, "h"))
+        [eLam () [(tInt, "x")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))]
+    )
+
 -- -- --  $lam1(r) = r(4)
 -- -- --  $lam2(x) = x + 1
 -- -- --
@@ -1034,30 +1034,30 @@ module Pong.Compiler where
 -- -- --    h = [$lam1]
 -- -- --    in
 -- -- --      h([$lam2])
--- exp0_ =
---   ( eLet
---       ((tInt ~> tInt) ~> tInt, "h")
---       (eCall ((tInt ~> tInt) ~> tInt, "$lam1") [])
---       (eCall ((tInt ~> tInt) ~> tInt, "h") [eCall (tInt ~> tInt, "$lam2") []])
---   , Program
---       ( Map.fromList
---           [ (Right ((tInt ~> tInt) ~> tInt, "$lam1"), Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
---           , (Right (tInt ~> tInt, "$lam2"), Function (fromList [(tInt, "x")]) (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
---           ]
---       )
---   )
--- 
--- --  let
--- --    f =
--- --      lam[x, y] => (z + x) + y
--- --    in
--- --      f
--- exp00 =
---   eLet
---     (tInt ~> tInt ~> tInt, "f")
---     (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
---     (eVar (tInt ~> tInt ~> tInt, "f"))
--- 
+exp0_ =
+  ( eLet
+      ((tInt ~> tInt) ~> tInt, "h")
+      (eCall ((tInt ~> tInt) ~> tInt, "$lam1") [])
+      (eCall ((tInt ~> tInt) ~> tInt, "h") [eCall (tInt ~> tInt, "$lam2") []])
+  , Program
+      ( Map.fromList
+          [ ((Scheme ((tInt ~> tInt) ~> tInt), "$lam1"), Function (fromList [(tInt ~> tInt, "r")]) (tInt, eCall (tInt ~> tInt, "r") [eLit (PInt 4)]))
+          , ((Scheme (tInt ~> tInt), "$lam2"), Function (fromList [(tInt, "x")]) (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
+          ]
+      )
+  )
+
+--  let
+--    f =
+--      lam[x, y] => (z + x) + y
+--    in
+--      f
+exp00 =
+  eLet
+    (tInt ~> tInt ~> tInt, "f")
+    (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))))
+    (eVar (tInt ~> tInt ~> tInt, "f"))
+
 -- -- --
 -- -- -- let
 -- -- --   z =
@@ -1084,29 +1084,29 @@ module Pong.Compiler where
 -- -- --  $let2(z, $v1, $v2) = let f = [$lam1(z)] in [f($v1, $v2)]]
 -- -- --
 -- -- --  $let2(z)
--- exp00_ =
---   ( eCall (tInt ~> tInt ~> tInt ~> tInt, "$let2") [eVar (tInt, "z")]
---   , Program
---       ( Map.fromList
---           [
---             ( Right (tInt ~> tInt ~> tInt ~> tInt, "$lam1")
---             , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
---             )
---           ,
---             ( Right (tInt ~> tInt ~> tInt ~> tInt, "$let2")
---             , Function
---                 (fromList [(tInt, "z"), (tInt, "$v1"), (tInt, "$v2")])
---                 ( tInt
---                 , eLet
---                     (tInt ~> tInt ~> tInt, "f")
---                     (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
---                     (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
---                 )
---             )
---           ]
---       )
---   )
--- 
+exp00_ =
+  ( eCall (tInt ~> tInt ~> tInt ~> tInt, "$let2") [eVar (tInt, "z")]
+  , Program
+      ( Map.fromList
+          [
+            ( (Scheme (tInt ~> tInt ~> tInt ~> tInt), "$lam1")
+            , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y")))
+            )
+          ,
+            ( (Scheme (tInt ~> tInt ~> tInt ~> tInt), "$let2")
+            , Function
+                (fromList [(tInt, "z"), (tInt, "$v1"), (tInt, "$v2")])
+                ( tInt
+                , eLet
+                    (tInt ~> tInt ~> tInt, "f")
+                    (eCall (tInt ~> tInt ~> tInt ~> tInt, "$lam1") [eVar (tInt, "z")])
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                )
+            )
+          ]
+      )
+  )
+
 -- -- --  $lam1(z, x, y) =
 -- -- --    (z + x) + y
 -- -- --
@@ -1124,42 +1124,42 @@ module Pong.Compiler where
 -- -- --        , Function (fromList [(tInt, "z"), (tInt, "x"), (tInt, "y")]) (tInt, eOp2 oAddInt (eOp2 oAddInt (eVar (tInt, "z")) (eVar (tInt, "x"))) (eVar (tInt, "y"))) )
 -- -- --      ])
 -- -- --  )
--- 
--- --
--- --  (if z > 5 then f else f)(5)
--- --
--- expx0 =
---   eApp
---     (tInt ~> tInt)
---     (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "f")))
---     [eLit (PInt 5)]
--- 
--- --
--- --  $if1(z, f, $v1, $v2) = if z > 5 then f($v1, $v2) else f($v1, $v2)
--- --
--- --  ($if1)(z, f, 5)
--- --
--- expx0_ =
---   ( eCall
---       (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
---       [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)]
---   , Program
---       ( Map.fromList
---           [
---             ( Right (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
---             , Function
---                 (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
---                 ( tInt
---                 , eIf
---                     (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5)))
---                     (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
---                     (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
---                 )
---             )
---           ]
---       )
---   )
--- 
+
+--
+--  (if z > 5 then f else f)(5)
+--
+expx0 =
+  eApp
+    (tInt ~> tInt)
+    (eIf (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5))) (eVar (tInt ~> tInt ~> tInt, "f")) (eVar (tInt ~> tInt ~> tInt, "f")))
+    [eLit (PInt 5)]
+
+--
+--  $if1(z, f, $v1, $v2) = if z > 5 then f($v1, $v2) else f($v1, $v2)
+--
+--  ($if1)(z, f, 5)
+--
+expx0_ =
+  ( eCall
+      (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt, "$if1")
+      [eVar (tInt, "z"), eVar (tInt ~> tInt ~> tInt, "f"), eLit (PInt 5)]
+  , Program
+      ( Map.fromList
+          [
+            ( (Scheme (tInt ~> (tInt ~> tInt ~> tInt) ~> tInt ~> tInt ~> tInt), "$if1")
+            , Function
+                (fromList [(tInt, "z"), (tInt ~> tInt ~> tInt, "f"), (tInt, "$v1"), (tInt, "$v2")])
+                ( tInt
+                , eIf
+                    (eOp2 oGtInt (eVar (tInt, "z")) (eLit (PInt 5)))
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                    (eCall (tInt ~> tInt ~> tInt, "f") [eVar (tInt, "$v1"), eVar (tInt, "$v2")])
+                )
+            )
+          ]
+      )
+  )
+
 -- --
 -- --  (if z > 5 then f else g)(5)
 -- --
@@ -1684,13 +1684,13 @@ module Pong.Compiler where
 -- -- --     in Function (args <> fromList ys) (t, appArgs (eVar <$> ys) expr)
 -- -- --  def ->
 -- -- --    def
--- 
--- t0t0 = second snd (runState (compile exp00) (1, emptyProgram)) == exp00_
--- 
--- t0t1 = second snd (runState (compile exp0) (1, emptyProgram)) == exp0_
--- 
--- t0t2 = second snd (runState (compile expx0) (1, emptyProgram)) == expx0_
--- 
+
+--t0t0 = second snd (runState (compile exp00) (1, emptyProgram)) == exp00_
+
+t0t1 = second snd (runState (compile exp0) (1, emptyProgram)) == exp0_
+
+t0t2 = second snd (runState (compile expx0) (1, emptyProgram)) == expx0_
+
 -- t0t3 = second snd (runState (compile expx8) (1, emptyProgram)) == expx8_
 -- 
 -- t0t4 = second snd (runState (compile expx01) (1, 

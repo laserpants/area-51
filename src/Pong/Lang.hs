@@ -16,7 +16,7 @@ import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, (!), (<$$>), (<&>), (<<<), (>>>))
+import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, varSequence, (!), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 
@@ -278,6 +278,27 @@ toMonoType vs =
         TArr t1 t2 -> tArr t1 t2
         TRow row -> tRow (mapRow (toMonoType vs) row)
     )
+
+toScheme :: Name -> [Int] -> MonoType -> Scheme
+toScheme prefix vars = Scheme <<< go
+  where
+    names = 
+      Map.fromList (varSequence prefix vars)
+    go =
+      cata
+        ( \case
+            TVar n -> tGen (names ! n)
+            TUnit -> tUnit
+            TBool -> tBool
+            TInt -> tInt
+            TFloat -> tFloat
+            TDouble -> tDouble
+            TChar -> tChar
+            TString -> tString
+            TCon con ts -> tCon con ts
+            TArr t1 t2 -> tArr t1 t2
+            TRow row -> tRow (mapRow go row)
+        )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =

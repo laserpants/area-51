@@ -3,42 +3,43 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
 
-import Data.List.NonEmpty (toList, fromList)
-import Control.Monad.Except
-import Control.Monad.Reader
-import Control.Monad.State
-import Data.Foldable (foldrM)
 -- -- import Control.Monad.State
 -- -- import Control.Monad.Writer
--- -- import Text.Megaparsec (runParser)
-import Control.Newtype.Generics
-import Data.Void
-import Data.Map.Strict (Map)
-import Data.Tuple.Extra (swap, first, second)
 -- -- import Data.Void
-import Debug.Trace
 -- -- import LLVM.IRBuilder
 -- -- import LLVM.IRBuilder.Module
 -- -- import LLVM.Pretty
-import Pong.Compiler2
-import Pong.Data
--- import Pong.Eval
-import Pong.Parser
 -- -- import Pong.LLVM.Emit
-import Pong.Lang
-import Pong.Test.Data
-import Text.Megaparsec (runParser)
 -- -- import Pong.Test.Drivers
-import Pong.TypeChecker
-import Pong.Util (Fix(..), Name, (<&>), (<$$>), project)
-import Test.Hspec
-import qualified Data.Map.Strict as Map
+-- -- import Text.Megaparsec (runParser)
 -- -- import qualified Data.Text.Lazy.IO as Text
 -- -- import qualified LLVM.AST as LLVM
 -- -- import qualified LLVM.AST.Type as LLVM
-import qualified Pong.Util.Env as Env
+import Pong.Eval
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Newtype.Generics
+import Data.Foldable (foldrM)
+import Data.List.NonEmpty (toList, fromList)
+import Data.Map.Strict (Map)
+import Data.Text (Text)
+import Data.Tuple.Extra (swap, first, second)
+import Data.Void
+import Debug.Trace
+import Pong.Compiler2
+import Pong.Data
+import Pong.Lang
+import Pong.Parser
+import Pong.Test.Data
+import Pong.TypeChecker
+import Pong.Util (Fix(..), Name, (<&>), (<$$>), project)
 import Pong.Util.Env (Environment(..))
--- -- 
+import Test.Hspec
+import Text.Megaparsec (runParser)
+import qualified Data.Map.Strict as Map
+import qualified Pong.Util.Env as Env
+
 -- -- --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 -- -- 
 -- -- foo :: Value 
@@ -56,11 +57,11 @@ import Pong.Util.Env (Environment(..))
 -- -- toProgram :: [(Name, Definition Type a)] -> Program a
 -- -- toProgram = Program . Map.fromList
 
-xrunTypeChecker' :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
-xrunTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
-
-xrunTypeChecker :: TypeEnv -> TypeChecker a -> Either TypeError a
-xrunTypeChecker = xrunTypeChecker' (1 :: Int)
+--evalTypeChecker' :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
+--evalTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
+--
+--evalTypeChecker :: TypeEnv -> TypeChecker a -> Either TypeError a
+--evalTypeChecker = evalTypeChecker' (1 :: Int)
 
 --runTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
 --runTypeChecker' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
@@ -68,11 +69,6 @@ xrunTypeChecker = xrunTypeChecker' (1 :: Int)
 --runTypeChecker :: Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
 --runTypeChecker = runTypeChecker' (1 :: Int)
 
-xfunTypeChecker' :: Int -> TypeEnv -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
-xfunTypeChecker' n env m = runState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
-
-xfunTypeChecker :: TypeEnv -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
-xfunTypeChecker = xfunTypeChecker' (1 :: Int)
 
 --funTypeChecker' :: Int -> Environment (Type Int Name) -> TypeChecker a -> (Either TypeError a, (Int, Substitution))
 --funTypeChecker' n env m = runState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
@@ -114,35 +110,35 @@ main =
 -- -- --      it "#1" (fst (replaceVarLets fragment9_0) == fragment9_1)
 -- -- --      it "#2" (fst (replaceVarLets fragment11_0) == fragment15_1)
      describe "typeCheck" $ do
-       it "#1" (Right fragment13_1 == xrunTypeChecker mempty (tagExpr fragment13_0))
-       it "#2" (Right fragment16_2 == xrunTypeChecker' (8 :: Int) mempty (applySubstitution =<< inferExpr fragment16_1))
---       it "#3" (Right fragment17_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment17_1))
---       it "#4" (Right fragment18_2 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment18_1))
---       it "#5" (Right fragment21_1 == runTypeChecker mempty (applySubstitution =<< inferExpr =<< tagExpr fragment21_0))
---     describe "unify" $ do
---       it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
---       it "#2" (let Right sub = runUnifyRows row_0  row_1 in normalizeRow (apply sub row_0 :: Row MonoType Int) == row_1)
---       it "#3" (let Right sub = runUnify type_0 type_1 in normalizeTypeRows (apply sub type_0 :: MonoType) == type_1)
---       it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: MonoType in normalizeTypeRows u == type_3)
---       it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
---       it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row MonoType Int in normalizeRow q == row_5)
---       it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row MonoType Int in normalizeRow q == row_7)
---       it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
---       it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row MonoType Int; s = apply sub row_11 :: Row MonoType Int in normalizeRow q == normalizeRow s)
---       it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row MonoType Int in normalizeRow q == normalizeRow row_12)
---       it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
---       it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
---       it "#13" (let Right sub = runUnifyRows row_20 row_21 in normalizeRow (apply sub row_20 :: Row MonoType Int) == normalizeRow (apply sub row_21))
---       it "#14" (let Right sub = runUnifyRows row_22 row_23 in normalizeRow (apply sub row_22 :: Row MonoType Int) == normalizeRow (apply sub row_23))
---       it "#15" (let Right sub = runUnifyRows row_24 row_25 in normalizeRow (apply sub row_24 :: Row MonoType Int) == normalizeRow (apply sub row_25))
---       it "#16" (let Right sub = runUnifyRows row_26 row_27 in normalizeRow (apply sub row_26 :: Row MonoType Int) == normalizeRow (apply sub row_27))
---       it "#17" (let Right sub = runUnifyRows row_28 row_29 in normalizeRow (apply sub row_28 :: Row MonoType Int) == normalizeRow (apply sub row_29))
---       it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
---       it "#19" (let Right sub = runUnifyRows row_32 row_33 in normalizeRow (apply sub row_32 :: Row MonoType Int) == normalizeRow (apply sub row_33))
---       it "#20" (let Right sub = runUnifyRows row_34 row_35 in normalizeRow (apply sub row_34 :: Row MonoType Int) == normalizeRow (apply sub row_35))
---       it "#21" (let Right sub = runUnifyRows row_36 row_37 in normalizeRow (apply sub row_36 :: Row MonoType Int) == normalizeRow (apply sub row_37))
---       it "#22" (let Right sub = runUnifyRows row_38 row_39 in normalizeRow (apply sub row_38 :: Row MonoType Int) == normalizeRow (apply sub row_39))
---       it "#23" (let Right sub = runUnifyRows row_40 row_41 in normalizeRow (apply sub row_40 :: Row MonoType Int) == normalizeRow (apply sub row_41))
+       it "#1" (Right fragment13_1 == evalTypeChecker 1 mempty (tagExpr fragment13_0))
+       it "#2" (Right fragment16_2 == evalTypeChecker (8 :: Int) mempty (applySubstitution =<< inferExpr fragment16_1))
+       it "#3" (Right fragment17_2 == evalTypeChecker 1 mempty (applySubstitution =<< inferExpr =<< tagExpr fragment17_1))
+       it "#4" (Right fragment18_2 == evalTypeChecker 1 mempty (applySubstitution =<< inferExpr =<< tagExpr fragment18_1))
+       it "#5" (Right fragment21_1 == evalTypeChecker 1 mempty (applySubstitution =<< inferExpr =<< tagExpr fragment21_0))
+     describe "unify" $ do
+       it "#1" (let Right sub = runUnify fragment14_0 fragment14_1 in apply sub fragment14_0 == fragment14_1)
+       it "#2" (let Right sub = runUnifyRows row_0  row_1 in normalizeRow (apply sub row_0 :: Row MonoType Int) == row_1)
+       it "#3" (let Right sub = runUnify type_0 type_1 in normalizeTypeRows (apply sub type_0 :: MonoType) == type_1)
+       it "#4" (let Right sub = runUnify type_2 type_3; u = apply sub type_2 :: MonoType in normalizeTypeRows u == type_3)
+       it "#5" (let Left e = runUnifyRows row_2 row_3 in UnificationError == e)
+       it "#6" (let Right sub = runUnifyRows row_4 row_5; q = apply sub row_4 :: Row MonoType Int in normalizeRow q == row_5)
+       it "#7" (let Right sub = runUnifyRows row_6 row_7; q = apply sub row_6 :: Row MonoType Int in normalizeRow q == row_7)
+       it "#8" (let Left e = runUnifyRows row_8 row_9 in UnificationError == e)
+       it "#9" (let Right sub = runUnifyRows row_10 row_11; q = apply sub row_10 :: Row MonoType Int; s = apply sub row_11 :: Row MonoType Int in normalizeRow q == normalizeRow s)
+       it "#10" (let Right sub = runUnifyRows row_12 row_13; q = apply sub row_13 :: Row MonoType Int in normalizeRow q == normalizeRow row_12)
+       it "#11" (let Left e = runUnifyRows row_14 row_15 in UnificationError == e)
+       it "#12" (let Left e = runUnifyRows row_16 row_17 in UnificationError == e)
+       it "#13" (let Right sub = runUnifyRows row_20 row_21 in normalizeRow (apply sub row_20 :: Row MonoType Int) == normalizeRow (apply sub row_21))
+       it "#14" (let Right sub = runUnifyRows row_22 row_23 in normalizeRow (apply sub row_22 :: Row MonoType Int) == normalizeRow (apply sub row_23))
+       it "#15" (let Right sub = runUnifyRows row_24 row_25 in normalizeRow (apply sub row_24 :: Row MonoType Int) == normalizeRow (apply sub row_25))
+       it "#16" (let Right sub = runUnifyRows row_26 row_27 in normalizeRow (apply sub row_26 :: Row MonoType Int) == normalizeRow (apply sub row_27))
+       it "#17" (let Right sub = runUnifyRows row_28 row_29 in normalizeRow (apply sub row_28 :: Row MonoType Int) == normalizeRow (apply sub row_29))
+       it "#18" (let Left e = runUnifyRows row_30 row_31 in UnificationError == e)
+       it "#19" (let Right sub = runUnifyRows row_32 row_33 in normalizeRow (apply sub row_32 :: Row MonoType Int) == normalizeRow (apply sub row_33))
+       it "#20" (let Right sub = runUnifyRows row_34 row_35 in normalizeRow (apply sub row_34 :: Row MonoType Int) == normalizeRow (apply sub row_35))
+       it "#21" (let Right sub = runUnifyRows row_36 row_37 in normalizeRow (apply sub row_36 :: Row MonoType Int) == normalizeRow (apply sub row_37))
+       it "#22" (let Right sub = runUnifyRows row_38 row_39 in normalizeRow (apply sub row_38 :: Row MonoType Int) == normalizeRow (apply sub row_39))
+       it "#23" (let Right sub = runUnifyRows row_40 row_41 in normalizeRow (apply sub row_40 :: Row MonoType Int) == normalizeRow (apply sub row_41))
 -- --    describe "alignCallSigns" $ do
 -- --      it "#1" (alignCallSigns_ fragment17_5 == fragment17_6)
 -- -- --    describe "replaceFunArgs" $ do
@@ -228,9 +224,9 @@ main =
 -- -- preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 -- -- 
 
-runUnify t1 t2 = xrunTypeChecker' (freeIndex [t1, t2]) mempty (unify t1 t2)
+runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unify t1 t2)
 
-runUnifyRows r1 r2 =  xrunTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
+runUnifyRows r1 r2 =  evalTypeChecker (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
 
 --  
 -- -- 
@@ -831,6 +827,37 @@ runUnifyRows r1 r2 =  xrunTypeChecker' (freeIndex [tRow r1, tRow r2]) mempty (un
 --    q :: Program Scheme () SourceExpr 
 --    Right q = hello1 
 
+hello5xx :: Text -> IO ()
+hello5xx s = do
+  traceShowM zz1
+  traceShowM "&&&&&&&&&&"
+  mapM_ traceShowM (Map.toList q)
+  where
+    zz1 = evalProgram__ (e, qq)
+    Just (Function _ (_, e)) = Map.lookup (Scheme (tUnit ~> tInt), "main") q
+    Program q = qq
+    qq :: Program Scheme MonoType Ast
+    qq = evalState (hello4xx s) (1, emptyProgram) 
+
+hello4xx :: Text -> State (Int, Program Scheme MonoType Ast) (Program Scheme MonoType Ast)
+hello4xx s = 
+  case runTypeChecker 1 mempty (hello3xx s) of
+    (Right p, (n, _)) -> do
+      x <- translate3 p
+      (_, z) <- get
+      pure (x <> z)
+    _ ->
+      error "TODO"
+
+hello3xx :: Text -> TypeChecker (Program Scheme MonoType TypedExpr)
+hello3xx s = do
+  Program g <- translate2x p
+  Program h <- translate2bx (Program g)
+--  mapM_ traceShowM (Map.toList h)
+  pure (Program h)
+  where
+    Right p = runParser program "" s
+
 hello3x :: TypeChecker (Program Scheme MonoType TypedExpr)
 hello3x = do
 --  mapM_ traceShowM (Map.toList z)
@@ -857,7 +884,7 @@ hello3x = do
 
 hello4x :: State (Int, Program Scheme MonoType Ast) (Program Scheme MonoType Ast)
 hello4x = 
-  case xfunTypeChecker mempty hello3x of
+  case runTypeChecker 1 mempty hello3x of
     (Right p, (n, _)) -> do
       --x <- flip runStateT (n, emptyProgram) $ do
       --traceShowM p
@@ -923,38 +950,12 @@ hello5x = mapM_ traceShowM (Map.toList q)
   where
     Program q = evalState hello4x (1, emptyProgram) 
 
---hello5 :: IO ()
---hello5 = mapM_ traceShowM (Map.toList q)
---  where
---    Program q = evalState hello4 (1, emptyProgram) 
-
---hello5 :: IO ()
---hello5 = mapM_ traceShowM (Map.toList q)
---  where
---    Program q = evalState hello4 (1, emptyProgram) 
-
-xprogramEnv :: Program Scheme t a -> TypeEnv
-xprogramEnv program =
-  Env.fromList (Map.keys (unpack program) <&> swap . first Right )
-
---programEnv :: (AnyType s) => Program s t a -> Environment PolyType
---programEnv program =
---  Env.fromList (Map.keys (unpack program) <&> swap . first promote)
-
-xforEachDefM 
+forEachDefM 
   :: (Monad m, Ord s1, Ord s2) 
   => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2)) 
   -> Program s1 t1 a1 
   -> m (Program s2 t2 a2)
-xforEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
-
-xfoldDefsM
-  :: (Monad m)
-  => ((Label s, Definition t a) -> r -> m r)
-  -> r
-  -> Program s t a
-  -> m r
-xfoldDefsM f a = foldrM f a . Map.toList . unpack
+forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
 --forEachDefM 
 --  :: (Monad m, Ord s1, Ord s2) 
@@ -963,12 +964,20 @@ xfoldDefsM f a = foldrM f a . Map.toList . unpack
 --  -> m (Program s2 t2 a2)
 --forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
-xforEachDefEnvM 
+forEachDefEnvM 
   :: (MonadReader TypeEnv m) 
   => ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) 
   -> Program Scheme t1 a1
   -> m (Program Scheme t2 a2)
-xforEachDefEnvM f p = local (<> xprogramEnv p) (xforEachDefM f p)
+forEachDefEnvM f p = local (<> programEnv p) (forEachDefM f p)
+
+foldMDefs
+  :: (Monad m)
+  => ((Label s, Definition t a) -> r -> m r)
+  -> r
+  -> Program s t a
+  -> m r
+foldMDefs f a = foldrM f a . Map.toList . unpack
 
 --forEachDefEnvM 
 --  :: (MonadReader TypeEnv m, Ord s1, Ord s2, AnyType s1) 
@@ -992,7 +1001,7 @@ translate2x
   :: Program Scheme () SourceExpr
   -> TypeChecker (Program Scheme MonoType TypedExpr)
 translate2x = 
-  xforEachDefEnvM 
+  forEachDefEnvM 
     ( \case
       ((scheme, name), Function args (_, expr)) -> do
         e <- do
@@ -1084,15 +1093,15 @@ translate2bx
   :: Program Scheme MonoType TypedExpr
   -> TypeChecker (Program Scheme MonoType TypedExpr)
 translate2bx p = 
-  xforEachDefM 
+  forEachDefM 
     ( \case
       (key, Function args (t, expr)) -> do
         e <- xspecializeLets expr
-        e1 <- xfoldDefsM zork e p 
+        e1 <- foldMDefs zork e p 
         pure (key, Function args (t, e1))
       (key, Constant (t, expr)) -> do
         e <- xspecializeLets expr
-        e1 <- xfoldDefsM zork e p 
+        e1 <- foldMDefs zork e p 
         pure (key, Constant (t, e1))
       _ ->
         error "TODO"
@@ -1135,7 +1144,7 @@ translate3
   => Program Scheme MonoType TypedExpr
   -> m (Program Scheme MonoType Ast)
 translate3 = 
-  xforEachDefM 
+  forEachDefM 
     ( \case
       (key, Function args (t, expr)) -> do
         e <- compile expr
@@ -1173,6 +1182,35 @@ translate3 =
 
 --zoff :: Program Scheme t a -> Program PolyType t a
 --zoff = over Program (Map.mapKeys (first promote))
+
+--parseAndCompile s = do
+--  undefined
+--  where
+--    Right p = runParser program "" s
+--    xx1 = oiouo p
+
+--oiouo :: Program Scheme () SourceExpr -> Program Scheme MonoType TypedExpr
+--oiouo p = over Program (rtcx2 <$>) p
+--  where
+--    te :: TypeEnv
+--    --te = undefined -- Env.inserts [("None", tCon "Option" [tGen "a0"]), ("Some", tGen "a0" ~> tCon "Option" [tGen "a0"]), ("Nil", tCon "List" [tGen "a0"]), ("Cons", tGen "a0" ~> tCon "List" [tGen "a0"] ~> tCon "List" [tGen "a0"])] (programEnv p)
+--    te = programEnv p
+--    rtcx2 :: Definition () SourceExpr -> Definition MonoType TypedExpr
+--    rtcx2 (Function args (t, expr)) = do
+--      let e1 = tagExpr expr >>= inferExpr >>= applySubstitution
+--      let xxx :: Int
+--          xxx = undefined -- (toList args <&> first Left)
+--      case evalTypeChecker 1 (insertArgs xxx te) e1 of
+--        _ ->
+--          undefined
+--      --  Left err -> error (show err)
+--      --  Right r -> Function args (t, r)
+----    rtcx2 :: Definition MonoType SourceExpr -> Definition MonoType TypedExpr
+----    rtcx2 (Function args (t, expr)) =
+----      let e1 = tagExpr expr >>= inferExpr >>= applySubstitution
+----       in case evalTypeChecker 1 (insertArgs (toList args <&> first Left) te) e1 of
+----            Left err -> error (show err)
+----            Right r -> Function args (t, r)
 
 --hello1 =
 --  runParser program "" 
@@ -1232,3 +1270,39 @@ hello1 =
 --     \    x\
 --     \"
 -- 
+
+hello123 :: Text
+hello123 =
+  "\
+  \def main(a : unit) : int =\
+  \  add(1, fact(3))\
+  \\r\n\
+  \def fact(n : int) : int =\
+  \  if n == 0 then 1 else n * fact(n - 1)\
+  \\r\n\
+  \def add(m : int, n : int) : int =\
+  \  m + n\
+  \"
+
+hello124 :: Text
+hello124 =
+  "\
+  \def main(a : unit) : int =\
+  \  let add1 = add(1) in add1(fact(3)) + add1(8)\
+  \\r\n\
+  \def fact(n : int) : int =\
+  \  if n == 0 then 1 else n * fact(n - 1)\
+  \\r\n\
+  \def add(m : int, n : int) : int =\
+  \  m + n\
+  \"
+
+hello125 :: Text
+hello125 =
+  "\
+  \const n : int = 1\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  5 + n\
+  \"
+

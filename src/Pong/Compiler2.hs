@@ -58,7 +58,11 @@ uniqueName prefix = do
   pure (prefix <> showt n)
 
 extra :: MonoType -> [Label MonoType]
-extra = tail . varSequence "$v" . argTypes
+extra t  
+  | null ts = []
+  | otherwise = tail (varSequence "$v" ts)
+  where
+    ts = argTypes t
 
 programDefs :: (MonadState (Int, Program Scheme t a) m) => m [Name]
 programDefs = snd <$$> gets (Map.keys . unpack . snd)
@@ -99,52 +103,6 @@ makeDef name expr f =
   where
     t = typeOf expr
 
--- --specializeFun 
--- --  :: (MonadState (Int, a) m) 
--- --  => Label (Type Int Name)
--- --  -> [Label (Type Int Name)]
--- --  -> (Type Int Name, TypedExpr)
--- --  -> m TypedExpr
--- --specializeFun =
--- --  undefined
--- 
--- instantiateDef 
---   :: (MonadState (Int, a) m) 
---   => (ProgKey (Type Int Name), Definition (Type Int Name) SourceExpr)
---   -> m (ProgKey MonoType, Definition MonoType SourceExpr)
--- instantiateDef = 
---   \case
---     (_, Function args (_, body)) -> do
--- --      ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
--- --      let sub = toMonoType (Map.fromList ts)
---       undefined
--- 
--- specializeDef
---   :: (MonadState (Int, a) m) 
---   => Label (Type Int Name)
---   -> Definition (Type Int Name) (Expr (Type Int Name) (Type Int Name) () Void)
---   -> TypedExpr 
---   -> m TypedExpr
--- specializeDef (t, name) def expr = do
---   ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
---   let sub = toMonoType (Map.fromList ts)
---   case def of
---     Function args (_, body) -> do
---       let e1 = eLam () (toList (first sub <$> args)) (mapTypes sub body)
---           t1 = sub t
---       (e, binds) <- runWriterT (replaceTemplates t1 name e1 expr)
---       --traceShowM "***"
---       --traceShowM (unique binds)
---       --traceShowM "***"
---       --pure (foldr (uncurry eLet) e (((t1, name), e1) : unique binds))
---       pure (foldr (uncurry eLet) e (unique binds))
--- 
--- --      specializeDef     
--- --        (sub t, name)
--- --        (toList (first sub <$> args))
--- --        (sub t0, mapTypes sub body)
--- --        expr
-
 specializeDef 
   :: (MonadState (Int, a) m) 
   => Label MonoType
@@ -153,10 +111,8 @@ specializeDef
   -> TypedExpr 
   -> m TypedExpr
 specializeDef (t, name) args (_, body) e2 = do
-  (e, binds) <- runWriterT (xreplaceTemplates t name e1 e2)
+  (e, binds) <- runWriterT (xreplaceTemplates t name (eLam () args body) e2)
   pure (foldr (uncurry eLet) e binds)
-  where 
-    e1 = eLam () args body
 
 -- | Predicate to test if the type contains at least one type variable
 isTemplate :: Type v s -> Bool
@@ -216,15 +172,7 @@ xreplaceTemplates t name e1 =
     )
   where
     getSubst t1 t2 = 
-      xrunTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
-
-xrunTypeChecker'' :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
-xrunTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
-
---runTypeChecker'' :: Int -> Environment (Type Int Name) -> TypeChecker a -> Either TypeError a
---runTypeChecker'' n env m = evalState (runReaderT (runExceptT (unpack m)) env) (n, mempty)
-
---basfddd t1 t2 = runTypeChecker'' (freeIndex [t1, t2]) mempty (unify t1 t2)
+      evalTypeChecker (freeIndex [t1, t2]) mempty (unify t1 t2)
 
 exclude :: [Label s] -> [Name] -> [Label s]
 exclude = foldr (\label -> filter ((/=) label . snd)) 
