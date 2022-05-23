@@ -829,9 +829,9 @@ runUnifyRows r1 r2 =  evalTypeChecker (freeIndex [tRow r1, tRow r2]) mempty (uni
 
 hello5xx :: Text -> IO ()
 hello5xx s = do
-  traceShowM zz1
-  traceShowM "&&&&&&&&&&"
+  --traceShowM "&&&&&&&&&&"
   mapM_ traceShowM (Map.toList q)
+  traceShowM zz1
   where
     zz1 = evalProgram__ (e, qq)
     Just (Function _ (_, e)) = Map.lookup (Scheme (tUnit ~> tInt), "main") q
@@ -1305,4 +1305,26 @@ hello125 =
   \def main(a : unit) : int =\
   \  5 + n\
   \"
+
+hello126 :: Text
+hello126 =
+  "\
+  \const f : int -> int -> int =\
+  \  lam(x) => lam(y) => x\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  f(8, 9)\
+  \"
+
+hello127 :: Text
+hello127 =
+  "\
+  \const f : int -> int -> int =\
+  \  lam(x) => lam(y) => x\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let g = f(8) in g(9)\
+  \"
+
+
 
