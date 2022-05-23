@@ -29,14 +29,14 @@ isomorphic :: MonoType -> MonoType -> Bool
 isomorphic t0 t1 = canonical t0 == canonical t1
 
 -- TODO: keep?
---combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
---combineLambdas =
---  cata $
---    \case
---      ELam t xs (Fix (ELam _ ys expr)) ->
---        eLam t (xs <> ys) expr
---      e ->
---        embed e
+combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
+combineLambdas =
+  cata $
+    \case
+      ELam t xs (Fix (ELam _ ys expr)) ->
+        eLam t (xs <> ys) expr
+      e ->
+        embed e
 
 appArgs :: [Ast] -> Ast -> Ast
 appArgs [] =
@@ -65,7 +65,7 @@ extra t
     ts = argTypes t
 
 programDefs :: (MonadState (Int, Program Scheme t a) m) => m [Name]
-programDefs = snd <$$> gets (Map.keys . unpack . snd)
+programDefs = gets (Map.keys . Map.mapKeys snd . unpack . snd)
 
 liftDef ::
   (MonadState (Int, Program Scheme MonoType Ast) m) =>

@@ -1096,11 +1096,13 @@ translate2bx p =
   forEachDefM 
     ( \case
       (key, Function args (t, expr)) -> do
-        e <- xspecializeLets expr
+        -- e <- xspecializeLets expr
+        e <- xspecializeLets (combineLambdas expr)
         e1 <- foldMDefs zork e p 
         pure (key, Function args (t, e1))
       (key, Constant (t, expr)) -> do
-        e <- xspecializeLets expr
+        -- e <- xspecializeLets expr
+        e <- xspecializeLets (combineLambdas expr)
         e1 <- foldMDefs zork e p 
         pure (key, Constant (t, e1))
       _ ->
@@ -1325,6 +1327,17 @@ hello127 =
   \def main(a : unit) : int =\
   \  let g = f(8) in g(9)\
   \"
+
+hello128 :: Text
+hello128 =
+  "\
+  \const f : int -> int -> int =\
+  \  lam(x) => lam(y) => x\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let g = f(8) in g(9)\
+  \"
+
 
 
 
