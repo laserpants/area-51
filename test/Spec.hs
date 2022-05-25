@@ -6,16 +6,15 @@
 -- -- import Control.Monad.State
 -- -- import Control.Monad.Writer
 -- -- import Data.Void
--- -- import LLVM.IRBuilder
--- -- import LLVM.IRBuilder.Module
--- -- import LLVM.Pretty
+import LLVM.IRBuilder
+import LLVM.IRBuilder.Module
+import LLVM.Pretty
 -- -- import Pong.LLVM.Emit
 -- -- import Pong.Test.Drivers
 -- -- import Text.Megaparsec (runParser)
 -- -- import qualified Data.Text.Lazy.IO as Text
 -- -- import qualified LLVM.AST as LLVM
 -- -- import qualified LLVM.AST.Type as LLVM
-import Pong.Eval
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -29,6 +28,8 @@ import Data.Void
 import Debug.Trace
 import Pong.Compiler2
 import Pong.Data
+import Pong.Eval
+import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Parser
 import Pong.Test.Data
@@ -39,6 +40,9 @@ import Test.Hspec
 import Text.Megaparsec (runParser)
 import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
+import qualified Data.Text.Lazy as TL
+import System.Process
+import System.Exit
 
 -- -- --foo = runWriter (evalStateT (liftLambdas (fillExprParams fragment16_2)) 0)
 -- -- 
@@ -846,8 +850,8 @@ hello4xx s =
       x <- translate3 p
       (_, z) <- get
       pure (x <> z)
-    _ ->
-      error "TODO"
+    e ->
+      error (show e) -- "TODO"
 
 hello3xx :: Text -> TypeChecker (Program Scheme MonoType TypedExpr)
 hello3xx s = do
@@ -1014,6 +1018,9 @@ translate2x =
       ((scheme, name), Constant (_, expr)) -> do
         const <- inferTypes expr
         pure ((scheme, name), Constant (typeOf const, const))
+
+      ((scheme, name), Extern as r) -> do
+        pure ((scheme, name), Extern as r)
 --      ((scheme, name), Function args (_, expr)) -> do
 --        e <- do
 --          lam <- inferTypes (eLam () (toList args) expr)
@@ -1105,8 +1112,8 @@ translate2bx p =
         e <- xspecializeLets (combineLambdas expr)
         e1 <- foldMDefs zork e p 
         pure (key, Constant (t, e1))
-      _ ->
-        error "TODO"
+      d ->
+        pure d
     ) p
 
 --translate2b
@@ -1154,8 +1161,8 @@ translate3 =
       (key, Constant (t, expr)) -> do
         e <- compile expr
         pure (key, Constant (t, e))
-      _ ->
-        error "TODO"
+      (key, Extern as r) ->
+        pure (key, Extern as r)
     )
 
 --translate3 
@@ -1273,6 +1280,19 @@ hello1 =
 --     \"
 -- 
 
+hello122 :: Text
+hello122 =
+  "\
+  \extern print_int64 : int -> int\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  print_int64(fact(9))\
+  \\r\n\
+  \def fact(n : int) : int =\
+  \  if n == 0 then 1 else n * fact(n - 1)\
+  \"
+
+
 hello123 :: Text
 hello123 =
   "\
@@ -1331,13 +1351,46 @@ hello127 =
 hello128 :: Text
 hello128 =
   "\
-  \const f : int -> int -> int =\
-  \  lam(x) => lam(y) => x\
+  \const f : int -> a -> int =\
+  \  lam(x) => lam(y) => x + 1\
   \\r\n\
   \def main(a : unit) : int =\
-  \  let g = f(8) in g(9)\
+  \  let g = f(8) in if g(9) == 9 then 2 else 1\
   \"
 
+hello129 :: Text
+hello129 =
+  "\
+  \def isMoreThan3(x : int) : bool = x > 3\
+  \\r\n\
+  \def toInt(x : bool) : int = if x then 1 else 0\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  toInt(isMoreThan3(5))\
+  \"
 
+hello6xx :: Text -> IO ()
+hello6xx s = do
+  runModule yy1
+  x <- foo
+  traceShowM x
+  --mapM_ traceShowM (Map.toList q)
+  --traceShowM zz1
+  where
+    foo = do
+      (_, Just one, _, _) <- createProcess (proc "echo" [ "target triple = \"x86_64-redhat-linux-gnu\"\n " <> TL.unpack yy2 ]) { std_out = CreatePipe }
+      (_, _, _, h) <- createProcess (proc "clang" [ "memory.c", "-xir", "-lgc", "-o", "out", "-" ]) 
+           { std_in = UseHandle one 
+           , cwd = Just "/home/laserpants/code/area-51"
+           }
+      waitForProcess h
+      (_, _, _, g) <- createProcess (proc "/home/laserpants/code/area-51/out" [])
+      -- ExitFailure c <- waitForProcess g
+      c <- waitForProcess g
+      pure c
 
+    yy2 = ppll yy1
+    yy1 = buildProgram "Foo" qq
+    qq :: Program Scheme MonoType Ast
+    qq = evalState (hello4xx s) (1, emptyProgram) 
 

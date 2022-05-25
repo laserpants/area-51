@@ -370,6 +370,11 @@ binopType =
   Scheme
     <<< \case
       OEq -> tGen "a" ~> tGen "a" ~> tBool
+      ONEq -> tGen "a" ~> tGen "a" ~> tBool
+      OLt -> tGen "a" ~> tGen "a" ~> tBool
+      OGt -> tGen "a" ~> tGen "a" ~> tBool
+      OLtE -> tGen "a" ~> tGen "a" ~> tBool
+      OGtE -> tGen "a" ~> tGen "a" ~> tBool
       OAdd -> tGen "a" ~> tGen "a" ~> tGen "a"
       OSub -> tGen "a" ~> tGen "a" ~> tGen "a"
       OMul -> tGen "a" ~> tGen "a" ~> tGen "a"

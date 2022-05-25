@@ -512,6 +512,10 @@ oMulInt = (tInt ~> tInt ~> tInt, OMul)
 oEqInt :: (Type v s, Op2)
 oEqInt = (tInt ~> tInt ~> tBool, OEq)
 
+{-# INLINE oNEqInt #-}
+oNEqInt :: (Type v s, Op2)
+oNEqInt = (tInt ~> tInt ~> tBool, ONEq)
+
 {-# INLINE oLtInt #-}
 oLtInt :: (Type v s, Op2)
 oLtInt = (tInt ~> tInt ~> tBool, OLt)

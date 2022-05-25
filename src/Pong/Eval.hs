@@ -20,11 +20,16 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
+{- ORMOLU_DISABLE -}
+
+-- | A fully evaluated expression
 data Value
   = PrimValue Prim                           -- ^ Primitive value
   | ConValue Name [Value]                    -- ^ Applied data constructor
   | RowValue (Row Value Void)                -- ^ Row value
   | Closure (Label MonoType) [Eval Value]    -- ^ Partially applied function
+
+{- ORMOLU_ENABLE -}
 
 instance Eq Value where
   a == b =
@@ -104,6 +109,10 @@ eval =
       lhs <- a
       rhs <- b
       pure (PrimValue (PBool (lhs == rhs)))
+    EOp2 (_, ONEq) a b -> do
+      lhs <- a
+      rhs <- b
+      pure (PrimValue (PBool (lhs /= rhs)))
     EOp2 (_, op) a b ->
       PrimValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     ECase expr cs -> do
@@ -226,14 +235,26 @@ evalOp2 OAdd (PFloat p) (PFloat q) = PFloat (p + q)
 evalOp2 OMul (PFloat p) (PFloat q) = PFloat (p * q)
 evalOp2 OSub (PFloat p) (PFloat q) = PFloat (p - q)
 evalOp2 ODiv (PFloat p) (PFloat q) = PFloat (p / q)
+evalOp2 OLt (PFloat p) (PFloat q) = PBool (p < q)
+evalOp2 OGt (PFloat p) (PFloat q) = PBool (p > q)
+evalOp2 OLtE (PFloat p) (PFloat q) = PBool (p <= q)
+evalOp2 OGtE (PFloat p) (PFloat q) = PBool (p >= q)
 evalOp2 OAdd (PDouble p) (PDouble q) = PDouble (p + q)
 evalOp2 OMul (PDouble p) (PDouble q) = PDouble (p * q)
 evalOp2 OSub (PDouble p) (PDouble q) = PDouble (p - q)
 evalOp2 ODiv (PDouble p) (PDouble q) = PDouble (p / q)
+evalOp2 OLt (PDouble p) (PDouble q) = PBool (p < q)
+evalOp2 OGt (PDouble p) (PDouble q) = PBool (p > q)
+evalOp2 OLtE (PDouble p) (PDouble q) = PBool (p <= q)
+evalOp2 OGtE (PDouble p) (PDouble q) = PBool (p >= q)
 evalOp2 OEq (PInt m) (PInt n) = PBool (m == n)
 evalOp2 OAdd (PInt m) (PInt n) = PInt (m + n)
 evalOp2 OSub (PInt m) (PInt n) = PInt (m - n)
 evalOp2 OMul (PInt m) (PInt n) = PInt (m * n)
+evalOp2 OLt (PInt p) (PInt q) = PBool (p < q)
+evalOp2 OGt (PInt p) (PInt q) = PBool (p > q)
+evalOp2 OLtE (PInt p) (PInt q) = PBool (p <= q)
+evalOp2 OGtE (PInt p) (PInt q) = PBool (p >= q)
 evalOp2 _ _ _ = error "Runtime error (6)"
 
 evalProgram_ :: (Ast, [(Label Scheme, Definition MonoType Ast)]) -> Value

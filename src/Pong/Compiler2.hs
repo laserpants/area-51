@@ -28,7 +28,6 @@ canonical t = apply (Substitution map) t
 isomorphic :: MonoType -> MonoType -> Bool
 isomorphic t0 t1 = canonical t0 == canonical t1
 
--- TODO: keep?
 combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 combineLambdas =
   cata $

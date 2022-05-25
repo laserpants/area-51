@@ -29,8 +29,8 @@ data TypeF v s a
   = TUnit                          -- ^ Unit type
   | TBool                          -- ^ Boolean type
   | TInt                           -- ^ Type of integers (machine bounded)
-  | TFloat                         -- ^ Single-precision floating point number
-  | TDouble                        -- ^ Double-precision floating point number
+  | TFloat                         -- ^ Single precision floating point number
+  | TDouble                        -- ^ Double precision floating point number
   | TChar                          -- ^ Char type
   | TString                        -- ^ Unicode strings
   | TCon Name [a]                  -- ^ Algebraic data-types
@@ -39,13 +39,16 @@ data TypeF v s a
   | TGen s                         -- ^ Quantified type variable
   | TRow (Row (Type v s) Int)      -- ^ Row types
 
+-- | Parameterized type representation
 type Type v s = Fix (TypeF v s)
 
+-- | Monomorphic type
 type MonoType = Type Int Void
 
 -- | Polymorphic type scheme
 newtype Scheme = Scheme (Type Void Name)
 
+-- | Type variety 
 data ConT
   = VarT                           -- ^ Type is a TVar 
   | ArrT                           -- ^ Type is a TArr
@@ -68,7 +71,8 @@ data Op1
 
 -- | Binary operators
 data Op2
-  = OEq                            -- ^ Equality
+  = OEq                            -- ^ Equal to
+  | ONEq                           -- ^ Not equal to
   | OLt                            -- ^ Less than
   | OGt                            -- ^ Greater than
   | OLtE                           -- ^ Less than or equal to
@@ -116,6 +120,7 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
+-- | Expression variety 
 data ConE
   = VarE                           -- ^ Expression is an EVar
   | LitE                           -- ^ Expression is an ELit
@@ -132,7 +137,7 @@ data Constructor t = Constructor
 data Definition t a
   = Function (List1 (Label t)) (t, a)
   | Constant (t, a)
-  | Extern [t] t
+  | Extern [MonoType] MonoType
   | Data Name [Constructor t]
 
 newtype Program s t a

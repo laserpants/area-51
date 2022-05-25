@@ -145,7 +145,14 @@ fix6 =
   [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
   , InfixL (eOp2 ((), OSub) <$ symbol "-")
   ]
-fix4 = [InfixN (eOp2 ((), OEq) <$ symbol "==")]
+fix4 = 
+  [ InfixN (eOp2 ((), OEq) <$ symbol "==")
+  , InfixN (eOp2 ((), ONEq) <$ symbol "/=")
+  , InfixN (eOp2 ((), OLt) <$ try (symbol "<" <* notFollowedBy (symbol "=")))
+  , InfixN (eOp2 ((), OGt) <$ try (symbol ">" <* notFollowedBy (symbol "=")))
+  , InfixN (eOp2 ((), OLtE) <$ symbol "<=")
+  , InfixN (eOp2 ((), OGtE) <$ symbol ">=")
+  ]
 fix3 = [InfixR (eOp2 ((), OLogicAnd) <$ symbol "&&")]
 fix2 = [InfixR (eOp2 ((), OLogicOr) <$ symbol "||")]
 
@@ -294,7 +301,7 @@ arg = do
   pure (t, name)
 
 def :: Parser (Label Scheme, Definition () SourceExpr)
-def = functionDef <|> constantDef -- <|> externalDef <|> dataDef -- TODO
+def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
   where
     functionDef = do
       keyword "def"
@@ -316,6 +323,14 @@ def = functionDef <|> constantDef -- <|> externalDef <|> dataDef -- TODO
       symbol "="
       e <- expr
       pure ((Scheme t, name), Constant ((), e))
+
+    externalDef = do
+      keyword "extern"
+      name <- identifier
+      symbol ":"
+      t <- type_
+      let t0 = toMonoType mempty t
+      pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
 
 program :: Parser (Program Scheme () SourceExpr)
 program = do

@@ -8,6 +8,7 @@ module Pong.LLVM (
   module LLVM.AST.Type,
   module LLVM.AST.Typed,
   module LLVM.AST.Operand,
+  module LLVM.Pretty
 ) where
 
 import LLVM.AST.AddrSpace
@@ -19,3 +20,4 @@ import LLVM.AST.Typed
 import LLVM.IRBuilder
 import LLVM.IRBuilder.Constant
 import LLVM.IRBuilder.Instruction
+import LLVM.Pretty
