@@ -55,7 +55,7 @@ runTypeChecker ::
 runTypeChecker n env (TypeChecker c) =
   runState (runReaderT (runExceptT c) env) (n, mempty)
 
-programEnv :: Program Scheme t a -> TypeEnv
+programEnv :: Program t a -> TypeEnv
 programEnv program =
   Env.fromList (Map.keys (unpack program) <&> swap . first Right)
 

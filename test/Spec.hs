@@ -840,10 +840,10 @@ hello5xx s = do
     zz1 = evalProgram__ (e, qq)
     Just (Function _ (_, e)) = Map.lookup (Scheme (tUnit ~> tInt), "main") q
     Program q = qq
-    qq :: Program Scheme MonoType Ast
+    qq :: Program MonoType Ast
     qq = evalState (hello4xx s) (1, emptyProgram) 
 
-hello4xx :: Text -> State (Int, Program Scheme MonoType Ast) (Program Scheme MonoType Ast)
+hello4xx :: Text -> State (Int, Program MonoType Ast) (Program MonoType Ast)
 hello4xx s = 
   case runTypeChecker 1 mempty (hello3xx s) of
     (Right p, (n, _)) -> do
@@ -853,7 +853,7 @@ hello4xx s =
     e ->
       error (show e) -- "TODO"
 
-hello3xx :: Text -> TypeChecker (Program Scheme MonoType TypedExpr)
+hello3xx :: Text -> TypeChecker (Program MonoType TypedExpr)
 hello3xx s = do
   Program g <- translate2x p
   Program h <- translate2bx (Program g)
@@ -862,7 +862,7 @@ hello3xx s = do
   where
     Right p = runParser program "" s
 
-hello3x :: TypeChecker (Program Scheme MonoType TypedExpr)
+hello3x :: TypeChecker (Program MonoType TypedExpr)
 hello3x = do
 --  mapM_ traceShowM (Map.toList z)
   Program g <- translate2x q
@@ -871,7 +871,7 @@ hello3x = do
   traceShowM "------------------"
   pure emptyProgram -- (Program g)
   where
-    q :: Program Scheme () SourceExpr 
+    q :: Program () SourceExpr 
     Right q = hello1 
 
 --hello3 :: TypeChecker (Program Scheme MonoType TypedExpr)
@@ -886,7 +886,7 @@ hello3x = do
 --    q :: Program Scheme () SourceExpr 
 --    Right q = hello1 
 
-hello4x :: State (Int, Program Scheme MonoType Ast) (Program Scheme MonoType Ast)
+hello4x :: State (Int, Program MonoType Ast) (Program MonoType Ast)
 hello4x = 
   case runTypeChecker 1 mempty hello3x of
     (Right p, (n, _)) -> do
@@ -955,10 +955,10 @@ hello5x = mapM_ traceShowM (Map.toList q)
     Program q = evalState hello4x (1, emptyProgram) 
 
 forEachDefM 
-  :: (Monad m, Ord s1, Ord s2) 
-  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2)) 
-  -> Program s1 t1 a1 
-  -> m (Program s2 t2 a2)
+  :: (Monad m) 
+  => ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) 
+  -> Program t1 a1 
+  -> m (Program t2 a2)
 forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
 --forEachDefM 
@@ -971,15 +971,15 @@ forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 forEachDefEnvM 
   :: (MonadReader TypeEnv m) 
   => ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) 
-  -> Program Scheme t1 a1
-  -> m (Program Scheme t2 a2)
+  -> Program t1 a1
+  -> m (Program t2 a2)
 forEachDefEnvM f p = local (<> programEnv p) (forEachDefM f p)
 
 foldMDefs
   :: (Monad m)
-  => ((Label s, Definition t a) -> r -> m r)
+  => ((Label Scheme, Definition t a) -> r -> m r)
   -> r
-  -> Program s t a
+  -> Program t a
   -> m r
 foldMDefs f a = foldrM f a . Map.toList . unpack
 
@@ -1001,9 +1001,7 @@ foldMDefs f a = foldrM f a . Map.toList . unpack
 --        pure ((t, name), def)
 --    )
 
-translate2x
-  :: Program Scheme () SourceExpr
-  -> TypeChecker (Program Scheme MonoType TypedExpr)
+translate2x :: Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)
 translate2x = 
   forEachDefEnvM 
     ( \case
@@ -1097,8 +1095,8 @@ zork ((scheme, name), def) e =
       pure e
 
 translate2bx
-  :: Program Scheme MonoType TypedExpr
-  -> TypeChecker (Program Scheme MonoType TypedExpr)
+  :: Program MonoType TypedExpr
+  -> TypeChecker (Program MonoType TypedExpr)
 translate2bx p = 
   forEachDefM 
     ( \case
@@ -1149,9 +1147,9 @@ translate2bx p =
 --    )
 
 translate3
-  :: (MonadState (Int, Program Scheme MonoType Ast) m) 
-  => Program Scheme MonoType TypedExpr
-  -> m (Program Scheme MonoType Ast)
+  :: (MonadState (Int, Program MonoType Ast) m) 
+  => Program MonoType TypedExpr
+  -> m (Program MonoType Ast)
 translate3 = 
   forEachDefM 
     ( \case
@@ -1391,6 +1389,6 @@ hello6xx s = do
 
     yy2 = ppll yy1
     yy1 = buildProgram "Foo" qq
-    qq :: Program Scheme MonoType Ast
+    qq :: Program MonoType Ast
     qq = evalState (hello4xx s) (1, emptyProgram) 
 

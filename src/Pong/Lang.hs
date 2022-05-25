@@ -356,20 +356,19 @@ insertArgs :: [(t, Name)] -> Environment t -> Environment t
 insertArgs = Env.inserts . (swap <$>)
 
 {-# INLINE emptyProgram #-}
-emptyProgram :: (Ord s, Ord t) => Program s t a
+emptyProgram :: (Ord t) => Program t a
 emptyProgram = Program mempty
 
 {-# INLINE modifyProgram #-}
 modifyProgram ::
-  (MonadState (r, Program s t a) m) =>
-  (Map (Label s) (Definition t a) -> Map (Label s) (Definition t a)) ->
+  (MonadState (r, Program t a) m) =>
+  (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
   m ()
 modifyProgram = modify . second . over Program
 
 insertDef ::
-  (Ord s) =>
-  (MonadState (r, Program s t a) m) =>
-  Label s ->
+  (MonadState (r, Program t a) m) =>
+  Label Scheme ->
   Definition t a ->
   m ()
 insertDef = modifyProgram <$$> Map.insert

@@ -262,5 +262,5 @@ evalProgram_ (ast, defs) = runReader (unEval (eval ast)) (env, mempty)
   where
     env = Env.fromList (first snd <$> defs)
 
-evalProgram__ :: (Ast, Program Scheme MonoType Ast) -> Value
+evalProgram__ :: (Ast, Program MonoType Ast) -> Value
 evalProgram__ (ast, Program p) = evalProgram_ (ast, Map.toList p)

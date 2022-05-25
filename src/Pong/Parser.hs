@@ -332,7 +332,7 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       let t0 = toMonoType mempty t
       pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
 
-program :: Parser (Program Scheme () SourceExpr)
+program :: Parser (Program () SourceExpr)
 program = do
   defs <- many def
   pure (Program (Map.fromList defs))

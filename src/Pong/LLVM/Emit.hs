@@ -51,14 +51,14 @@ type CodeGenEnv = Environment (Either (Name, [Ast]) (MonoType, Operand))
 newtype CodeGen a = CodeGen
   { getCodeGen ::
       StateT
-        (Int, Program Scheme MonoType Ast)
+        (Int, Program MonoType Ast)
         (ReaderT CodeGenEnv (IRBuilderT ModuleBuilder))
         a
   }
 
 runCodeGen ::
   CodeGenEnv ->
-  Program Scheme MonoType Ast ->
+  Program MonoType Ast ->
   CodeGen a ->
   IRBuilderT ModuleBuilder a
 runCodeGen env prog (CodeGen code) = runReaderT (evalStateT code (1, prog)) env
@@ -991,7 +991,7 @@ forEachDef
   -> ModuleBuilder [a]
 forEachDef m f = forM (Map.toList m) (\(name, def) -> f name (typeOf def) def)
 
-buildProgram :: Name -> Program Scheme MonoType Ast -> LLVM.Module
+buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram name (Program defs) = do
   buildModule (llvmRep name) $ do
     env <-
@@ -1108,7 +1108,7 @@ deriving instance Monad CodeGen
 
 deriving instance (MonadReader CodeGenEnv) CodeGen
 
-deriving instance (MonadState (Int, Program Scheme MonoType Ast)) CodeGen
+deriving instance (MonadState (Int, Program MonoType Ast)) CodeGen
 
 deriving instance MonadFix CodeGen
 

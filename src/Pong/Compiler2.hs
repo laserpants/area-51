@@ -63,11 +63,11 @@ extra t
   where
     ts = argTypes t
 
-programDefs :: (MonadState (Int, Program Scheme t a) m) => m [Name]
+programDefs :: (MonadState (Int, Program t a) m) => m [Name]
 programDefs = gets (Map.keys . Map.mapKeys snd . unpack . snd)
 
 liftDef ::
-  (MonadState (Int, Program Scheme MonoType Ast) m) =>
+  (MonadState (Int, Program MonoType Ast) m) =>
   Name ->
   [Label MonoType] ->
   [Label MonoType] ->
@@ -84,7 +84,7 @@ liftDef name vs args expr = do
     def = Function (fromList as) (t, expr)
 
 makeDef ::
-  (MonadState (Int, Program Scheme MonoType Ast) m) =>
+  (MonadState (Int, Program MonoType Ast) m) =>
   Name ->
   Ast ->
   ((Ast -> Ast) -> Ast) ->
@@ -177,7 +177,7 @@ exclude :: [Label s] -> [Name] -> [Label s]
 exclude = foldr (\label -> filter ((/=) label . snd)) 
 
 compile 
-  :: (MonadState (Int, Program Scheme MonoType Ast) m) 
+  :: (MonadState (Int, Program MonoType Ast) m) 
   => TypedExpr 
   -> m Ast
 compile =

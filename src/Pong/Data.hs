@@ -140,8 +140,8 @@ data Definition t a
   | Extern [MonoType] MonoType
   | Data Name [Constructor t]
 
-newtype Program s t a
-  = Program (Map (Label s) (Definition t a))
+newtype Program t a
+  = Program (Map (Label Scheme) (Definition t a))
 
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
@@ -271,12 +271,12 @@ deriving instance Foldable (Definition t)
 deriving instance Traversable (Definition t)
 
 -- Program
-deriving instance (Show s, Show t, Show a) => Show (Program s t a)
+deriving instance (Show t, Show a) => Show (Program t a)
 
-deriving instance (Eq s, Eq t, Eq a) => Eq (Program s t a)
+deriving instance (Eq t, Eq a) => Eq (Program t a)
 
-deriving instance (Ord s, Ord t) => Semigroup (Program s t a)
+deriving instance (Ord t) => Semigroup (Program t a)
 
-deriving instance Generic (Program s t a)
+deriving instance Generic (Program t a)
 
-instance Newtype (Program s t a)
+instance Newtype (Program t a)
