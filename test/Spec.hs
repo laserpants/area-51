@@ -1290,12 +1290,13 @@ hello122 =
   \  if n == 0 then 1 else n * fact(n - 1)\
   \"
 
-
 hello123 :: Text
 hello123 =
   "\
+  \extern print_int64 : int -> int\
+  \\r\n\
   \def main(a : unit) : int =\
-  \  add(1, fact(3))\
+  \  print_int64(add(1, fact(3)))\
   \\r\n\
   \def fact(n : int) : int =\
   \  if n == 0 then 1 else n * fact(n - 1)\
@@ -1304,6 +1305,7 @@ hello123 =
   \  m + n\
   \"
 
+-- TODO
 hello124 :: Text
 hello124 =
   "\
@@ -1317,13 +1319,30 @@ hello124 =
   \  m + n\
   \"
 
+-- TODO
+hello12b :: Text
+hello12b =
+  "\
+  \extern print_int64 : int -> int\
+  \\r\n\
+  \extern gc_malloc : int -> a\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let add1 = add(1) in print_int64(add1(3))\
+  \\r\n\
+  \def add(m : int, n : int) : int =\
+  \  m + n\
+  \"
+
 hello125 :: Text
 hello125 =
   "\
+  \extern print_int64 : int -> int\
+  \\r\n\
   \const n : int = 1\
   \\r\n\
   \def main(a : unit) : int =\
-  \  5 + n\
+  \  print_int64(5 + n)\
   \"
 
 hello126 :: Text

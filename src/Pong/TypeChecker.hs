@@ -339,8 +339,11 @@ inferExpr =
 
 type TypedClause = ([Label MonoType], TypedExpr)
 
-inferRowCase ::
-  MonoType -> [Label Int] -> TypeChecker TypedExpr -> TypeChecker TypedClause
+inferRowCase 
+  :: MonoType 
+  -> [Label Int] 
+  -> TypeChecker TypedExpr 
+  -> TypeChecker TypedClause
 inferRowCase (Fix (TRow row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do

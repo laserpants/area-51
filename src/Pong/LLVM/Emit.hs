@@ -21,7 +21,7 @@ module Pong.LLVM.Emit where
 
 -- import Data.Function ((&))
 
--- import Debug.Trace
+import Debug.Trace
 -- import LLVM.Pretty
 import Data.List (sortOn)
 import qualified Data.Map.Strict as Map
@@ -143,8 +143,11 @@ emitOp2Instr =
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
 globalRef name ty = ConstantOperand (GlobalReference ty name)
 
+ref :: LLVM.Name -> LLVM.Type -> Operand
+ref name = globalRef name . ptr
+
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
-functionRef name rty argtys = globalRef name (ptr (FunctionType rty argtys False))
+functionRef name rty argtys = ref name (FunctionType rty argtys False)
 
 {- ORMOLU_DISABLE -}
 
@@ -330,9 +333,10 @@ emitBody =
       \case
         ELet (t, name) expr1 expr2 -> do
           e1 <- expr1
-          p <- alloca (LLVM.typeOf e1) Nothing 0
-          store p 0 e1
-          local (Env.insert name (Right (t, p))) expr2
+          local (Env.insert name (Right (t, e1))) expr2
+          --p <- alloca (LLVM.typeOf e1) Nothing 0
+          --store p 0 e1
+          --local (Env.insert name (Right (t, p))) expr2
         ELit lit ->
           emitPrim lit
         EIf expr1 expr2 expr3 -> mdo
@@ -353,11 +357,23 @@ emitBody =
           a <- expr1
           b <- expr2
           emitOp2Instr op a b
+        EVar (t, "add1") ->
+          error "!!!!OOF"
         EVar (t, name) ->
           Env.askLookup name >>= \case
             Just (Right (_, op)) | isConT ArrT t ->
               emitCall (t, name) []
-            Just (Right (_, op)) ->
+--            Just (Right (_, ConstantOperand GlobalReference{})) -> do
+--              emitCall (t, name) []
+--              traceShow op
+--                $ undefined
+            Just (Right (_, op)) -> do
+           --   xx1 <- emitPrim (PInt 9)
+           --   xx2 <- emitPrim (PInt 10)
+           --   traceShowM op
+           --   traceShowM "&&&&&"
+           --   call op (zip ([xx1, xx2]) (repeat []))
+           --   --undefined
               pure op
             Just (Left ast) -> do
               undefined
@@ -372,6 +388,7 @@ emitBody =
         ECase expr clauses ->
           emitCase expr (sortOn fst clauses)
         ECall () fun args -> do
+          traceShowM ("Call : " <> show (snd fun))
           as <- sequence args
           emitCall fun as
         eee -> do
@@ -595,15 +612,112 @@ emitCase =
 
 emitCall :: Label MonoType -> [Operand] -> CodeGen Operand
 emitCall (t, f) as = do
+  traceShowM "----------------"
+  traceShowM t 
+  traceShowM f 
   Env.askLookup f >>= \case
-    Just (Right (t0, op@(LocalReference PointerType {..} _))) -> do
-      error "#1"
+    --Just (Right (t0, op@(ConstantOperand a))) -> do
+    --  traceShowM a
+    --  undefined
+    Just (Right (t0, op@(LocalReference abc z))) -> do
+      --a <- bitcast op (ptr fff0)
+      --      --(StructureType { isPacked = False
+      --      --               
+      --      --               , elementTypes = [IntegerType {typeBits = 8},PointerType { pointerAddrSpace = AddrSpace 0, pointerReferent = FunctionType {resultType = IntegerType {typeBits = 64}, argumentTypes = [IntegerType {typeBits = 64},IntegerType {typeBits = 64}]
+      --      --                                                                                                        , isVarArg = False}  } ] 
+      --      --               }
+      --      --               ))
+      --p0 <- gep a [int32 0, int32 0]
+      --p1 <- gep a [int32 0, int32 1]
+      --n <- load p0 0
+      --o <- load p1 0
+
+      xx1 <- emitPrim (PInt 9)
+      xx2 <- emitPrim (PInt 10)
+
+      --traceShow abc $
+      call op (zip ([xx1, xx2]) (repeat []))
+
+      --let LocalReference xx123 zz123 = o
+      --traceShowM fff0
+      --traceShowM yy
+      --traceShowM z
+      --traceShowM xx123
+      --traceShowM zz123
+      --traceShowM t0
+      --traceShowM f
+      --traceShowM "//3/3/3/3/3/3"
+      --let zoof = GlobalReference xx123 (LLVM.Name "add")
+      --    boof = ConstantOperand zoof
+
+      ----call o (zip as (repeat []))
+      ----call boof (zip ([xx1] <> as) (repeat []))
+      --call o (zip ([xx1] <> as) (repeat []))
+
+--      traceShow n
+--        $ traceShow o
+--          $ error "<<-=="
+
+      --let bop = ConstantOperand (GlobalReference xx z)
+      --traceShow "????"
+      --  $ traceShow op
+      --      $ do
+      --    -- $ traceShow z
+      --    --  $ traceShow bop
+      --        -- $ error "FOO"
+--      --let op = xx
+--                          p0 <- gep op [int32 0, int32 0]
+----                          p1 <- gep op [int32 0, int32 1]
+--                          n <- load p0 0
+----                          fun <- load p1 0
+----
+----                          let LocalReference nnn _ = n
+----                          q0 <- gep nnn [int32 0, int32 0]
+----                          nn <- load q0 0
+----
+--                          traceShow n
+--                            $ error (show n)
+--      --let op = ConstantOperand (GlobalReference (PointerType {pointerReferent = FunctionType {resultType = IntegerType {typeBits = 64}, argumentTypes = [IntegerType {typeBits = 64},IntegerType {typeBits = 64}], isVarArg = False}, pointerAddrSpace = AddrSpace 0}) (LLVM.Name "add")) 
+--      --    bop = ConstantOperand (GlobalReference xx (LLVM.Name "add"))
+--      --call bop (zip as (repeat []))
+--      traceShow "????"
+--        $ traceShow op
+--          $ error "??"
+      --    $ traceShow yy
+      --      $ call bop (zip as (repeat []))
     Just (Right (t0, op)) -> do
       case compare (arity t) (length as) of
         EQ -> do
           call op (zip as (repeat []))
         GT -> do
-          error "#B"
+          --traceShow "!!!!"
+          --  $ traceShow op
+          --    $ pure op
+          --
+          --pure op
+
+          xx1 <- emitPrim (PInt 9)
+          xx2 <- emitPrim (PInt 10)
+
+          call op (zip ([xx1, xx2]) (repeat []))
+
+          --local (Env.inserts undefined) $ do
+          --let zzab = GlobalReference (llvmType t0) (llvmRep f)
+          --traceShow "!!!!"
+          --  $ traceShow zzab
+          --    $ traceShow "!!!!"
+          --      $ traceShow op
+          --        $ do
+          --          let sty = StructureType False [i8, LLVM.typeOf op] --  : (LLVM.typeOf <$> as))
+          --          struct <- malloc sty
+          --          p0 <- gep struct [int32 0, int32 0]
+          --          p1 <- gep struct [int32 0, int32 1]
+          --          store p0 0 (int8 (fromIntegral (length as)))
+          --          store p1 0 op
+          --          --traceShow struct
+          --          --  $ error "OFSDFDS"
+          --          --traceShow struct
+          --          pure struct
     Just (Left (fun, args)) -> do
       error "#3"
     e ->
@@ -1004,6 +1118,20 @@ buildProgram name (Program defs) = do
                 (llvmType <$> args)
                 (llvmType t1)
             pure [ ( name, Right (t, op) ) ] 
+          Constant (t1, _) -> do
+            pure
+              [ ( name
+                , Right
+                  ( t
+                  -- , ref (llvmRep name) (PointerType (llvmType t1) "")
+                  --, ref (llvmRep name) (llvmType t1)
+                  , functionRef
+                      (llvmRep name)
+                      (llvmType t1)
+                      []
+                  )
+                )
+              ]
           Function args (t1, _) ->
             pure
               [ ( name
@@ -1018,6 +1146,18 @@ buildProgram name (Program defs) = do
               ]
     forEachDef defs $ \(_, name) t ->
       \case
+        Constant (t1, body) -> do
+          void $
+            function
+              (llvmRep name)
+              []
+              (llvmType t1)
+              (\ops -> do
+                runCodeGen
+                  env
+                  (Program defs)
+                  (emitBody body >>= ret)
+              )
         Function args (t1, body) ->
           void $
             function

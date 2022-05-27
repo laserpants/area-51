@@ -16,7 +16,7 @@ import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, without, varSequence, (!), (<$$>), (<&>), (<<<), (>>>))
+import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, varSequence, without, (!), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 
@@ -143,37 +143,39 @@ instance Typed Prim where
 
 instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
   typeOf =
-    cata $
-      \case
-        RNil -> tRow rNil
-        RVar (t, _) -> typeOf t
-        RExt name elem r ->
-          let TRow row = project r
-           in tRow (rExt name (typeOf elem) row)
+    cata
+      ( \case
+          RNil -> tRow rNil
+          RVar (t, _) -> typeOf t
+          RExt name elem r ->
+            let TRow row = project r
+             in tRow (rExt name (typeOf elem) row)
+      )
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
   typeOf =
-    cata $
-      \case
-        EVar (t, _) -> typeOf t
-        ECon (t, _) -> typeOf t
-        ELit lit -> typeOf lit
-        EIf _ _ e3 -> e3
-        ELet _ _ e3 -> e3
-        ELam _ args expr -> foldType expr (typeOf . fst <$> args)
-        EApp t fun as -> typeOf t
-        ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
-        EOp1 (t, _) _ -> returnType t
-        EOp2 (t, _) _ _ -> returnType t
-        ECase _ [] -> error "Empty case statement"
-        ECase _ cs -> head (snd <$> cs)
-        ERow r -> typeOf r
-        EField _ _ e -> e
+    cata
+      ( \case
+          EVar (t, _) -> typeOf t
+          ECon (t, _) -> typeOf t
+          ELit lit -> typeOf lit
+          EIf _ _ e3 -> e3
+          ELet _ _ e3 -> e3
+          ELam _ args expr -> foldType expr (typeOf . fst <$> args)
+          EApp t fun as -> typeOf t
+          ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
+          EOp1 (t, _) _ -> returnType t
+          EOp2 (t, _) _ _ -> returnType t
+          ECase _ [] -> error "Empty case statement"
+          ECase _ cs -> head (snd <$> cs)
+          ERow r -> typeOf r
+          EField _ _ e -> e
+      )
 
 instance (Typed t) => Typed (Definition t a) where
   typeOf =
     \case
-      Function args (t, _) -> 
+      Function args (t, _) ->
         foldType (typeOf t) (typeOf . fst <$> toList args)
 
 {-# INLINE arity #-}
@@ -265,6 +267,7 @@ toMonoType vs =
     ( \case
         TGen s ->
           case Map.lookup s vs of
+            -- Nothing -> tVar 0 -- error "Implementation error"
             Nothing -> error "Implementation error"
             Just t -> t
         TUnit -> tUnit
@@ -282,7 +285,7 @@ toMonoType vs =
 toScheme :: Name -> [Int] -> MonoType -> Scheme
 toScheme prefix vars = Scheme <<< go
   where
-    names = 
+    names =
       Map.fromList (varSequence prefix vars)
     go =
       cata

@@ -19,11 +19,15 @@ data RowF e r a
   | RVar r                         -- ^ Row variable
   | RExt Name e a                  -- ^ Row extension
 
+{- ORMOLU_ENABLE -}
+
 -- | A row is a sequence of labeled fields. Rows encode the internal structure
 -- of records, both at the type and expression level. A row can be either open
 -- or closed. An open row is one that has a variable in the tail of the
 -- sequence, whereas a closed row ends with the empty row.
 type Row e r = Fix (RowF e r)
+
+{- ORMOLU_DISABLE -}
 
 data TypeF v s a
   = TUnit                          -- ^ Unit type
@@ -39,6 +43,8 @@ data TypeF v s a
   | TGen s                         -- ^ Quantified type variable
   | TRow (Row (Type v s) Int)      -- ^ Row types
 
+{- ORMOLU_ENABLE -}
+
 -- | Parameterized type representation
 type Type v s = Fix (TypeF v s)
 
@@ -48,9 +54,11 @@ type MonoType = Type Int Void
 -- | Polymorphic type scheme
 newtype Scheme = Scheme (Type Void Name)
 
--- | Type variety 
+{- ORMOLU_DISABLE -}
+
+-- | Type variety (head construtor of a Type value)
 data ConT
-  = VarT                           -- ^ Type is a TVar 
+  = VarT                           -- ^ Type is a TVar
   | ArrT                           -- ^ Type is a TArr
   | RowT                           -- ^ Type is a TRow
 
@@ -84,12 +92,16 @@ data Op2
   | OLogicOr                       -- ^ Logical OR
   | OLogicAnd                      -- ^ Logical AND
 
+{- ORMOLU_ENABLE -}
+
 -- | A label is a typed identifier
 type Label t = (t, Name)
 
+{- ORMOLU_DISABLE -}
+
 data ExprF t a0 a1 a2 a
   = EVar (Label t)                           -- ^ Variable
-  | ECon (Label a0)                          -- ^ Data constructor 
+  | ECon (Label a0)                          -- ^ Data constructor
   | ELit Prim                                -- ^ Literal
   | EIf a a a                                -- ^ If statement
   | ELet (Label t) a a                       -- ^ Let binding
@@ -102,10 +114,12 @@ data ExprF t a0 a1 a2 a
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
   | EField [Label t] a a                     -- ^ Field accessor
 
+{- ORMOLU_ENABLE -}
+
 -- | Parameterized expression grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
 
--- | Untyped source expression 
+-- | Untyped source expression
 type SourceExpr = Expr () () () Void
 
 -- | Source expression annotated with numeric tags to support type inference
@@ -120,7 +134,9 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
--- | Expression variety 
+{- ORMOLU_DISABLE -}
+
+-- | Expression variety (head construtor of an Expr value)
 data ConE
   = VarE                           -- ^ Expression is an EVar
   | LitE                           -- ^ Expression is an ELit
