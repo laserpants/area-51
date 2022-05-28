@@ -4,6 +4,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Pong.Data where
 
@@ -11,6 +12,8 @@ import Control.Newtype.Generics (Newtype)
 import Data.Map.Strict (Map)
 import GHC.Generics (Generic)
 import Pong.Util (Fix (..), List1, Name, Text, Void, deriveEq1, deriveOrd1, deriveShow1)
+import Data.Typeable (Typeable)
+import Data.Data (Data)
 
 {- ORMOLU_DISABLE -}
 
@@ -166,6 +169,10 @@ deriving instance (Eq e, Eq r, Eq a) => Eq (RowF e r a)
 
 deriving instance (Ord e, Ord r, Ord a) => Ord (RowF e r a)
 
+deriving instance (Data e, Data r, Data a) => Data (RowF e r a)
+
+deriving instance (Typeable e, Typeable r, Typeable a) => Typeable (RowF e r a)
+
 deriveShow1 ''RowF
 
 deriveEq1 ''RowF
@@ -184,6 +191,10 @@ deriving instance (Show v, Show s, Show a) => Show (TypeF v s a)
 deriving instance (Eq v, Eq s, Eq a) => Eq (TypeF v s a)
 
 deriving instance (Ord v, Ord s, Ord a) => Ord (TypeF v s a)
+
+deriving instance (Data v, Data s, Data a) => Data (TypeF v s a)
+
+deriving instance (Typeable v, Typeable s, Typeable a) => Typeable (TypeF v s a)
 
 deriveShow1 ''TypeF
 
@@ -229,6 +240,10 @@ deriving instance Eq Prim
 
 deriving instance Ord Prim
 
+deriving instance Data Prim
+
+deriving instance Typeable Prim
+
 -- Op1
 deriving instance Show Op1
 
@@ -236,12 +251,20 @@ deriving instance Eq Op1
 
 deriving instance Ord Op1
 
+deriving instance Data Op1
+
+deriving instance Typeable Op1
+
 -- Op2
 deriving instance Show Op2
 
 deriving instance Eq Op2
 
 deriving instance Ord Op2
+
+deriving instance Data Op2
+
+deriving instance Typeable Op2
 
 -- Expr
 deriving instance
@@ -255,6 +278,16 @@ deriving instance
 deriving instance
   (Ord t, Ord a0, Ord a1, Ord a2, Ord a) =>
   Ord (ExprF t a0 a1 a2 a)
+
+deriving instance 
+  (Data t, Data a0, Data a1, Data a2, Data a) => 
+  Data (ExprF t a0 a1 a2 a)
+
+deriving instance 
+  (Typeable t, Typeable a0, Typeable a1, Typeable a2, Typeable a) => 
+  Typeable (ExprF t a0 a1 a2 a)
+
+deriving instance (Typeable t) => Typeable (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
 

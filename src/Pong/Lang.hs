@@ -267,8 +267,8 @@ toMonoType vs =
     ( \case
         TGen s ->
           case Map.lookup s vs of
-            -- Nothing -> tVar 0 -- error "Implementation error"
-            Nothing -> error "Implementation error"
+            Nothing -> tVar 0 -- error "Implementation error"
+            -- Nothing -> error "Implementation error"
             Just t -> t
         TUnit -> tUnit
         TBool -> tBool

@@ -1319,6 +1319,12 @@ hello124 =
   \  m + n\
   \"
 
+--
+-- def addN(n : int) : int -> int = 
+--   add(n)
+--
+
+
 -- TODO
 hello12b :: Text
 hello12b =
