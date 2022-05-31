@@ -137,8 +137,8 @@ isPolymorphic =
       _ -> 
         False
 
-xspecializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
-xspecializeLets =
+monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
+monomorphizeLets =
   cata
     ( \case
         ELet (t, var) expr1 expr2 | isPolymorphic t -> do

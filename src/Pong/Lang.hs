@@ -269,8 +269,8 @@ toMonoType vs =
     ( \case
         TGen s ->
           case Map.lookup s vs of
-            Nothing -> tVar 0 -- error "Implementation error"
-            -- Nothing -> error "Implementation error"
+            -- Nothing -> tVar 0 -- error "Implementation error"
+            Nothing -> error "Implementation error"
             Just t -> t
         TUnit -> tUnit
         TBool -> tBool
@@ -377,6 +377,13 @@ insertDef ::
   Definition t a ->
   m ()
 insertDef = modifyProgram <$$> Map.insert
+
+forEachDefM ::
+  (Monad m) =>
+  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
+  Program t1 a1 ->
+  m (Program t2 a2)
+forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
 {-# INLINE tUnit #-}
 tUnit :: Type v s

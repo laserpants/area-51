@@ -23,7 +23,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TL
-import Data.Tuple.Extra (first, second, swap)
+import Data.Tuple.Extra (first, second, secondM, swap)
 import Data.Void
 import Debug.Trace
 import LLVM.IRBuilder
@@ -956,13 +956,6 @@ hello5x = mapM_ traceShowM (Map.toList q)
   where
     Program q = evalState hello4x (1, emptyProgram)
 
-forEachDefM ::
-  (Monad m) =>
-  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
-  Program t1 a1 ->
-  m (Program t2 a2)
-forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
-
 --forEachDefM
 --  :: (Monad m, Ord s1, Ord s2)
 --  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2))
@@ -977,13 +970,13 @@ forEachDefEnvM ::
   m (Program t2 a2)
 forEachDefEnvM f p = local (<> programEnv p) (forEachDefM f p)
 
-foldMDefs ::
+foldDefsM ::
   (Monad m) =>
   ((Label Scheme, Definition t a) -> r -> m r) ->
   r ->
   Program t a ->
   m r
-foldMDefs f a = foldrM f a . Map.toList . unpack
+foldDefsM f a = foldrM f a . Map.toList . unpack
 
 --forEachDefEnvM
 --  :: (MonadReader TypeEnv m, Ord s1, Ord s2, AnyType s1)
@@ -1098,71 +1091,52 @@ zork ((scheme, name), def) e =
 translate2bx ::
   Program MonoType TypedExpr ->
   TypeChecker (Program MonoType TypedExpr)
-translate2bx p =
-  forEachDefM
-    ( \case
-        (key, Function args (t, expr)) -> do
-          -- e <- xspecializeLets expr
-          e <- xspecializeLets (combineLambdas expr)
-          --e1 <- foldMDefs zork e p
-          --traceShowM e1
-          --traceShowM key
-          --traceShowM "////"
-          --pure (key, Function args (t, e1))
-          pure (key, Function args (t, e))
-        (key, Constant (t, expr)) -> do
-          -- e <- xspecializeLets expr
-          e <- xspecializeLets (combineLambdas expr)
-          --e1 <- foldMDefs zork e p
-          --pure (key, Constant (t, e1))
-          pure (key, Constant (t, e))
-        d ->
-          pure d
-    )
-    p
+translate2bx =
+  forEachDefM (sequence . (traverse (monomorphizeLets . combineLambdas) <$>))
 
 translate2by ::
   Program MonoType TypedExpr ->
   TypeChecker (Program MonoType TypedExpr)
 translate2by p =
-  forEachDefM
-    ( \case
-        (key, Function args (t, expr)) -> do
-          -- e <- xspecializeLets expr
-          --e <- xspecializeLets (combineLambdas expr)
-          e1 <- foldMDefs zork expr p
+  forEachDefM (sequence . (traverse (flip (foldDefsM zork) p) <$>)) p
 
-          --specializeDef (foldType (fst body) (fst <$> as), name) as body e
-          --traceShowM "///// 1"
-          --traceShowM (snd key)
-          --traceShowM key
-          --traceShowM expr
-          --e1 <- specializeDef (tInt ~> tVar 3 ~> tInt, "f") [(tInt, "x"), (tVar 3, "y")] (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)) ) expr
-          --e1 <- if ("main" == snd key)
-          --   then
-          --      specializeDef (tInt ~> tVar 3 ~> tInt, "f") [(tInt, "x"), (tVar 3, "y")] (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)) ) expr
-          --    else
-          --      pure expr
-          --traceShowM e1
-          --traceShowM "///// 2"
-
-          --        e1 <- foldMDefs zork expr p
-
-          --traceShowM e1
-          --traceShowM key
-          --traceShowM "////"
-          ----pure (key, Function args (t, e1))
-          pure (key, Function args (t, e1))
-        (key, Constant (t, expr)) -> do
-          -- e <- xspecializeLets expr
-          --e <- xspecializeLets (combineLambdas expr)
-          e1 <- foldMDefs zork expr p
-          ----pure (key, Constant (t, e1))
-          pure (key, Constant (t, e1))
-        d ->
-          pure d
-    )
-    p
+--    ( \case
+--        (key, Function args (t, expr)) -> do
+--          -- e <- monomorphizeLets expr
+--          --e <- monomorphizeLets (combineLambdas expr)
+--          e1 <- foldDefsM zork expr p
+--
+--          --specializeDef (foldType (fst body) (fst <$> as), name) as body e
+--          --traceShowM "///// 1"
+--          --traceShowM (snd key)
+--          --traceShowM key
+--          --traceShowM expr
+--          --e1 <- specializeDef (tInt ~> tVar 3 ~> tInt, "f") [(tInt, "x"), (tVar 3, "y")] (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)) ) expr
+--          --e1 <- if ("main" == snd key)
+--          --   then
+--          --      specializeDef (tInt ~> tVar 3 ~> tInt, "f") [(tInt, "x"), (tVar 3, "y")] (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)) ) expr
+--          --    else
+--          --      pure expr
+--          --traceShowM e1
+--          --traceShowM "///// 2"
+--
+--          --        e1 <- foldDefsM zork expr p
+--
+--          --traceShowM e1
+--          --traceShowM key
+--          --traceShowM "////"
+--          ----pure (key, Function args (t, e1))
+--          pure (key, Function args (t, e1))
+--        (key, Constant (t, expr)) -> do
+--          -- e <- monomorphizeLets expr
+--          --e <- monomorphizeLets (combineLambdas expr)
+--          e1 <- foldDefsM zork expr p
+--          ----pure (key, Constant (t, e1))
+--          pure (key, Constant (t, e1))
+--        d ->
+--          pure d
+--    )
+--    p
 
 --translate2b
 --  :: Program Scheme MonoType TypedExpr
@@ -1658,53 +1632,6 @@ card2 =
 cardTest2 = runInferProgram card1 == Right card2
 
 -------------------------------------------------------------------------------
--- Partial application elim.
--------------------------------------------------------------------------------
-
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def main(a : unit) : int =
---   let g = lam(v_0) => f(8, v_0) in if g(9) == 9 then 2 else 1
---
-card3 :: Program MonoType TypedExpr
-card3 =
-  Program
-    ( Map.fromList
-        [
-          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
-          , Function
-              (fromList [(tInt, "x"), (tVar 15, "y")])
-              ( tInt
-              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
-              )
-          )
-        ,
-          ( (Scheme (tUnit ~> tInt), "main")
-          , Function
-              (fromList [(tUnit, "a")])
-              ( tInt
-              , eLet
-                  (tVar 3 ~> tInt, "g")
-                  ( eLam
-                      ()
-                      [(tVar 3, "v_0")]
-                      (eApp tInt (eVar (tInt ~> tVar 3 ~> tInt, "f")) [eLit (PInt 8), eVar (tVar 3, "v_0")])
-                  )
-                  ( eIf
-                      (eOp2 oEqInt (eApp tInt (eVar (tInt ~> tInt, "g")) [eLit (PInt 9)]) (eLit (PInt 9)))
-                      (eLit (PInt 2))
-                      (eLit (PInt 1))
-                  )
-              )
-          )
-        ]
-    )
-
---cardTest3 =
-
--------------------------------------------------------------------------------
 -- Monomorphize let bindings
 -------------------------------------------------------------------------------
 
@@ -1713,16 +1640,16 @@ card3 =
 --   x + 1
 --
 -- def main(a : unit) : int =
---   let $var_g_1 = lam(v_0 : int) => f(8, v_0) in if $var_g_1(9) == 9 then 2 else 1
+--   let $var_g_1 = f(8) in if $var_g_1(9) == 9 then 2 else 1
 --
-card4 :: Program MonoType TypedExpr
-card4 =
+card3 :: Program MonoType TypedExpr
+card3 =
   Program
     ( Map.fromList
         [
           ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
           , Function
-              (fromList [(tInt, "x"), (tVar 15, "y")])
+              (fromList [(tInt, "x"), (tVar 13, "y")])
               ( tInt
               , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
               )
@@ -1734,11 +1661,7 @@ card4 =
               ( tInt
               , eLet
                   (tInt ~> tInt, "$var_g_1")
-                  ( eLam
-                      ()
-                      [(tInt, "v_0")]
-                      (eApp tInt (eVar (tInt ~> tInt ~> tInt, "f")) [eLit (PInt 8), eVar (tInt, "v_0")])
-                  )
+                  (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "f")) [eLit (PInt 8)])
                   ( eIf
                       (eOp2 oEqInt (eApp tInt (eVar (tInt ~> tInt, "$var_g_1")) [eLit (PInt 9)]) (eLit (PInt 9)))
                       (eLit (PInt 2))
@@ -1749,9 +1672,9 @@ card4 =
         ]
     )
 
-cardTest4 = prog == card4
+cardTest3 = prog == card3
   where
-    (Right prog, _) = runTypeChecker 1 mempty (translate2bx card3)
+    (Right prog, _) = runTypeChecker 1 mempty (translate2bx card2)
 
 -------------------------------------------------------------------------------
 -- Monomorphize function definitions
@@ -1764,18 +1687,18 @@ cardTest4 = prog == card4
 -- def main(a : unit) : int =
 --   let $var_f_1 = lam(x : int, y : int) => x + 1
 --     in
---     let $var_g_1 = lam(v_0 : int) => $var_f_1(8, v_0)
+--     let $var_g_1 = $var_f_1(8)
 --     in
 --       if $var_g_1(9) == 9 then 2 else 1
 --
-card5 :: Program MonoType TypedExpr
-card5 =
+card4 :: Program MonoType TypedExpr
+card4 =
   Program
     ( Map.fromList
         [
           ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
           , Function
-              (fromList [(tInt, "x"), (tVar 15, "y")])
+              (fromList [(tInt, "x"), (tVar 13, "y")])
               ( tInt
               , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
               )
@@ -1790,11 +1713,7 @@ card5 =
                   (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
                   ( eLet
                       (tInt ~> tInt, "$var_g_1")
-                      ( eLam
-                          ()
-                          [(tInt, "v_0")]
-                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8), eVar (tInt, "v_0")])
-                      )
+                      (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8)])
                       ( eIf
                           (eOp2 oEqInt (eApp tInt (eVar (tInt ~> tInt, "$var_g_1")) [eLit (PInt 9)]) (eLit (PInt 9)))
                           (eLit (PInt 2))
@@ -1806,84 +1725,238 @@ card5 =
         ]
     )
 
-cardTest5 = prog == card5
+cardTest4 = prog == card4
   where
-    (Right prog, _) = runTypeChecker 1 mempty (translate2by card4)
+    (Right prog, _) = runTypeChecker 1 mempty (translate2by card3)
 
--------------------------------------------------------------------------------
--- Closure conversion
--------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+---- Partial application elim.
+---------------------------------------------------------------------------------
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let g = lam(v_0) => f(8, v_0) in if g(9) == 9 then 2 else 1
+----
+--card3 :: Program MonoType TypedExpr
+--card3 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
+--          , Function
+--              (fromList [(tInt, "x"), (tVar 15, "y")])
+--              ( tInt
+--              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+--              )
+--          )
+--        ,
+--          ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [(tUnit, "a")])
+--              ( tInt
+--              , eLet
+--                  (tVar 3 ~> tInt, "g")
+--                  ( eLam
+--                      ()
+--                      [(tVar 3, "v_0")]
+--                      (eApp tInt (eVar (tInt ~> tVar 3 ~> tInt, "f")) [eLit (PInt 8), eVar (tVar 3, "v_0")])
+--                  )
+--                  ( eIf
+--                      (eOp2 oEqInt (eApp tInt (eVar (tInt ~> tInt, "g")) [eLit (PInt 9)]) (eLit (PInt 9)))
+--                      (eLit (PInt 2))
+--                      (eLit (PInt 1))
+--                  )
+--              )
+--          )
+--        ]
+--    )
+--
+----cardTest3 =
+--
+---------------------------------------------------------------------------------
+---- Monomorphize let bindings
+---------------------------------------------------------------------------------
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let $var_g_1 = lam(v_0 : int) => f(8, v_0) in if $var_g_1(9) == 9 then 2 else 1
+----
+--card4 :: Program MonoType TypedExpr
+--card4 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
+--          , Function
+--              (fromList [(tInt, "x"), (tVar 15, "y")])
+--              ( tInt
+--              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+--              )
+--          )
+--        ,
+--          ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [(tUnit, "a")])
+--              ( tInt
+--              , eLet
+--                  (tInt ~> tInt, "$var_g_1")
+--                  ( eLam
+--                      ()
+--                      [(tInt, "v_0")]
+--                      (eApp tInt (eVar (tInt ~> tInt ~> tInt, "f")) [eLit (PInt 8), eVar (tInt, "v_0")])
+--                  )
+--                  ( eIf
+--                      (eOp2 oEqInt (eApp tInt (eVar (tInt ~> tInt, "$var_g_1")) [eLit (PInt 9)]) (eLit (PInt 9)))
+--                      (eLit (PInt 2))
+--                      (eLit (PInt 1))
+--                  )
+--              )
+--          )
+--        ]
+--    )
+--
+--cardTest4 = prog == card4
+--  where
+--    (Right prog, _) = runTypeChecker 1 mempty (translate2bx card3)
+--
+---------------------------------------------------------------------------------
+---- Monomorphize function definitions
+---------------------------------------------------------------------------------
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let $var_f_1 = lam(x : int, y : int) => x + 1
+----     in
+----     let $var_g_1 = lam(v_0 : int) => $var_f_1(8, v_0)
+----     in
+----       if $var_g_1(9) == 9 then 2 else 1
+----
+--card5 :: Program MonoType TypedExpr
+--card5 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
+--          , Function
+--              (fromList [(tInt, "x"), (tVar 15, "y")])
+--              ( tInt
+--              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+--              )
+--          )
+--        ,
+--          ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [(tUnit, "a")])
+--              ( tInt
+--              , eLet
+--                  (tInt ~> tInt ~> tInt, "$var_f_1")
+--                  (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
+--                  ( eLet
+--                      (tInt ~> tInt, "$var_g_1")
+--                      ( eLam
+--                          ()
+--                          [(tInt, "v_0")]
+--                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8), eVar (tInt, "v_0")])
+--                      )
+--                      ( eIf
+--                          (eOp2 oEqInt (eApp tInt (eVar (tInt ~> tInt, "$var_g_1")) [eLit (PInt 9)]) (eLit (PInt 9)))
+--                          (eLit (PInt 2))
+--                          (eLit (PInt 1))
+--                      )
+--                  )
+--              )
+--          )
+--        ]
+--    )
+--
+--cardTest5 = prog == card5
+--  where
+--    (Right prog, _) = runTypeChecker 1 mempty (translate2by card4)
+--
+---------------------------------------------------------------------------------
+---- Closure conversion
+---------------------------------------------------------------------------------
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let $var_f_1 = lam(x : int, y : int) => x + 1
+----     in
+----     let $var_g_1 = lam($var_f_1, v_0) => $var_f_1(8, v_0)
+----     in
+----       if $var_g_1($var_f_1, 9) == 9 then 2 else 1
+----
+--card6 :: Program MonoType TypedExpr
+--card6 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
+--          , Function
+--              (fromList [(tInt, "x"), (tVar 15, "y")])
+--              ( tInt
+--              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+--              )
+--          )
+--        ,
+--          ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [(tUnit, "a")])
+--              ( tInt
+--              , eLet
+--                  (tInt ~> tInt ~> tInt, "$var_f_1")
+--                  (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
+--                  ( eLet
+--                      ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")
+--                      ( eLam
+--                          ()
+--                          [ (tInt ~> tInt ~> tInt, "$var_f_1")
+--                          , (tInt, "v_0")
+--                          ]
+--                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8), eVar (tInt, "v_0")])
+--                      )
+--                      ( eIf
+--                          (eOp2 oEqInt (eApp tInt (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")) [eVar (tInt ~> tInt ~> tInt, "$var_f_1"), eLit (PInt 9)]) (eLit (PInt 9)))
+--                          (eLit (PInt 2))
+--                          (eLit (PInt 1))
+--                      )
+--                  )
+--              )
+--          )
+--        ]
+--    )
+--
+---------------------------------------------------------------------------------
+---- Lambda lifting
+---------------------------------------------------------------------------------
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def $lam1(x : int, y : int) : int =
+----   x + 1
+----
+---- def $lam2($var_f_1 : tInt ~> tInt ~> tInt, v_0 : int) : int =
+----   $var_f_1(8, v_0)
+----
+---- def main(a : unit) : int =
+----   let $var_f_1 = $lam1
+----     in let $var_g_1 = $lam2
+----     in if $var_g_1($var_f_1, 9) == 9 then 2 else 1
+----
 
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def main(a : unit) : int =
---   let $var_f_1 = lam(x : int, y : int) => x + 1
---     in
---     let $var_g_1 = lam($var_f_1, v_0) => $var_f_1(8, v_0)
---     in
---       if $var_g_1($var_f_1, 9) == 9 then 2 else 1
---
-card6 :: Program MonoType TypedExpr
-card6 =
-  Program
-    ( Map.fromList
-        [
-          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
-          , Function
-              (fromList [(tInt, "x"), (tVar 15, "y")])
-              ( tInt
-              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
-              )
-          )
-        ,
-          ( (Scheme (tUnit ~> tInt), "main")
-          , Function
-              (fromList [(tUnit, "a")])
-              ( tInt
-              , eLet
-                  (tInt ~> tInt ~> tInt, "$var_f_1")
-                  (eLam () [(tInt, "x"), (tInt, "y")] (eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))))
-                  ( eLet
-                      ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")
-                      ( eLam
-                          ()
-                          [ (tInt ~> tInt ~> tInt, "$var_f_1")
-                          , (tInt, "v_0")
-                          ]
-                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8), eVar (tInt, "v_0")])
-                      )
-                      ( eIf
-                          (eOp2 oEqInt (eApp tInt (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")) [eVar (tInt ~> tInt ~> tInt, "$var_f_1"), eLit (PInt 9)]) (eLit (PInt 9)))
-                          (eLit (PInt 2))
-                          (eLit (PInt 1))
-                      )
-                  )
-              )
-          )
-        ]
-    )
-
--------------------------------------------------------------------------------
--- Lambda lifting
--------------------------------------------------------------------------------
-
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def $lam1(x : int, y : int) : int =
---   x + 1
---
--- def $lam2($var_f_1 : tInt ~> tInt ~> tInt, v_0 : int) : int =
---   $var_f_1(8, v_0)
---
--- def main(a : unit) : int =
---   let $var_f_1 = $lam1
---     in let $var_g_1 = $lam2
---     in if $var_g_1($var_f_1, 9) == 9 then 2 else 1
---
 card7 :: Program MonoType Ast
 card7 =
   Program
@@ -1930,147 +2003,36 @@ card7 =
         ]
     )
 
-cardTest7 = prog == card7
-  where
-    prog :: Program MonoType Ast
-    prog = evalState run (1, emptyProgram)
-      where
-        p = card6
-        run = do
-          x <- runReaderT (translate3 p) (programEnv p)
-          (_, z) <- get
-          pure (x <> z)
-
--------------------------------------------------------------------------------
--- ?
--------------------------------------------------------------------------------
-
+--cardTest7 = prog == card7
+--  where
+--    prog :: Program MonoType Ast
+--    prog = evalState run (1, emptyProgram)
+--      where
+--        p = card6
+--        run = do
+--          x <- runReaderT (translate3 p) (programEnv p)
+--          (_, z) <- get
+--          pure (x <> z)
 --
--- def f(x : int, y : a) : int =
---   x + 1
+---------------------------------------------------------------------------------
+---- ?
+---------------------------------------------------------------------------------
 --
--- def $lam1(x : int, y : int) : int =
---   x + 1
---
--- def $lam2($var_f_1 : tInt ~> tInt ~> tInt, v_0 : int) : int =
---   $var_f_1(8, v_0)
---
--- def main(a : unit) : int =
---   if $lam2($lam1, 9) == 9 then 2 else 1
---
-card8 :: Program MonoType Ast
-card8 =
-  Program
-    ( Map.fromList
-        [
-          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
-          , Function
-              (fromList [(tInt, "x"), (tVar 15, "y")])
-              ( tInt
-              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
-              )
-          )
-        ,
-          ( (Scheme (tInt ~> tInt ~> tInt), "$lam1")
-          , Function
-              (fromList [(tInt, "x"), (tInt, "y")])
-              (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
-          )
-        ,
-          ( (Scheme ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt), "$lam2")
-          , Function
-              (fromList [(tInt ~> tInt ~> tInt, "$var_f_1"), (tInt, "v_0")])
-              (tInt, eCall (tInt ~> tInt ~> tInt, "$var_f_1") [eLit (PInt 8), eVar (tInt, "v_0")])
-          )
-        ,
-          ( (Scheme (tUnit ~> tInt), "main")
-          , Function
-              (fromList [(tUnit, "a")])
-              ( tInt
-              , eIf
-                  (eOp2 oEqInt (eCall ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2") [eVar (tInt ~> tInt ~> tInt, "$lam1"), eLit (PInt 9)]) (eLit (PInt 9)))
-                  (eLit (PInt 2))
-                  (eLit (PInt 1))
-              )
-          )
-        ]
-    )
-
--------------------------------------------------------------------------------
--- ?
--------------------------------------------------------------------------------
-
---
--- def $lam1(x : int, y : int) : int =
---   x + 1
---
--- def $lam2($var_f_1 : tInt ~> tInt ~> tInt, v_0 : int) : int =
---   $var_f_1(8, v_0)
---
--- def main(a : unit) : int =
---   if $lam2($lam1, 9) == 9 then 2 else 1
---
-
--- card6 :: Program MonoType Ast
--- card6 =
---   Program
---     ( Map.fromList
---         [
---           ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
---           , Function
---               (fromList [(tInt, "x"), (tVar 15, "y")])
---               (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
---           )
---         ,
---           ( (Scheme (tUnit ~> tInt), "main")
---           , Function
---               (fromList [(tUnit, "a")])
---               ( tInt
---               , eLet
---                   (tInt ~> tInt ~> tInt, "$var_f_1")
---                   (eVar (tInt ~> tInt ~> tInt, "$lam1"))
---                   ( eLet
---                       ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")
---                       (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2"))
---                       ( eIf
---                           (eOp2 oEqInt (eCall (tInt ~> tInt, "$var_g_1") [eVar (tInt ~> tInt ~> tInt, "$var_f_1"), eLit (PInt 9)]) (eLit (PInt 9)))
---                           (eLit (PInt 2))
---                           (eLit (PInt 1))
---                       )
---                   )
---               )
---           )
---         ,
---           ( (Scheme (tInt ~> tInt ~> tInt), "$lam1")
---           , Function
---               (fromList [(tInt, "x"), (tInt, "y")])
---               ( tInt
---               , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
---               )
---           )
---         ,
---           ( (Scheme ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt), "$lam2")
---           , Function
---               (fromList [(tInt ~> tInt ~> tInt, "$var_f_1"), (tInt, "v_0")])
---               ( tInt
---               , eCall (tInt ~> tInt ~> tInt, "$var_f_1") [eLit (PInt 8), eVar (tInt, "v_0")]
---               )
---           )
---         ]
---     )
---
--- cardTest6 :: Program MonoType Ast
--- cardTest6 = evalState run (1, emptyProgram)
---   where
---     p = card5
---     run = do
---       x <- runReaderT (translate3 p) (programEnv p)
---       (_, z) <- get
---       pure (x <> z)
---
---
---card7 :: Program MonoType TypedExpr
---card7 =
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def $lam1(x : int, y : int) : int =
+----   x + 1
+----
+---- def $lam2($var_f_1 : tInt ~> tInt ~> tInt, v_0 : int) : int =
+----   $var_f_1(8, v_0)
+----
+---- def main(a : unit) : int =
+----   if $lam2($lam1, 9) == 9 then 2 else 1
+----
+--card8 :: Program MonoType Ast
+--card8 =
 --  Program
 --    ( Map.fromList
 --        [
@@ -2091,132 +2053,243 @@ card8 =
 --          ( (Scheme ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt), "$lam2")
 --          , Function
 --              (fromList [(tInt ~> tInt ~> tInt, "$var_f_1"), (tInt, "v_0")])
---              (tInt, eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8), eVar (tInt, "v_0")])
+--              (tInt, eCall (tInt ~> tInt ~> tInt, "$var_f_1") [eLit (PInt 8), eVar (tInt, "v_0")])
 --          )
 --        ,
 --          ( (Scheme (tUnit ~> tInt), "main")
 --          , Function
 --              (fromList [(tUnit, "a")])
 --              ( tInt
---              , eLet
---                  (tInt ~> tInt ~> tInt, "$var_f_1")
---                  (eVar (tInt ~> tInt ~> tInt, "$lam1"))
---                  ( eLet
---                      ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")
---                      (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2"))
---                      ( eIf
---                          (eOp2 oEqInt (eApp tInt (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")) [eVar (tInt ~> tInt ~> tInt, "$var_f_1"), eLit (PInt 9)]) (eLit (PInt 9)))
---                          (eLit (PInt 2))
---                          (eLit (PInt 1))
---                      )
---                  )
+--              , eIf
+--                  (eOp2 oEqInt (eCall ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2") [eVar (tInt ~> tInt ~> tInt, "$lam1"), eLit (PInt 9)]) (eLit (PInt 9)))
+--                  (eLit (PInt 2))
+--                  (eLit (PInt 1))
 --              )
 --          )
 --        ]
 --    )
-
-
-
-
-
-
-
-
-
-
-
-
 --
--- def f(x : int, y : a) : int =
---   x + 1
+---------------------------------------------------------------------------------
+---- ?
+---------------------------------------------------------------------------------
 --
--- def main(a : unit) : int =
---   let g = f(8) in if g(9) == 9 then 2 else 1
+----
+---- def $lam1(x : int, y : int) : int =
+----   x + 1
+----
+---- def $lam2($var_f_1 : tInt ~> tInt ~> tInt, v_0 : int) : int =
+----   $var_f_1(8, v_0)
+----
+---- def main(a : unit) : int =
+----   if $lam2($lam1, 9) == 9 then 2 else 1
+----
+--
+---- card6 :: Program MonoType Ast
+---- card6 =
+----   Program
+----     ( Map.fromList
+----         [
+----           ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
+----           , Function
+----               (fromList [(tInt, "x"), (tVar 15, "y")])
+----               (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+----           )
+----         ,
+----           ( (Scheme (tUnit ~> tInt), "main")
+----           , Function
+----               (fromList [(tUnit, "a")])
+----               ( tInt
+----               , eLet
+----                   (tInt ~> tInt ~> tInt, "$var_f_1")
+----                   (eVar (tInt ~> tInt ~> tInt, "$lam1"))
+----                   ( eLet
+----                       ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")
+----                       (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2"))
+----                       ( eIf
+----                           (eOp2 oEqInt (eCall (tInt ~> tInt, "$var_g_1") [eVar (tInt ~> tInt ~> tInt, "$var_f_1"), eLit (PInt 9)]) (eLit (PInt 9)))
+----                           (eLit (PInt 2))
+----                           (eLit (PInt 1))
+----                       )
+----                   )
+----               )
+----           )
+----         ,
+----           ( (Scheme (tInt ~> tInt ~> tInt), "$lam1")
+----           , Function
+----               (fromList [(tInt, "x"), (tInt, "y")])
+----               ( tInt
+----               , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+----               )
+----           )
+----         ,
+----           ( (Scheme ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt), "$lam2")
+----           , Function
+----               (fromList [(tInt ~> tInt ~> tInt, "$var_f_1"), (tInt, "v_0")])
+----               ( tInt
+----               , eCall (tInt ~> tInt ~> tInt, "$var_f_1") [eLit (PInt 8), eVar (tInt, "v_0")]
+----               )
+----           )
+----         ]
+----     )
+----
+---- cardTest6 :: Program MonoType Ast
+---- cardTest6 = evalState run (1, emptyProgram)
+----   where
+----     p = card5
+----     run = do
+----       x <- runReaderT (translate3 p) (programEnv p)
+----       (_, z) <- get
+----       pure (x <> z)
+----
+----
+----card7 :: Program MonoType TypedExpr
+----card7 =
+----  Program
+----    ( Map.fromList
+----        [
+----          ( (Scheme (tInt ~> tGen "a" ~> tInt), "f")
+----          , Function
+----              (fromList [(tInt, "x"), (tVar 15, "y")])
+----              ( tInt
+----              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+----              )
+----          )
+----        ,
+----          ( (Scheme (tInt ~> tInt ~> tInt), "$lam1")
+----          , Function
+----              (fromList [(tInt, "x"), (tInt, "y")])
+----              (tInt, eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1)))
+----          )
+----        ,
+----          ( (Scheme ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt), "$lam2")
+----          , Function
+----              (fromList [(tInt ~> tInt ~> tInt, "$var_f_1"), (tInt, "v_0")])
+----              (tInt, eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_f_1")) [eLit (PInt 8), eVar (tInt, "v_0")])
+----          )
+----        ,
+----          ( (Scheme (tUnit ~> tInt), "main")
+----          , Function
+----              (fromList [(tUnit, "a")])
+----              ( tInt
+----              , eLet
+----                  (tInt ~> tInt ~> tInt, "$var_f_1")
+----                  (eVar (tInt ~> tInt ~> tInt, "$lam1"))
+----                  ( eLet
+----                      ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")
+----                      (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2"))
+----                      ( eIf
+----                          (eOp2 oEqInt (eApp tInt (eVar ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$var_g_1")) [eVar (tInt ~> tInt ~> tInt, "$var_f_1"), eLit (PInt 9)]) (eLit (PInt 9)))
+----                          (eLit (PInt 2))
+----                          (eLit (PInt 1))
+----                      )
+----                  )
+----              )
+----          )
+----        ]
+----    )
 --
 --
-
----------------------------------------------------------------
---  if x then lam(x) => f(y) else lam(x) => x + 2
---
---  let a = lam(y) => f(y) in lam(z) => z + 1
---
---  (lam(z) => z)(1)
---
---  f(lam(z) => z)
---
---  case x of { 1 => lam(x) => x + 1 }
---
---  { a = lam(x) => x + 1 }
---
---  field { price = p | q } = r in lam(x) => x
----------------------------------------------------------------
-
-
---  if x then lam(x) => f(y) else lam(x) => x + 2
 --
 --
---  $lam1(x) = f(y)
---
---  if x then $lam1 else lam(x) => x + 2
-
-
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def main(a : unit) : int =
---   let g = f(8) in if g(9) == 9 then 2 else 1
 --
 --
-
-
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def main(a : unit) : int =
---   let f_1 = lam(x : int, y : int) = x + 1
---     in
---     let g_1 = lam(z) => f_1(8, z) in if g_1(9) == 9 then 2 else 1
 --
 --
-
-
-
-
-
-
-
--- def main(a : unit) : int =
---   let g = lam(v_0) => f(8, v_0) in if g(9) == 9 then 2 else 1
 --
-
-
--- def $def1(v_0 : int) = f(8, v_0)
--- 
--- def main(a : unit) : int =
---   let g = $def1 in if g(9) == 9 then 2 else 1
-  
-  
-  
--- def $def1(f : int -> int -> int, v_0 : int) = f(8, v_0)
--- 
--- def main(a : unit) : int =
---   let g = $def1(f) in if g(9) == 9 then 2 else 1
-
-
-
--- def $def1(f : int -> int -> int, v_0 : int) = f(8, v_0)
--- 
--- def main(a : unit) : int =
---   let g = lam(z_0) => $def1(f, z_0) in if g(9) == 9 then 2 else 1
-
-
--- def $def1(f : int -> int -> int, v_0 : int) = f(8, v_0)
 --
--- def $def2(f : int -> int -> int, z_0 : int) = $def1(f, z_0)
--- 
--- def main(a : unit) : int =
---   let g = $def2(f) in if g(9) == 9 then 2 else 1
-
-
+--
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let g = f(8) in if g(9) == 9 then 2 else 1
+----
+----
+--
+-----------------------------------------------------------------
+----  if x then lam(x) => f(y) else lam(x) => x + 2
+----
+----  let a = lam(y) => f(y) in lam(z) => z + 1
+----
+----  (lam(z) => z)(1)
+----
+----  f(lam(z) => z)
+----
+----  case x of { 1 => lam(x) => x + 1 }
+----
+----  { a = lam(x) => x + 1 }
+----
+----  field { price = p | q } = r in lam(x) => x
+-----------------------------------------------------------------
+--
+--
+----  if x then lam(x) => f(y) else lam(x) => x + 2
+----
+----
+----  $lam1(x) = f(y)
+----
+----  if x then $lam1 else lam(x) => x + 2
+--
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let g = f(8) in if g(9) == 9 then 2 else 1
+----
+----
+--
+--
+----
+---- def f(x : int, y : a) : int =
+----   x + 1
+----
+---- def main(a : unit) : int =
+----   let f_1 = lam(x : int, y : int) = x + 1
+----     in
+----     let g_1 = lam(z) => f_1(8, z) in if g_1(9) == 9 then 2 else 1
+----
+----
+--
+--
+--
+--
+--
+--
+--
+---- def main(a : unit) : int =
+----   let g = lam(v_0) => f(8, v_0) in if g(9) == 9 then 2 else 1
+----
+--
+--
+---- def $def1(v_0 : int) = f(8, v_0)
+----
+---- def main(a : unit) : int =
+----   let g = $def1 in if g(9) == 9 then 2 else 1
+--
+--
+--
+---- def $def1(f : int -> int -> int, v_0 : int) = f(8, v_0)
+----
+---- def main(a : unit) : int =
+----   let g = $def1(f) in if g(9) == 9 then 2 else 1
+--
+--
+--
+---- def $def1(f : int -> int -> int, v_0 : int) = f(8, v_0)
+----
+---- def main(a : unit) : int =
+----   let g = lam(z_0) => $def1(f, z_0) in if g(9) == 9 then 2 else 1
+--
+--
+---- def $def1(f : int -> int -> int, v_0 : int) = f(8, v_0)
+----
+---- def $def2(f : int -> int -> int, z_0 : int) = $def1(f, z_0)
+----
+---- def main(a : unit) : int =
+----   let g = $def2(f) in if g(9) == 9 then 2 else 1
+--
+--

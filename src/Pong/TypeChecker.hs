@@ -428,29 +428,26 @@ inferRow =
 
 inferProgram ::
   Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)
-inferProgram (Program p) = local (<> programEnv (Program p)) typed
-  where
-    typed =
-      Program . Map.fromList
-        <$> forM
-          (Map.toList p)
-          ( \case
-              ((scheme, name), Function args (_, expr)) -> do
-                e <- do
-                  lam <- inferTypes (eLam () (toList args) expr)
-                  t0 <- instantiate scheme
-                  t0 `unify` typeOf lam
-                  applySubstitution lam
-                let ELam () as body = project e
+inferProgram p =
+  local (<> programEnv p) $
+    (`forEachDefM` p)
+      ( \case
+          ((scheme, name), Function args (_, expr)) -> do
+            lam <- inferTypes (eLam () (toList args) expr)
+            t0 <- instantiate scheme
+            t0 `unify` typeOf lam
+            applySubstitution lam <&> project >>= \case
+              ELam () as body ->
                 pure ((scheme, name), Function (fromList as) (typeOf body, body))
-              (key, Constant (_, expr)) -> do
-                const <- inferTypes expr
-                pure (key, Constant (typeOf const, const))
-              (key, Extern as r) -> do
-                pure (key, Extern as r)
-              _ ->
-                error "TODO"
-          )
+          (key, Constant (_, expr)) -> do
+            const <- inferTypes expr
+            pure (key, Constant (typeOf const, const))
+          (key, Extern as r) -> do
+            pure (key, Extern as r)
+          _ ->
+            error "TODO"
+      )
+  where
     inferTypes =
       tagExpr >=> inferExpr >=> applySubstitution
 
