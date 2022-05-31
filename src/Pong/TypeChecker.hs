@@ -14,18 +14,19 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Newtype.Generics
 import Data.Foldable (foldrM)
+import Data.List.NonEmpty (fromList, toList)
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Tuple.Extra (first, firstM, second, secondM, swap)
 import Debug.Trace
 import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Lang
 import Pong.Util (Fix (..), Name, Void, cata, embed, project, varSequence, (!), (!?), (<$$>), (<&>), (<<<), (>>>))
-import Pong.Util.Env
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
+import Pong.Util.Env (Environment)
 import qualified Pong.Util.Env as Env
 
 newtype Substitution
@@ -184,11 +185,11 @@ tag = do
 
 unifyAndCombine :: MonoType -> MonoType -> Substitution -> TypeChecker Substitution
 unifyAndCombine t1 t2 sub1 = do
-  sub2 <- unify (apply sub1 t1) (apply sub1 t2)
+  sub2 <- unifyTypes (apply sub1 t1) (apply sub1 t2)
   pure (sub2 <> sub1)
 
-unifyTypes :: [MonoType] -> [MonoType] -> TypeChecker Substitution
-unifyTypes ts us = foldrM (uncurry unifyAndCombine) mempty (ts `zip` us)
+unifyMany :: [MonoType] -> [MonoType] -> TypeChecker Substitution
+unifyMany ts us = foldrM (uncurry unifyAndCombine) mempty (ts `zip` us)
 
 unifyRows ::
   Row MonoType Int ->
@@ -213,14 +214,14 @@ unifyRows r1 r2 =
           Just (u : us) -> do
             let r1 = foldRow j (updateMap m1 ts)
                 r2 = foldRow k (updateMap m2 us)
-            unifyTypes [tRow r1, t] [tRow r2, u]
+            unifyMany [tRow r1, t] [tRow r2, u]
           _
             | k == j -> throwError UnificationError
             | otherwise -> do
               p <- rVar <$> tag
               let r1 = foldRow j (updateMap m1 ts)
                   r2 = foldRow p m2
-              unifyTypes [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
+              unifyMany [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
       where
         (a, t : ts) = Map.elemAt 0 m1
         updateMap m =
@@ -228,14 +229,14 @@ unifyRows r1 r2 =
             [] -> Map.delete a m
             ts -> Map.insert a ts m
 
-unify :: MonoType -> MonoType -> TypeChecker Substitution
-unify t1 t2 =
+unifyTypes :: MonoType -> MonoType -> TypeChecker Substitution
+unifyTypes t1 t2 =
   case (project t1, project t2) of
     (TVar n, t) -> pure (n `mapsTo` embed t)
     (t, TVar n) -> pure (n `mapsTo` embed t)
     (TCon c1 ts1, TCon c2 ts2)
-      | c1 == c2 -> unifyTypes ts1 ts2
-    (TArr t1 t2, TArr u1 u2) -> unifyTypes [t1, t2] [u1, u2]
+      | c1 == c2 -> unifyMany ts1 ts2
+    (TArr t1 t2, TArr u1 u2) -> unifyMany [t1, t2] [u1, u2]
     (TRow r, TRow s) -> unifyRows r s
     _
       | t1 == t2 -> pure mempty
@@ -244,13 +245,13 @@ unify t1 t2 =
 applySubstitution :: (Substitutable s) => s -> TypeChecker s
 applySubstitution s = gets (apply . snd) <*> pure s
 
-unifyM ::
+unify ::
   MonoType ->
   MonoType ->
   TypeChecker ()
-unifyM t1 t2 = do
+unify t1 t2 = do
   sub <- gets snd
-  sub1 <- unify (apply sub t1) (apply sub t2)
+  sub1 <- unifyTypes (apply sub t1) (apply sub t2)
   modify (second (sub1 <>))
 
 instantiate :: Scheme -> TypeChecker MonoType
@@ -270,7 +271,7 @@ generalize t = do
 lookupName :: Label Int -> (Name -> TypeError) -> TypeChecker (MonoType, Name)
 lookupName (t, var) toErr = do
   ty <- getTy
-  unifyM (tVar t) ty
+  tVar t `unify` ty
   pure (ty, var)
   where
     getTy =
@@ -290,22 +291,22 @@ inferExpr =
       e1 <- expr1
       e2 <- expr2
       e3 <- expr3
-      unifyM (typeOf e1) tBool
-      unifyM (typeOf e2) (typeOf e3)
+      typeOf e1 `unify` tBool
+      typeOf e2 `unify` typeOf e3
       pure (eIf e1 e2 e3)
     ELet (t, var) expr1 expr2 -> do
       fv <- tVar <$> tag
       e1 <- local (Env.insert var (Left fv)) expr1
       s <- generalize (typeOf e1)
       e2 <- local (Env.insert var (Right s)) expr2
-      unifyM (tVar t) (typeOf e1)
+      tVar t `unify` typeOf e1
       t0 <- applySubstitution (tVar t)
       pure (eLet (t0, var) e1 e2)
     EApp t fun args -> do
       f <- fun
       as <- sequence args
       t1 <- applySubstitution (tVar t)
-      unifyM (typeOf f) (foldType t1 (typeOf <$> as))
+      typeOf f `unify` foldType t1 (typeOf <$> as)
       pure (eApp t1 f as)
     ELam _ args expr -> do
       as <- traverse (pure . first tVar) args
@@ -315,7 +316,7 @@ inferExpr =
       e1 <- expr1
       t0 <- instantiate (unopType op)
       let [t1] = argTypes t0
-      unifyM t1 (typeOf e1)
+      t1 `unify` typeOf e1
       ty <- applySubstitution t0
       pure (eOp1 (ty, op) e1)
     EOp2 (t, op) expr1 expr2 -> do
@@ -323,8 +324,8 @@ inferExpr =
       e2 <- expr2
       t0 <- instantiate (binopType op)
       let [t1, t2] = argTypes t0
-      unifyM t1 (typeOf e1)
-      unifyM t2 (typeOf e2)
+      t1 `unify` typeOf e1
+      t2 `unify` typeOf e2
       ty <- applySubstitution t0
       pure (eOp2 (ty, op) e1 e2)
     ECase _ [] -> throwError IllFormedExpression
@@ -339,22 +340,22 @@ inferExpr =
 
 type TypedClause = ([Label MonoType], TypedExpr)
 
-inferRowCase 
-  :: MonoType 
-  -> [Label Int] 
-  -> TypeChecker TypedExpr 
-  -> TypeChecker TypedClause
+inferRowCase ::
+  MonoType ->
+  [Label Int] ->
+  TypeChecker TypedExpr ->
+  TypeChecker TypedClause
 inferRowCase (Fix (TRow row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
       let (r1, q) = restrictRow label row
       let [t0, t1, t2] = tVar <$> [u0, u1, u2]
-      unifyM t1 r1
-      unifyM t2 (tRow q)
+      t1 `unify` r1
+      t2 `unify` tRow q
       traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRow row]
         >>= \case
           [ty0, ty1, ty2, ty3] -> do
-            unifyM ty0 ty3
+            ty0 `unify` ty3
             e <-
               local
                 (Env.inserts [(label, Left ty0), (v1, Left ty1), (v2, Left ty2)])
@@ -386,27 +387,32 @@ binopType =
       OLogicAnd -> tBool ~> tBool ~> tBool
 
 inferCases ::
-  TypedExpr -> [([Label Int], TypeChecker TypedExpr)] -> TypeChecker [TypedClause]
+  TypedExpr ->
+  [([Label Int], TypeChecker TypedExpr)] ->
+  TypeChecker [TypedClause]
 inferCases expr clauses = do
   cs <- traverse inferClause clauses
   let t : ts = snd <$> cs
-  forM_ ts (unifyM (typeOf t) . typeOf)
+  forM_ ts (unify (typeOf t) . typeOf)
   pure cs
   where
     inferClause =
       secondM applySubstitution <=< uncurry (inferCase (typeOf expr))
 
 inferCase ::
-  MonoType -> [Label Int] -> TypeChecker TypedExpr -> TypeChecker TypedClause
+  MonoType ->
+  [Label Int] ->
+  TypeChecker TypedExpr ->
+  TypeChecker TypedClause
 inferCase mt (con : vs) expr = do
   (t, _) <- lookupName con ConstructorNotInScope
   let ts = unwindType t
       ps = (snd <$> vs) `zip` ts
-  unifyM (typeOf mt) (last ts)
+  typeOf mt `unify` last ts
   e <- local (Env.inserts (Left <$$> ps)) expr
   tvs <-
     forM (zip vs ts) $ \((t0, n), t1) -> do
-      unifyM (tVar t0) t1
+      tVar t0 `unify` t1
       pure (tVar t0, n)
   pure ((t, snd con) : tvs, e)
 
@@ -419,6 +425,38 @@ inferRow =
       RNil -> pure rNil
       RVar var -> rVar <$> lookupName var NotInScope
       RExt name expr row -> rExt name <$> inferExpr expr <*> row
+
+inferProgram ::
+  Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)
+inferProgram (Program p) = local (<> programEnv (Program p)) typed
+  where
+    typed =
+      Program . Map.fromList
+        <$> forM
+          (Map.toList p)
+          ( \case
+              ((scheme, name), Function args (_, expr)) -> do
+                e <- do
+                  lam <- inferTypes (eLam () (toList args) expr)
+                  t0 <- instantiate scheme
+                  t0 `unify` typeOf lam
+                  applySubstitution lam
+                let ELam () as body = project e
+                pure ((scheme, name), Function (fromList as) (typeOf body, body))
+              (key, Constant (_, expr)) -> do
+                const <- inferTypes expr
+                pure (key, Constant (typeOf const, const))
+              (key, Extern as r) -> do
+                pure (key, Extern as r)
+              _ ->
+                error "TODO"
+          )
+    inferTypes =
+      tagExpr >=> inferExpr >=> applySubstitution
+
+runInferProgram ::
+  Program () SourceExpr -> Either TypeError (Program MonoType TypedExpr)
+runInferProgram = runTypeChecker 1 mempty . inferProgram <&> fst
 
 -- Substitution
 instance Semigroup Substitution where

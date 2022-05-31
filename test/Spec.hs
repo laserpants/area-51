@@ -229,7 +229,7 @@ main =
 -- -- preprocess_ (e, ds) = (preprocess e, fmap preprocess <$$> ds)
 -- --
 
-runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unify t1 t2)
+runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
 
@@ -1011,7 +1011,7 @@ translate2x =
           e <- do
             lam <- inferTypes (eLam () (toList args) expr)
             t0 <- instantiate scheme
-            unifyM t0 (typeOf lam)
+            unify t0 (typeOf lam)
             applySubstitution lam
           let ELam () as body = project e
           pure ((scheme, name), Function (fromList as) (typeOf body, body))
@@ -1025,7 +1025,7 @@ translate2x =
         --          lam <- inferTypes (eLam () (toList args) expr)
         --          undefined
         --          --t0 <- instantiate scheme
-        --          --unifyM t0 (typeOf lam)
+        --          --unify t0 (typeOf lam)
         --          --applySubstitution lam
         --        let ELam () as body = project e
         --        pure ((scheme, name), Function (fromList as) (typeOf body, body))
@@ -1048,7 +1048,7 @@ translate2x =
 --        e <- do
 --          lam <- inferTypes (eLam () (toList args) expr)
 --          t0 <- instantiate scheme
---          unifyM t0 (typeOf lam)
+--          unify t0 (typeOf lam)
 --          applySubstitution lam
 --        let ELam () as body = project e
 --        pure ((scheme, name), Function (fromList as) (typeOf body, body))
@@ -1070,7 +1070,7 @@ translate2x =
 --      ((t0, name), Function args (_, expr)) -> do
 --        e <- do
 --          lam <- inferTypes (eLam () (toList args) expr)
---          unifyM t0 (typeOf lam)
+--          unify t0 (typeOf lam)
 --          applySubstitution lam
 --        let ELam () as body = project e
 --        pure ((t0, name), Function (fromList as) (typeOf body, body))
@@ -1612,7 +1612,7 @@ card1 =
         ]
     )
 
-cardTest1 = runParser program "" card0 == Right card1
+cardTest1 = parseProgram card0 == Right card1
 
 -------------------------------------------------------------------------------
 -- Type inference
@@ -1655,9 +1655,7 @@ card2 =
         ]
     )
 
-cardTest2 = prog == card2
-  where
-    (Right prog, _) = runTypeChecker 1 mempty (translate2x card1)
+cardTest2 = runInferProgram card1 == Right card2
 
 -------------------------------------------------------------------------------
 -- Partial application elim.

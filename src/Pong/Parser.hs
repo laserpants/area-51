@@ -23,6 +23,8 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 type Parser = Parsec Void Text
 
+type ParserError = ParseErrorBundle Text Void
+
 spaces :: Parser ()
 spaces =
   Lexer.space
@@ -336,3 +338,6 @@ program :: Parser (Program () SourceExpr)
 program = do
   defs <- many def
   pure (Program (Map.fromList defs))
+
+parseProgram :: Text -> Either ParserError (Program () SourceExpr)
+parseProgram = runParser program ""

@@ -179,7 +179,7 @@ xreplacePolymorphics t name e1 =
     )
   where
     getSubst t1 t2 = 
-      evalTypeChecker (freeIndex [t1, t2]) mempty (unify t1 t2)
+      evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
 exclude :: [Label s] -> [Name] -> [Label s]
 exclude = foldr (\label -> filter ((/=) label . snd)) 
