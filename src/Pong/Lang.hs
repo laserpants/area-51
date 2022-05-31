@@ -177,6 +177,8 @@ instance (Typed t) => Typed (Definition t a) where
     \case
       Function args (t, _) ->
         foldType (typeOf t) (typeOf . fst <$> toList args)
+      _ ->
+        error "TODO"
 
 {-# INLINE arity #-}
 arity :: (Typed t) => t -> Int

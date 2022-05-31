@@ -287,7 +287,9 @@ deriving instance
   (Typeable t, Typeable a0, Typeable a1, Typeable a2, Typeable a) => 
   Typeable (ExprF t a0 a1 a2 a)
 
-deriving instance (Typeable t) => Typeable (ExprF t a0 a1 a2 a)
+deriving instance 
+  (Typeable t) => 
+  Typeable (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
 

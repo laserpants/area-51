@@ -25,15 +25,15 @@ import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Parser
 import Pong.TypeChecker
--- import Pong.Util (Name, Text, Void, (<$$>), (<#>), (!?), embed, project, cata, para)
+import Pong.Util (Name, Text, Void, (<$$>), (!?), embed, project, cata, para)
 -- import Pong.Util.Env (Environment)
 -- import System.Exit
 -- import System.Process
 -- import System.IO.Temp
 -- import System.IO.Unsafe (unsafePerformIO)
--- import Text.Megaparsec (runParser)
+import Text.Megaparsec (runParser)
 -- import TextShow (showt)
--- import qualified Data.Text as Text
+import qualified Data.Text as Text
 import qualified Data.Map.Strict as Map
 -- import qualified Data.Text.Lazy as TL
 -- import qualified Pong.Util.Env as Env
@@ -1687,9 +1687,9 @@ expx0_ =
 
 --t0t0 = second snd (runState (compile exp00) (1, emptyProgram)) == exp00_
 
-t0t1 = second snd (runState (compile exp0) (1, emptyProgram)) == exp0_
+--t0t1 = second snd (runState (compile exp0) (1, emptyProgram)) == exp0_
 
-t0t2 = second snd (runState (compile expx0) (1, emptyProgram)) == expx0_
+--t0t2 = second snd (runState (compile expx0) (1, emptyProgram)) == expx0_
 
 -- t0t3 = second snd (runState (compile expx8) (1, emptyProgram)) == expx8_
 -- 
@@ -2288,3 +2288,5 @@ t0t2 = second snd (runState (compile expx0) (1, emptyProgram)) == expx0_
 -- --                Left err -> error (show err)
 -- --                Right r -> Function args (t, r)
 -- --    rtcx2 _ = error "TODO"
+
+

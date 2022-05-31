@@ -12,12 +12,14 @@ import Data.Function (on)
 import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
 import Data.Tuple.Extra (first, second, swap)
+import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util hiding (unpack)
 import Pong.Util.Env (Environment(..))
 import TextShow (showt)
+import qualified Pong.Util.Env as Env
 import qualified Data.Map.Strict as Map
 
 canonical :: MonoType -> MonoType
@@ -63,8 +65,11 @@ extra t
   where
     ts = argTypes t
 
-programDefs :: (MonadState (Int, Program t a) m) => m [Name]
-programDefs = gets (Map.keys . Map.mapKeys snd . unpack . snd)
+programDefs :: (MonadReader TypeEnv m, MonadState (Int, Program t a) m) => m [Name]
+programDefs = do
+  xx <- gets (Map.keys . Map.mapKeys snd . unpack . snd)
+  yy <- ask
+  pure (xx <> (fst <$> Env.toList yy))
 
 liftDef ::
   (MonadState (Int, Program MonoType Ast) m) =>
@@ -76,7 +81,9 @@ liftDef ::
 liftDef name vs args expr = do
   let ty = foldType t ts
   insertDef (toScheme "a" (free ty) ty, name) def
-  pure (eCall (typeOf def, name) (eVar <$> vs))
+  --pure (eCall (typeOf def, name) (eVar <$> vs))
+  --pure (eCall (typeOf def, name) (eVar <$> as))
+  pure (eVar (ty, name))
   where
     t = typeOf expr
     ts = fst <$> as
@@ -84,7 +91,7 @@ liftDef name vs args expr = do
     def = Function (fromList as) (t, expr)
 
 makeDef ::
-  (MonadState (Int, Program MonoType Ast) m) =>
+  (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) =>
   Name ->
   Ast ->
   ((Ast -> Ast) -> Ast) ->
@@ -110,12 +117,12 @@ specializeDef
   -> TypedExpr 
   -> m TypedExpr
 specializeDef (t, name) args (_, body) e2 = do
-  (e, binds) <- runWriterT (xreplaceTemplates t name (eLam () args body) e2)
+  (e, binds) <- runWriterT (xreplacePolymorphics t name (eLam () args body) e2)
   pure (foldr (uncurry eLet) e binds)
 
 -- | Predicate to test if the type contains at least one type variable
-isTemplate :: Type v s -> Bool
-isTemplate =
+isPolymorphic :: Type v s -> Bool
+isPolymorphic =
   cata $
     \case
       TVar {} -> True
@@ -124,7 +131,7 @@ isTemplate =
       TRow row ->
         ( (`cata` row) $
             \case
-              RExt _ t r -> isTemplate t || r
+              RExt _ t r -> isPolymorphic t || r
               _ -> False
         )
       _ -> 
@@ -134,11 +141,12 @@ xspecializeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
 xspecializeLets =
   cata
     ( \case
-        ELet (t, var) expr1 expr2 | isTemplate t -> do
+        ELet (t, var) expr1 expr2 | isPolymorphic t -> do
           e1 <- expr1
           e2 <- expr2
-          (e, binds) <- runWriterT (xreplaceTemplates t var e1 e2)
-          pure (foldr (uncurry eLet) e (((t, var), e1) : unique binds))
+          (e, binds) <- runWriterT (xreplacePolymorphics t var e1 e2)
+          -- pure (foldr (uncurry eLet) e (((t, var), e1) : unique binds))
+          pure (foldr (uncurry eLet) e (unique binds))
         expr ->
           embed <$> sequence expr
     )
@@ -146,14 +154,14 @@ xspecializeLets =
 unique :: [((MonoType, a1), a2)] -> [((MonoType, a1), a2)]
 unique = nubBy (on (==) (fst . fst))
 
-xreplaceTemplates ::
+xreplacePolymorphics ::
   (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
   MonoType ->
   Name ->
   TypedExpr ->
   TypedExpr ->
   m TypedExpr
-xreplaceTemplates t name e1 =
+xreplacePolymorphics t name e1 =
   para
     ( \case
         ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
@@ -177,7 +185,7 @@ exclude :: [Label s] -> [Name] -> [Label s]
 exclude = foldr (\label -> filter ((/=) label . snd)) 
 
 compile 
-  :: (MonadState (Int, Program MonoType Ast) m) 
+  :: (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) 
   => TypedExpr 
   -> m Ast
 compile =
