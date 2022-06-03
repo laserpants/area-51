@@ -1814,10 +1814,89 @@ cardTest4 = prog == card4
 -- def main(a : unit) : int =
 --   let $var_g_1 = $lam2($lam1)
 --     in
---       if $var_g_1(9) == 9 then 2 else 1
+--       print_int64(if $var_g_1(9) == 9 then 2 else 1)
 --
+card5 :: Program MonoType Ast
+card5 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tInt ~> tGen "a") , "gc_malloc")
+          , Extern [tInt] (tVar 0)
+          )
+        , ( (Scheme (tInt ~> tInt) , "print_int64")
+          , Extern [tInt] tInt
+          )
+        , ( (Scheme (tInt ~> tInt ~> tInt), "$lam1")
+          , Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              ( tInt
+              , eOp2 oAddInt (eVar (tInt, "x")) (eLit (PInt 1))
+              )
+          )
+        , ( (Scheme ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt), "$lam2")
+          , Function
+              (fromList [(tInt ~> tInt ~> tInt, "f"), (tInt, "v")])
+              ( tInt
+              , eCall (tInt ~> tInt ~> tInt, "f") [eLit (PInt 8), eVar (tInt, "v")]
+              )
+          )
+        , ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tInt, "$var_g_1")
+                  (eCall ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2") [eVar (tInt ~> tInt ~> tInt, "$lam1")])
+
+                  --(eIf
+                  --  (eOp2 oEqInt (eCall (tInt ~> tInt, "$var_g_1") [eLit (PInt 9)]) (eLit (PInt 9)))
+                  --  (eLit (PInt 2))
+                  --  (eLit (PInt 1))
+                  --)
+
+                  (eCall (tInt ~> tInt, "print_int64")
+                  [eIf
+                    (eOp2 oEqInt (eCall (tInt ~> tInt, "$var_g_1") [eLit (PInt 9)]) (eLit (PInt 9)))
+                    (eLit (PInt 2))
+                    (eLit (PInt 1))
+                  ])
+              )
+          )
+        ]
+    )
+
+card5Test = runModule (buildProgram "Foo" card5)
 
 
+
+card5Test2 = do -- runModule (buildProgram "Foo" card5)
+  --let Program qqq = qq
+  runModule yy1
+  x <- foo
+  traceShowM x
+  where
+    --mapM_ traceShowM (Map.toList q)
+    --traceShowM zz1
+
+    foo = do
+      (_, Just one, _, _) <- createProcess (proc "echo" ["target triple = \"x86_64-redhat-linux-gnu\"\n " <> TL.unpack yy2]){std_out = CreatePipe}
+      (_, _, _, h) <-
+        createProcess
+          (proc "clang" ["memory.c", "-xir", "-lgc", "-o", "out", "-"])
+            { std_in = UseHandle one
+            , cwd = Just "/home/laserpants/code/area-51"
+            }
+      waitForProcess h
+      (_, _, _, g) <- createProcess (proc "/home/laserpants/code/area-51/out" [])
+      -- ExitFailure c <- waitForProcess g
+      c <- waitForProcess g
+      pure c
+
+    yy2 = ppll yy1
+    yy1 = buildProgram "Foo" qq
+    qq :: Program MonoType Ast
+    qq = card5
 
 
 
