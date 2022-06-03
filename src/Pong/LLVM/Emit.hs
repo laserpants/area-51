@@ -32,11 +32,11 @@ import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
 import qualified Pong.Util.Env as Env
 
-data Baz
+data OpInfo
   = Op MonoType
-  | Boss MonoType [MonoType] -- LLVM.Type
+  | Partial MonoType [MonoType] -- LLVM.Type
 
-type Info = (Baz, Operand)
+type Info = (OpInfo, Operand)
 
 type CodeGenEnv = Environment Info
 
@@ -171,11 +171,11 @@ emitCall fun args = do
   as <- sequence args
   Env.askLookup fun
     >>= \case
-      Just (Op t, op) | "f" == fun -> do
+      Just (Op t, op) | arity t == length as -> do
         r <- call op (zip (snd <$> as) (repeat []))
         pure (Op (returnType t), r)
 
-      Just (Op t, op) | "$lam2" == fun -> do
+      Just (Op t, op) -> do
         let sty = StructureType False (i8 : llvmType t : (LLVM.typeOf . snd <$> as))
         s <- malloc sty
         p0 <- gep s [int32 0, int32 0]
@@ -185,9 +185,9 @@ emitCall fun args = do
         forM_ (as `zip` [2 ..]) $ \((_, arg), i) -> do
           q <- gep s [int32 0, int32 i]
           store q 0 arg
-        pure (Boss t [tInt ~> tInt ~> tInt], s) -- TODO
+        pure (Partial t [tInt ~> tInt ~> tInt], s) -- TODO
 
-      Just (Boss t ts, op) | "$var_g_1" == fun -> do
+      Just (Partial t ts, op) | "$var_g_1" == fun -> do
         let sty = StructureType False (i8 : llvmType t : (llvmType <$> ts))
         s <- bitcast op (ptr sty)
         p0 <- gep s [int32 0, int32 0]
@@ -201,9 +201,12 @@ emitCall fun args = do
         r <- call x1 (zip (xxs <> (snd <$> as)) (repeat []))
         pure (Op (returnType t), r)
 
-      Just (Op t, op) -> do
-        r <- call op (zip (snd <$> as) (repeat []))
-        pure (Op (returnType t), r)
+      Just (Partial t ts, op) -> do
+        error "TODO"
+
+--      Just (Op t, op) -> do
+--        r <- call op (zip (snd <$> as) (repeat []))
+--        pure (Op (returnType t), r)
 
         --op <- emitPrim (PInt 1)
         --pure (Op tInt, op)
@@ -1619,12 +1622,12 @@ malloc ty = do
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll
 
--- Baz
-deriving instance Show Baz
+-- OpInfo
+deriving instance Show OpInfo
 
-deriving instance Eq Baz
+deriving instance Eq OpInfo
 
-deriving instance Ord Baz
+deriving instance Ord OpInfo
 
 ---- Info
 --deriving instance Show Info
