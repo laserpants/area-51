@@ -13,45 +13,45 @@ module Pong.LLVM.Emit where
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.List.NonEmpty (toList)
+import qualified Data.Map.Strict as Map
 import Data.String (IsString, fromString)
+import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first, second)
 import Debug.Trace
+import qualified LLVM.AST as LLVM
+import qualified LLVM.AST.IntegerPredicate as LLVM
+import qualified LLVM.AST.Type as LLVM
+import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, typeOf, void)
 import Pong.Lang
 import Pong.TypeChecker
 import Pong.Util
 import Pong.Util.Env (Environment (..))
-import TextShow (TextShow, showt)
-import qualified Data.Map.Strict as Map
-import qualified Data.Text.Lazy.IO as Text
-import qualified LLVM.AST as LLVM
-import qualified LLVM.AST.IntegerPredicate as LLVM
-import qualified LLVM.AST.Type as LLVM
-import qualified LLVM.AST.Typed as LLVM
 import qualified Pong.Util.Env as Env
+import TextShow (TextShow, showt)
 
-data OpInfo
+data OpType
   = Op MonoType
   | Partial MonoType [MonoType]
 
-instance Typed OpInfo where
-  typeOf = \case
-    Op t -> t
-    Partial t _ -> t
+instance Typed OpType where
+  typeOf =
+    \case
+      Op t -> t
+      Partial t _ -> t
 
-type Info = (OpInfo, Operand)
+type Info = (OpType, Operand)
 
 type CodeGenEnv = Environment Info
 
-newtype CodeGen a = 
-  CodeGen
-    { getCodeGen ::
-        StateT
-          (Int, Program MonoType Ast)
-          (ReaderT CodeGenEnv (IRBuilderT ModuleBuilder))
-          a
-    }
+newtype CodeGen a = CodeGen
+  { getCodeGen ::
+      StateT
+        (Int, Program MonoType Ast)
+        (ReaderT CodeGenEnv (IRBuilderT ModuleBuilder))
+        a
+  }
 
 runCodeGen ::
   CodeGenEnv ->
@@ -66,11 +66,17 @@ llvmRep = fromString <<< unpack
 charPtr :: LLVM.Type
 charPtr = ptr i8
 
+buildEnv ::
+  Program MonoType Ast ->
+  (Label Scheme -> MonoType -> Definition MonoType Ast -> ModuleBuilder [(Name, Info)]) ->
+  ModuleBuilder CodeGenEnv
+buildEnv p = Env.fromList . concat <$$> forEachDef p
+
 buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram name p = do
   buildModule (llvmRep name) $ do
     env <-
-      Env.fromList . concat <$$> forEachDef p $ \(_, name) t ->
+      buildEnv p $ \(_, name) t ->
         \case
           Extern args t1 -> do
             op <-
@@ -78,11 +84,13 @@ buildProgram name p = do
                 (llvmRep name)
                 (llvmType <$> args)
                 (llvmType t1)
-            pure [ ( name, (Op t, op) ) ]
+            pure [(name, (Op t, op))]
           Constant (t1, _) -> do
             pure
-              [ ( name
-                , ( Op t
+              [
+                ( name
+                ,
+                  ( Op t
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -92,8 +100,10 @@ buildProgram name p = do
               ]
           Function args (t1, _) ->
             pure
-              [ ( name
-                , ( Op t
+              [
+                ( name
+                ,
+                  ( Op t
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -109,28 +119,29 @@ buildProgram name p = do
               (llvmRep name)
               []
               (llvmType t1)
-              (\ops -> do
-                runCodeGen
-                  env p
-                  (emitBody body >>= ret . snd)
+              ( \ops -> do
+                  runCodeGen
+                    env
+                    p
+                    (emitBody body >>= ret . snd)
               )
-        Function args (t1, body) -> 
+        Function args (t1, body) ->
           void $
             function
               (llvmRep name)
               (toList args <&> llvmType *** llvmRep)
               (llvmType t1)
-              (\ops -> do
-                runCodeGen
-                  (Env.inserts [(n, (Op t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
-                  p
-                  (emitBody body >>= ret . snd)
+              ( \ops -> do
+                  runCodeGen
+                    (Env.inserts [(n, (Op t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
+                    p
+                    (emitBody body >>= ret . snd)
               )
         _ ->
           pure ()
 
 emitBody :: Ast -> CodeGen Info
-emitBody = 
+emitBody =
   cata $ \case
     ELet (t, name) expr1 expr2 -> do
       e1 <- expr1
@@ -172,32 +183,29 @@ emitCall fun args = do
   as <- sequence args
   Env.askLookup fun
     >>= \case
-      Just (Op t, op) -> 
+      Just (Op t, op) ->
         if arity t == length as
-           then do
+          then do
             r <- call op (zip (snd <$> as) (repeat []))
             pure (Op (returnType t), r)
-           else 
-            partial t op as
-
+          else partial t op as
       Just (Partial t ts, op) -> do
         let sty = StructureType False (llvmType t : (llvmType <$> ts))
         s <- bitcast op (ptr sty)
         p <- gep s [int32 0, int32 0]
         f <- load p 0
-        bs <- forM (zip (unwindType t) [1 .. fromIntegral (length ts)]) $ \(ti, i) -> do
-          pi <- gep s [int32 0, int32 i]
-          r <- load pi 0 
+        bs <- forM (zip (unwindType t) [1 .. length ts]) $ \(ti, i) -> do
+          pi <- gep s [int32 0, int32 (fromIntegral i)]
+          r <- load pi 0
           pure (Op ti, r)
 
         if arity t == length bs + length as
           then do
             r <- call f (zip (snd <$> (bs <> as)) (repeat []))
             pure (Op (returnType t), r)
-          else do
-            partial t f (bs <> as)
+          else partial t f (bs <> as)
 
-partial :: MonoType -> Operand -> [(OpInfo, Operand)] -> CodeGen Info
+partial :: MonoType -> Operand -> [(OpType, Operand)] -> CodeGen Info
 partial t op as = do
   let sty = StructureType False (llvmType t : (LLVM.typeOf . snd <$> as))
   s <- malloc sty
@@ -296,12 +304,12 @@ malloc ty = do
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll
 
--- OpInfo
-deriving instance Show OpInfo
+-- OpType
+deriving instance Show OpType
 
-deriving instance Eq OpInfo
+deriving instance Eq OpType
 
-deriving instance Ord OpInfo
+deriving instance Ord OpType
 
 -- CodeGen
 deriving instance Functor CodeGen
