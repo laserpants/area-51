@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+-- {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -34,7 +34,12 @@ import qualified Pong.Util.Env as Env
 
 data OpInfo
   = Op MonoType
-  | Partial MonoType [MonoType] -- LLVM.Type
+  | Partial MonoType [MonoType]
+
+instance Typed OpInfo where
+  typeOf = \case
+    Op t -> t
+    Partial t _ -> t
 
 type Info = (OpInfo, Operand)
 
@@ -159,10 +164,8 @@ emitBody =
     EVar (t, name) ->
       Env.askLookup name
         >>= \case
-          Just c -> 
-            pure c
-          _ -> do
-            error "#4"
+          Just c -> pure c
+          _ -> error "Implementation error"
     ECall () (_, fun) args -> do
       emitCall fun args
 
@@ -171,38 +174,41 @@ emitCall fun args = do
   as <- sequence args
   Env.askLookup fun
     >>= \case
-      Just (Op t, op) | arity t == length as -> do
-        r <- call op (zip (snd <$> as) (repeat []))
-        pure (Op (returnType t), r)
-
-      Just (Op t, op) -> do
-        let sty = StructureType False (i8 : llvmType t : (LLVM.typeOf . snd <$> as))
-        s <- malloc sty
-        p0 <- gep s [int32 0, int32 0]
-        p1 <- gep s [int32 0, int32 1]
-        store p0 0 (int8 1)  -- TODO
-        store p1 0 op
-        forM_ (as `zip` [2 ..]) $ \((_, arg), i) -> do
-          q <- gep s [int32 0, int32 i]
-          store q 0 arg
-        pure (Partial t [tInt ~> tInt ~> tInt], s) -- TODO
-
-      Just (Partial t ts, op) | "$var_g_1" == fun -> do
-        let sty = StructureType False (i8 : llvmType t : (llvmType <$> ts))
-        s <- bitcast op (ptr sty)
-        p0 <- gep s [int32 0, int32 0]
-        p1 <- gep s [int32 0, int32 1]
-        x0 <- load p0 0
-        x1 <- load p1 0
-        xxs <- forM (as `zip` [2 .. 3]) $ \((_, arg), i) -> do -- TODO
-          q <- gep s [int32 0, int32 i]
-          load q 0 
-
-        r <- call x1 (zip (xxs <> (snd <$> as)) (repeat []))
-        pure (Op (returnType t), r)
+      Just (Op t, op) -> 
+        if arity t == length as
+           then do
+            r <- call op (zip (snd <$> as) (repeat []))
+            pure (Op (returnType t), r)
+           else 
+            partial t op as
 
       Just (Partial t ts, op) -> do
-        error "TODO"
+        let sty = StructureType False (llvmType t : (llvmType <$> ts))
+        s <- bitcast op (ptr sty)
+        p <- gep s [int32 0, int32 0]
+        f <- load p 0
+        bs <- forM (zip (unwindType t) [1 .. fromIntegral (length ts)]) $ \(ti, i) -> do
+          pi <- gep s [int32 0, int32 i]
+          r <- load pi 0 
+          pure (Op ti, r)
+
+        if arity t == length bs + length as
+          then do
+            r <- call f (zip (snd <$> (bs <> as)) (repeat []))
+            pure (Op (returnType t), r)
+          else do
+            partial t f (bs <> as)
+
+partial :: MonoType -> Operand -> [(OpInfo, Operand)] -> CodeGen Info
+partial t op as = do
+  let sty = StructureType False (llvmType t : (LLVM.typeOf . snd <$> as))
+  s <- malloc sty
+  p <- gep s [int32 0, int32 0]
+  store p 0 op
+  forM_ (as `zip` [1 ..]) $ \((_, arg), i) -> do
+    q <- gep s [int32 0, int32 i]
+    store q 0 arg
+  pure (Partial t (typeOf . fst <$> as), s)
 
 --      Just (Op t, op) -> do
 --        r <- call op (zip (snd <$> as) (repeat []))
@@ -1202,7 +1208,7 @@ functionRef name rty argtys = ptrRef name (FunctionType rty argtys False)
 ---- ---- --      --zz <- inttoptr (ConstantOperand (Int 32 123)) charPtr
 ---- ---- --      call h (zip (a : as) (repeat []))
 ---- ---- --    Just (t0, op) -> do
----- ---- --      as' <- traverse foo1 (zip3 as (unwindType t0) (unwindType t))
+---- ---- --      as' <- traverse partial (zip3 as (unwindType t0) (unwindType t))
 ---- ---- --      let tys = argTypes t
 ---- ---- --          (ts1, ts2) = splitAt (length args) (llvmType <$> tys)
 ---- ---- --      case compare (arity t) (length args) of
@@ -1235,8 +1241,8 @@ functionRef name rty argtys = ptrRef name (FunctionType rty argtys False)
 ---- ---- --        LT -> error "Implementation error"
 ---- ---- --    _ -> error ("Function not in scope: '" <> show fun <> "'")
 ---- ---- --
----- ---- --foo1 :: (Operand, Type, Type) -> CodeGen Operand
----- ---- --foo1 = \case
+---- ---- --partial :: (Operand, Type, Type) -> CodeGen Operand
+---- ---- --partial = \case
 ---- ---- --  (op, s, t) | isTCon VarT s && t `elem` [tInt32, tInt64] ->
 ---- ---- --    inttoptr op charPtr
 ---- ---- ----  (op@(ConstantOperand Int {}), t) | tOpaque == t -> do
