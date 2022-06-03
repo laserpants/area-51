@@ -430,7 +430,7 @@ inferProgram ::
   Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)
 inferProgram p =
   local (<> programEnv p) $
-    (`forEachDefM` p)
+    forEachDefM p
       ( \case
           ((scheme, name), Function args (_, expr)) -> do
             lam <- inferTypes (eLam () (toList args) expr)

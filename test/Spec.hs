@@ -968,7 +968,7 @@ forEachDefEnvM ::
   ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
   Program t1 a1 ->
   m (Program t2 a2)
-forEachDefEnvM f p = local (<> programEnv p) (forEachDefM f p)
+forEachDefEnvM f p = local (<> programEnv p) (forEachDefM p f)
 
 foldDefsM ::
   (Monad m) =>
@@ -1091,14 +1091,14 @@ zork ((scheme, name), def) e =
 translate2bx ::
   Program MonoType TypedExpr ->
   TypeChecker (Program MonoType TypedExpr)
-translate2bx =
-  forEachDefM (sequence . (traverse (monomorphizeLets . combineLambdas) <$>))
+translate2bx p =
+  forEachDefM p (sequence . (traverse (monomorphizeLets . combineLambdas) <$>))
 
 translate2by ::
   Program MonoType TypedExpr ->
   TypeChecker (Program MonoType TypedExpr)
 translate2by p =
-  forEachDefM (sequence . (traverse (flip (foldDefsM zork) p) <$>)) p
+  forEachDefM p (sequence . (traverse (flip (foldDefsM zork) p) <$>))
 
 --    ( \case
 --        (key, Function args (t, expr)) -> do
@@ -1175,7 +1175,7 @@ translate3 ::
   Program MonoType TypedExpr ->
   m (Program MonoType Ast)
 translate3 =
-  forEachDefM
+  (`forEachDefM`
     ( \case
         (key, Function args (t, expr)) -> do
           e <- compile expr
@@ -1186,6 +1186,7 @@ translate3 =
         (key, Extern as r) ->
           pure (key, Extern as r)
     )
+  )
 
 --translate3
 --  :: (MonadState (Int, Program MonoType MonoType Ast) m)
@@ -2002,13 +2003,6 @@ card77 =
               , eLet 
                   (tInt ~> tInt ~> tInt, "g")
                   (eCall (tInt ~> tInt ~> tInt ~> tInt, "f") [eLit (PInt 3)])
-
-                      -- ( eLet
-                      --     (tInt, "x")
-                      --     (eCall (tInt ~> tInt ~> tInt, "g") [eLit (PInt 4), eLit (PInt 5)])
-                      --     (eCall (tInt ~> tInt, "print_int64") [eVar (tInt, "x")])
-                      -- )
-
                   ( eLet
                       (tInt ~> tInt, "h")
                       (eCall (tInt ~> tInt ~> tInt, "g") [eLit (PInt 4)])
@@ -2019,18 +2013,12 @@ card77 =
                       )
                   )
               )
-
-              --, eLet 
-              --    (tInt, "x")
-              --    (eCall (tInt ~> tInt ~> tInt, "f") [eLit (PInt 3), eLit (PInt 4), eLit (PInt 5)])
-              --    (eCall (tInt ~> tInt, "print_int64") [eVar (tInt, "x")])
-              --)
           )
         ]
     )
 
 
-card77Test2 = do -- runModule (buildProgram "Foo" card5)
+card7Test2 = do -- runModule (buildProgram "Foo" card5)
   --let Program qqq = qq
   runModule yy1
   x <- foo

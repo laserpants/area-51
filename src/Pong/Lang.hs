@@ -373,6 +373,7 @@ modifyProgram ::
   m ()
 modifyProgram = modify . second . over Program
 
+{-# INLINE insertDef #-}
 insertDef ::
   (MonadState (r, Program t a) m) =>
   Label Scheme ->
@@ -380,12 +381,20 @@ insertDef ::
   m ()
 insertDef = modifyProgram <$$> Map.insert
 
+forEachDef
+  :: (Monad m)
+  => Program MonoType t
+  -> (Label Scheme -> MonoType -> Definition MonoType t -> m a)
+  -> m [a]
+forEachDef (Program p) f =
+  forM (Map.toList p) (\(name, def) -> f name (typeOf def) def)
+
 forEachDefM ::
   (Monad m) =>
-  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
   Program t1 a1 ->
+  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
   m (Program t2 a2)
-forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
+forEachDefM (Program p) f = Program . Map.fromList <$> mapM f (Map.toList p)
 
 {-# INLINE tUnit #-}
 tUnit :: Type v s
