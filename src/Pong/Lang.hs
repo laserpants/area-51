@@ -393,7 +393,7 @@ forEachDefM ::
   Program t1 a1 ->
   ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
   m (Program t2 a2)
-forEachDefM (Program p) f = Program . Map.fromList <$> mapM f (Map.toList p)
+forEachDefM (Program p) = Program . Map.fromList <$$> forM (Map.toList p)
 
 {-# INLINE tUnit #-}
 tUnit :: Type v s
