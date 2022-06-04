@@ -22,6 +22,66 @@ import TextShow (showt)
 import qualified Pong.Util.Env as Env
 import qualified Data.Map.Strict as Map
 
+-- from:
+--   foo = lam(a) => lam(b) => b
+--   baz(x) = lam(a) => lam(b) => b
+--
+-- to:
+--   foo(a, b) = b
+--   baz(x, a, b) = b
+hoistTopLambdas 
+  :: Definition MonoType (Expr MonoType a0 a1 a2) 
+  -> Definition MonoType (Expr MonoType a0 a1 a2)
+hoistTopLambdas =
+  \case
+    Function args (t, expr)
+      | isConE LamE expr -> combine t (toList args) expr
+    Constant (t, expr)
+      | isConE LamE expr -> combine t [] expr
+    def -> def
+  where
+    combine t as =
+      combineLambdas >>> project >>> 
+        \case
+          ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
+          _ -> error "Implementation error"
+
+-- from : def f(x : int) : int -> int = add(x)
+--
+-- to   : def f(x : int, v_0 : int) : int = add(x, v_0)
+--
+xxx1 :: Definition MonoType Ast -> Definition MonoType Ast
+xxx1 = \case
+  Function args (t, expr) | isConT ArrT t ->
+    fun t (toList args) expr 
+  Constant (t, expr) | isConT ArrT t ->
+    fun t [] expr 
+  def ->
+    def
+  where
+    fun t xs expr = 
+        Function (fromList (xs <> ys)) (returnType t, appArgs2 (eVar <$> ys) expr)
+      where
+        ys = extra t
+
+appArgs2 :: [Ast] -> Ast -> Ast
+appArgs2 [] =
+  id
+appArgs2 xs =
+  project
+    >>> ( \case
+            EVar f ->
+              eCall f xs
+            ECon c ->
+              undefined
+            ECall _ f ys ->
+              eCall f (ys <> xs)
+            e ->
+              error "Implementation error"
+        )
+
+
+
 canonical :: MonoType -> MonoType
 canonical t = apply (Substitution map) t
   where
@@ -47,8 +107,8 @@ appArgs xs =
     >>> ( \case
             ECall _ f ys ->
               eCall f (ys <> xs)
-            EVar v ->
-              eCall v xs
+            EVar f ->
+              eCall f xs
             e ->
               error "Implementation error"
         )
@@ -61,7 +121,8 @@ uniqueName prefix = do
 extra :: MonoType -> [Label MonoType]
 extra t  
   | null ts = []
-  | otherwise = tail (varSequence "$v" ts)
+-- | otherwise = tail (varSequence "$v" ts)
+  | otherwise = varSequence "$v" ts
   where
     ts = argTypes t
 

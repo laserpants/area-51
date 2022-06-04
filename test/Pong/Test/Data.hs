@@ -5,7 +5,7 @@ module Pong.Test.Data where
 
 -- import Control.Monad.Fix
 -- import Control.Monad.Reader
--- import Data.List.NonEmpty (fromList, toList)
+import Data.List.NonEmpty (fromList, toList)
 -- --import qualified Data.Map.Strict as Map
 import Data.Void
 import Pong.Data
@@ -36,20 +36,20 @@ import Pong.Lang
 -- --        tInt
 -- --        (eVar (tInt ~> tInt ~> tInt, "plus"))
 -- --        [eVar (tInt, "x"), eVar (tInt, ".v0")])
--- --
--- --fragment2_0 :: Definition Type (Expr Type () () Void)
--- --fragment2_0 =
--- --  Function
--- --    (fromList [(tInt, "x")])
--- --    ( tInt ~> tInt ~> tInt
--- --    , eLam () [(tInt, "a")] (eLam () [(tInt, "b")] (eVar (tInt, "b"))))
--- --
--- --fragment2_1 :: Definition Type (Expr Type () () Void)
--- --fragment2_1 =
--- --  Function
--- --    (fromList [(tInt, "x"), (tInt, "a"), (tInt, "b")])
--- --    (tInt, eVar (tInt, "b"))
--- --
+
+fragment2_0 :: Definition MonoType (Expr MonoType () () Void)
+fragment2_0 =
+  Function
+    (fromList [(tInt, "x")])
+    ( tInt ~> tInt ~> tInt
+    , eLam () [(tInt, "a")] (eLam () [(tInt, "b")] (eVar (tInt, "b"))))
+
+fragment2_1 :: Definition MonoType (Expr MonoType () () Void)
+fragment2_1 =
+  Function
+    (fromList [(tInt, "x"), (tInt, "a"), (tInt, "b")])
+    (tInt, eVar (tInt, "b"))
+
 -- --fragment3_0 :: Expr Type Type () Void
 -- --fragment3_0 =
 -- --  eApp

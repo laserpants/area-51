@@ -27,7 +27,6 @@ executable pong
       Pong.LLVM
       Pong.LLVM.Emit
       Pong.Parser
-      Pong.Temp
       Pong.TypeChecker
       Pong.Util
       Pong.Util.Env

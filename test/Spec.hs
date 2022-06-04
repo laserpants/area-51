@@ -90,8 +90,8 @@ main =
     -- --       it "#1" (fillExprParams fragment11_1 == fragment11_2)
     -- --       it "#2" (fillExprParams fragment12_0 == fragment12_1)
     -- --       it "#3" (fillExprParams fragment17_3 == fragment17_4)
-    -- -- --    describe "hoistTopLambdas" $ do
-    -- -- --      it "#1" (hoistTopLambdas fragment2_0 == fragment2_1)
+    describe "hoistTopLambdas" $ do
+      it "#1" (hoistTopLambdas fragment2_0 == fragment2_1)
     -- --     describe "combineApps" $ do
     -- --       it "#1" (combineApps fragment3_0 == fragment3_1)
     -- --       it "#2" (marshall fragment3_0 == fragment3_1)
@@ -1744,6 +1744,149 @@ cardTest4 = prog == card4
 cardTest5 :: Program MonoType Ast
 cardTest5 = compileProgram card4
 
+-------------------------------------------------------------------------------
+
+card444 :: Program MonoType TypedExpr
+card444 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tInt, "f")
+                  (eIf 
+                    (eOp2 oEqInt (eLit (PInt 1)) (eLit (PInt 1)))
+                    (eLam () [(tInt, "z")] (eLit (PInt 2)))
+                    (eLam () [(tInt, "z")] (eLit (PInt 3))))
+                  (eLit (PInt 3))
+              )
+          )
+        ]
+    )
+
+cardTest444 :: Program MonoType Ast
+cardTest444 = compileProgram card444
+
+
+card555 :: Program MonoType TypedExpr
+card555 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tInt ~> tGen "a") , "gc_malloc")
+          , Extern [tInt] (tVar 0)
+          )
+        , ( (Scheme (tInt ~> tInt) , "print_int")
+          , Extern [tInt] tInt
+          )
+        , ( (Scheme (tInt ~> tInt ~> tInt), "add")
+          , Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              ( tInt
+              , eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))
+              )
+          )
+        , ( (Scheme (tInt ~> tInt ~> tInt), "addN")
+          , Function
+              (fromList [(tInt, "x")])
+              ( tInt ~> tInt
+              , eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add")) [eVar (tInt, "x")]
+              )
+          )
+        , ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tInt, "f")
+                  (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "addN")) [eLit (PInt 5)])
+                  ( eLet
+                      (tInt, "n")
+                      (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)])
+                      (eApp tInt (eVar (tInt ~> tInt, "print_int")) [eVar (tInt, "n")])
+                  )
+              )
+          )
+        ]
+    )
+
+ooo = 
+  Function
+    (fromList [(tInt, "x")])
+    ( tInt ~> tInt
+    , eCall (tInt ~> tInt ~> tInt, "add") [eVar (tInt, "x")]
+    )
+
+ooo2 = 
+  Function
+    (fromList [(tInt, "x")])
+    ( tInt ~> tInt
+    , eIf
+        (eLit (PBool True))
+        (eCall (tInt ~> tInt ~> tInt, "add") [eVar (tInt, "x")])
+        (eCall (tInt ~> tInt ~> tInt, "sub") [eVar (tInt, "x")])
+    )
+
+
+card5552 :: Program MonoType TypedExpr
+card5552 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tInt ~> tGen "a") , "gc_malloc")
+          , Extern [tInt] (tVar 0)
+          )
+        , ( (Scheme (tInt ~> tInt) , "print_int")
+          , Extern [tInt] tInt
+          )
+        , ( (Scheme (tInt ~> tInt ~> tInt), "add")
+          , Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              ( tInt
+              , eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))
+              )
+          )
+        , ( (Scheme (tInt ~> tInt ~> tInt), "addN")
+          , Function
+              (fromList [(tInt, "x"), (tInt, "v_0")])
+              ( tInt 
+              , eApp tInt (eVar (tInt ~> tInt ~> tInt, "add")) [eVar (tInt, "x"), eVar (tInt, "v_0")]
+              )
+          )
+        , ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tInt, "f")
+                  (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "addN")) [eLit (PInt 5)])
+                  ( eLet
+                      (tInt, "n")
+                      (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 1)])
+                      (eApp tInt (eVar (tInt ~> tInt, "print_int")) [eVar (tInt, "n")])
+                  )
+              )
+          )
+        ]
+    )
+
+
+cardTest555 :: Program MonoType Ast
+cardTest555 = compileProgram card555
+
+--cardTest4442 :: Program MonoType Ast
+cardTest747 = runTest (compileProgram card555)
+
+cardTest7472 = runTest (compileProgram card5552)
+
+
+-------------------------------------------------------------------------------
+-- Remove double-lets???
+-------------------------------------------------------------------------------
+
 
 --
 -- def f(x : int, y : a) : int =
@@ -1837,6 +1980,34 @@ card5 =
     )
 
 card5Test = runModule (buildProgram "Foo" card5)
+
+
+runTest qq = do -- runModule (buildProgram "Foo" card5)
+  --let Program qqq = qq
+  runModule yy1
+  x <- foo
+  traceShowM x
+  where
+    --mapM_ traceShowM (Map.toList q)
+    --traceShowM zz1
+
+    foo = do
+      (_, Just one, _, _) <- createProcess (proc "echo" ["target triple = \"x86_64-redhat-linux-gnu\"\n " <> TL.unpack yy2]){std_out = CreatePipe}
+      (_, _, _, h) <-
+        createProcess
+          (proc "clang" ["memory.c", "-xir", "-lgc", "-o", "out", "-"])
+            { std_in = UseHandle one
+            , cwd = Just "/home/laserpants/code/area-51"
+            }
+      waitForProcess h
+      (_, _, _, g) <- createProcess (proc "/home/laserpants/code/area-51/out" [])
+      -- ExitFailure c <- waitForProcess g
+      c <- waitForProcess g
+      pure c
+
+    yy2 = ppll yy1
+    yy1 = buildProgram "Foo" qq
+
 
 
 
