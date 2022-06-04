@@ -178,7 +178,7 @@ instance (Typed t) => Typed (Definition t a) where
       Function args (t, _) ->
         foldType (typeOf t) (typeOf . fst <$> toList args)
       Extern ts t ->
-        foldType t ts 
+        foldType t ts
       _ ->
         error "TODO"
 
@@ -380,13 +380,13 @@ insertDef ::
   m ()
 insertDef = modifyProgram <$$> Map.insert
 
-forEachDef
-  :: (Monad m)
-  => Program MonoType t
-  -> (Label Scheme -> MonoType -> Definition MonoType t -> m a)
-  -> m [a]
+forEachDef ::
+  (Monad m) =>
+  Program MonoType t ->
+  (Label Scheme -> MonoType -> Definition MonoType t -> m a) ->
+  m [a]
 forEachDef (Program p) f =
-  forM (Map.toList p) (\(name, def) -> f name (typeOf def) def)
+  forM (Map.toList p) (\(label, def) -> f label (typeOf def) def)
 
 forEachDefM ::
   (Monad m) =>

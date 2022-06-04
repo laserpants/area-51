@@ -11,7 +11,7 @@ import Control.Newtype.Generics
 import Data.Function (on)
 import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
-import Data.Tuple.Extra (first, second, swap)
+import Data.Tuple.Extra (first, second, swap, secondM)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
@@ -232,3 +232,12 @@ compile =
     ELit l -> pure (eLit l)
     ERow row ->
       eRow <$> mapRowM compile row
+
+compileProgram :: Program MonoType TypedExpr -> Program MonoType Ast
+compileProgram p = evalState run (1, emptyProgram)
+  where
+    compileDefs = (`forEachDefM` secondM (traverse compile))
+    run = do
+      q <- runReaderT (compileDefs p) (programEnv p)
+      (_, r) <- get
+      pure (q <> r)

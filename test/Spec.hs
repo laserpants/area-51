@@ -1174,19 +1174,22 @@ translate3 ::
   (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) =>
   Program MonoType TypedExpr ->
   m (Program MonoType Ast)
-translate3 =
-  (`forEachDefM`
-    ( \case
-        (key, Function args (t, expr)) -> do
-          e <- compile expr
-          pure (key, Function args (t, e))
-        (key, Constant (t, expr)) -> do
-          e <- compile expr
-          pure (key, Constant (t, e))
-        (key, Extern as r) ->
-          pure (key, Extern as r)
-    )
-  )
+translate3 = (`forEachDefM` secondM (traverse compile))
+
+--        pure (key, x)
+
+--  (`forEachDefM`
+--    ( \case
+--        (key, Function args (t, expr)) -> do
+--          e <- compile expr
+--          pure (key, Function args (t, e))
+--        (key, Constant (t, expr)) -> do
+--          e <- compile expr
+--          pure (key, Constant (t, e))
+--        (key, Extern as r) ->
+--          pure (key, Extern as r)
+--    )
+--  )
 
 --translate3
 --  :: (MonadState (Int, Program MonoType MonoType Ast) m)
@@ -1734,39 +1737,12 @@ cardTest4 = prog == card4
 -- Closure conversion
 -------------------------------------------------------------------------------
 
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def main(a : unit) : int =
---   let $var_f_1 = lam(x : int, y : int) => x + 1
---     in
---     let $var_g_1 = [lam(f_0) => f_0(8)]($var_f_1)
---     in
---       if $var_g_1(9) == 9 then 2 else 1
---
-
 -------------------------------------------------------------------------------
 -- Lambda lifting
 -------------------------------------------------------------------------------
 
---
--- def f(x : int, y : a) : int =
---   x + 1
---
--- def $lam1(x : int, y : int) : int = 
---   x + 1
---
--- def $lam2(f_0 : int -> int -> int) : int -> int =
---   f_0(8)
---
--- def main(a : unit) : int =
---   let $var_f_1 = $lam1
---     in
---     let $var_g_1 = $lam2($var_f_1)
---     in
---       if $var_g_1(9) == 9 then 2 else 1
---
+cardTest5 :: Program MonoType Ast
+cardTest5 = compileProgram card4
 
 
 --
