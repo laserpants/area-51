@@ -12,7 +12,7 @@ void gc_finalizer (void *obj, void *client_data)
     printf ("free: %d\n", count++);
 }
 
-int64_t print_int64 (int64_t n)
+int64_t print_int (int64_t n)
 {
     printf ("%" PRId64 "\n", n);
     return 0;

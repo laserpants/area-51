@@ -1308,10 +1308,10 @@ hello1 =
 hello122 :: Text
 hello122 =
   "\
-  \extern print_int64 : int -> int\
+  \extern print_int : int -> int\
   \\r\n\
   \def main(a : unit) : int =\
-  \  print_int64(fact(9))\
+  \  print_int(fact(9))\
   \\r\n\
   \def fact(n : int) : int =\
   \  if n == 0 then 1 else n * fact(n - 1)\
@@ -1320,10 +1320,10 @@ hello122 =
 hello123 :: Text
 hello123 =
   "\
-  \extern print_int64 : int -> int\
+  \extern print_int : int -> int\
   \\r\n\
   \def main(a : unit) : int =\
-  \  print_int64(add(1, fact(3)))\
+  \  print_int(add(1, fact(3)))\
   \\r\n\
   \def fact(n : int) : int =\
   \  if n == 0 then 1 else n * fact(n - 1)\
@@ -1354,7 +1354,7 @@ hello124 =
 hello12b :: Text
 hello12b =
   "\
-  \extern print_int64 : int -> int\
+  \extern print_int : int -> int\
   \\r\n\
   \extern gc_malloc : int -> a\
   \\r\n\
@@ -1368,14 +1368,14 @@ hello12b =
   \  f(5)\
   \\r\n\
   \def main(a : unit) : int =\
-  \  let add1 = add(1) in print_int64(appl(add(1)) + add1(3))\
+  \  let add1 = add(1) in print_int(appl(add(1)) + add1(3))\
   \\r\n\
   \"
 
 hello12bb :: Text
 hello12bb =
   "\
-  \extern print_int64 : int -> int\
+  \extern print_int : int -> int\
   \\r\n\
   \extern gc_malloc : int -> a\
   \\r\n\
@@ -1389,21 +1389,21 @@ hello12bb =
   \  f(5)\
   \\r\n\
   \def main(a : unit) : int =\
-  \  let add1 = lam(v_0) => add(1, v_0) in print_int64(appl(lam(w_0) => add(1, w_0)) + add1(3))\
+  \  let add1 = lam(v_0) => add(1, v_0) in print_int(appl(lam(w_0) => add(1, w_0)) + add1(3))\
   \\r\n\
   \"
 
---  \  let add1 = lam(v_0) => add(1, v_0) in print_int64(appl(lam(w_0) => add(1, w_0)) + add1(3))\
+--  \  let add1 = lam(v_0) => add(1, v_0) in print_int(appl(lam(w_0) => add(1, w_0)) + add1(3))\
 
 hello125 :: Text
 hello125 =
   "\
-  \extern print_int64 : int -> int\
+  \extern print_int : int -> int\
   \\r\n\
   \const n : int = 1\
   \\r\n\
   \def main(a : unit) : int =\
-  \  print_int64(5 + n)\
+  \  print_int(5 + n)\
   \"
 
 hello126 :: Text
@@ -1815,7 +1815,7 @@ cardTest4 = prog == card4
 -- def main(a : unit) : int =
 --   let $var_g_1 = $lam2($lam1)
 --     in
---       print_int64(if $var_g_1(9) == 9 then 2 else 1)
+--       print_int(if $var_g_1(9) == 9 then 2 else 1)
 --
 card5 :: Program MonoType Ast
 card5 =
@@ -1825,7 +1825,7 @@ card5 =
           ( (Scheme (tInt ~> tGen "a") , "gc_malloc")
           , Extern [tInt] (tVar 0)
           )
-        , ( (Scheme (tInt ~> tInt) , "print_int64")
+        , ( (Scheme (tInt ~> tInt) , "print_int")
           , Extern [tInt] tInt
           )
         , ( (Scheme (tInt ~> tInt ~> tInt), "$lam1")
@@ -1849,7 +1849,7 @@ card5 =
               , eLet
                   (tInt ~> tInt, "$var_g_1")
                   (eCall ((tInt ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2") [eVar (tInt ~> tInt ~> tInt, "$lam1")])
-                  (eCall (tInt ~> tInt, "print_int64")
+                  (eCall (tInt ~> tInt, "print_int")
                   [eIf
                     (eOp2 oEqInt (eCall (tInt ~> tInt, "$var_g_1") [eLit (PInt 9)]) (eLit (PInt 9)))
                     (eLit (PInt 2))
@@ -1903,7 +1903,7 @@ card6 =
           ( (Scheme (tInt ~> tGen "a") , "gc_malloc")
           , Extern [tInt] (tVar 0)
           )
-        , ( (Scheme (tInt ~> tInt) , "print_int64")
+        , ( (Scheme (tInt ~> tInt) , "print_int")
           , Extern [tInt] tInt
           )
         , ( (Scheme (tInt ~> tInt ~> tInt ~> tInt), "f")
@@ -1924,7 +1924,7 @@ card6 =
                       ( eLet
                           (tInt, "x")
                           (eCall (tInt ~> tInt ~> tInt, "g") [eLit (PInt 4), eLit (PInt 5)])
-                          (eCall (tInt ~> tInt, "print_int64") [eVar (tInt, "x")])
+                          (eCall (tInt ~> tInt, "print_int") [eVar (tInt, "x")])
                       )
 
                   --( eLet
@@ -1933,7 +1933,7 @@ card6 =
                   --    ( eLet
                   --        (tInt, "x")
                   --        (eCall (tInt ~> tInt, "h") [eLit (PInt 5)])
-                  --        (eCall (tInt ~> tInt, "print_int64") [eVar (tInt, "x")])
+                  --        (eCall (tInt ~> tInt, "print_int") [eVar (tInt, "x")])
                   --    )
                   --)
               )
@@ -1941,7 +1941,7 @@ card6 =
               --, eLet 
               --    (tInt, "x")
               --    (eCall (tInt ~> tInt ~> tInt, "f") [eLit (PInt 3), eLit (PInt 4), eLit (PInt 5)])
-              --    (eCall (tInt ~> tInt, "print_int64") [eVar (tInt, "x")])
+              --    (eCall (tInt ~> tInt, "print_int") [eVar (tInt, "x")])
               --)
           )
         ]
@@ -1986,7 +1986,7 @@ card77 =
           ( (Scheme (tInt ~> tGen "a") , "gc_malloc")
           , Extern [tInt] (tVar 0)
           )
-        , ( (Scheme (tInt ~> tInt) , "print_int64")
+        , ( (Scheme (tInt ~> tInt) , "print_int")
           , Extern [tInt] tInt
           )
         , ( (Scheme (tInt ~> tInt ~> tInt ~> tInt), "f")
@@ -2009,7 +2009,7 @@ card77 =
                       ( eLet
                           (tInt, "x")
                           (eCall (tInt ~> tInt, "h") [eLit (PInt 5)])
-                          (eCall (tInt ~> tInt, "print_int64") [eVar (tInt, "x")])
+                          (eCall (tInt ~> tInt, "print_int") [eVar (tInt, "x")])
                       )
                   )
               )
