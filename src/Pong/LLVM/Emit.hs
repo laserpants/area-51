@@ -66,17 +66,24 @@ llvmRep = fromString <<< unpack
 charPtr :: LLVM.Type
 charPtr = ptr i8
 
+forEachDef3 ::
+  (Monad m) =>
+  Program MonoType t ->
+  (Name -> MonoType -> Definition MonoType t -> m a) ->
+  m [a]
+forEachDef3 p f = forEachDef p (\label def -> f (snd label) (typeOf def) def)
+
 buildEnv ::
   Program MonoType Ast ->
-  (Label Scheme -> MonoType -> Definition MonoType Ast -> ModuleBuilder [(Name, Info)]) ->
+  (Name  -> MonoType -> Definition MonoType Ast -> ModuleBuilder [(Name, Info)]) ->
   ModuleBuilder CodeGenEnv
-buildEnv p = Env.fromList . concat <$$> forEachDef p
+buildEnv p = Env.fromList . concat <$$> forEachDef3 p
 
 buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
-buildProgram name p = do
-  buildModule (llvmRep name) $ do
+buildProgram pname p = do
+  buildModule (llvmRep pname) $ do
     env <-
-      buildEnv p $ \(_, name) t ->
+      buildEnv p $ \name t ->
         \case
           Extern args t1 -> do
             op <-
@@ -111,7 +118,7 @@ buildProgram name p = do
                   )
                 )
               ]
-    forEachDef p $ \(_, name) t ->
+    forEachDef3 p $ \name t ->
       \case
         Constant (t1, body) -> do
           void $

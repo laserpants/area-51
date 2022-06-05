@@ -100,6 +100,9 @@ data Op2
 -- | A label is a typed identifier
 type Label t = (t, Name)
 
+-- | Match expression clause  
+type Clause t a = ([Label t], a)
+
 {- ORMOLU_DISABLE -}
 
 data ExprF t a0 a1 a2 a
@@ -113,7 +116,7 @@ data ExprF t a0 a1 a2 a
   | ECall a2 (Label t) [a]                   -- ^ Function call
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
-  | ECase a [([Label t], a)]                 -- ^ Match clause statement
+  | ECase a [Clause t a]                     -- ^ Match statement
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
   | EField [Label t] a a                     -- ^ Field accessor
 
@@ -331,3 +334,9 @@ deriving instance (Ord t) => Semigroup (Program t a)
 deriving instance Generic (Program t a)
 
 instance Newtype (Program t a)
+
+deriving instance Functor (Program t)
+
+deriving instance Foldable (Program t)
+
+deriving instance Traversable (Program t)

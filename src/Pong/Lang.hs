@@ -1,11 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Pong.Lang where
 
 import Control.Monad.State
-import Control.Newtype.Generics (over, unpack)
+import Control.Newtype.Generics -- (over, unpack, overF)
 import Data.Char (isUpper)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
@@ -380,20 +381,42 @@ insertDef ::
   m ()
 insertDef = modifyProgram <$$> Map.insert
 
+{-# INLINE forEachDef #-}
 forEachDef ::
   (Monad m) =>
-  Program MonoType t ->
-  (Label Scheme -> MonoType -> Definition MonoType t -> m a) ->
-  m [a]
-forEachDef (Program p) f =
-  forM (Map.toList p) (\(label, def) -> f label (typeOf def) def)
+  Program t a ->
+  (Label Scheme -> Definition t a -> m b) ->
+  m [b]
+forEachDef (Program p) = forM (Map.toList p) . uncurry
 
-forEachDefM ::
-  (Monad m) =>
-  Program t1 a1 ->
-  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
-  m (Program t2 a2)
-forEachDefM (Program p) = Program . Map.fromList <$$> forM (Map.toList p)
+{-# INLINE programMap #-}
+programMap
+  :: (Label Scheme -> Definition t1 a1 -> Definition t2 a2) 
+  -> Program t1 a1
+  -> Program t2 a2
+programMap = over Program . Map.mapWithKey 
+
+{-# INLINE programFor #-}
+programFor 
+  :: Program t1 a1
+  -> (Label Scheme -> Definition t1 a1 -> Definition t2 a2) 
+  -> Program t2 a2
+programFor = flip programMap
+
+programMapM 
+  :: (Monad m)
+  => (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) 
+  -> Program t1 a1
+  -> m (Program t2 a2)
+programMapM f = Program <$$> Map.traverseWithKey f . unpack
+
+{-# INLINE programForM #-}
+programForM 
+  :: (Monad m)
+  => Program t1 a1
+  -> (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) 
+  -> m (Program t2 a2)
+programForM = flip programMapM
 
 {-# INLINE tUnit #-}
 tUnit :: Type v s
@@ -507,7 +530,7 @@ eCall_ :: a2 -> Label t -> [Expr t a0 a1 a2] -> Expr t a0 a1 a2
 eCall_ = embed3 ECall
 
 {-# INLINE eCase #-}
-eCase :: Expr t a0 a1 a2 -> [([Label t], Expr t a0 a1 a2)] -> Expr t a0 a1 a2
+eCase :: Expr t a0 a1 a2 -> [Clause t (Expr t a0 a1 a2)] -> Expr t a0 a1 a2
 eCase = embed2 ECase
 
 {-# INLINE eRow #-}

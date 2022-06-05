@@ -338,13 +338,11 @@ inferExpr =
       (f, e2) <- inferRowCase (typeOf e1) field expr2
       pure (eField f e1 e2)
 
-type TypedClause = ([Label MonoType], TypedExpr)
-
 inferRowCase ::
   MonoType ->
   [Label Int] ->
   TypeChecker TypedExpr ->
-  TypeChecker TypedClause
+  TypeChecker (Clause MonoType TypedExpr)
 inferRowCase (Fix (TRow row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
@@ -388,8 +386,8 @@ binopType =
 
 inferCases ::
   TypedExpr ->
-  [([Label Int], TypeChecker TypedExpr)] ->
-  TypeChecker [TypedClause]
+  [Clause Int (TypeChecker TypedExpr)] ->
+  TypeChecker [Clause MonoType TypedExpr]
 inferCases expr clauses = do
   cs <- traverse inferClause clauses
   let t : ts = snd <$> cs
@@ -403,7 +401,7 @@ inferCase ::
   MonoType ->
   [Label Int] ->
   TypeChecker TypedExpr ->
-  TypeChecker TypedClause
+  TypeChecker (Clause MonoType TypedExpr)
 inferCase mt (con : vs) expr = do
   (t, _) <- lookupName con ConstructorNotInScope
   let ts = unwindType t
@@ -428,28 +426,26 @@ inferRow =
 
 inferProgram ::
   Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)
-inferProgram p =
-  local (<> programEnv p) $
-    forEachDefM p
-      ( \case
-          ((scheme, name), Function args (_, expr)) -> do
-            lam <- inferTypes (eLam () (toList args) expr)
-            t0 <- instantiate scheme
-            t0 `unify` typeOf lam
-            applySubstitution lam <&> project >>= \case
-              ELam () as body ->
-                pure ((scheme, name), Function (fromList as) (typeOf body, body))
-          (key, Constant (_, expr)) -> do
-            const <- inferTypes expr
-            pure (key, Constant (typeOf const, const))
-          (key, Extern as r) -> do
-            pure (key, Extern as r)
-          _ ->
-            error "TODO"
-      )
+inferProgram p = local (<> programEnv p) (programForM p (curry go))
   where
     inferTypes =
       tagExpr >=> inferExpr >=> applySubstitution
+    go = 
+      \case
+        ((scheme, name), Function args (_, expr)) -> do
+          lam <- inferTypes (eLam () (toList args) expr)
+          t0 <- instantiate scheme
+          t0 `unify` typeOf lam
+          applySubstitution lam <&> project >>= \case
+            ELam () as body ->
+              pure (Function (fromList as) (typeOf body, body))
+        (key, Constant (_, expr)) -> do
+          const <- inferTypes expr
+          pure (Constant (typeOf const, const))
+        (key, Extern as r) -> do
+          pure (Extern as r)
+        _ ->
+          error "TODO"
 
 runInferProgram ::
   Program () SourceExpr -> Either TypeError (Program MonoType TypedExpr)

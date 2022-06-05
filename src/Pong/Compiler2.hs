@@ -46,12 +46,33 @@ hoistTopLambdas =
           ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
           _ -> error "Implementation error"
 
+appArgs :: [Ast] -> Ast -> Ast
+appArgs [] = id
+appArgs xs =
+  para 
+    ( \case
+        EVar f ->
+          eCall f xs
+        EIf (e1, _) (_, e2) (_, e3) ->
+          eIf e1 e2 e3
+        ELet var (e1, _) (_, e2) ->
+          eLet var e1 e2
+        ECall _ f ys ->
+          eCall f ((fst <$> ys) <> xs)
+        ECase (e1, _) cs ->
+          eCase e1 (snd <$$> cs)
+        EField fs (e1, _) (_, e2) ->
+          eField fs e1 e2
+        e ->
+          error "Implementation error"
+    )
+
 -- from : def f(x : int) : int -> int = add(x)
 --
 -- to   : def f(x : int, v_0 : int) : int = add(x, v_0)
 --
-xxx1 :: Definition MonoType Ast -> Definition MonoType Ast
-xxx1 = \case
+normalizeDefs :: Definition MonoType Ast -> Definition MonoType Ast
+normalizeDefs = \case
   Function args (t, expr) | isConT ArrT t ->
     fun t (toList args) expr 
   Constant (t, expr) | isConT ArrT t ->
@@ -60,35 +81,21 @@ xxx1 = \case
     def
   where
     fun t xs expr = 
-        Function (fromList (xs <> ys)) (returnType t, appArgs2 (eVar <$> ys) expr)
-      where
+      let 
         ys = extra t
+      in
+        Function (fromList (xs <> ys)) (returnType t, appArgs (eVar <$> ys) expr)
 
-appArgs2 :: [Ast] -> Ast -> Ast
-appArgs2 [] =
-  id
-appArgs2 xs =
-  project
-    >>> ( \case
-            EVar f ->
-              eCall f xs
-            ECon c ->
-              undefined
-            ECall _ f ys ->
-              eCall f (ys <> xs)
-            e ->
-              error "Implementation error"
-        )
-
-
+normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast 
+normalizeProgramDefs = over Program (Map.map normalizeDefs) 
 
 canonical :: MonoType -> MonoType
 canonical t = apply (Substitution map) t
   where
     map = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
-isomorphic :: MonoType -> MonoType -> Bool
-isomorphic t0 t1 = canonical t0 == canonical t1
+isIsomorphicTo :: MonoType -> MonoType -> Bool
+isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 
 combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 combineLambdas =
@@ -99,19 +106,19 @@ combineLambdas =
       e ->
         embed e
 
-appArgs :: [Ast] -> Ast -> Ast
-appArgs [] =
-  id
-appArgs xs =
-  project
-    >>> ( \case
-            ECall _ f ys ->
-              eCall f (ys <> xs)
-            EVar f ->
-              eCall f xs
-            e ->
-              error "Implementation error"
-        )
+--appArgs :: [Ast] -> Ast -> Ast
+--appArgs [] =
+--  id
+--appArgs xs =
+--  project
+--    >>> ( \case
+--            ECall _ f ys ->
+--              eCall f (ys <> xs)
+--            EVar f ->
+--              eCall f xs
+--            e ->
+--              error "Implementation error"
+--        )
 
 uniqueName :: (MonadState (Int, a) m) => Name -> m Name
 uniqueName prefix = do
@@ -227,7 +234,7 @@ xreplacePolymorphics t name e1 =
     ( \case
         ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
           pure (eLet (t0, var) expr1 expr2)
-        EVar (t0, var) | var == name && not (isomorphic t t0) ->
+        EVar (t0, var) | var == name && not (t `isIsomorphicTo` t0) ->
           case getSubst t t0 of
             Right sub -> do
               newVar <- uniqueName ("$var_" <> var <> "_")
@@ -294,10 +301,18 @@ compile =
     ERow row ->
       eRow <$> mapRowM compile row
 
+fompile 
+  :: (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) 
+  => Label Scheme 
+  -> Definition MonoType TypedExpr
+  -> m (Definition MonoType Ast)
+fompile _ = traverse compile
+
 compileProgram :: Program MonoType TypedExpr -> Program MonoType Ast
 compileProgram p = evalState run (1, emptyProgram)
   where
-    compileDefs = (`forEachDefM` secondM (traverse compile))
+    --compileDefs = (`programForM` secondM (traverse compile))
+    compileDefs = (`programForM` fompile)
     run = do
       q <- runReaderT (compileDefs p) (programEnv p)
       (_, r) <- get

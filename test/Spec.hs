@@ -13,6 +13,7 @@
 -- -- import qualified Data.Text.Lazy.IO as Text
 -- -- import qualified LLVM.AST as LLVM
 -- -- import qualified LLVM.AST.Type as LLVM
+import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -844,6 +845,18 @@ hello5xx s = do
     qq :: Program MonoType Ast
     qq = evalState (hello4xx s) (1, emptyProgram)
 
+--hello99 :: Text -> IO ()
+hello99 s = do
+  mapM_ traceShowM (Map.toList q)
+  traceShowM zz1
+  where
+    zz1 = evalProgram__ (e, qq)
+    Just (Function _ (_, e)) = Map.lookup (Scheme (tUnit ~> tInt), "main") q
+    Program q = qq
+--    qq :: Program MonoType Ast
+    qq = s -- evalState (hello4xx s) (1, emptyProgram)
+
+
 hello4xx :: Text -> State (Int, Program MonoType Ast) (Program MonoType Ast)
 hello4xx s =
   case runTypeChecker 1 mempty (hello3xx s) of
@@ -956,19 +969,19 @@ hello5x = mapM_ traceShowM (Map.toList q)
   where
     Program q = evalState hello4x (1, emptyProgram)
 
---forEachDefM
+--programForM
 --  :: (Monad m, Ord s1, Ord s2)
 --  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2))
 --  -> Program s1 t1 a1
 --  -> m (Program s2 t2 a2)
---forEachDefM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
+--programForM f (Program p) = Program . Map.fromList <$> mapM f (Map.toList p)
 
-forEachDefEnvM ::
-  (MonadReader TypeEnv m) =>
-  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
-  Program t1 a1 ->
-  m (Program t2 a2)
-forEachDefEnvM f p = local (<> programEnv p) (forEachDefM p f)
+--forEachDefEnvM ::
+--  (MonadReader TypeEnv m) =>
+--  ((Label Scheme, Definition t1 a1) -> m (Label Scheme, Definition t2 a2)) ->
+--  Program t1 a1 ->
+--  m (Program t2 a2)
+--forEachDefEnvM f p = undefined -- local (<> programEnv p) (programForM p f)
 
 foldDefsM ::
   (Monad m) =>
@@ -983,13 +996,13 @@ foldDefsM f a = foldrM f a . Map.toList . unpack
 --  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2))
 --  -> Program s1 t1 a1
 --  -> m (Program s2 t2 a2)
---forEachDefEnvM f p = local (<> programEnv p) (forEachDefM f p)
+--forEachDefEnvM f p = local (<> programEnv p) (programForM f p)
 
 --translate1
 --  :: Program Scheme () SourceExpr
 --  -> TypeChecker (Program MonoType () SourceExpr)
 --translate1 =
---  forEachDefM
+--  programForM
 --    ( \case
 --      ((Scheme s, name), def) -> do
 --        t <- instantiate s
@@ -998,38 +1011,39 @@ foldDefsM f a = foldrM f a . Map.toList . unpack
 
 translate2x :: Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)
 translate2x =
-  forEachDefEnvM
-    ( \case
-        ((scheme, name), Function args (_, expr)) -> do
-          e <- do
-            lam <- inferTypes (eLam () (toList args) expr)
-            t0 <- instantiate scheme
-            unify t0 (typeOf lam)
-            applySubstitution lam
-          let ELam () as body = project e
-          pure ((scheme, name), Function (fromList as) (typeOf body, body))
-        ((scheme, name), Constant (_, expr)) -> do
-          const <- inferTypes expr
-          pure ((scheme, name), Constant (typeOf const, const))
-        ((scheme, name), Extern as r) -> do
-          pure ((scheme, name), Extern as r)
-        --      ((scheme, name), Function args (_, expr)) -> do
-        --        e <- do
-        --          lam <- inferTypes (eLam () (toList args) expr)
-        --          undefined
-        --          --t0 <- instantiate scheme
-        --          --unify t0 (typeOf lam)
-        --          --applySubstitution lam
-        --        let ELam () as body = project e
-        --        pure ((scheme, name), Function (fromList as) (typeOf body, body))
-        --      ((scheme, name), Constant (_, expr)) -> do
-        --        const <- inferTypes expr
-        --        pure ((scheme, name), Constant (typeOf const, const))
-        _ ->
-          error "TODO"
-    )
-  where
-    inferTypes = tagExpr >=> inferExpr >=> applySubstitution
+  undefined
+--  forEachDefEnvM
+--    ( \case
+--        ((scheme, name), Function args (_, expr)) -> do
+--          e <- do
+--            lam <- inferTypes (eLam () (toList args) expr)
+--            t0 <- instantiate scheme
+--            unify t0 (typeOf lam)
+--            applySubstitution lam
+--          let ELam () as body = project e
+--          pure ((scheme, name), Function (fromList as) (typeOf body, body))
+--        ((scheme, name), Constant (_, expr)) -> do
+--          const <- inferTypes expr
+--          pure ((scheme, name), Constant (typeOf const, const))
+--        ((scheme, name), Extern as r) -> do
+--          pure ((scheme, name), Extern as r)
+--        --      ((scheme, name), Function args (_, expr)) -> do
+--        --        e <- do
+--        --          lam <- inferTypes (eLam () (toList args) expr)
+--        --          undefined
+--        --          --t0 <- instantiate scheme
+--        --          --unify t0 (typeOf lam)
+--        --          --applySubstitution lam
+--        --        let ELam () as body = project e
+--        --        pure ((scheme, name), Function (fromList as) (typeOf body, body))
+--        --      ((scheme, name), Constant (_, expr)) -> do
+--        --        const <- inferTypes expr
+--        --        pure ((scheme, name), Constant (typeOf const, const))
+--        _ ->
+--          error "TODO"
+--    )
+--  where
+--    inferTypes = tagExpr >=> inferExpr >=> applySubstitution
 
 --translate2
 --  :: Program Scheme () SourceExpr
@@ -1092,13 +1106,15 @@ translate2bx ::
   Program MonoType TypedExpr ->
   TypeChecker (Program MonoType TypedExpr)
 translate2bx p =
-  forEachDefM p (sequence . (traverse (monomorphizeLets . combineLambdas) <$>))
+--  programForM p (sequence . (traverse (monomorphizeLets . combineLambdas) <$>))
+--  programForM p (sequence . (traverse monomorphizeLets . hoistTopLambdas <$>))
+  programForM p (const (traverse monomorphizeLets . hoistTopLambdas))
 
 translate2by ::
   Program MonoType TypedExpr ->
   TypeChecker (Program MonoType TypedExpr)
-translate2by p =
-  forEachDefM p (sequence . (traverse (flip (foldDefsM zork) p) <$>))
+translate2by p = programForM p (const (traverse (flip (foldDefsM zork) p)))
+
 
 --    ( \case
 --        (key, Function args (t, expr)) -> do
@@ -1142,7 +1158,7 @@ translate2by p =
 --  :: Program Scheme MonoType TypedExpr
 --  -> TypeChecker (Program Scheme MonoType TypedExpr)
 --translate2b =
---  forEachDefM
+--  programForM
 --    ( \case
 --      (key, Function args (t, expr)) -> do
 --        e <- specializeLets expr
@@ -1158,7 +1174,7 @@ translate2by p =
 --  :: Program MonoType MonoType TypedExpr
 --  -> TypeChecker (Program MonoType MonoType TypedExpr)
 --translate2b =
---  forEachDefM
+--  programForM
 --    ( \case
 --      (key, Function args (t, expr)) -> do
 --        e <- specializeLets expr
@@ -1174,11 +1190,11 @@ translate3 ::
   (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) =>
   Program MonoType TypedExpr ->
   m (Program MonoType Ast)
-translate3 = (`forEachDefM` secondM (traverse compile))
+translate3 = undefined -- (`programForM` secondM (traverse compile))
 
 --        pure (key, x)
 
---  (`forEachDefM`
+--  (`programForM`
 --    ( \case
 --        (key, Function args (t, expr)) -> do
 --          e <- compile expr
@@ -1196,7 +1212,7 @@ translate3 = (`forEachDefM` secondM (traverse compile))
 --  => Program MonoType MonoType TypedExpr
 --  -> m (Program MonoType MonoType Ast)
 --translate3 =
---  forEachDefM
+--  programForM
 --    ( \case
 --      (key, Function args (t, expr)) -> do
 --        e <- compile expr
@@ -1636,6 +1652,10 @@ card2 =
 cardTest2 = runInferProgram card1 == Right card2
 
 -------------------------------------------------------------------------------
+-- Hoist
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
 -- Monomorphize let bindings
 -------------------------------------------------------------------------------
 
@@ -1743,6 +1763,10 @@ cardTest4 = prog == card4
 
 cardTest5 :: Program MonoType Ast
 cardTest5 = compileProgram card4
+
+-------------------------------------------------------------------------------
+-- Normalize definitions
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 
@@ -1876,6 +1900,9 @@ card5552 =
 
 cardTest555 :: Program MonoType Ast
 cardTest555 = compileProgram card555
+
+cardTest557 :: Program MonoType Ast
+cardTest557 = normalizeProgramDefs (compileProgram card555)
 
 --cardTest4442 :: Program MonoType Ast
 cardTest747 = runTest (compileProgram card555)
@@ -2760,3 +2787,12 @@ card7 =
 ----   let g = $def2(f) in if g(9) == 9 then 2 else 1
 --
 --
+
+test123123 = 
+  combineLambdas (eLam () [(tInt, "x")] (eLam () [(tInt, "y")] (eLam () [(tInt, "z")] (eLit (PInt 5)))))
+
+test123124 = 
+  combineLambdas (eLam (tInt ~> tInt ~> tInt ~> tInt) [(tInt, "x")] (eLam (tInt ~> tInt ~> tInt) [(tInt, "y")] (eLam (tInt ~> tInt) [(tInt, "z")] (eLit (PInt 5)))))
+
+test123125 = eLam (tInt ~> tInt ~> tInt ~> tInt) [(tInt, "x"), (tInt, "y"), (tInt, "z")] (eLit (PInt 5))
+
