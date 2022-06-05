@@ -118,7 +118,7 @@ data ExprF t a0 a1 a2 a
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
   | EPat a [Clause t a]                      -- ^ Match statement
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
-  | EField [Label t] a a                     -- ^ Field accessor
+  | ERes [Label t] a a                       -- ^ Field restriction operator
 
 {- ORMOLU_ENABLE -}
 

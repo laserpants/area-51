@@ -184,6 +184,10 @@ emitBody =
           _ -> error "Implementation error"
     ECall () (_, fun) args -> do
       emitCall fun args
+    ERow{} ->
+      error "TODO"
+    ERes{} ->
+      error "TODO"
 
 emitCall :: Name -> [CodeGen Info] -> CodeGen Info
 emitCall fun args = do
@@ -205,7 +209,6 @@ emitCall fun args = do
           pi <- gep s [int32 0, int32 (fromIntegral i)]
           r <- load pi 0
           pure (Op ti, r)
-
         if arity t == length bs + length as
           then do
             r <- call f (zip (snd <$> (bs <> as)) (repeat []))

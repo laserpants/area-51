@@ -117,7 +117,7 @@ eval =
       evalMatch e cs
     ERow row ->
       RowValue <$> evalRow row
-    EField field expr1 expr2 -> do
+    ERes field expr1 expr2 -> do
       e1 <- expr1
       evalField (getRow e1) field expr2
 
@@ -228,7 +228,7 @@ evalField row [(_, name), (_, v), (_, r)] =
 --      evalMatch e cs
 --    ERow row ->
 --      RowValue <$> evalRow row
---    EField field expr1 expr2 -> do
+--    ERes field expr1 expr2 -> do
 --      e1 <- expr1
 --      evalRowCase (getRow e1) field expr2
 --

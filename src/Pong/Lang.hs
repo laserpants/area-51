@@ -169,7 +169,7 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EPat _ [] -> error "Empty case statement"
           EPat _ cs -> head (snd <$> cs)
           ERow r -> typeOf r
-          EField _ _ e -> e
+          ERes _ _ e -> e
       )
 
 instance (Typed t) => Typed (Definition t a) where
@@ -264,7 +264,7 @@ freeVars =
                   RVar v -> Set.singleton v
                   RExt _ elem r -> Set.fromList (freeVars elem) <> r
               )
-          EField (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
+          ERes (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
 toMonoType :: Map Name MonoType -> Type Void Name -> MonoType
@@ -324,7 +324,7 @@ mapTypes f =
         EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
         EPat e1 cs -> ePat e1 ((first . fmap . first) f <$> cs)
         ERow r -> eRow (mapRowTypes r)
-        EField fs e1 e2 -> eField (first f <$> fs) e1 e2
+        ERes fs e1 e2 -> eRes (first f <$> fs) e1 e2
     )
   where
     mapRowTypes =
@@ -538,8 +538,9 @@ ePat = embed2 EPat
 eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
 eRow = embed1 ERow
 
-eField :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-eField = embed3 EField
+{-# INLINE eRes #-}
+eRes :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eRes = embed3 ERes
 
 {-# INLINE oAddInt #-}
 oAddInt :: (Type v s, Op2)

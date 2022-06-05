@@ -206,7 +206,7 @@ matchExpr = do
 
 fieldExpr :: Parser SourceExpr
 fieldExpr = do
-  keyword "field"
+  keyword "field" -- TODO: Overload let keyword here?
   f <- braces $ do
     lhs <- identifier
     symbol "="
@@ -216,7 +216,7 @@ fieldExpr = do
     pure [toLabel lhs, toLabel rhs, toLabel row]
   e1 <- symbol "=" *> expr
   e2 <- symbol "in" *> expr
-  pure (eField f e1 e2)
+  pure (eRes f e1 e2)
 
 caseClause :: Parser ([Label ()], SourceExpr)
 caseClause = do

@@ -120,7 +120,7 @@ instance
         EPat expr cs -> ePat expr (first (fmap applyFst) <$> cs)
         EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
         EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
-        EField field expr1 expr2 -> eField (applyFst <$> field) expr1 expr2
+        ERes field expr1 expr2 -> eRes (applyFst <$> field) expr1 expr2
         ERow row -> eRow (mapRow (apply sub) row)
         ECall t fun args -> eCall_ (apply sub t) (applyFst fun) args
         e -> embed e
@@ -165,7 +165,7 @@ tagExpr =
         ePat <$> e1
           <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
       ERow row -> eRow <$> tagRow row
-      EField f e1 e2 -> eField <$> traverse (tagFst . snd) f <*> e1 <*> e2
+      ERes f e1 e2 -> eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
 
 tagRow :: Row SourceExpr (Label t) -> TypeChecker (Row TaggedExpr (Label Int))
 tagRow =
@@ -333,10 +333,10 @@ inferExpr =
       e <- expr
       ePat e <$> inferCases e clauses
     ERow row -> eRow <$> inferRow row
-    EField field expr1 expr2 -> do
+    ERes field expr1 expr2 -> do
       e1 <- expr1
       (f, e2) <- inferRowPat (typeOf e1) field expr2
-      pure (eField f e1 e2)
+      pure (eRes f e1 e2)
 
 inferRowPat ::
   MonoType ->

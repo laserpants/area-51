@@ -1302,7 +1302,7 @@ fragment18_2 =
 
 fragment21_0 :: SourceExpr
 fragment21_0 = 
-  eField 
+  eRes 
       [((), "b"), ((), "x"), ((), "r")]
       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
       (eVar ((), "x"))
@@ -1324,7 +1324,7 @@ fragment21_0 =
 
 fragment21_1 :: TypedExpr
 fragment21_1 = 
-  eField 
+  eRes 
       [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
       (eVar (tInt, "x"))
@@ -1336,7 +1336,7 @@ fragment21_1 =
 
 -- fragment21_2 :: Ast
 -- fragment21_2 = 
---   eField
+--   eRes
 --       [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")] 
 --       (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
 --       (eVar (tInt, "x")) 

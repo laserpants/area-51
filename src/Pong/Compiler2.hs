@@ -61,8 +61,8 @@ appArgs xs =
           eCall f ((fst <$> ys) <> xs)
         EPat (e1, _) cs ->
           ePat e1 (snd <$$> cs)
-        EField fs (e1, _) (_, e2) ->
-          eField fs e1 e2
+        ERes fs (e1, _) (_, e2) ->
+          eRes fs e1 e2
         e ->
           error "Implementation error"
     )
@@ -286,10 +286,10 @@ compile =
       e1 <- expr1
       e2 <- expr2
       makeDef "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))
-    EField fs expr1 expr2 -> do
+    ERes fs expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
-      makeDef "$field" (eField fs e1 e2) (\app -> eField fs e1 (app e2))
+      makeDef "$res" (eRes fs e1 e2) (\app -> eRes fs e1 (app e2))
     ECon con ->
       pure (eCall con [])
     EOp1 op a1 ->
