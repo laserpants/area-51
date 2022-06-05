@@ -19,13 +19,13 @@ extra-source-files:
 executable pong
   main-is: Main.hs
   other-modules:
-      Pong.Compiler
       Pong.Data
       Pong.Eval
       Pong.Lang
       Pong.LLVM
       Pong.LLVM.Emit
       Pong.Read
+      Pong.Tree
       Pong.Type
       Pong.Util
       Pong.Util.Env

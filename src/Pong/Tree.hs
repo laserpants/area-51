@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Pong.Compiler where
+module Pong.Tree where
 
 import Control.Monad.Except
 import Control.Monad.Reader
