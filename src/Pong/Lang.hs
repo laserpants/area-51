@@ -1,12 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module Pong.Lang where
 
 import Control.Monad.State
-import Control.Newtype.Generics -- (over, unpack, overF)
+import Control.Newtype.Generics (over, unpack, overF)
 import Data.Char (isUpper)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
