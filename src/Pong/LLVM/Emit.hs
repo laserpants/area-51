@@ -213,8 +213,6 @@ emitCall fun args = do
             r <- call f (zip (snd <$> (bs <> as)) (repeat []))
             pure (Op (returnType t), r)
           else partial t f (bs <> as)
-      _ -> do
-        error (show fun) -- TODO: remove
 
 partial :: MonoType -> Operand -> [(OpType, Operand)] -> CodeGen Info
 partial t op as = do
