@@ -452,6 +452,10 @@ runInferProgram ::
   Program () SourceExpr -> Either TypeError (Program MonoType TypedExpr)
 runInferProgram = runTypeChecker 1 mempty . inferProgram <&> fst
 
+-------------------------------------------------------------------------------
+-- Typeclass instances
+-------------------------------------------------------------------------------
+
 -- Substitution
 instance Semigroup Substitution where
   (<>) = compose
