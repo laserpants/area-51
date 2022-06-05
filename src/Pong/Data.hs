@@ -165,6 +165,10 @@ data Definition t a
 newtype Program t a
   = Program (Map (Label Scheme) (Definition t a))
 
+-------------------------------------------------------------------------------
+-- Typeclass instances
+-------------------------------------------------------------------------------
+
 -- Row
 deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
 
