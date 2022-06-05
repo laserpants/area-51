@@ -219,4 +219,4 @@ evalOp2 OLt (PInt p) (PInt q) = PBool (p < q)
 evalOp2 OGt (PInt p) (PInt q) = PBool (p > q)
 evalOp2 OLtE (PInt p) (PInt q) = PBool (p <= q)
 evalOp2 OGtE (PInt p) (PInt q) = PBool (p >= q)
-evalOp2 _ _ _ = error "Implementation error"
+evalOp2 _ _ _ = error "Not implemented"
