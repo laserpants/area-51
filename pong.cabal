@@ -20,7 +20,6 @@ executable pong
   main-is: Main.hs
   other-modules:
       Pong.Compiler
-      Pong.Compiler2
       Pong.Data
       Pong.Eval
       Pong.Lang
@@ -30,7 +29,6 @@ executable pong
       Pong.Type
       Pong.Util
       Pong.Util.Env
-      Pong.XData
       Paths_pong
   hs-source-dirs:
       src
@@ -60,8 +58,6 @@ test-suite pong-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Pong.Test.Data
-      Pong.Test.Drivers
       Paths_pong
   hs-source-dirs:
       test
