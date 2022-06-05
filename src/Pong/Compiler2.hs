@@ -301,18 +301,10 @@ compile =
     ERow row ->
       eRow <$> mapRowM compile row
 
-fompile 
-  :: (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) 
-  => Label Scheme 
-  -> Definition MonoType TypedExpr
-  -> m (Definition MonoType Ast)
-fompile _ = traverse compile
-
 compileProgram :: Program MonoType TypedExpr -> Program MonoType Ast
 compileProgram p = evalState run (1, emptyProgram)
   where
-    --compileDefs = (`programForM` secondM (traverse compile))
-    compileDefs = (`programForM` fompile)
+    compileDefs = (`programForM` const (traverse compile))
     run = do
       q <- runReaderT (compileDefs p) (programEnv p)
       (_, r) <- get

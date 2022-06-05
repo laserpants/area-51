@@ -7,17 +7,18 @@ module Pong.Lang where
 import Control.Monad.State
 import Control.Newtype.Generics (over, unpack, overF)
 import Data.Char (isUpper)
+import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
-import qualified Data.Map.Strict as Map
 import Data.Set (Set, (\\))
-import qualified Data.Set as Set
-import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, varSequence, without, (!), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -389,6 +390,15 @@ forEachDef ::
   (Label Scheme -> Definition t a -> m b) ->
   m [b]
 forEachDef (Program p) = forM (Map.toList p) . uncurry
+
+{-# INLINE foldDefsM #-}
+foldDefsM ::
+  (Monad m) =>
+  ((Label Scheme, Definition t a) -> r -> m r) ->
+  r ->
+  Program t a ->
+  m r
+foldDefsM f a = foldrM f a . Map.toList . unpack
 
 {-# INLINE programMap #-}
 programMap

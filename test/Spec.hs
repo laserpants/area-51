@@ -983,14 +983,6 @@ hello5x = mapM_ traceShowM (Map.toList q)
 --  m (Program t2 a2)
 --forEachDefEnvM f p = undefined -- local (<> programEnv p) (programForM p f)
 
-foldDefsM ::
-  (Monad m) =>
-  ((Label Scheme, Definition t a) -> r -> m r) ->
-  r ->
-  Program t a ->
-  m r
-foldDefsM f a = foldrM f a . Map.toList . unpack
-
 --forEachDefEnvM
 --  :: (MonadReader TypeEnv m, Ord s1, Ord s2, AnyType s1)
 --  => ((Label s1, Definition t1 a1) -> m (Label s2, Definition t2 a2))
@@ -1094,7 +1086,7 @@ zork ::
   (Label Scheme, Definition MonoType TypedExpr) ->
   TypedExpr ->
   TypeChecker TypedExpr
-zork ((scheme, name), def) e =
+zork ((_, name), def) e =
   case def of
     Function args body -> do
       let as = toList args
