@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 
@@ -431,7 +431,7 @@ inferProgram p = local (<> programEnv p) (programForM p (curry go))
   where
     inferTypes =
       tagExpr >=> inferExpr >=> applySubstitution
-    go = 
+    go =
       \case
         ((scheme, name), Function args (_, expr)) -> do
           lam <- inferTypes (eLam () (toList args) expr)

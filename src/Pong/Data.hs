@@ -1,19 +1,19 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 
 module Pong.Data where
 
 import Control.Newtype.Generics (Newtype)
+import Data.Data (Data)
 import Data.Map.Strict (Map)
+import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import Pong.Util (Fix (..), List1, Name, Text, Void, deriveEq1, deriveOrd1, deriveShow1)
-import Data.Typeable (Typeable)
-import Data.Data (Data)
 
 {- ORMOLU_DISABLE -}
 
@@ -100,7 +100,7 @@ data Op2
 -- | A label is a typed identifier
 type Label t = (t, Name)
 
--- | Match expression clause  
+-- | Match expression clause
 type Clause t a = ([Label t], a)
 
 {- ORMOLU_DISABLE -}
@@ -282,16 +282,16 @@ deriving instance
   (Ord t, Ord a0, Ord a1, Ord a2, Ord a) =>
   Ord (ExprF t a0 a1 a2 a)
 
-deriving instance 
-  (Data t, Data a0, Data a1, Data a2, Data a) => 
+deriving instance
+  (Data t, Data a0, Data a1, Data a2, Data a) =>
   Data (ExprF t a0 a1 a2 a)
 
-deriving instance 
-  (Typeable t, Typeable a0, Typeable a1, Typeable a2, Typeable a) => 
+deriving instance
+  (Typeable t, Typeable a0, Typeable a1, Typeable a2, Typeable a) =>
   Typeable (ExprF t a0 a1 a2 a)
 
-deriving instance 
-  (Typeable t) => 
+deriving instance
+  (Typeable t) =>
   Typeable (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
@@ -313,7 +313,7 @@ deriving instance (Eq t) => Eq (Constructor t)
 
 deriving instance (Ord t) => Ord (Constructor t)
 
-deriving instance Functor Constructor 
+deriving instance Functor Constructor
 
 deriving instance Foldable Constructor
 

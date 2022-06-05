@@ -5,9 +5,12 @@
 module Pong.Read where
 
 import Control.Monad.Combinators.Expr
+import qualified Control.Newtype.Generics as Generics
 import Data.Functor (($>))
 import Data.List.NonEmpty (fromList)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, isJust)
+import qualified Data.Set as Set
 import Data.Text (Text, pack, unpack)
 import Data.Tuple.Extra (first, second)
 import Data.Void (Void)
@@ -16,9 +19,6 @@ import Pong.Lang
 import Pong.Util (Name, (<<<), (>>>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
-import qualified Control.Newtype.Generics as Generics
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
@@ -148,7 +148,7 @@ fix6 =
   [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
   , InfixL (eOp2 ((), OSub) <$ symbol "-")
   ]
-fix4 = 
+fix4 =
   [ InfixN (eOp2 ((), OEq) <$ symbol "==")
   , InfixN (eOp2 ((), ONEq) <$ symbol "/=")
   , InfixN (eOp2 ((), OLt) <$ try (symbol "<" <* notFollowedBy (symbol "=")))
@@ -277,7 +277,7 @@ scheme = Scheme <$> type_
 
 type_ :: Parser (Type Void Name)
 type_ =
-    makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
+  makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
     item =
       keyword "unit" $> tUnit
@@ -332,7 +332,7 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       name <- identifier
       symbol ":"
       t <- type_
-      let names = Map.fromList (Set.toList (boundVars t) `zip` (tVar <$> [0..]))
+      let names = Map.fromList (Set.toList (boundVars t) `zip` (tVar <$> [0 ..]))
           t0 = toMonoType names t
       pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
 

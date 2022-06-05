@@ -74,7 +74,7 @@ forEachDef3 p f = forEachDef p (\label def -> f (snd label) (typeOf def) def)
 
 buildEnv ::
   Program MonoType Ast ->
-  (Name  -> MonoType -> Definition MonoType Ast -> ModuleBuilder [(Name, Info)]) ->
+  (Name -> MonoType -> Definition MonoType Ast -> ModuleBuilder [(Name, Info)]) ->
   ModuleBuilder CodeGenEnv
 buildEnv p = Env.fromList . concat <$$> forEachDef3 p
 
@@ -212,8 +212,7 @@ emitCall fun args = do
           then do
             r <- call f (zip (snd <$> (bs <> as)) (repeat []))
             pure (Op (returnType t), r)
-          else 
-            partial t f (bs <> as)
+          else partial t f (bs <> as)
       _ -> do
         error (show fun) -- TODO: remove
 

@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StrictData #-}
 
 module Pong.Eval where
@@ -11,14 +11,14 @@ module Pong.Eval where
 import Control.Monad.Reader
 import Data.Char (isUpper)
 import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import Data.Tuple.Extra (first)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment)
-import qualified Data.Map.Strict as Map
-import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 {- ORMOLU_DISABLE -}
@@ -35,27 +35,30 @@ data Value
 instance Eq Value where
   a == b =
     case (a, b) of
-      (PrimValue p, PrimValue q) -> 
+      (PrimValue p, PrimValue q) ->
         p == q
-      (ConValue c vs, ConValue d ws) -> 
+      (ConValue c vs, ConValue d ws) ->
         c == d && vs == ws
-      (RowValue r, RowValue s) -> 
+      (RowValue r, RowValue s) ->
         r == s
-      _ -> 
+      _ ->
         error "Implementation error"
 
 instance Show Value where
   showsPrec d = \case
-    PrimValue prim -> 
-      showParen (d > 10) 
+    PrimValue prim ->
+      showParen
+        (d > 10)
         (showString "PrimValue " . showsPrec 11 prim)
-    ConValue name vals -> 
-      showParen (d > 10) 
+    ConValue name vals ->
+      showParen
+        (d > 10)
         (showString ("ConValue " <> show name <> " ") . showsPrec 11 vals)
-    RowValue row -> 
-      showParen (d > 10) 
+    RowValue row ->
+      showParen
+        (d > 10)
         (showString "RowValue " . showsPrec 11 row)
-    Closure{} -> 
+    Closure{} ->
       showString "<<function>>"
 
 type ValueEnv =
@@ -63,7 +66,7 @@ type ValueEnv =
   , Environment Value
   )
 
-newtype Eval a = Eval { unEval :: Reader ValueEnv a }
+newtype Eval a = Eval {unEval :: Reader ValueEnv a}
   deriving
     ( Functor
     , Applicative
@@ -78,23 +81,23 @@ eval =
       (defs, vals) <- ask
       case Env.lookup var vals of
         Just val -> pure val
-        Nothing -> 
+        Nothing ->
           case Env.lookup var defs of
             Just (Constant (_, expr)) -> do
               eval expr
-            Just (Function args (_, expr)) -> 
+            Just (Function args (_, expr)) ->
               pure (Closure (t, var) [])
-            Nothing -> 
+            Nothing ->
               error ("Variable not in scope: " <> show var)
     ELit prim ->
       pure (PrimValue prim)
     EIf cond true false ->
       cond >>= \case
-        PrimValue (PBool True) -> 
+        PrimValue (PBool True) ->
           true
-        PrimValue (PBool False) -> 
+        PrimValue (PBool False) ->
           false
-        _ -> 
+        _ ->
           error "Ill-formed expression"
     ELet (_, var) body expr -> do
       val <- body
@@ -125,38 +128,33 @@ eval =
       evalField (getRow e1) field expr2
 
 evalCall :: Label MonoType -> [Eval Value] -> Eval Value
-evalCall (t, fun) args 
-  | arity t > length args = 
-      pure (Closure (t, fun) args)
-  | arity t < length args = 
-      evalCall (t, fun) (take (arity t) args) >>= \case
-        Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
+evalCall (t, fun) args
+  | arity t > length args =
+    pure (Closure (t, fun) args)
+  | arity t < length args =
+    evalCall (t, fun) (take (arity t) args) >>= \case
+      Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
   | isUpper (Text.head fun) = do
-      as <- sequence args
-      pure (ConValue fun as)
+    as <- sequence args
+    pure (ConValue fun as)
   | otherwise = do
-      (defs, vals) <- ask
-      as <- sequence args
-      case Env.lookup fun defs of
-        Just (Function vs (_, body)) -> 
-          localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
-        Just Extern{} ->
-          case (fun, as) of
-            ("print_int", [PrimValue (PInt n)]) -> do
-              traceShow ">>>"
-                $ traceShow n
-                  $ traceShow "<<<"
-                    $ pure (PrimValue (PInt 0))
-            ff ->
-              error (show ff)
-        Nothing ->
-          case Env.lookup fun vals of
-            Just (Closure g vs) -> 
-              evalCall g (vs <> args)
-            _ -> 
-              error "Eval error"
-        d ->
-          error (show fun <> ":" <> show d)
+    (defs, vals) <- ask
+    as <- sequence args
+    case Env.lookup fun defs of
+      Just (Function vs (_, body)) ->
+        localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
+      Just Extern{} ->
+        case (fun, as) of
+          ("print_int", [PrimValue (PInt n)]) ->
+            pure (PrimValue (PInt 0))
+          _ ->
+            error "Not implemented"
+      Nothing ->
+        case Env.lookup fun vals of
+          Just (Closure g vs) ->
+            evalCall g (vs <> args)
+          _ ->
+            error "Eval error"
 
 evalMatch :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
 evalMatch _ [] = error "Eval error: no match"

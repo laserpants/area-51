@@ -8,7 +8,7 @@ module Pong.LLVM (
   module LLVM.AST.Type,
   module LLVM.AST.Typed,
   module LLVM.AST.Operand,
-  module LLVM.Pretty
+  module LLVM.Pretty,
 ) where
 
 import LLVM.AST.AddrSpace

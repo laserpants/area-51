@@ -1,25 +1,25 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Pong.Lang where
 
 import Control.Monad.State
-import Control.Newtype.Generics (over, unpack, overF)
+import Control.Newtype.Generics (over, overF, unpack)
 import Data.Char (isUpper)
 import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
+import qualified Data.Map.Strict as Map
 import Data.Set (Set, (\\))
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, varSequence, without, (!), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import qualified Data.Text as Text
 import qualified Pong.Util.Env as Env
 
 mapRow :: (e -> f) -> Row e r -> Row f r
@@ -402,32 +402,32 @@ foldDefsM ::
 foldDefsM f a = foldrM f a . Map.toList . unpack
 
 {-# INLINE programMap #-}
-programMap
-  :: (Label Scheme -> Definition t1 a1 -> Definition t2 a2) 
-  -> Program t1 a1
-  -> Program t2 a2
-programMap = over Program . Map.mapWithKey 
+programMap ::
+  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
+  Program t1 a1 ->
+  Program t2 a2
+programMap = over Program . Map.mapWithKey
 
 {-# INLINE programFor #-}
-programFor 
-  :: Program t1 a1
-  -> (Label Scheme -> Definition t1 a1 -> Definition t2 a2) 
-  -> Program t2 a2
+programFor ::
+  Program t1 a1 ->
+  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
+  Program t2 a2
 programFor = flip programMap
 
-programMapM 
-  :: (Monad m)
-  => (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) 
-  -> Program t1 a1
-  -> m (Program t2 a2)
+programMapM ::
+  (Monad m) =>
+  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
+  Program t1 a1 ->
+  m (Program t2 a2)
 programMapM f = Program <$$> Map.traverseWithKey f . unpack
 
 {-# INLINE programForM #-}
-programForM 
-  :: (Monad m)
-  => Program t1 a1
-  -> (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) 
-  -> m (Program t2 a2)
+programForM ::
+  (Monad m) =>
+  Program t1 a1 ->
+  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
+  m (Program t2 a2)
 programForM = flip programMapM
 
 {-# INLINE tUnit #-}

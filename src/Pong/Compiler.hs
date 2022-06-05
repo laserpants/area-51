@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Pong.Compiler where
 
@@ -13,15 +13,15 @@ import Data.Either.Extra (mapLeft)
 import Data.Function (on)
 import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Lang
 import Pong.Read
 import Pong.Type
 import Pong.Util hiding (unpack)
-import TextShow (showt)
-import qualified Data.Map.Strict as Map
 import qualified Pong.Util.Env as Env
+import TextShow (showt)
 
 canonical :: MonoType -> MonoType
 canonical t = apply (Substitution map) t
@@ -59,8 +59,9 @@ monomorphize ::
 monomorphize t name e1 =
   para
     ( \case
-        ELet (t0, var) (expr1, _) (expr2, _) | var == name ->
-          pure (eLet (t0, var) expr1 expr2)
+        ELet (t0, var) (expr1, _) (expr2, _)
+          | var == name ->
+            pure (eLet (t0, var) expr1 expr2)
         EVar (t0, var) | var == name && not (t `isIsomorphicTo` t0) ->
           case getSubst t t0 of
             Right sub -> do
@@ -69,20 +70,20 @@ monomorphize t name e1 =
               pure (eVar (t0, newVar))
             _ ->
               error "Implementation error"
-        expr -> 
+        expr ->
           embed <$> sequence (expr <&> snd)
     )
   where
-    getSubst t1 t2 = 
+    getSubst t1 t2 =
       evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
-monomorphizeDef 
-  :: (MonadState (Int, a) m) 
-  => Label MonoType
-  -> [Label MonoType] 
-  -> (MonoType, TypedExpr) 
-  -> TypedExpr 
-  -> m TypedExpr
+monomorphizeDef ::
+  (MonadState (Int, a) m) =>
+  Label MonoType ->
+  [Label MonoType] ->
+  (MonoType, TypedExpr) ->
+  TypedExpr ->
+  m TypedExpr
 monomorphizeDef (t, name) args (_, body) expr = do
   (e, binds) <- runWriterT (monomorphize t name (eLam () args body) expr)
   pure (foldr (uncurry eLet) e binds)
@@ -175,8 +176,7 @@ makeDef name expr f =
       let vs = freeVars expr `exclude` defs
           ys = extra t
       liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
-    else 
-      pure expr
+    else pure expr
   where
     t = typeOf expr
 
@@ -259,30 +259,30 @@ hoistTopLambdas =
     def -> def
   where
     combine t as =
-      combineLambdas 
+      combineLambdas
         >>> project
-          >>> \case
-            ELam _ bs expr -> 
-              Function (fromList (as <> bs)) (returnType t, expr)
-            _ -> error "Implementation error"
+        >>> \case
+          ELam _ bs expr ->
+            Function (fromList (as <> bs)) (returnType t, expr)
+          _ -> error "Implementation error"
 
 normalizeDefs :: Definition MonoType Ast -> Definition MonoType Ast
 normalizeDefs = \case
-  Function args (t, expr) | isConT ArrT t ->
-    fun t (toList args) expr 
-  Constant (t, expr) | isConT ArrT t ->
-    fun t [] expr 
+  Function args (t, expr)
+    | isConT ArrT t ->
+      fun t (toList args) expr
+  Constant (t, expr)
+    | isConT ArrT t ->
+      fun t [] expr
   def ->
     def
   where
-    fun t xs expr = 
-      let 
-        ys = extra t
-      in
-        Function (fromList (xs <> ys)) (returnType t, appArgs (eVar <$> ys) expr)
+    fun t xs expr =
+      let ys = extra t
+       in Function (fromList (xs <> ys)) (returnType t, appArgs (eVar <$> ys) expr)
 
-normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast 
-normalizeProgramDefs = over Program (Map.map normalizeDefs) 
+normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast
+normalizeProgramDefs = over Program (Map.map normalizeDefs)
 
 runTransform :: State (Int, ()) a -> a
 runTransform = flip evalState (1, ())
@@ -301,17 +301,17 @@ transform2 p = runTransform (programForM p (const (traverse (flip (foldDefsM go)
         _ ->
           pure e
 
-data CompilerError 
+data CompilerError
   = ParserError ParserError
   | TypeError TypeError
 
 compileSource :: Text -> Program MonoType Ast
-compileSource input = 
+compileSource input =
   case parseAndAnnotate input of
     Left e -> error "TODO"
     Right p ->
       normalizeProgramDefs (compileProgram (transform2 (transform1 p)))
   where
     parseAndAnnotate =
-      mapLeft ParserError . parseProgram 
-         >=> mapLeft TypeError . runInferProgram
+      mapLeft ParserError . parseProgram
+        >=> mapLeft TypeError . runInferProgram
