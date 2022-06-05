@@ -1,13 +1,10 @@
 name:                pong
 version:             0.1.0.0
-#synopsis:
-#description:
 homepage:            https://github.com/laserpants/area-51
 license:             BSD3
 author:              Heikki Johannes Hildén
 maintainer:          hildenjohannes@gmail.com
 copyright:           2022 Heikki Johannes Hildén
-# category:            Web
 extra-source-files:
 - README.md
 
