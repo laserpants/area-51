@@ -59,8 +59,8 @@ appArgs xs =
           eLet var e1 e2
         ECall _ f ys ->
           eCall f ((fst <$> ys) <> xs)
-        ECase (e1, _) cs ->
-          eCase e1 (snd <$$> cs)
+        EPat (e1, _) cs ->
+          ePat e1 (snd <$$> cs)
         EField fs (e1, _) (_, e2) ->
           eField fs e1 e2
         e ->
@@ -265,10 +265,10 @@ compile =
       let vs = freeVars e1 `exclude` ((snd <$> args) <> defs)
           ys = extra (typeOf e1)
       liftDef ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
-    ECase expr1 clauses -> do
+    EPat expr1 clauses -> do
       e1 <- expr1
       cs <- traverse sequence clauses
-      makeDef "$match" (eCase e1 cs) (\app -> eCase e1 (second app <$> cs))
+      makeDef "$match" (ePat e1 cs) (\app -> ePat e1 (second app <$> cs))
     EIf expr1 expr2 expr3 -> do
       e1 <- expr1
       e2 <- expr2

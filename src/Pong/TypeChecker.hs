@@ -117,7 +117,7 @@ instance
         ELet bind expr1 expr2 -> eLet (applyFst bind) expr1 expr2
         ELam t args expr -> eLam t (applyFst <$> args) expr
         EApp t fun args -> eApp (apply sub t) fun args
-        ECase expr cs -> eCase expr (first (fmap applyFst) <$> cs)
+        EPat expr cs -> ePat expr (first (fmap applyFst) <$> cs)
         EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
         EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
         EField field expr1 expr2 -> eField (applyFst <$> field) expr1 expr2
@@ -161,8 +161,8 @@ tagExpr =
       ELam _ args expr -> eLam () <$> traverse (tagFst . snd) args <*> expr
       EOp1 (_, op) e1 -> eOp1 <$> tagFst op <*> e1
       EOp2 (_, op) e1 e2 -> eOp2 <$> tagFst op <*> e1 <*> e2
-      ECase e1 cs ->
-        eCase <$> e1
+      EPat e1 cs ->
+        ePat <$> e1
           <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
       ERow row -> eRow <$> tagRow row
       EField f e1 e2 -> eField <$> traverse (tagFst . snd) f <*> e1 <*> e2
@@ -328,22 +328,22 @@ inferExpr =
       t2 `unify` typeOf e2
       ty <- applySubstitution t0
       pure (eOp2 (ty, op) e1 e2)
-    ECase _ [] -> throwError IllFormedExpression
-    ECase expr clauses -> do
+    EPat _ [] -> throwError IllFormedExpression
+    EPat expr clauses -> do
       e <- expr
-      eCase e <$> inferCases e clauses
+      ePat e <$> inferCases e clauses
     ERow row -> eRow <$> inferRow row
     EField field expr1 expr2 -> do
       e1 <- expr1
-      (f, e2) <- inferRowCase (typeOf e1) field expr2
+      (f, e2) <- inferRowPat (typeOf e1) field expr2
       pure (eField f e1 e2)
 
-inferRowCase ::
+inferRowPat ::
   MonoType ->
   [Label Int] ->
   TypeChecker TypedExpr ->
   TypeChecker (Clause MonoType TypedExpr)
-inferRowCase (Fix (TRow row)) args expr = do
+inferRowPat (Fix (TRow row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
       let (r1, q) = restrictRow label row

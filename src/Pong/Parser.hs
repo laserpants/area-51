@@ -135,7 +135,7 @@ expr = makeExprParser apps operator
         <|> ifExpr
         <|> letExpr
         <|> lamExpr
-        <|> caseExpr
+        <|> matchExpr
         <|> rowExpr
         <|> fieldExpr
         <|> varExpr
@@ -197,12 +197,12 @@ lamExpr = do
   e <- symbol "=>" *> expr
   pure (eLam () [toLabel var] e)
 
-caseExpr :: Parser SourceExpr
-caseExpr = do
+matchExpr :: Parser SourceExpr
+matchExpr = do
   keyword "match"
   e <- expr
   cs <- braces (optional (symbol "|") >> caseClause `sepBy1` symbol "|")
-  pure (eCase e cs)
+  pure (ePat e cs)
 
 fieldExpr :: Parser SourceExpr
 fieldExpr = do

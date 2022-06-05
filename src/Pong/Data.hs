@@ -116,7 +116,7 @@ data ExprF t a0 a1 a2 a
   | ECall a2 (Label t) [a]                   -- ^ Function call
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
-  | ECase a [Clause t a]                     -- ^ Match statement
+  | EPat a [Clause t a]                      -- ^ Match statement
   | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
   | EField [Label t] a a                     -- ^ Field accessor
 
@@ -312,6 +312,12 @@ deriving instance (Show t) => Show (Constructor t)
 deriving instance (Eq t) => Eq (Constructor t)
 
 deriving instance (Ord t) => Ord (Constructor t)
+
+deriving instance Functor Constructor 
+
+deriving instance Foldable Constructor
+
+deriving instance Traversable Constructor
 
 -- Definition
 deriving instance (Show t, Show a) => Show (Definition t a)

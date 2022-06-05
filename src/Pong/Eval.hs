@@ -112,9 +112,9 @@ eval =
             _ -> b
         _ ->
           PrimValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
-    ECase expr cs -> do
+    EPat expr cs -> do
       e <- expr
-      evalCase e cs
+      evalMatch e cs
     ERow row ->
       RowValue <$> evalRow row
     EField field expr1 expr2 -> do
@@ -155,11 +155,11 @@ evalCall (t, fun) args
         d ->
           error (show fun <> ":" <> show d)
 
-evalCase :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
-evalCase _ [] = error "Eval error: no match"
-evalCase (ConValue name fields) (((_, con) : vars, value) : clauses)
+evalMatch :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
+evalMatch _ [] = error "Eval error: no match"
+evalMatch (ConValue name fields) (((_, con) : vars, value) : clauses)
   | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
-  | otherwise = evalCase (ConValue name fields) clauses
+  | otherwise = evalMatch (ConValue name fields) clauses
 
 evalRow :: Row Ast (Label MonoType) -> Eval (Row Value Void)
 evalRow =
@@ -225,7 +225,7 @@ evalField row [(_, name), (_, v), (_, r)] =
 --      primvalue <$> (evalop2 op <$> (getprim <$> a) <*> (getprim <$> b))
 --    ECase expr cs -> do
 --      e <- expr
---      evalCase e cs
+--      evalMatch e cs
 --    ERow row ->
 --      RowValue <$> evalRow row
 --    EField field expr1 expr2 -> do
@@ -315,14 +315,14 @@ evalField row [(_, name), (_, v), (_, r)] =
 --    RExt name v row ->
 --      rExt name <$> eval v <*> row
 --
---evalCase ::
+--evalMatch ::
 --  Value ->
 --  [([Label MonoType], Eval Value)] ->
 --  Eval Value
---evalCase _ [] = error "Runtime error: No matching clause"
---evalCase (ConValue name fields) (((_, con) : vars, value) : clauses)
+--evalMatch _ [] = error "Runtime error: No matching clause"
+--evalMatch (ConValue name fields) (((_, con) : vars, value) : clauses)
 --  | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
---  | otherwise = evalCase (ConValue name fields) clauses
+--  | otherwise = evalMatch (ConValue name fields) clauses
 --
 --evalRowCase :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value
 --evalRowCase row [(_, name), (_, v), (_, r)] =

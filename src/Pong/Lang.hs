@@ -166,8 +166,8 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
           EOp1 (t, _) _ -> returnType t
           EOp2 (t, _) _ _ -> returnType t
-          ECase _ [] -> error "Empty case statement"
-          ECase _ cs -> head (snd <$> cs)
+          EPat _ [] -> error "Empty case statement"
+          EPat _ cs -> head (snd <$> cs)
           ERow r -> typeOf r
           EField _ _ e -> e
       )
@@ -177,6 +177,8 @@ instance (Typed t) => Typed (Definition t a) where
     \case
       Function args (t, _) ->
         foldType (typeOf t) (typeOf . fst <$> toList args)
+      Constant (t, _) ->
+        typeOf t
       Extern ts t ->
         foldType t ts
       _ ->
@@ -252,7 +254,7 @@ freeVars =
             | otherwise -> Set.insert fun (Set.unions args)
           EOp1 _ e1 -> e1
           EOp2 _ e1 e2 -> e1 <> e2
-          ECase e1 cs ->
+          EPat e1 cs ->
             e1
               <> Set.unions (cs <&> \(_ : vs, expr) -> expr \\ Set.fromList vs)
           ERow row ->
@@ -320,7 +322,7 @@ mapTypes f =
         ECall a (t, fun) as -> eCall_ a (f t, fun) as
         EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
         EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
-        ECase e1 cs -> eCase e1 ((first . fmap . first) f <$> cs)
+        EPat e1 cs -> ePat e1 ((first . fmap . first) f <$> cs)
         ERow r -> eRow (mapRowTypes r)
         EField fs e1 e2 -> eField (first f <$> fs) e1 e2
     )
@@ -528,9 +530,9 @@ eCall = embed3 ECall ()
 eCall_ :: a2 -> Label t -> [Expr t a0 a1 a2] -> Expr t a0 a1 a2
 eCall_ = embed3 ECall
 
-{-# INLINE eCase #-}
-eCase :: Expr t a0 a1 a2 -> [Clause t (Expr t a0 a1 a2)] -> Expr t a0 a1 a2
-eCase = embed2 ECase
+{-# INLINE ePat #-}
+ePat :: Expr t a0 a1 a2 -> [Clause t (Expr t a0 a1 a2)] -> Expr t a0 a1 a2
+ePat = embed2 EPat
 
 {-# INLINE eRow #-}
 eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
