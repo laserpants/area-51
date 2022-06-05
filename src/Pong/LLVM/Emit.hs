@@ -25,7 +25,7 @@ import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, typeOf, void)
 import Pong.Lang
-import Pong.TypeChecker
+import Pong.Type
 import Pong.Util
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
-module Pong.Parser where
+module Pong.Read where
 
 import Control.Monad.Combinators.Expr
 import Data.Functor (($>))

@@ -15,7 +15,7 @@ import Data.Tuple.Extra (first, second, swap, secondM)
 import Debug.Trace
 import Pong.Data
 import Pong.Lang
-import Pong.TypeChecker
+import Pong.Type
 import Pong.Util hiding (unpack)
 import Pong.Util.Env (Environment(..))
 import TextShow (showt)

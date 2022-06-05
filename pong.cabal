@@ -26,8 +26,8 @@ executable pong
       Pong.Lang
       Pong.LLVM
       Pong.LLVM.Emit
-      Pong.Parser
-      Pong.TypeChecker
+      Pong.Read
+      Pong.Type
       Pong.Util
       Pong.Util.Env
       Pong.XData

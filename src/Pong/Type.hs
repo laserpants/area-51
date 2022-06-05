@@ -7,7 +7,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 
-module Pong.TypeChecker where
+module Pong.Type where
 
 import Control.Monad.Except
 import Control.Monad.Reader
