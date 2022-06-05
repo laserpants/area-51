@@ -1554,11 +1554,13 @@ hello6yy = do
 card0 :: Text
 card0 =
   "\
+  \extern gc_malloc : int -> a\
+  \\r\n\
   \def f(x : int, y : a) : int =\
   \  x + 1\
   \\r\n\
   \def main(a : unit) : int =\
-  \  let g = f(8) in if g(9) == 9 then 2 else 1\
+  \  let g = f(8) in if g(9) == 9 then 222 else 111\
   \" -- "
 
 {- -}
@@ -2001,6 +2003,7 @@ card5 =
 card5Test = runModule (buildProgram "Foo" card5)
 
 
+runTest :: Program MonoType Ast -> IO ()
 runTest qq = do -- runModule (buildProgram "Foo" card5)
   --let Program qqq = qq
   runModule yy1

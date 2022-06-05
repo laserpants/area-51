@@ -258,10 +258,12 @@ foo_hoistTopLambdas =
     def -> def
   where
     combine t as =
-      foo_combineLambdas >>> project
-        >>> \case
-          ELam _ bs expr -> Function (fromList (as <> bs)) (returnType t, expr)
-          _ -> error "Implementation error"
+      foo_combineLambdas 
+        >>> project
+          >>> \case
+            ELam _ bs expr -> 
+              Function (fromList (as <> bs)) (returnType t, expr)
+            _ -> error "Implementation error"
 
 foo_normalizeDefs :: Definition MonoType Ast -> Definition MonoType Ast
 foo_normalizeDefs = \case
@@ -281,36 +283,34 @@ foo_normalizeDefs = \case
 foo_normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast 
 foo_normalizeProgramDefs = over Program (Map.map foo_normalizeDefs) 
 
-zzz :: State (Int, Int) a -> a
-zzz = flip evalState (1, 2)
+runTransform :: State (Int, ()) a -> a
+runTransform = flip evalState (1, ())
 
---transform1 :: Program MonoType TypedExpr -> Either TypeError (Program MonoType TypedExpr)
---transform1 p = zzz (programForM p (const (traverse foo_monomorphizeLets . foo_hoistTopLambdas)))
---
---transform2 :: Program MonoType TypedExpr -> Either TypeError (Program MonoType TypedExpr)
---transform2 p = zzz (programForM p (const (traverse (flip (foldDefsM foo) p))))
---  where
---    foo ((_, name), def) e =
---      case def of
---        Function args body ->
---          let as = toList args
---           in foo_monomorphizeDef (foldType (fst body) (fst <$> as), name) as body e
---        _ ->
---          pure e
---
---data CompilerError 
---  = ParserError ParserError
---  | TypeError TypeError
---
---foo_go :: Text -> Program MonoType Ast
---foo_go input = do
---  case zz1 of
---    Left e -> error "TODO"
---    Right p ->
---      foo_normalizeProgramDefs (foo_compileProgram p)
---  where 
---    zz1 = do
---      p <- mapLeft ParserError (parseProgram input)
---      q <- mapLeft TypeError (runInferProgram p)
---      r <- mapLeft TypeError (transform1 q)
---      mapLeft TypeError (transform2 r)
+transform1 :: Program MonoType TypedExpr -> Program MonoType TypedExpr
+transform1 p = runTransform (programForM p (const (traverse foo_monomorphizeLets . foo_hoistTopLambdas)))
+
+transform2 :: Program MonoType TypedExpr -> Program MonoType TypedExpr
+transform2 p = runTransform (programForM p (const (traverse (flip (foldDefsM go) p))))
+  where
+    go ((_, name), def) e =
+      case def of
+        Function args body ->
+          let as = toList args
+           in foo_monomorphizeDef (foldType (fst body) (fst <$> as), name) as body e
+        _ ->
+          pure e
+
+data CompilerError 
+  = ParserError ParserError
+  | TypeError TypeError
+
+foo_compileSource :: Text -> Program MonoType Ast
+foo_compileSource input = 
+  case parseAndAnnotate input of
+    Left e -> error "TODO"
+    Right p ->
+      foo_normalizeProgramDefs (foo_compileProgram (transform2 (transform1 p)))
+  where
+    parseAndAnnotate =
+      mapLeft ParserError . parseProgram 
+         >=> mapLeft TypeError . runInferProgram

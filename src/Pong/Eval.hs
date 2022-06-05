@@ -81,8 +81,10 @@ eval =
           case Env.lookup var defs of
             Just (Constant (_, expr)) -> do
               eval expr
+            Just (Function args (_, expr)) -> 
+              pure (Closure (t, var) [])
             Nothing -> 
-              error "Eval error"
+              error ("Variable not in scope: " <> show var)
     ELit prim ->
       pure (PrimValue prim)
     EIf cond true false ->

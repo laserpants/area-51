@@ -5,19 +5,20 @@
 module Pong.Parser where
 
 import Control.Monad.Combinators.Expr
-import qualified Control.Newtype.Generics as Generics
 import Data.Functor (($>))
 import Data.List.NonEmpty (fromList)
-import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text, pack, unpack)
-import Data.Void (Void)
 import Data.Tuple.Extra (first, second)
+import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
 import Pong.Util (Name, (<<<), (>>>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
+import qualified Control.Newtype.Generics as Generics
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
@@ -331,7 +332,8 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       name <- identifier
       symbol ":"
       t <- type_
-      let t0 = toMonoType mempty t
+      let names = Map.fromList (Set.toList (boundVars t) `zip` (tVar <$> [0..]))
+          t0 = toMonoType names t
       pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
 
 program :: Parser (Program () SourceExpr)
