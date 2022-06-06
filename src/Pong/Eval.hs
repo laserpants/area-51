@@ -121,7 +121,7 @@ eval =
     EPat expr cs -> do
       e <- expr
       evalMatch e cs
-    ERow row ->
+    ERec row ->
       RowValue <$> evalRow row
     ERes field expr1 expr2 -> do
       e1 <- expr1

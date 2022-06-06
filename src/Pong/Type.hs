@@ -73,7 +73,7 @@ substitute sub =
       TVar n -> fromMaybe (tVar n) (sub !? n)
       TCon c ts -> tCon c ts
       TArr t1 t2 -> tArr t1 t2
-      TRow row -> tRow (rowSubstitute sub row)
+      TRec row -> tRec (rowSubstitute sub row)
       TUnit -> tUnit
       TBool -> tBool
       TInt -> tInt
@@ -94,7 +94,7 @@ rowSubstitute sub =
       RExt name t row -> rExt name (substitute sub t) row
       RVar n ->
         case project <$> (sub !? n) of
-          Just (TRow r) -> r
+          Just (TRec r) -> r
           _ -> rVar n
 
 class Substitutable a where
@@ -122,7 +122,7 @@ instance
         EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
         EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
         ERes field expr1 expr2 -> eRes (applyFst <$> field) expr1 expr2
-        ERow row -> eRow (mapRow (apply sub) row)
+        ERec row -> eRec (mapRow (apply sub) row)
         ECall t fun args -> eCall_ (apply sub t) (applyFst fun) args
         e -> embed e
     where
@@ -166,7 +166,7 @@ tagExpr =
         ePat
           <$> e1
           <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
-      ERow row -> eRow <$> tagRow row
+      ERec row -> eRec <$> tagRow row
       ERes f e1 e2 -> eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
 
 tagRow :: Row SourceExpr (Label t) -> TypeChecker (Row TaggedExpr (Label Int))
@@ -204,11 +204,11 @@ unifyRows r1 r2 =
     ((m1, Fix (RVar r)), (m2, k))
       | Map.null m1 && not (Map.null m2) && k == rVar r ->
           throwError UnificationError
-      | Map.null m1 -> pure (r `mapsTo` tRow r2)
+      | Map.null m1 -> pure (r `mapsTo` tRec r2)
     ((m1, j), (m2, Fix (RVar r)))
       | Map.null m2 && not (Map.null m1) && j == rVar r ->
           throwError UnificationError
-      | Map.null m2 -> pure (r `mapsTo` tRow r1)
+      | Map.null m2 -> pure (r `mapsTo` tRec r1)
     ((m1, j), (m2, k))
       | Map.null m1 -> unifyRows r2 r1
       | otherwise ->
@@ -216,14 +216,14 @@ unifyRows r1 r2 =
             Just (u : us) -> do
               let r1 = foldRow j (updateMap m1 ts)
                   r2 = foldRow k (updateMap m2 us)
-              unifyMany [tRow r1, t] [tRow r2, u]
+              unifyMany [tRec r1, t] [tRec r2, u]
             _
               | k == j -> throwError UnificationError
               | otherwise -> do
                   p <- rVar <$> tag
                   let r1 = foldRow j (updateMap m1 ts)
                       r2 = foldRow p m2
-                  unifyMany [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
+                  unifyMany [tRec r1, tRec k] [tRec r2, tRec (rExt a t p)]
       where
         (a, t : ts) = Map.elemAt 0 m1
         updateMap m =
@@ -239,7 +239,7 @@ unifyTypes t1 t2 =
     (TCon c1 ts1, TCon c2 ts2)
       | c1 == c2 -> unifyMany ts1 ts2
     (TArr t1 t2, TArr u1 u2) -> unifyMany [t1, t2] [u1, u2]
-    (TRow r, TRow s) -> unifyRows r s
+    (TRec r, TRec s) -> unifyRows r s
     _
       | t1 == t2 -> pure mempty
       | otherwise -> throwError UnificationError
@@ -334,7 +334,7 @@ inferExpr =
     EPat expr clauses -> do
       e <- expr
       ePat e <$> inferCases e clauses
-    ERow row -> eRow <$> inferRow row
+    ERec row -> eRec <$> inferRow row
     ERes field expr1 expr2 -> do
       e1 <- expr1
       (f, e2) <- inferRowPat (typeOf e1) field expr2
@@ -345,14 +345,14 @@ inferRowPat ::
   [Label Int] ->
   TypeChecker TypedExpr ->
   TypeChecker (Clause MonoType TypedExpr)
-inferRowPat (Fix (TRow row)) args expr = do
+inferRowPat (Fix (TRec row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
       let (r1, q) = restrictRow label row
       let [t0, t1, t2] = tVar <$> [u0, u1, u2]
       t1 `unify` r1
-      t2 `unify` tRow q
-      traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRow row]
+      t2 `unify` tRec q
+      traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRec row]
         >>= \case
           [ty0, ty1, ty2, ty3] -> do
             ty0 `unify` ty3

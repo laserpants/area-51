@@ -39,7 +39,7 @@ isPolymorphic =
         TVar{} -> True
         TArr t1 t2 -> t1 || t2
         TCon _ ts -> or ts
-        TRow row ->
+        TRec row ->
           ( (`cata` row) $
               \case
                 RExt _ t r -> isPolymorphic t || r
@@ -226,8 +226,8 @@ compile =
       eOp2 op <$> a1 <*> a2
     EVar v -> pure (eVar v)
     ELit l -> pure (eLit l)
-    ERow row ->
-      eRow <$> mapRowM compile row
+    ERec row ->
+      eRec <$> mapRowM compile row
 
 compileProgram :: Program MonoType TypedExpr -> Program MonoType Ast
 compileProgram p = evalState run (1, emptyProgram)

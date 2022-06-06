@@ -297,14 +297,14 @@ typeTests =
           source =
             eRes
               [((), "b"), ((), "x"), ((), "r")]
-              (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+              (eRec (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
               (eVar ((), "x"))
 
       let typed :: TypedExpr
           typed =
             eRes
-              [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
-              (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+              [(tInt ~> tRec (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRec (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRec (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
+              (eRec (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
               (eVar (tInt, "x"))
 
       it "4" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
@@ -320,18 +320,18 @@ typeTests =
       it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
       -------------------------------------------------------------------------
       let t1 :: MonoType
-          t1 = tRow (rExt "name" (tVar 0) (rVar 1))
+          t1 = tRec (rExt "name" (tVar 0) (rVar 1))
 
       let t2 :: MonoType
-          t2 = tRow (rExt "id" tInt (rExt "name" tString rNil))
+          t2 = tRec (rExt "id" tInt (rExt "name" tString rNil))
 
       it "2" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
       -------------------------------------------------------------------------
       let t1 :: MonoType
-          t1 = tRow (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
+          t1 = tRec (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
 
       let t2 :: MonoType
-          t2 = tRow (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
+          t2 = tRec (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
 
       it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
 
@@ -453,4 +453,4 @@ runUnify :: MonoType -> MonoType -> Either TypeError Substitution
 runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
 runUnifyRows :: Row MonoType Int -> Row MonoType Int -> Either TypeError Substitution
-runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRow r1, tRow r2]) mempty (unifyRows r1 r2)
+runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)

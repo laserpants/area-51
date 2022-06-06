@@ -235,7 +235,7 @@ rowExpr =
     fields <- commaSep field
     tail <- optional (symbol "|" *> identifier)
     pure $
-      eRow
+      eRec
         ( case fields of
             [] -> rNil
             _ -> foldr (uncurry rExt) (maybe rNil (rVar . toLabel) tail) fields

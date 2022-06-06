@@ -183,7 +183,7 @@ emitBody =
           _ -> error "Implementation error"
     ECall () (_, fun) args -> do
       emitCall fun args
-    ERow{} ->
+    ERec{} ->
       error "TODO"
     ERes{} ->
       error "TODO"

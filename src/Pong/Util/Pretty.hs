@@ -48,7 +48,7 @@ instance (Pretty v, Pretty s) => Pretty (Type v s) where
             parensIf (isConT ArrT t1) doc1 <+> "->" <+> doc2
           TVar v -> "'" <> pretty v
           TGen s -> pretty s
-          TRow row -> pretty row
+          TRec row -> pretty row
           TCon con ts ->
             pretty con
               <+> hsep (uncurry (parensIf . addParens) <$> ts)

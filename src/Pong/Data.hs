@@ -44,7 +44,7 @@ data TypeF v s a
   | TArr a a                       -- ^ Function types
   | TVar v                         -- ^ Type variable (monomorphic)
   | TGen s                         -- ^ Quantified type variable
-  | TRow (Row (Type v s) Int)      -- ^ Row types
+  | TRec (Row (Type v s) Int)      -- ^ Record type
 
 {- ORMOLU_ENABLE -}
 
@@ -63,7 +63,7 @@ newtype Scheme = Scheme (Type Void Name)
 data ConT
   = VarT                           -- ^ Type is a TVar
   | ArrT                           -- ^ Type is a TArr
-  | RowT                           -- ^ Type is a TRow
+  | RecT                           -- ^ Type is a TRec
 
 -- | Built-in language primitives
 data Prim
@@ -117,7 +117,7 @@ data ExprF t a0 a1 a2 a
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
   | EPat a [Clause t a]                      -- ^ Match statement
-  | ERow (Row (Expr t a0 a1 a2) (Label t))   -- ^ Row expression
+  | ERec (Row (Expr t a0 a1 a2) (Label t))   -- ^ Record
   | ERes [Label t] a a                       -- ^ Field restriction operator
 
 {- ORMOLU_ENABLE -}
@@ -147,7 +147,7 @@ data ConE
   = VarE                           -- ^ Expression is an EVar
   | LitE                           -- ^ Expression is an ELit
   | LamE                           -- ^ Expression is an ELam
-  | RowE                           -- ^ Expression is an ERow
+  | RecE                           -- ^ Expression is an ERec
 
 {- ORMOLU_ENABLE -}
 

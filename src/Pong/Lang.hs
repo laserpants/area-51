@@ -41,11 +41,11 @@ mapRowM f =
 normalizeRow :: Row e r -> Row e r
 normalizeRow = uncurry (flip foldRow) . unwindRow
 
-normalizeTypeRows :: Type v s -> Type v s
-normalizeTypeRows =
+noramlizeTypeRows :: Type v s -> Type v s
+noramlizeTypeRows =
   cata $
     \case
-      TRow r -> tRow (normalizeRow r)
+      TRec r -> tRec (normalizeRow r)
       t -> embed t
 
 {-# INLINE foldRow #-}
@@ -93,7 +93,7 @@ rowEq :: (Eq e, Eq r) => Row e r -> Row e r -> Bool
 rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
 
 typeEq :: (Eq v, Eq s) => Type v s -> Type v s -> Bool
-typeEq t1 t2 = normalizeTypeRows t1 == normalizeTypeRows t2
+typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
 
 class FreeIn f where
   free :: f -> [Int]
@@ -109,7 +109,7 @@ instance FreeIn (Type Int s) where
             TVar n -> [n]
             TCon _ ts -> join ts
             TArr t1 t2 -> t1 <> t2
-            TRow row -> free row
+            TRec row -> free row
             _ -> []
         )
 
@@ -153,11 +153,11 @@ instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
   typeOf =
     cata
       ( \case
-          RNil -> tRow rNil
+          RNil -> tRec rNil
           RVar (t, _) -> typeOf t
           RExt name elem r ->
-            let TRow row = project r
-             in tRow (rExt name (typeOf elem) row)
+            let TRec row = project r
+             in tRec (rExt name (typeOf elem) row)
       )
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
@@ -176,7 +176,7 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EOp2 (t, _) _ _ -> returnType t
           EPat _ [] -> error "Empty case statement"
           EPat _ cs -> head (snd <$> cs)
-          ERow r -> typeOf r
+          ERec r -> typeOf r
           ERes _ _ e -> e
       )
 
@@ -209,8 +209,8 @@ isConT con =
       | ArrT == con -> True
     TVar{}
       | VarT == con -> True
-    TRow{}
-      | RowT == con -> True
+    TRec{}
+      | RecT == con -> True
     _ -> False
 
 isConE :: ConE -> Expr t a0 a1 a2 -> Bool
@@ -222,8 +222,8 @@ isConE con =
       | LitE == con -> True
     ELam{}
       | LamE == con -> True
-    ERow{}
-      | RowE == con -> True
+    ERec{}
+      | RecE == con -> True
     _ -> False
 
 unwindType :: (Typed t) => t -> [MonoType]
@@ -265,7 +265,7 @@ freeVars =
           EPat e1 cs ->
             e1
               <> Set.unions (cs <&> \(_ : vs, expr) -> expr \\ Set.fromList vs)
-          ERow row ->
+          ERec row ->
             (`cata` row)
               ( \case
                   RNil -> mempty
@@ -292,7 +292,7 @@ toMonoType vs =
         TString -> tString
         TCon con ts -> tCon con ts
         TArr t1 t2 -> tArr t1 t2
-        TRow row -> tRow (mapRow (toMonoType vs) row)
+        TRec row -> tRec (mapRow (toMonoType vs) row)
     )
 
 toScheme :: Name -> [Int] -> MonoType -> Scheme
@@ -313,7 +313,7 @@ toScheme prefix vars = Scheme <<< go
             TString -> tString
             TCon con ts -> tCon con ts
             TArr t1 t2 -> tArr t1 t2
-            TRow row -> tRow (mapRow go row)
+            TRec row -> tRec (mapRow go row)
         )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
@@ -331,7 +331,7 @@ mapTypes f =
         EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
         EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
         EPat e1 cs -> ePat e1 ((first . fmap . first) f <$> cs)
-        ERow r -> eRow (mapRowTypes r)
+        ERec r -> eRec (mapRowTypes r)
         ERes fs e1 e2 -> eRes (first f <$> fs) e1 e2
     )
   where
@@ -350,7 +350,7 @@ boundVars =
         TGen s -> Set.singleton s
         TCon _ ts -> Set.unions ts
         TArr t1 t2 -> Set.union t1 t2
-        TRow row ->
+        TRec row ->
           (`cata` row)
             ( \case
                 RExt _ r a -> Set.union (boundVars r) a
@@ -475,9 +475,9 @@ tCon = embed2 TCon
 tVar :: v -> Type v s
 tVar = embed1 TVar
 
-{-# INLINE tRow #-}
-tRow :: Row (Type v s) Int -> Type v s
-tRow = embed1 TRow
+{-# INLINE tRec #-}
+tRec :: Row (Type v s) Int -> Type v s
+tRec = embed1 TRec
 
 {-# INLINE tChar #-}
 tChar :: Type v s
@@ -551,9 +551,9 @@ eCall_ = embed3 ECall
 ePat :: Expr t a0 a1 a2 -> [Clause t (Expr t a0 a1 a2)] -> Expr t a0 a1 a2
 ePat = embed2 EPat
 
-{-# INLINE eRow #-}
-eRow :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
-eRow = embed1 ERow
+{-# INLINE eRec #-}
+eRec :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
+eRec = embed1 ERec
 
 {-# INLINE eRes #-}
 eRes :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
