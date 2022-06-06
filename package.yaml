@@ -29,15 +29,19 @@ dependencies:
   - text-show
   - transformers
 
+library:
+  source-dirs: src
+
 executables:
   pong:
-    source-dirs:         src
+    source-dirs:         app
     main:                Main.hs
 
 tests:
   pong-test:
     main:                Spec.hs
-    source-dirs:         test
+    source-dirs:
+    - test
     ghc-options:
     - -threaded
     - -rtsopts

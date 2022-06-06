@@ -16,9 +16,8 @@ build-type:     Simple
 extra-source-files:
     README.md
 
-executable pong
-  main-is: Main.hs
-  other-modules:
+library
+  exposed-modules:
       Pong.Data
       Pong.Eval
       Pong.Lang
@@ -29,9 +28,38 @@ executable pong
       Pong.Type
       Pong.Util
       Pong.Util.Env
+  other-modules:
       Paths_pong
   hs-source-dirs:
       src
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , containers
+    , data-fix
+    , deriving-compat
+    , extra
+    , llvm-hs
+    , llvm-hs-pretty
+    , llvm-hs-pure
+    , megaparsec
+    , mtl
+    , newtype-generics
+    , parser-combinators
+    , process
+    , recursion-schemes
+    , temporary
+    , text
+    , text-show
+    , transformers
+  default-language: Haskell2010
+
+executable pong
+  main-is: Main.hs
+  other-modules:
+      Paths_pong
+  hs-source-dirs:
+      app
   build-depends:
       base >=4.7 && <5
     , bytestring
