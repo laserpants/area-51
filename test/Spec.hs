@@ -1,17 +1,115 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+import Control.Monad.Reader
+import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
+import Data.Tuple.Extra (first, second)
+import Debug.Trace
 import Pong.Data
+import Pong.Eval
 import Pong.Lang
 import Pong.Tree
 import Pong.Type
 import Pong.Util
+import qualified Pong.Util.Env as Env
 import Test.Hspec
+
+program1 :: Program MonoType TypedExpr
+program1 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  ( tRec
+                      ( rExt
+                          "a"
+                          tInt
+                          ( rExt
+                              "b"
+                              tBool
+                              ( rExt
+                                  "c"
+                                  tInt
+                                  rNil
+                              )
+                          )
+                      )
+                  , "r"
+                  )
+                  ( eRec
+                      ( rExt
+                          "a"
+                          (eLit (PInt 100))
+                          ( rExt
+                              "b"
+                              (eLit (PBool True))
+                              ( rExt
+                                  "c"
+                                  (eLit (PInt 3))
+                                  rNil
+                              )
+                          )
+                      )
+                  )
+                  ( eRes
+                      [
+                        ( tInt
+                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+                            ~> tRec
+                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+                              )
+                        , "a"
+                        )
+                      , (tInt, "x")
+                      ,
+                        ( tRec
+                            ( rExt
+                                "b"
+                                tBool
+                                ( rExt
+                                    "c"
+                                    tInt
+                                    rNil
+                                )
+                            )
+                        , "q"
+                        )
+                      ]
+                      ( eVar
+                          ( tRec
+                              ( rExt
+                                  "a"
+                                  tInt
+                                  ( rExt
+                                      "b"
+                                      tBool
+                                      ( rExt
+                                          "c"
+                                          tInt
+                                          rNil
+                                      )
+                                  )
+                              )
+                          , "r"
+                          )
+                      )
+                      ( eVar (tInt, "x")
+                      )
+                  )
+              )
+          )
+        ]
+    )
 
 evalTests :: SpecWith ()
 evalTests =
   describe "Pong.Eval" $ do
-    pure ()
+    it "1" (Just (PrimValue (PInt 100)) == evalProgram (transformProgram program1) (Scheme (tUnit ~> tInt), "main"))
 
 llvmEmitTests :: SpecWith ()
 llvmEmitTests =
@@ -79,6 +177,31 @@ treeTests =
 
       it "2" (combineLambdas before == after)
 
+    describe "- parseAndAnnotate" $ do
+      let input :: Text
+          input =
+            "def main(a : unit) : int =\
+            \  let\
+            \    r =\
+            \      { a = 100\
+            \      , b = true\
+            \      , c = 3\
+            \      }\
+            \    in\
+            \      letr\
+            \        { a = x | q } =\
+            \          r\
+            \        in\
+            \          x\
+            \"
+      -- "
+
+      let program :: Program MonoType TypedExpr
+          program =
+            program1
+
+      it "1" (parseAndAnnotate input == Right program)
+
 typeTests :: SpecWith ()
 typeTests =
   describe "Pong.Type" $ do
@@ -143,6 +266,7 @@ typeTests =
                   , eLit (PInt 1)
                   ]
               )
+
       it "1" (Right tagged == typeCheck (tagExpr source))
 
     describe "- inferExpr" $ do
@@ -308,6 +432,138 @@ typeTests =
               (eVar (tInt, "x"))
 
       it "4" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source =
+            -- let
+            --   r =
+            --     { a = 1
+            --     , b = true
+            --     , c = 3
+            --     }
+            --   in
+            --     letr
+            --       { a = x | q } =
+            --         r
+            --       in
+            --         q
+            --
+            eLet
+              ((), "r")
+              ( eRec
+                  ( rExt
+                      "a"
+                      (eLit (PInt 1))
+                      ( rExt
+                          "b"
+                          (eLit (PBool True))
+                          ( rExt
+                              "c"
+                              (eLit (PInt 3))
+                              rNil
+                          )
+                      )
+                  )
+              )
+              ( eRes
+                  [((), "a"), ((), "x"), ((), "q")]
+                  (eVar ((), "r"))
+                  (eVar ((), "q"))
+              )
+
+      let typed :: TypedExpr
+          typed =
+            eLet
+              ( tRec
+                  ( rExt
+                      "a"
+                      tInt
+                      ( rExt
+                          "b"
+                          tBool
+                          ( rExt
+                              "c"
+                              tInt
+                              rNil
+                          )
+                      )
+                  )
+              , "r"
+              )
+              ( eRec
+                  ( rExt
+                      "a"
+                      (eLit (PInt 1))
+                      ( rExt
+                          "b"
+                          (eLit (PBool True))
+                          ( rExt
+                              "c"
+                              (eLit (PInt 3))
+                              rNil
+                          )
+                      )
+                  )
+              )
+              ( eRes
+                  [
+                    ( tInt
+                        ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+                        ~> tRec
+                          ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+                          )
+                    , "a"
+                    )
+                  , (tInt, "x")
+                  ,
+                    ( tRec
+                        ( rExt
+                            "b"
+                            tBool
+                            ( rExt
+                                "c"
+                                tInt
+                                rNil
+                            )
+                        )
+                    , "q"
+                    )
+                  ]
+                  ( eVar
+                      ( tRec
+                          ( rExt
+                              "a"
+                              tInt
+                              ( rExt
+                                  "b"
+                                  tBool
+                                  ( rExt
+                                      "c"
+                                      tInt
+                                      rNil
+                                  )
+                              )
+                          )
+                      , "r"
+                      )
+                  )
+                  ( eVar
+                      ( tRec
+                          ( rExt
+                              "b"
+                              tBool
+                              ( rExt
+                                  "c"
+                                  tInt
+                                  rNil
+                              )
+                          )
+                      , "q"
+                      )
+                  )
+              )
+
+      it "5" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
 
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------
@@ -436,7 +692,6 @@ main :: IO ()
 main =
   hspec $ do
     evalTests
-    evalTests
     llvmEmitTests
     langTests
     readTests
@@ -454,3 +709,348 @@ runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
 runUnifyRows :: Row MonoType Int -> Row MonoType Int -> Either TypeError Substitution
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)
+
+---- let
+----   r =
+----     { a = 1
+----     , b = true
+----     , c = 3
+----     }
+----   in
+----     letr
+----       { a = x | q } =
+----         r
+----       in
+----         q
+----
+-- foo1 :: SourceExpr
+-- foo1 =
+--  eLet
+--    ((), "r")
+--    ( eRec
+--        ( rExt
+--            "a"
+--            (eLit (PInt 1))
+--            ( rExt
+--                "b"
+--                (eLit (PBool True))
+--                ( rExt
+--                    "c"
+--                    (eLit (PInt 3))
+--                    rNil
+--                )
+--            )
+--        )
+--    )
+--    ( eRes
+--        [((), "a"), ((), "x"), ((), "q")]
+--        (eVar ((), "r"))
+--        (eVar ((), "q"))
+--    )
+--
+-- foo2 :: TypedExpr
+-- foo2 =
+--  eLet
+--    ( tRec
+--        ( rExt
+--            "a"
+--            tInt
+--            ( rExt
+--                "b"
+--                tBool
+--                ( rExt
+--                    "c"
+--                    tInt
+--                    rNil
+--                )
+--            )
+--        )
+--    , "r"
+--    )
+--    ( eRec
+--        ( rExt
+--            "a"
+--            (eLit (PInt 1))
+--            ( rExt
+--                "b"
+--                (eLit (PBool True))
+--                ( rExt
+--                    "c"
+--                    (eLit (PInt 3))
+--                    rNil
+--                )
+--            )
+--        )
+--    )
+--    ( eRes
+--        [
+--          ( tInt
+--              ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+--              ~> tRec
+--                ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+--                )
+--          , "a"
+--          )
+--        , (tInt, "x")
+--        ,
+--          ( tRec
+--              ( rExt
+--                  "b"
+--                  tBool
+--                  ( rExt
+--                      "c"
+--                      tInt
+--                      rNil
+--                  )
+--              )
+--          , "q"
+--          )
+--        ]
+--        ( eVar
+--            ( tRec
+--                ( rExt
+--                    "a"
+--                    tInt
+--                    ( rExt
+--                        "b"
+--                        tBool
+--                        ( rExt
+--                            "c"
+--                            tInt
+--                            rNil
+--                        )
+--                    )
+--                )
+--            , "r"
+--            )
+--        )
+--        ( eVar
+--            ( tRec
+--                ( rExt
+--                    "b"
+--                    tBool
+--                    ( rExt
+--                        "c"
+--                        tInt
+--                        rNil
+--                    )
+--                )
+--            , "q"
+--            )
+--        )
+--    )
+--
+-- foo3 :: Program MonoType TypedExpr
+-- foo3 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [(tUnit, "a")])
+--              ( tInt
+--              , eLet
+--                  ( tRec
+--                      ( rExt
+--                          "a"
+--                          tInt
+--                          ( rExt
+--                              "b"
+--                              tBool
+--                              ( rExt
+--                                  "c"
+--                                  tInt
+--                                  rNil
+--                              )
+--                          )
+--                      )
+--                  , "r"
+--                  )
+--                  ( eRec
+--                      ( rExt
+--                          "a"
+--                          (eLit (PInt 1))
+--                          ( rExt
+--                              "b"
+--                              (eLit (PBool True))
+--                              ( rExt
+--                                  "c"
+--                                  (eLit (PInt 3))
+--                                  rNil
+--                              )
+--                          )
+--                      )
+--                  )
+--                  ( eRes
+--                      [
+--                        ( tInt
+--                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+--                            ~> tRec
+--                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+--                              )
+--                        , "a"
+--                        )
+--                      , (tInt, "x")
+--                      ,
+--                        ( tRec
+--                            ( rExt
+--                                "b"
+--                                tBool
+--                                ( rExt
+--                                    "c"
+--                                    tInt
+--                                    rNil
+--                                )
+--                            )
+--                        , "q"
+--                        )
+--                      ]
+--                      ( eVar
+--                          ( tRec
+--                              ( rExt
+--                                  "a"
+--                                  tInt
+--                                  ( rExt
+--                                      "b"
+--                                      tBool
+--                                      ( rExt
+--                                          "c"
+--                                          tInt
+--                                          rNil
+--                                      )
+--                                  )
+--                              )
+--                          , "r"
+--                          )
+--                      )
+--                      ( eVar
+--                          ( tRec
+--                              ( rExt
+--                                  "b"
+--                                  tBool
+--                                  ( rExt
+--                                      "c"
+--                                      tInt
+--                                      rNil
+--                                  )
+--                              )
+--                          , "q"
+--                          )
+--                      )
+--                  )
+--              )
+--          )
+--        ]
+--    )
+--
+---- def main(a : unit) : int =
+----   let
+----     r =
+----       { a = 100
+----       , b = true
+----       , c = 3
+----       }
+----     in
+----       letr
+----         { a = x | q } =
+----           r
+----         in
+----           x
+----
+-- foo4 :: Program MonoType TypedExpr
+-- foo4 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [(tUnit, "a")])
+--              ( tInt
+--              , eLet
+--                  ( tRec
+--                      ( rExt
+--                          "a"
+--                          tInt
+--                          ( rExt
+--                              "b"
+--                              tBool
+--                              ( rExt
+--                                  "c"
+--                                  tInt
+--                                  rNil
+--                              )
+--                          )
+--                      )
+--                  , "r"
+--                  )
+--                  ( eRec
+--                      ( rExt
+--                          "a"
+--                          (eLit (PInt 100))
+--                          ( rExt
+--                              "b"
+--                              (eLit (PBool True))
+--                              ( rExt
+--                                  "c"
+--                                  (eLit (PInt 3))
+--                                  rNil
+--                              )
+--                          )
+--                      )
+--                  )
+--                  ( eRes
+--                      [
+--                        ( tInt
+--                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+--                            ~> tRec
+--                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+--                              )
+--                        , "a"
+--                        )
+--                      , (tInt, "x")
+--                      ,
+--                        ( tRec
+--                            ( rExt
+--                                "b"
+--                                tBool
+--                                ( rExt
+--                                    "c"
+--                                    tInt
+--                                    rNil
+--                                )
+--                            )
+--                        , "q"
+--                        )
+--                      ]
+--                      ( eVar
+--                          ( tRec
+--                              ( rExt
+--                                  "a"
+--                                  tInt
+--                                  ( rExt
+--                                      "b"
+--                                      tBool
+--                                      ( rExt
+--                                          "c"
+--                                          tInt
+--                                          rNil
+--                                      )
+--                                  )
+--                              )
+--                          , "r"
+--                          )
+--                      )
+--                      ( eVar (tInt, "x")
+--                      )
+--                  )
+--              )
+--          )
+--        ]
+--    )
+
+-- let
+--   r =
+--     { a = 1 | b = true }
+--   in
+--     { c = 1 | r }
+--

@@ -334,18 +334,18 @@ inferExpr =
     EPat expr clauses -> do
       e <- expr
       ePat e <$> inferCases e clauses
-    ERec row -> eRec <$> inferRow row
+    ERec row -> eRec <$> inferRec row
     ERes field expr1 expr2 -> do
       e1 <- expr1
-      (f, e2) <- inferRowPat (typeOf e1) field expr2
+      (f, e2) <- inferRestriction (typeOf e1) field expr2
       pure (eRes f e1 e2)
 
-inferRowPat ::
+inferRestriction ::
   MonoType ->
   [Label Int] ->
   TypeChecker TypedExpr ->
   TypeChecker (Clause MonoType TypedExpr)
-inferRowPat (Fix (TRec row)) args expr = do
+inferRestriction (Fix (TRec row)) args expr = do
   case args of
     [(u0, label), (u1, v1), (u2, v2)] -> do
       let (r1, q) = restrictRow label row
@@ -416,10 +416,10 @@ inferCase mt (con : vs) expr = do
       pure (tVar t0, n)
   pure ((t, snd con) : tvs, e)
 
-inferRow ::
+inferRec ::
   Row TaggedExpr (Label Int) ->
   TypeChecker (Row TypedExpr (Label MonoType))
-inferRow =
+inferRec =
   cata $
     \case
       RNil -> pure rNil

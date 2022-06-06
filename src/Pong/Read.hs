@@ -73,7 +73,7 @@ keywords =
   , "then"
   , "else"
   , "match"
-  , "field"
+  , "letr"
   , "let"
   , "in"
   , "lam"
@@ -134,11 +134,11 @@ expr = makeExprParser apps operator
     item =
       litExpr
         <|> ifExpr
+        <|> resExpr
         <|> letExpr
         <|> lamExpr
         <|> matchExpr
-        <|> rowExpr
-        <|> fieldExpr
+        <|> recExpr
         <|> varExpr
         <|> conExpr
 
@@ -205,9 +205,9 @@ matchExpr = do
   cs <- braces (optional (symbol "|") >> caseClause `sepBy1` symbol "|")
   pure (ePat e cs)
 
-fieldExpr :: Parser SourceExpr
-fieldExpr = do
-  keyword "field" -- TODO: Overload let keyword here?
+resExpr :: Parser SourceExpr
+resExpr = do
+  keyword "letr"
   f <- braces $ do
     lhs <- identifier
     symbol "="
@@ -229,8 +229,8 @@ caseClause = do
   e <- expr
   pure (ls, e)
 
-rowExpr :: Parser SourceExpr
-rowExpr =
+recExpr :: Parser SourceExpr
+recExpr =
   braces $ do
     fields <- commaSep field
     tail <- optional (symbol "|" *> identifier)

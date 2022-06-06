@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE StrictData #-}
 
 module Pong.Tree where
 
@@ -305,13 +307,20 @@ data CompilerError
   = ParserError ParserError
   | TypeError TypeError
 
+transformProgram :: Program MonoType TypedExpr -> Program MonoType Ast
+transformProgram =
+  transform1 >>> transform2 >>> compileProgram >>> normalizeProgramDefs
+
+parseAndAnnotate :: Text -> Either CompilerError (Program MonoType TypedExpr)
+parseAndAnnotate =
+  mapLeft ParserError . parseProgram >=> mapLeft TypeError . runInferProgram
+
 compileSource :: Text -> Program MonoType Ast
 compileSource input =
   case parseAndAnnotate input of
     Left e -> error "TODO"
-    Right p ->
-      normalizeProgramDefs (compileProgram (transform2 (transform1 p)))
-  where
-    parseAndAnnotate =
-      mapLeft ParserError . parseProgram
-        >=> mapLeft TypeError . runInferProgram
+    Right p -> transformProgram p
+
+deriving instance Show CompilerError
+
+deriving instance Eq CompilerError

@@ -30,8 +30,21 @@ instance Pretty Prim where
 {- ORMOLU_ENABLE -}
 
 instance (Pretty v, Pretty s) => Pretty (Row (Type v s) Int) where
-  pretty _ =
-    "ROW TODO"
+  pretty =
+    para
+      ( \case
+          RNil -> ""
+          RVar v -> pretty v
+          RExt name t (Fix row, doc) ->
+            let field = pretty name <+> ":" <+> pretty t
+             in field <> case row of
+                  RNil ->
+                    ""
+                  RVar v ->
+                    " |" <+> "'" <> pretty v
+                  _ ->
+                    " ," <+> doc
+      )
 
 instance (Pretty v, Pretty s) => Pretty (Type v s) where
   pretty =
@@ -48,7 +61,7 @@ instance (Pretty v, Pretty s) => Pretty (Type v s) where
             parensIf (isConT ArrT t1) doc1 <+> "->" <+> doc2
           TVar v -> "'" <> pretty v
           TGen s -> pretty s
-          TRec row -> pretty row
+          TRec row -> "{" <+> pretty row <+> "}"
           TCon con ts ->
             pretty con
               <+> hsep (uncurry (parensIf . addParens) <$> ts)
