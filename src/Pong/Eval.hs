@@ -27,7 +27,7 @@ import qualified Pong.Util.Env as Env
 data Value
   = PrimValue Prim                           -- ^ Primitive value
   | ConValue Name [Value]                    -- ^ Applied data constructor
-  | RowValue (Row Value Void)                -- ^ Row value
+  | RecValue (Row Value Void)                -- ^ Record value
   | Closure (Label MonoType) [Eval Value]    -- ^ Partially applied function
 
 {- ORMOLU_ENABLE -}
@@ -39,7 +39,7 @@ instance Eq Value where
         p == q
       (ConValue c vs, ConValue d ws) ->
         c == d && vs == ws
-      (RowValue r, RowValue s) ->
+      (RecValue r, RecValue s) ->
         r == s
       _ ->
         error "Implementation error"
@@ -54,10 +54,10 @@ instance Show Value where
       showParen
         (d > 10)
         (showString ("ConValue " <> show name <> " ") . showsPrec 11 vals)
-    RowValue row ->
+    RecValue row ->
       showParen
         (d > 10)
-        (showString "RowValue " . showsPrec 11 row)
+        (showString "RecValue " . showsPrec 11 row)
     Closure{} ->
       showString "<<function>>"
 
@@ -122,10 +122,10 @@ eval =
       e <- expr
       evalMatch e cs
     ERec row ->
-      RowValue <$> evalRow row
+      RecValue <$> evalRow row
     ERes field expr1 expr2 -> do
       e1 <- expr1
-      evalField (getRow e1) field expr2
+      evalRestriction (getRow e1) field expr2
 
 evalCall :: Label MonoType -> [Eval Value] -> Eval Value
 evalCall (t, fun) args
@@ -168,22 +168,22 @@ evalRow =
     RVar (_, var) -> do
       (_, env) <- ask
       case Env.lookup var env of
-        Just (RowValue val) -> pure val
+        Just (RecValue val) -> pure val
         _ -> error "Eval error"
     RExt name v row ->
       rExt name <$> eval v <*> row
 
-evalField :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value
-evalField row [(_, name), (_, v), (_, r)] =
+evalRestriction :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Value
+evalRestriction row [(_, name), (_, v), (_, r)] =
   let (p, q) = restrictRow name row
-   in localSecond (Env.inserts [(v, p), (r, RowValue q)])
+   in localSecond (Env.inserts [(v, p), (r, RecValue q)])
 
 getPrim :: Value -> Prim
 getPrim (PrimValue prim) = prim
 getPrim _ = error "Ill-formed expression"
 
 getRow :: Value -> Row Value Void
-getRow (RowValue row) = row
+getRow (RecValue row) = row
 getRow _ = error "Ill-formed expression"
 
 evalOp1 :: Op1 -> Prim -> Prim
