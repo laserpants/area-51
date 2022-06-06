@@ -163,7 +163,8 @@ tagExpr =
       EOp1 (_, op) e1 -> eOp1 <$> tagFst op <*> e1
       EOp2 (_, op) e1 e2 -> eOp2 <$> tagFst op <*> e1 <*> e2
       EPat e1 cs ->
-        ePat <$> e1
+        ePat
+          <$> e1
           <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
       ERow row -> eRow <$> tagRow row
       ERes f e1 e2 -> eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
@@ -202,27 +203,27 @@ unifyRows r1 r2 =
       | Map.null m1 && Map.null m2 -> pure mempty
     ((m1, Fix (RVar r)), (m2, k))
       | Map.null m1 && not (Map.null m2) && k == rVar r ->
-        throwError UnificationError
+          throwError UnificationError
       | Map.null m1 -> pure (r `mapsTo` tRow r2)
     ((m1, j), (m2, Fix (RVar r)))
       | Map.null m2 && not (Map.null m1) && j == rVar r ->
-        throwError UnificationError
+          throwError UnificationError
       | Map.null m2 -> pure (r `mapsTo` tRow r1)
     ((m1, j), (m2, k))
       | Map.null m1 -> unifyRows r2 r1
       | otherwise ->
-        case Map.lookup a m2 of
-          Just (u : us) -> do
-            let r1 = foldRow j (updateMap m1 ts)
-                r2 = foldRow k (updateMap m2 us)
-            unifyMany [tRow r1, t] [tRow r2, u]
-          _
-            | k == j -> throwError UnificationError
-            | otherwise -> do
-              p <- rVar <$> tag
+          case Map.lookup a m2 of
+            Just (u : us) -> do
               let r1 = foldRow j (updateMap m1 ts)
-                  r2 = foldRow p m2
-              unifyMany [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
+                  r2 = foldRow k (updateMap m2 us)
+              unifyMany [tRow r1, t] [tRow r2, u]
+            _
+              | k == j -> throwError UnificationError
+              | otherwise -> do
+                  p <- rVar <$> tag
+                  let r1 = foldRow j (updateMap m1 ts)
+                      r2 = foldRow p m2
+                  unifyMany [tRow r1, tRow k] [tRow r2, tRow (rExt a t p)]
       where
         (a, t : ts) = Map.elemAt 0 m1
         updateMap m =

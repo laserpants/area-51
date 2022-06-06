@@ -61,7 +61,7 @@ monomorphize t name e1 =
     ( \case
         ELet (t0, var) (expr1, _) (expr2, _)
           | var == name ->
-            pure (eLet (t0, var) expr1 expr2)
+              pure (eLet (t0, var) expr1 expr2)
         EVar (t0, var) | var == name && not (t `isIsomorphicTo` t0) ->
           case getSubst t t0 of
             Right sub -> do
@@ -270,10 +270,10 @@ normalizeDefs :: Definition MonoType Ast -> Definition MonoType Ast
 normalizeDefs = \case
   Function args (t, expr)
     | isConT ArrT t ->
-      fun t (toList args) expr
+        fun t (toList args) expr
   Constant (t, expr)
     | isConT ArrT t ->
-      fun t [] expr
+        fun t [] expr
   def ->
     def
   where

@@ -4,4 +4,3 @@ import-export-comma-style: trailing
 haddock-style: single-line
 respectful: false
 indent-wheres: true
-

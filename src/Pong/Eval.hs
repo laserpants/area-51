@@ -130,31 +130,31 @@ eval =
 evalCall :: Label MonoType -> [Eval Value] -> Eval Value
 evalCall (t, fun) args
   | arity t > length args =
-    pure (Closure (t, fun) args)
+      pure (Closure (t, fun) args)
   | arity t < length args =
-    evalCall (t, fun) (take (arity t) args) >>= \case
-      Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
+      evalCall (t, fun) (take (arity t) args) >>= \case
+        Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
   | isUpper (Text.head fun) = do
-    as <- sequence args
-    pure (ConValue fun as)
+      as <- sequence args
+      pure (ConValue fun as)
   | otherwise = do
-    (defs, vals) <- ask
-    as <- sequence args
-    case Env.lookup fun defs of
-      Just (Function vs (_, body)) ->
-        localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
-      Just Extern{} ->
-        case (fun, as) of
-          ("print_int", [PrimValue (PInt n)]) ->
-            pure (PrimValue (PInt 0))
-          _ ->
-            error "Not implemented"
-      Nothing ->
-        case Env.lookup fun vals of
-          Just (Closure g vs) ->
-            evalCall g (vs <> args)
-          _ ->
-            error "Eval error"
+      (defs, vals) <- ask
+      as <- sequence args
+      case Env.lookup fun defs of
+        Just (Function vs (_, body)) ->
+          localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
+        Just Extern{} ->
+          case (fun, as) of
+            ("print_int", [PrimValue (PInt n)]) ->
+              pure (PrimValue (PInt 0))
+            _ ->
+              error "Not implemented"
+        Nothing ->
+          case Env.lookup fun vals of
+            Just (Closure g vs) ->
+              evalCall g (vs <> args)
+            _ ->
+              error "Eval error"
 
 evalMatch :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
 evalMatch _ [] = error "Eval error: no match"
