@@ -30,16 +30,18 @@ dependencies:
   - transformers
 
 library:
-  source-dirs: src
+  source-dirs: 
+  - src
 
 executables:
   pong:
-    source-dirs:         app
-    main:                Main.hs
+    main: Main.hs
+    source-dirs:         
+    - app
 
 tests:
   pong-test:
-    main:                Spec.hs
+    main: Spec.hs
     source-dirs:
     - test
     ghc-options:
