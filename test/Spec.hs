@@ -35,6 +35,7 @@ typeTests :: SpecWith ()
 typeTests =
   describe "Pong.Type" $ do
     describe "- tagExpr" $ do
+      -------------------------------------------------------------------------
       let source :: SourceExpr
           source =
             eLet
@@ -65,7 +66,7 @@ typeTests =
                   ]
               )
 
-          tagged :: TaggedExpr
+      let tagged :: TaggedExpr
           tagged =
             eLet
               (1, "z")
@@ -94,9 +95,10 @@ typeTests =
                   , eLit (PInt 1)
                   ]
               )
-       in it "1" (Right tagged == typeCheck (tagExpr source))
+      it "1" (Right tagged == typeCheck (tagExpr source))
 
     describe "- inferExpr" $ do
+      -------------------------------------------------------------------------
       let tagged :: TaggedExpr
           tagged =
             eLet
@@ -104,7 +106,7 @@ typeTests =
               (eLam () [(2, "x")] (eVar (3, "x")))
               (eApp 4 (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) [eLit (PInt 1)])
 
-          typed :: TypedExpr
+      let typed :: TypedExpr
           typed =
             eLet
               (tVar 2 ~> tVar 2, "id")
@@ -122,6 +124,152 @@ typeTests =
             freeIndex (tVar . fst <$> freeVars tagged)
 
       it "1" (Right typed == evalTypeChecker i mempty (applySubstitution =<< inferExpr tagged))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source =
+            eLet
+              ((), "id")
+              (eLam () [((), "x")] (eVar ((), "x")))
+              ( eLet
+                  ((), "f")
+                  ( eLam
+                      ()
+                      [((), "x")]
+                      (eLam () [((), "y")] (eOp2 ((), OAdd) (eVar ((), "x")) (eVar ((), "y"))))
+                  )
+                  ( eLet
+                      ((), "g")
+                      (eApp () (eVar ((), "f")) [eLit (PInt 2)])
+                      ( eOp2
+                          ((), OAdd)
+                          ( eApp
+                              ()
+                              (eApp () (eVar ((), "id")) [eVar ((), "g")])
+                              [eApp () (eVar ((), "id")) [eLit (PInt 3)]]
+                          )
+                          (eApp () (eVar ((), "f")) [eLit (PInt 4), eLit (PInt 5)])
+                      )
+                  )
+              )
+
+      let typed :: TypedExpr
+          typed =
+            eLet
+              (tVar 2 ~> tVar 2, "id")
+              (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
+              ( eLet
+                  (tVar 6 ~> tVar 6 ~> tVar 6, "f")
+                  ( eLam
+                      ()
+                      [(tVar 6, "x")]
+                      ( eLam
+                          ()
+                          [(tVar 6, "y")]
+                          (eOp2 (tVar 6 ~> tVar 6 ~> tVar 6, OAdd) (eVar (tVar 6, "x")) (eVar (tVar 6, "y")))
+                      )
+                  )
+                  ( eLet
+                      (tInt ~> tInt, "g")
+                      ( eApp
+                          (tInt ~> tInt)
+                          (eVar (tInt ~> tInt ~> tInt, "f"))
+                          [eLit (PInt 2)]
+                      )
+                      ( eOp2
+                          oAddInt
+                          ( eApp
+                              tInt
+                              ( eApp
+                                  (tInt ~> tInt)
+                                  (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
+                                  [eVar (tInt ~> tInt, "g")]
+                              )
+                              [eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]]
+                          )
+                          ( eApp
+                              tInt
+                              (eVar (tInt ~> tInt ~> tInt, "f"))
+                              [eLit (PInt 4), eLit (PInt 5)]
+                          )
+                      )
+                  )
+              )
+
+      it "2" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source =
+            eLet
+              ((), "f")
+              ( eLam
+                  ()
+                  [((), "n")]
+                  ( eIf
+                      (eOp2 ((), OEq) (eLit (PInt 0)) (eVar ((), "n")))
+                      (eLit (PInt 1))
+                      ( eOp2
+                          ((), OMul)
+                          (eVar ((), "n"))
+                          ( eApp
+                              ()
+                              (eVar ((), "f"))
+                              [eOp2 ((), OSub) (eVar ((), "n")) (eLit (PInt 1))]
+                          )
+                      )
+                  )
+              )
+              (eApp () (eVar ((), "f")) [eLit (PInt 5)])
+
+      let typed :: TypedExpr
+          typed =
+            eLet
+              (tInt ~> tInt, "f")
+              ( eLam
+                  ()
+                  [(tInt, "n")]
+                  ( eIf
+                      (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+                      (eLit (PInt 1))
+                      ( eOp2
+                          oMulInt
+                          (eVar (tInt, "n"))
+                          ( eApp
+                              tInt
+                              (eVar (tInt ~> tInt, "f"))
+                              [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]
+                          )
+                      )
+                  )
+              )
+              (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
+
+      it "3" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source =
+            eRes
+              [((), "b"), ((), "x"), ((), "r")]
+              (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+              (eVar ((), "x"))
+
+      let typed :: TypedExpr
+          typed =
+            eRes
+              [(tInt ~> tRow (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRow (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRow (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
+              (eRow (rExt "a" (eLit PUnit) (rExt "b" (eLit (PInt 2)) (rExt "c" (eLit (PBool True)) rNil))))
+              (eVar (tInt, "x"))
+
+      it "4" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+
+    describe "- unifyTypes" $ do
+      -------------------------------------------------------------------------
+      let t1 :: MonoType
+          t1 = tCon "Cons" [tVar 0, tVar 1]
+
+      let t2 :: MonoType
+          t2 = tCon "Cons" [tInt, tCon "Cons" [tInt, tCon "Nil" []]]
+
+      it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == t2)
 
 utilTests :: SpecWith ()
 utilTests =
@@ -148,3 +296,6 @@ main =
 
 typeCheck :: TypeChecker a -> Either TypeError a
 typeCheck = evalTypeChecker 1 mempty
+
+runUnify :: MonoType -> MonoType -> Either TypeError Substitution
+runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
