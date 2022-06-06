@@ -3,6 +3,7 @@
 
 import Pong.Data
 import Pong.Lang
+import Pong.Tree
 import Pong.Type
 import Test.Hspec
 
@@ -31,6 +32,51 @@ treeTests =
   describe "Pong.Tree" $ do
     describe "- hoistTopLambdas" $ do
       pure ()
+    describe "- combineLambdas" $ do
+      -------------------------------------------------------------------------
+      let before :: TypedExpr
+          before =
+            eLam
+              ()
+              [(tInt, "a")]
+              ( eLam
+                  ()
+                  [(tInt, "b")]
+                  (eVar (tInt, "b"))
+              )
+
+      let after :: TypedExpr
+          after =
+            eLam
+              ()
+              [(tInt, "a"), (tInt, "b")]
+              (eVar (tInt, "b"))
+
+      it "1" (combineLambdas before == after)
+      -------------------------------------------------------------------------
+      let before :: TypedExpr
+          before =
+            eLam
+              ()
+              [(tInt, "x")]
+              ( eLam
+                  ()
+                  [(tInt, "y")]
+                  ( eLam
+                      ()
+                      [(tInt, "z")]
+                      (eLit (PInt 5))
+                  )
+              )
+
+      let after :: TypedExpr
+          after =
+            eLam
+              ()
+              [(tInt, "x"), (tInt, "y"), (tInt, "z")]
+              (eLit (PInt 5))
+
+      it "2" (combineLambdas before == after)
 
 typeTests :: SpecWith ()
 typeTests =
@@ -313,6 +359,14 @@ typeTests =
           r2 = rExt "id" tInt (rExt "name" tString rNil)
 
       it "3" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "name" tString (rVar 0)
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "name" tString (rVar 0)
+
+      it "4" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` r2)
 
 utilTests :: SpecWith ()
 utilTests =

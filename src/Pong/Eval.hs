@@ -134,9 +134,8 @@ evalCall (t, fun) args
   | arity t < length args =
       evalCall (t, fun) (take (arity t) args) >>= \case
         Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
-  | isUpper (Text.head fun) = do
-      as <- sequence args
-      pure (ConValue fun as)
+  | isUpper (Text.head fun) =
+      ConValue fun <$> sequence args
   | otherwise = do
       (defs, vals) <- ask
       as <- sequence args
