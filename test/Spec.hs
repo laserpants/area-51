@@ -5,6 +5,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.Tree
 import Pong.Type
+import Pong.Util
 import Test.Hspec
 
 evalTests :: SpecWith ()
@@ -316,7 +317,7 @@ typeTests =
       let t2 :: MonoType
           t2 = tCon "Cons" [tInt, tCon "Cons" [tInt, tCon "Nil" []]]
 
-      it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == t2)
+      it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
       -------------------------------------------------------------------------
       let t1 :: MonoType
           t1 = tRow (rExt "name" (tVar 0) (rVar 1))
@@ -324,7 +325,7 @@ typeTests =
       let t2 :: MonoType
           t2 = tRow (rExt "id" tInt (rExt "name" tString rNil))
 
-      it "2" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` t2)
+      it "2" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
       -------------------------------------------------------------------------
       let t1 :: MonoType
           t1 = tRow (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
@@ -332,7 +333,7 @@ typeTests =
       let t2 :: MonoType
           t2 = tRow (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
 
-      it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` t2)
+      it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
 
     describe "- unifyRows" $ do
       -------------------------------------------------------------------------
@@ -342,7 +343,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "id" tInt (rExt "name" tString rNil)
 
-      it "1" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` r2)
+      it "1" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt rNil)
@@ -358,7 +359,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "id" tInt (rExt "name" tString rNil)
 
-      it "3" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` r2)
+      it "3" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rVar 0)
@@ -366,20 +367,69 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "name" tString (rVar 0)
 
-      it "4" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` r2)
+      it "4" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "a" tString (rVar 0)
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "b" tString (rVar 0)
+
+      it "5" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "name" tString (rVar 0)
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "name" tString (rVar 1)
+
+      it "6" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString rNil))
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "id" tInt (rVar 0)
+
+      it "7" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "pw" tString (rExt "name" tString (rVar 0))
+
+      let r2 :: Row MonoType Int
+          r2 = rVar 0
+
+      it "8" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString (rVar 0)))
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "id" tInt (rVar 0)
+
+      it "9" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
 
 utilTests :: SpecWith ()
 utilTests =
   describe "Pong.Util" $ do
+    describe "- without" $ do
+      it "1" ([1, 2, 3, 4, 5] `without` [2, 4, 6] == [1, 3, 5])
+      it "2" (null $ [] `without` [2, 4, 6])
+
     describe "- getAndModify" $ do
       pure ()
 
     describe "- varSequence" $ do
-      pure ()
+      it "1" (varSequence "foo" [1, 2, 3] == [(1, "foo0"), (2, "foo1"), (3, "foo2")])
 
 utilEnvTests :: SpecWith ()
 utilEnvTests =
   describe "Pong.Util.Env" $ do
+    pure ()
+
+utilPrettyTests :: SpecWith ()
+utilPrettyTests =
+  describe "Pong.Util.Pretty" $ do
     pure ()
 
 main :: IO ()
@@ -394,6 +444,7 @@ main =
     typeTests
     utilTests
     utilEnvTests
+    utilPrettyTests
 
 typeCheck :: TypeChecker a -> Either TypeError a
 typeCheck = evalTypeChecker 1 mempty

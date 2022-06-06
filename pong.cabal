@@ -28,6 +28,7 @@ library
       Pong.Type
       Pong.Util
       Pong.Util.Env
+      Pong.Util.Pretty
   other-modules:
       Paths_pong
   hs-source-dirs:
@@ -46,6 +47,7 @@ library
     , mtl
     , newtype-generics
     , parser-combinators
+    , prettyprinter
     , process
     , recursion-schemes
     , temporary
@@ -74,6 +76,7 @@ executable pong
     , mtl
     , newtype-generics
     , parser-combinators
+    , prettyprinter
     , process
     , recursion-schemes
     , temporary
@@ -106,6 +109,7 @@ test-suite pong-test
     , newtype-generics
     , parser-combinators
     , pong
+    , prettyprinter
     , process
     , recursion-schemes
     , temporary

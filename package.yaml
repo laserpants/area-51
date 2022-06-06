@@ -23,6 +23,7 @@ dependencies:
   - mtl
   - newtype-generics
   - parser-combinators
+  - prettyprinter
   - process
   - recursion-schemes
   - temporary
