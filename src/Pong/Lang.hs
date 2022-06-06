@@ -89,6 +89,12 @@ restrictRow name row =
     Just (e : es) = Map.lookup name m
     (m, k) = unwindRow row
 
+rowEq :: (Eq e, Eq r) => Row e r -> Row e r -> Bool
+rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
+
+typeEq :: (Eq v, Eq s) => Type v s -> Type v s -> Bool
+typeEq t1 t2 = normalizeTypeRows t1 == normalizeTypeRows t2
+
 class FreeIn f where
   free :: f -> [Int]
 

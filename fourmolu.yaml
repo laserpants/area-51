@@ -1,6 +1,7 @@
 indentation: 2
 comma-style: leading
-import-export-comma-style: trailing
+import-export-comma-style: leading
+diff-friendly-import-export: false
 haddock-style: single-line
 respectful: false
 indent-wheres: true

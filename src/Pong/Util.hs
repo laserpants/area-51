@@ -1,35 +1,36 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Pong.Util (
-  module Control.Arrow,
-  module Data.Functor.Foldable,
-  module Data.Fix,
-  module Data.Void,
-  module Data.Eq.Deriving,
-  module Data.Functor,
-  module Data.Ord.Deriving,
-  module Text.Show.Deriving,
-  module Data.Map.Strict,
-  module Data.Text,
-  (<$$>),
-  Name,
-  Names,
-  Algebra,
-  Coalgebra,
-  List1,
-  embed1,
-  embed2,
-  embed3,
-  embed4,
-  embed5,
-  without,
-  localFirst,
-  asksFirst,
-  localSecond,
-  asksSecond,
-  getAndModify,
-  varSequence,
-) where
+module Pong.Util
+  ( module Control.Arrow
+  , module Data.Functor.Foldable
+  , module Data.Fix
+  , module Data.Void
+  , module Data.Eq.Deriving
+  , module Data.Functor
+  , module Data.Ord.Deriving
+  , module Text.Show.Deriving
+  , module Data.Map.Strict
+  , module Data.Text
+  , (<$$>)
+  , Name
+  , Names
+  , Algebra
+  , Coalgebra
+  , List1
+  , embed1
+  , embed2
+  , embed3
+  , embed4
+  , embed5
+  , without
+  , localFirst
+  , asksFirst
+  , localSecond
+  , asksSecond
+  , getAndModify
+  , varSequence
+  )
+where
 
 import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader

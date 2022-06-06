@@ -4,28 +4,29 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Pong.Util.Env (
-  empty,
-  insert,
-  inserts,
-  insertWith,
-  fromList,
-  fromListWith,
-  toList,
-  union,
-  elems,
-  domain,
-  lookup,
-  findWithDefault,
-  findWithDefaultEmpty,
-  isMember,
-  update,
-  alter,
-  delete,
-  map,
-  askLookup,
-  Environment (..),
-) where
+module Pong.Util.Env
+  ( empty
+  , insert
+  , inserts
+  , insertWith
+  , fromList
+  , fromListWith
+  , toList
+  , union
+  , elems
+  , domain
+  , lookup
+  , findWithDefault
+  , findWithDefaultEmpty
+  , isMember
+  , update
+  , alter
+  , delete
+  , map
+  , askLookup
+  , Environment (..)
+  )
+where
 
 import Control.Monad.Reader
 import Control.Newtype.Generics (Newtype, over, pack, unpack)

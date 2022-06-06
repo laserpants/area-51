@@ -1,15 +1,16 @@
-module Pong.LLVM (
-  module LLVM.AST.AddrSpace,
-  module LLVM.AST.Constant,
-  module LLVM.AST.Float,
-  module LLVM.IRBuilder,
-  module LLVM.IRBuilder.Constant,
-  module LLVM.IRBuilder.Instruction,
-  module LLVM.AST.Type,
-  module LLVM.AST.Typed,
-  module LLVM.AST.Operand,
-  module LLVM.Pretty,
-) where
+module Pong.LLVM
+  ( module LLVM.AST.AddrSpace
+  , module LLVM.AST.Constant
+  , module LLVM.AST.Float
+  , module LLVM.IRBuilder
+  , module LLVM.IRBuilder.Constant
+  , module LLVM.IRBuilder.Instruction
+  , module LLVM.AST.Type
+  , module LLVM.AST.Typed
+  , module LLVM.AST.Operand
+  , module LLVM.Pretty
+  )
+where
 
 import LLVM.AST.AddrSpace
 import LLVM.AST.Constant
