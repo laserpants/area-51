@@ -60,16 +60,14 @@ unwindRow :: Row e r -> (Map Name [e], Row e r)
 unwindRow row = (toMap fields, leaf)
   where
     toMap = foldr (uncurry (Map.insertWith (<>))) mempty
-    paraRow = (`para` row)
     fields =
-      paraRow
+      (`para` row)
         ( \case
             RExt label ty (_, rest) -> (label, [ty]) : rest
             _ -> []
         )
-    cataRow = (`cata` row)
     leaf =
-      cataRow
+      (`cata` row)
         ( \case
             RExt _ _ r -> r
             r -> embed r

@@ -266,6 +266,42 @@ program6 =
         ]
     )
 
+expr0 :: SourceExpr
+expr0 =
+  eLet
+    ((), "id")
+    (eLam () [((), "x")] (eVar ((), "x")))
+    ( eLet
+        ((), "add")
+        ( eLam
+            ()
+            [((), "x")]
+            ( eLam
+                ()
+                [((), "y")]
+                ( eOp2
+                    ((), OAdd)
+                    (eVar ((), "x"))
+                    (eVar ((), "y"))
+                )
+            )
+        )
+        ( eLet
+            ((), "add2")
+            (eApp () (eVar ((), "add")) [eLit (PInt 2)])
+            ( eOp2
+                ((), OAdd)
+                ( eApp
+                    ()
+                    (eApp () (eVar ((), "id")) [eVar ((), "add2")])
+                    [ eApp () (eVar ((), "id")) [eLit (PInt 3)]
+                    ]
+                )
+                (eApp () (eVar ((), "add")) [eLit (PInt 4), eLit (PInt 5)])
+            )
+        )
+    )
+
 expr1 :: TypedExpr
 expr1 =
   eLet
@@ -283,6 +319,42 @@ expr1 =
                     (tVar 7 ~> tVar 7 ~> tVar 7, OAdd)
                     (eVar (tVar 7, "x"))
                     (eVar (tVar 7, "y"))
+                )
+            )
+        )
+        ( eLet
+            (tInt ~> tInt, "add2")
+            (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 2)])
+            ( eOp2
+                oAddInt
+                ( eApp
+                    tInt
+                    (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id")) [eVar (tInt ~> tInt, "add2")])
+                    [ eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]
+                    ]
+                )
+                (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 4), eLit (PInt 5)])
+            )
+        )
+    )
+
+expr2 :: TypedExpr
+expr2 =
+  eLet
+    (tVar 0 ~> tVar 0, "id")
+    (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+    ( eLet
+        (tVar 1 ~> tVar 1 ~> tVar 1, "add")
+        ( eLam
+            ()
+            [(tVar 1, "x")]
+            ( eLam
+                ()
+                [(tVar 1, "y")]
+                ( eOp2
+                    (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                    (eVar (tVar 1, "x"))
+                    (eVar (tVar 1, "y"))
                 )
             )
         )
@@ -491,6 +563,16 @@ treeTests =
             program1
 
       it "1" (parseAndAnnotate input == Right program)
+
+    describe "- canonical" $ do
+      -------------------------------------------------------------------------
+      it "1" (expr1 /= expr2)
+      -------------------------------------------------------------------------
+      it "2" (canonical expr1 == expr2)
+      -------------------------------------------------------------------------
+      it "3" (canonical expr1 == canonical expr2)
+      -------------------------------------------------------------------------
+      it "4" (expr1 `isIsomorphicTo` expr2)
 
 typeTests :: SpecWith ()
 typeTests =
@@ -854,6 +936,16 @@ typeTests =
               )
 
       it "5" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source = expr0
+
+      let typed :: TypedExpr
+          typed = expr1
+
+      let eq a b = Right True == (isIsomorphicTo <$> a <*> b)
+
+      it "6" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
 
     describe "- inferProgram" $ do
       -------------------------------------------------------------------------
