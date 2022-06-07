@@ -3,6 +3,7 @@
 
 import Control.Monad.Reader
 import Data.Either.Extra (fromRight)
+import Data.Function ((&))
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second)
@@ -147,6 +148,29 @@ program3 =
 
 -- "
 
+program4 :: Text
+program4 =
+  "def main(a : unit) : int =\
+  \  let\
+  \    id =\
+  \      lam(x) =>\
+  \        x\
+  \    in\
+  \      let\
+  \        add =\
+  \          lam(x) =>\
+  \            lam(y) =>\
+  \              x + y\
+  \        in\
+  \          let\
+  \            add2 =\
+  \              add(2)\
+  \            in\
+  \              (id(add2))(id(3)) + add(4, 5)\
+  \"
+
+-- "
+
 evalTests :: SpecWith ()
 evalTests =
   describe "Pong.Eval" $ do
@@ -174,7 +198,64 @@ llvmEmitTests =
 langTests :: SpecWith ()
 langTests =
   describe "Pong.Lang" $ do
-    pure ()
+    describe "- freeVars" $ do
+      -------------------------------------------------------------------------
+      it "1" (freeVars (eVar (tInt, "x") :: TypedExpr) == [(tInt, "x")])
+      -------------------------------------------------------------------------
+      it "2" (freeVars (eLit (PInt 5) :: TypedExpr) & null)
+      -------------------------------------------------------------------------
+      it "3" (freeVars (eLam () [(tInt, "x")] (eVar (tInt, "x")) :: TypedExpr) & null)
+      -------------------------------------------------------------------------
+      it "4" (freeVars (eLam () [(tInt, "x")] (eVar (tInt, "y")) :: TypedExpr) == [(tInt, "y")])
+      -------------------------------------------------------------------------
+      it "5" (freeVars (eLam () [((), "x")] (eVar ((), "y")) :: SourceExpr) == [((), "y")])
+      -------------------------------------------------------------------------
+      it "6" (freeVars (eLam () [((), "x")] (eApp () (eVar ((), "f")) [eVar ((), "y")]) :: SourceExpr) == [((), "f"), ((), "y")])
+      -------------------------------------------------------------------------
+      it "7" (freeVars (eLam () [((), "x")] (eApp () (eVar ((), "f")) [eVar ((), "x")]) :: SourceExpr) == [((), "f")])
+      -------------------------------------------------------------------------
+      it "8" (freeVars (eLet ((), "f") (eVar ((), "foo")) (eLam () [((), "x")] (eApp () (eVar ((), "f")) [eVar ((), "x")])) :: SourceExpr) == [((), "foo")])
+      -------------------------------------------------------------------------
+      it "9" (freeVars (eOp2 ((), OAdd) (eVar ((), "x")) (eVar ((), "y")) :: SourceExpr) == [((), "x"), ((), "y")])
+      -------------------------------------------------------------------------
+      it "10" (freeVars (eApp () (eVar ((), "f")) [eLit (PInt 5)] :: SourceExpr) == [((), "f")])
+      -------------------------------------------------------------------------
+      it "11" (freeVars (eIf (eVar ((), "x")) (eVar ((), "y")) (eVar ((), "z")) :: SourceExpr) == [((), "x"), ((), "y"), ((), "z")])
+      -------------------------------------------------------------------------
+      it "12" (freeVars (eIf (eVar ((), "x")) (eVar ((), "y")) (eVar ((), "y")) :: SourceExpr) == [((), "x"), ((), "y")])
+      -------------------------------------------------------------------------
+      it "13" (freeVars (ePat (eVar ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], eVar ((), "x"))] :: SourceExpr) == [((), "xs")])
+      -------------------------------------------------------------------------
+      it "14" (freeVars (ePat (eVar ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], eVar ((), "y"))] :: SourceExpr) == [((), "xs"), ((), "y")])
+      -------------------------------------------------------------------------
+      it "15" (freeVars (ePat (eVar ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], eVar ((), "x")), ([((), "Nil")], eVar ((), "y"))] :: SourceExpr) == [((), "xs"), ((), "y")])
+
+    {- HLINT ignore "Use typeRep -}
+
+    describe "- typeOf" $ do
+      describe "Prim" $ do
+        -----------------------------------------------------------------------
+        it "1" (typeOf (PInt 1) == tInt)
+        -----------------------------------------------------------------------
+        it "2" (typeOf (PBool True) == tBool)
+
+      describe "Expr" $ do
+        -----------------------------------------------------------------------
+        it "1" (typeOf (eLit (PInt 1) :: TypedExpr) == tInt)
+        -----------------------------------------------------------------------
+        it "2" (typeOf (eLit (PBool True) :: TypedExpr) == tBool)
+        -----------------------------------------------------------------------
+        it "3" (typeOf (eVar (tInt, "x") :: TypedExpr) == tInt)
+
+      describe "Definition" $ do
+        -----------------------------------------------------------------------
+        let def :: Definition MonoType TypedExpr
+            def =
+              Function
+                (fromList [(tInt, "x")])
+                (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
+
+        it "1" (typeOf def == (tInt ~> tInt ~> tInt))
 
 readTests :: SpecWith ()
 readTests =
@@ -185,7 +266,21 @@ treeTests :: SpecWith ()
 treeTests =
   describe "Pong.Tree" $ do
     describe "- hoistTopLambdas" $ do
-      pure ()
+      -------------------------------------------------------------------------
+      let def :: Definition MonoType TypedExpr
+          def =
+            Function
+              (fromList [(tInt, "x")])
+              (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
+
+      let result :: Definition MonoType TypedExpr
+          result =
+            Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              (tInt, eVar (tInt, "y"))
+
+      it "1" (hoistTopLambdas def == result)
+
     describe "- combineLambdas" $ do
       -------------------------------------------------------------------------
       let before :: TypedExpr
@@ -735,7 +830,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rVar 0)
 
-      it "10" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      it "11" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
@@ -743,7 +838,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
 
-      it "11" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      it "12" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
@@ -751,7 +846,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rVar 0
 
-      it "12" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      it "13" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt rNil))
@@ -759,7 +854,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
 
-      it "13" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      it "14" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt rNil))
@@ -767,7 +862,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
 
-      it "14" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+      it "15" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rVar 0
@@ -775,7 +870,7 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rVar 1
 
-      it "15" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      it "16" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "a" tInt (rVar 0)
@@ -783,18 +878,10 @@ typeTests =
       let r2 :: Row MonoType Int
           r2 = rExt "a" tInt (rVar 0)
 
-      it "16" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
-      -------------------------------------------------------------------------
-      let r1 :: Row MonoType Int
-          r1 = rExt "a" tInt (rVar 0)
-
-      let r2 :: Row MonoType Int
-          r2 = rExt "a" tInt (rVar 1)
-
       it "17" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
-          r1 = rExt "a" tInt rNil
+          r1 = rExt "a" tInt (rVar 0)
 
       let r2 :: Row MonoType Int
           r2 = rExt "a" tInt (rVar 1)
@@ -805,9 +892,17 @@ typeTests =
           r1 = rExt "a" tInt rNil
 
       let r2 :: Row MonoType Int
-          r2 = rExt "a" tInt rNil
+          r2 = rExt "a" tInt (rVar 1)
 
       it "19" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "a" tInt rNil
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "a" tInt rNil
+
+      it "20" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
 
 utilTests :: SpecWith ()
 utilTests =
