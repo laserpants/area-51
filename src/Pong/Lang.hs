@@ -96,41 +96,95 @@ typeEq :: (Eq v, Eq s) => Type v s -> Type v s -> Bool
 typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
 
 class FreeIn f where
-  free :: f -> [Int]
+  freeIn :: f -> [Int]
 
 instance FreeIn Scheme where
-  free _ = []
+  freeIn _ = []
 
 instance FreeIn (Type Int s) where
-  free =
-    nub
-      <<< cata
-        ( \case
-            TVar n -> [n]
-            TCon _ ts -> join ts
-            TArr t1 t2 -> t1 <> t2
-            TRec row -> free row
-            _ -> []
-        )
+  freeIn =
+    cata
+      ( \case
+          TVar n -> [n]
+          TCon _ ts -> join ts
+          TArr t1 t2 -> t1 <> t2
+          TRec row -> freeIn row
+          _ -> []
+      )
 
 instance FreeIn (Row (Type Int s) Int) where
-  free =
-    nub
-      <<< cata
-        ( \case
-            RVar v -> [v]
-            RExt _ t r -> free t <> r
-            _ -> []
-        )
+  freeIn =
+    cata
+      ( \case
+          RVar v -> [v]
+          RExt _ t r -> freeIn t <> r
+          _ -> []
+      )
 
-instance (Foldable f, Functor f, FreeIn a) => FreeIn (f a) where
-  free = concatMap free
+instance (FreeIn a) => FreeIn [a] where
+  freeIn = concatMap freeIn
+
+instance (FreeIn a) => FreeIn (Either e a) where
+  freeIn = concatMap freeIn
+
+instance (FreeIn t) => FreeIn (Constructor t) where
+  freeIn (Constructor _ fs) = freeIn fs
+
+instance (FreeIn t, FreeIn a) => FreeIn (Definition t a) where
+  freeIn =
+    \case
+      Function as (t, a) ->
+        (freeIn . fst =<< toList as) <> freeIn t <> freeIn a
+      Constant (t, a) ->
+        freeIn t <> freeIn a
+      Extern ts t ->
+        freeIn ts <> freeIn t
+      Data _ cs ->
+        freeIn cs
+
+instance (FreeIn t, FreeIn a) => FreeIn (Program t a) where
+  freeIn (Program p) = freeIn (Map.elems p)
+
+instance (FreeIn a) => FreeIn (Environment a) where
+  freeIn env = freeIn =<< Env.elems env
+
+instance FreeIn Void where
+  freeIn = const []
+
+instance (FreeIn t, FreeIn a2) => FreeIn (Expr t t a1 a2) where
+  freeIn =
+    cata
+      ( \case
+          EVar (t, _) -> freeIn t
+          ECon (t, _) -> freeIn t
+          ELit{} -> []
+          EIf e1 e2 e3 -> e1 <> e2 <> e3
+          ELet (t, _) e1 e2 -> freeIn t <> e1 <> e2
+          ELam _ args e1 -> freeIn (fst <$> args) <> e1
+          EApp t fun as -> freeIn t <> fun <> concat as
+          ECall a (t, _) as -> freeIn a <> freeIn t <> concat as
+          EOp1 (t, _) e1 -> freeIn t <> e1
+          EOp2 (t, _) e1 e2 -> freeIn t <> e1 <> e2
+          EPat e1 cs -> e1 <> (freeInClause =<< cs)
+          ERec row -> freeInRow row
+          ERes fs e1 e2 -> freeIn (fst <$> fs) <> e1 <> e2
+      )
+    where
+      freeInClause (ls, e) =
+        (freeIn . fst =<< ls) <> e
+      freeInRow =
+        cata
+          ( \case
+              RNil -> []
+              RVar (t, _) -> freeIn t
+              RExt _ elem row -> freeIn elem <> row
+          )
+
+free :: (FreeIn a) => a -> [Int]
+free = nub . freeIn
 
 class Typed t where
   typeOf :: t -> MonoType
-
-instance (Typed t) => FreeIn (Expr t t a1 a2) where
-  free = free . typeOf
 
 instance Typed MonoType where
   typeOf = id
