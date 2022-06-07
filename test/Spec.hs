@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Control.Monad.Reader
+import Data.Either.Extra (fromRight)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second)
@@ -106,10 +107,64 @@ program1 =
         ]
     )
 
+program2 :: Text
+program2 =
+  "def main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          letr\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              x\
+  \"
+
+-- "
+
+program3 :: Text
+program3 =
+  "def main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          letr\
+  \            { c = x | s } =\
+  \              q\
+  \            in\
+  \              x\
+  \"
+
+-- "
+
 evalTests :: SpecWith ()
 evalTests =
   describe "Pong.Eval" $ do
-    it "1" (Just (PrimValue (PInt 100)) == evalProgram (transformProgram program1) (Scheme (tUnit ~> tInt), "main"))
+    describe "- evalProgram" $ do
+      -------------------------------------------------------------------------
+      it "1" (Just (PrimValue (PInt 100)) == evalProgram (transformProgram program1) (Scheme (tUnit ~> tInt), "main"))
+      -------------------------------------------------------------------------
+      let program :: Program MonoType Ast
+          program =
+            transformProgram (fromRight emptyProgram (parseAndAnnotate program2))
+
+      it "2" (Just (PrimValue (PInt 5)) == evalProgram program (Scheme (tUnit ~> tInt), "main"))
+      -------------------------------------------------------------------------
+      let program :: Program MonoType Ast
+          program =
+            transformProgram (fromRight emptyProgram (parseAndAnnotate program3))
+
+      it "3" (Just (PrimValue (PInt 1)) == evalProgram program (Scheme (tUnit ~> tInt), "main"))
 
 llvmEmitTests :: SpecWith ()
 llvmEmitTests =
@@ -178,6 +233,7 @@ treeTests =
       it "2" (combineLambdas before == after)
 
     describe "- parseAndAnnotate" $ do
+      -------------------------------------------------------------------------
       let input :: Text
           input =
             "def main(a : unit) : int =\
@@ -669,13 +725,16 @@ utilTests :: SpecWith ()
 utilTests =
   describe "Pong.Util" $ do
     describe "- without" $ do
+      -------------------------------------------------------------------------
       it "1" ([1, 2, 3, 4, 5] `without` [2, 4, 6] == [1, 3, 5])
+      -------------------------------------------------------------------------
       it "2" (null $ [] `without` [2, 4, 6])
 
     describe "- getAndModify" $ do
       pure ()
 
     describe "- varSequence" $ do
+      -------------------------------------------------------------------------
       it "1" (varSequence "foo" [1, 2, 3] == [(1, "foo0"), (2, "foo1"), (3, "foo2")])
 
 utilEnvTests :: SpecWith ()
@@ -709,348 +768,3 @@ runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
 runUnifyRows :: Row MonoType Int -> Row MonoType Int -> Either TypeError Substitution
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)
-
----- let
-----   r =
-----     { a = 1
-----     , b = true
-----     , c = 3
-----     }
-----   in
-----     letr
-----       { a = x | q } =
-----         r
-----       in
-----         q
-----
--- foo1 :: SourceExpr
--- foo1 =
---  eLet
---    ((), "r")
---    ( eRec
---        ( rExt
---            "a"
---            (eLit (PInt 1))
---            ( rExt
---                "b"
---                (eLit (PBool True))
---                ( rExt
---                    "c"
---                    (eLit (PInt 3))
---                    rNil
---                )
---            )
---        )
---    )
---    ( eRes
---        [((), "a"), ((), "x"), ((), "q")]
---        (eVar ((), "r"))
---        (eVar ((), "q"))
---    )
---
--- foo2 :: TypedExpr
--- foo2 =
---  eLet
---    ( tRec
---        ( rExt
---            "a"
---            tInt
---            ( rExt
---                "b"
---                tBool
---                ( rExt
---                    "c"
---                    tInt
---                    rNil
---                )
---            )
---        )
---    , "r"
---    )
---    ( eRec
---        ( rExt
---            "a"
---            (eLit (PInt 1))
---            ( rExt
---                "b"
---                (eLit (PBool True))
---                ( rExt
---                    "c"
---                    (eLit (PInt 3))
---                    rNil
---                )
---            )
---        )
---    )
---    ( eRes
---        [
---          ( tInt
---              ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
---              ~> tRec
---                ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
---                )
---          , "a"
---          )
---        , (tInt, "x")
---        ,
---          ( tRec
---              ( rExt
---                  "b"
---                  tBool
---                  ( rExt
---                      "c"
---                      tInt
---                      rNil
---                  )
---              )
---          , "q"
---          )
---        ]
---        ( eVar
---            ( tRec
---                ( rExt
---                    "a"
---                    tInt
---                    ( rExt
---                        "b"
---                        tBool
---                        ( rExt
---                            "c"
---                            tInt
---                            rNil
---                        )
---                    )
---                )
---            , "r"
---            )
---        )
---        ( eVar
---            ( tRec
---                ( rExt
---                    "b"
---                    tBool
---                    ( rExt
---                        "c"
---                        tInt
---                        rNil
---                    )
---                )
---            , "q"
---            )
---        )
---    )
---
--- foo3 :: Program MonoType TypedExpr
--- foo3 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "a")])
---              ( tInt
---              , eLet
---                  ( tRec
---                      ( rExt
---                          "a"
---                          tInt
---                          ( rExt
---                              "b"
---                              tBool
---                              ( rExt
---                                  "c"
---                                  tInt
---                                  rNil
---                              )
---                          )
---                      )
---                  , "r"
---                  )
---                  ( eRec
---                      ( rExt
---                          "a"
---                          (eLit (PInt 1))
---                          ( rExt
---                              "b"
---                              (eLit (PBool True))
---                              ( rExt
---                                  "c"
---                                  (eLit (PInt 3))
---                                  rNil
---                              )
---                          )
---                      )
---                  )
---                  ( eRes
---                      [
---                        ( tInt
---                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
---                            ~> tRec
---                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
---                              )
---                        , "a"
---                        )
---                      , (tInt, "x")
---                      ,
---                        ( tRec
---                            ( rExt
---                                "b"
---                                tBool
---                                ( rExt
---                                    "c"
---                                    tInt
---                                    rNil
---                                )
---                            )
---                        , "q"
---                        )
---                      ]
---                      ( eVar
---                          ( tRec
---                              ( rExt
---                                  "a"
---                                  tInt
---                                  ( rExt
---                                      "b"
---                                      tBool
---                                      ( rExt
---                                          "c"
---                                          tInt
---                                          rNil
---                                      )
---                                  )
---                              )
---                          , "r"
---                          )
---                      )
---                      ( eVar
---                          ( tRec
---                              ( rExt
---                                  "b"
---                                  tBool
---                                  ( rExt
---                                      "c"
---                                      tInt
---                                      rNil
---                                  )
---                              )
---                          , "q"
---                          )
---                      )
---                  )
---              )
---          )
---        ]
---    )
---
----- def main(a : unit) : int =
-----   let
-----     r =
-----       { a = 100
-----       , b = true
-----       , c = 3
-----       }
-----     in
-----       letr
-----         { a = x | q } =
-----           r
-----         in
-----           x
-----
--- foo4 :: Program MonoType TypedExpr
--- foo4 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "a")])
---              ( tInt
---              , eLet
---                  ( tRec
---                      ( rExt
---                          "a"
---                          tInt
---                          ( rExt
---                              "b"
---                              tBool
---                              ( rExt
---                                  "c"
---                                  tInt
---                                  rNil
---                              )
---                          )
---                      )
---                  , "r"
---                  )
---                  ( eRec
---                      ( rExt
---                          "a"
---                          (eLit (PInt 100))
---                          ( rExt
---                              "b"
---                              (eLit (PBool True))
---                              ( rExt
---                                  "c"
---                                  (eLit (PInt 3))
---                                  rNil
---                              )
---                          )
---                      )
---                  )
---                  ( eRes
---                      [
---                        ( tInt
---                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
---                            ~> tRec
---                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
---                              )
---                        , "a"
---                        )
---                      , (tInt, "x")
---                      ,
---                        ( tRec
---                            ( rExt
---                                "b"
---                                tBool
---                                ( rExt
---                                    "c"
---                                    tInt
---                                    rNil
---                                )
---                            )
---                        , "q"
---                        )
---                      ]
---                      ( eVar
---                          ( tRec
---                              ( rExt
---                                  "a"
---                                  tInt
---                                  ( rExt
---                                      "b"
---                                      tBool
---                                      ( rExt
---                                          "c"
---                                          tInt
---                                          rNil
---                                      )
---                                  )
---                              )
---                          , "r"
---                          )
---                      )
---                      ( eVar (tInt, "x")
---                      )
---                  )
---              )
---          )
---        ]
---    )
-
--- let
---   r =
---     { a = 1 | b = true }
---   in
---     { c = 1 | r }
---
