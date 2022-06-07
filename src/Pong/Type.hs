@@ -103,7 +103,10 @@ class Substitutable a where
 instance Substitutable MonoType where
   apply = substitute . unpack
 
-instance (Functor f, Substitutable a) => Substitutable (f a) where
+instance (Substitutable a) => Substitutable [a] where
+  apply = fmap . apply
+
+instance (Substitutable a) => Substitutable (Map k a) where
   apply = fmap . apply
 
 instance
@@ -133,6 +136,24 @@ instance Substitutable (Row MonoType Int) where
 
 instance Substitutable Void where
   apply = const id
+
+instance (Substitutable t) => Substitutable (Constructor t) where
+  apply = fmap . apply
+
+instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) where
+  apply sub =
+    \case
+      Function as (t, a) ->
+        Function (first (apply sub) <$> as) (apply sub t, apply sub a)
+      Constant (t, a) ->
+        Constant (apply sub t, apply sub a)
+      Extern ts t ->
+        Extern (apply sub ts) (apply sub t)
+      Data name cs ->
+        Data name (apply sub cs)
+
+instance (Substitutable t, Substitutable a) => Substitutable (Program t a) where
+  apply sub (Program p) = Program (apply sub p)
 
 compose :: Substitution -> Substitution -> Substitution
 compose = over2 Substitution fun

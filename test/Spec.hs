@@ -229,20 +229,20 @@ program6 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tVar 3 ~> tVar 3, "id")
-                  (eLam () [(tVar 3, "x")] (eVar (tVar 3, "x")))
+                  (tVar 0 ~> tVar 0, "id")
+                  (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
                   ( eLet
-                      (tVar 7 ~> tVar 7 ~> tVar 7, "add")
+                      (tVar 1 ~> tVar 1 ~> tVar 1, "add")
                       ( eLam
                           ()
-                          [(tVar 7, "x")]
+                          [(tVar 1, "x")]
                           ( eLam
                               ()
-                              [(tVar 7, "y")]
+                              [(tVar 1, "y")]
                               ( eOp2
-                                  (tVar 7 ~> tVar 7 ~> tVar 7, OAdd)
-                                  (eVar (tVar 7, "x"))
-                                  (eVar (tVar 7, "y"))
+                                  (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                                  (eVar (tVar 1, "x"))
+                                  (eVar (tVar 1, "y"))
                               )
                           )
                       )
@@ -387,6 +387,12 @@ langTests =
                 (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
 
         it "1" (typeOf def == (tInt ~> tInt ~> tInt))
+
+    describe "- free" $ do
+      -------------------------------------------------------------------------
+      it "1" (free expr1 == [3, 7])
+      -------------------------------------------------------------------------
+      it "2" (free program6 == [0, 1])
 
 readTests :: SpecWith ()
 readTests =
@@ -851,7 +857,7 @@ typeTests =
 
     describe "- inferProgram" $ do
       -------------------------------------------------------------------------
-      it "1" (runInferProgram program5 == Right program6)
+      it "1" ((runInferProgram program5 <&> canonical) == Right program6)
 
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------

@@ -101,6 +101,9 @@ class FreeIn f where
 instance FreeIn Scheme where
   freeIn _ = []
 
+instance FreeIn Void where
+  freeIn _ = []
+
 instance FreeIn (Type Int s) where
   freeIn =
     cata
@@ -147,9 +150,6 @@ instance (FreeIn t, FreeIn a) => FreeIn (Program t a) where
 
 instance (FreeIn a) => FreeIn (Environment a) where
   freeIn env = freeIn =<< Env.elems env
-
-instance FreeIn Void where
-  freeIn = const []
 
 instance (FreeIn t, FreeIn a2) => FreeIn (Expr t t a1 a2) where
   freeIn =
