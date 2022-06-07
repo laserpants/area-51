@@ -720,6 +720,94 @@ typeTests =
           r2 = rExt "id" tInt (rVar 0)
 
       it "9" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rExt "name" tString rNil))
+
+      it "10" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "shoeSize" tFloat (rVar 0)
+
+      it "10" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
+
+      it "11" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+      let r2 :: Row MonoType Int
+          r2 = rVar 0
+
+      it "12" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt rNil))
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
+
+      it "13" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt rNil))
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
+
+      it "14" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rVar 0
+
+      let r2 :: Row MonoType Int
+          r2 = rVar 1
+
+      it "15" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "a" tInt (rVar 0)
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "a" tInt (rVar 0)
+
+      it "16" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "a" tInt (rVar 0)
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "a" tInt (rVar 1)
+
+      it "17" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "a" tInt rNil
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "a" tInt (rVar 1)
+
+      it "18" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
+      -------------------------------------------------------------------------
+      let r1 :: Row MonoType Int
+          r1 = rExt "a" tInt rNil
+
+      let r2 :: Row MonoType Int
+          r2 = rExt "a" tInt rNil
+
+      it "19" (let Right sub = runUnifyRows r1 r2 in apply sub r1 `rowEq` apply sub r2)
 
 utilTests :: SpecWith ()
 utilTests =
