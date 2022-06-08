@@ -1,17 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Pong.TreeTests where
 
 import Data.List.NonEmpty (fromList, toList)
 import Pong.Data
 import Pong.Lang
+import Pong.TestData.AnEnvelopeForJohnStJohn
+import Pong.TestData.GeraniumPlant
+import Pong.TestData.GoAwayDixieGillian
+import Pong.TestData.JackOfClubs
+import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
 import Test.Hspec
-import Pong.TestData.AnEnvelopeForJohnStJohn
-import Pong.TestData.GoAwayDixieGillian
-import Pong.TestData.JackOfClubs
-import Pong.TestData.GeraniumPlant
-import Pong.TestHelpers
 
 treeTests :: SpecWith ()
 treeTests =

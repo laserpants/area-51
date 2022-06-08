@@ -25,8 +25,8 @@ data RowF e r a
 {- ORMOLU_ENABLE -}
 
 -- | A row is a sequence of labeled fields. Rows encode the internal structure
--- of records, both at the type and expression level. A row can be either 
--- /open/ or /closed/. An open row has a variable in the tail of the sequence, 
+-- of records, both at the type and expression level. A row can be either
+-- /open/ or /closed/. An open row has a variable in the tail of the sequence,
 -- whereas a closed row is one that ends with the empty row.
 type Row e r = Fix (RowF e r)
 

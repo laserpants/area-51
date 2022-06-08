@@ -1,9 +1,9 @@
 module Pong.TestData.GeraniumPlant where
 
+import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
-import qualified Data.Map.Strict as Map
-import Data.List.NonEmpty (fromList, toList)
 import Pong.Util
 
 program10 :: Program MonoType TypedExpr
@@ -16,24 +16,22 @@ program10 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                          (tInt ~> tInt ~> tInt, "$var_add_1")
-                          ( eLam
-                              ()
-                              [(tInt, "x")]
-                              ( eLam
-                                  ()
-                                  [(tInt, "y")]
-                                  ( eOp2
-                                      oAddInt
-                                      (eVar (tInt, "x"))
-                                      (eVar (tInt, "y"))
-                                  )
-                              )
+                  (tInt ~> tInt ~> tInt, "$var_add_1")
+                  ( eLam
+                      ()
+                      [(tInt, "x")]
+                      ( eLam
+                          ()
+                          [(tInt, "y")]
+                          ( eOp2
+                              oAddInt
+                              (eVar (tInt, "x"))
+                              (eVar (tInt, "y"))
                           )
-                          (eLit (PInt 123))
+                      )
                   )
+                  (eLit (PInt 123))
               )
+          )
         ]
     )
-
-

@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Pong.TestData.JackOfClubs where
 
+import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
-import qualified Data.Map.Strict as Map
-import Data.List.NonEmpty (fromList, toList)
 import Pong.Util
 
 program4 :: Text
@@ -191,8 +192,8 @@ program7 =
         ]
     )
 
---program8 :: Program MonoType Ast
---program8 =
+-- program8 :: Program MonoType Ast
+-- program8 =
 --  Program
 --    ( Map.fromList
 --        [
@@ -217,7 +218,7 @@ program7 =
 --                                  (eCall (tInt ~> tInt ~> tInt, "$var_add_1") [eLit (PInt 2)])
 --                                  ( eOp2
 --                                      oAddInt
---                                      (eCall ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3") 
+--                                      (eCall ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
 --                                        [ eVar (tInt ~> tInt, "add2")
 --                                        , eCall (tInt ~> tInt, "$var_id_4") [eLit (PInt 3)]
 --                                        ])

@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Pong.TestData.GoAwayDixieGillian where
 
+import Data.List.NonEmpty (fromList, toList)
+import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
-import qualified Data.Map.Strict as Map
-import Data.List.NonEmpty (fromList, toList)
 import Pong.Util
 
 program1 :: Program MonoType TypedExpr
@@ -97,5 +98,3 @@ program1 =
           )
         ]
     )
-
-
