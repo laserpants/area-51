@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Pong.Util.Pretty where
 
@@ -75,3 +76,38 @@ instance (Pretty v, Pretty s) => Pretty (Type v s) where
               TArr{} -> True
               _ -> False
           )
+
+{-
+
+\$lam1(x : int -> int, v0 : int) : int =
+  x(v0)
+
+\$lam2(x : int) : int =
+  x
+
+\$lam3(x : int, y : int) : int =
+  x + y
+
+\$lam4(x : int, v0 : int, v1 : int) : int =
+  $lam3(v0, v1)
+
+main(a : unit) : int =
+  let
+    $var_id_3 =
+      $lam1
+    in
+      let
+        $var_id_4 =
+          $lam2
+        in
+          let
+            $var_add_1 =
+              $lam4
+            in
+              let
+                add2 =
+                  $var_add_1(2)
+                in
+                  $var_id_3(add2, $var_id_4(3)) + $var_add_2(4, 5)
+
+-}

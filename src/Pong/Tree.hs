@@ -17,6 +17,7 @@ import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second)
+import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Read
@@ -98,12 +99,10 @@ monomorphizeLets =
           e1 <- expr1
           e2 <- expr2
           (e, binds) <- runWriterT (monomorphize t var e1 e2)
-          pure (foldr (uncurry eLet) e (unique binds))
+          pure (foldr (uncurry eLet) e binds)
         expr ->
           embed <$> sequence expr
     )
-  where
-    unique = nubBy (on (==) (fst . fst))
 
 appArgs :: [Ast] -> Ast -> Ast
 appArgs [] = id

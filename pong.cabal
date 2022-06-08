@@ -89,6 +89,12 @@ test-suite pong-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Pong.TestData.AnEnvelopeForJohnStJohn
+      Pong.TestData.GoAwayDixieGillian
+      Pong.TestData.JackOfClubs
+      Pong.TestData.ShirtMixUpAtTheLaundry
+      Pong.TestHelpers
+      Pong.TreeTests
       Paths_pong
   hs-source-dirs:
       test
