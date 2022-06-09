@@ -63,10 +63,7 @@ programEnv program =
 
 -- Substitution
 
-substitute ::
-  Map Int (Type Int s) ->
-  Type Int t ->
-  Type Int s
+substitute :: Map Int MonoType -> MonoType -> MonoType
 substitute sub =
   cata $
     \case
@@ -81,12 +78,8 @@ substitute sub =
       TDouble -> tDouble
       TChar -> tChar
       TString -> tString
-      TGen{} -> error "Implementation error"
 
-rowSubstitute ::
-  Map Int (Type Int s) ->
-  Row (Type Int t) Int ->
-  Row (Type Int s) Int
+rowSubstitute :: Map Int MonoType -> Row MonoType Int -> Row MonoType Int
 rowSubstitute sub =
   cata $
     \case
@@ -279,7 +272,7 @@ unify t1 t2 = do
 
 instantiate :: Scheme -> TypeChecker MonoType
 instantiate (Scheme t) = do
-  ts <- traverse (\n -> tag >>= \v -> pure (n, tVar v)) (Set.toList (boundVars t))
+  ts <- traverse (\n -> tag >>= \v -> pure (n, v)) (Set.toList (boundVars t))
   pure (toMonoType (Map.fromList ts) t)
 
 generalize :: MonoType -> TypeChecker Scheme
@@ -388,22 +381,22 @@ unopType =
   Scheme
     <<< \case
       ONot -> tBool ~> tBool
-      ONeg -> tGen "a" ~> tGen "a"
+      ONeg -> tVar "a" ~> tVar "a"
 
 binopType :: Op2 -> Scheme
 binopType =
   Scheme
     <<< \case
-      OEq -> tGen "a" ~> tGen "a" ~> tBool
-      ONEq -> tGen "a" ~> tGen "a" ~> tBool
-      OLt -> tGen "a" ~> tGen "a" ~> tBool
-      OGt -> tGen "a" ~> tGen "a" ~> tBool
-      OLtE -> tGen "a" ~> tGen "a" ~> tBool
-      OGtE -> tGen "a" ~> tGen "a" ~> tBool
-      OAdd -> tGen "a" ~> tGen "a" ~> tGen "a"
-      OSub -> tGen "a" ~> tGen "a" ~> tGen "a"
-      OMul -> tGen "a" ~> tGen "a" ~> tGen "a"
-      ODiv -> tGen "a" ~> tGen "a" ~> tGen "a"
+      OEq -> tVar "a" ~> tVar "a" ~> tBool
+      ONEq -> tVar "a" ~> tVar "a" ~> tBool
+      OLt -> tVar "a" ~> tVar "a" ~> tBool
+      OGt -> tVar "a" ~> tVar "a" ~> tBool
+      OLtE -> tVar "a" ~> tVar "a" ~> tBool
+      OGtE -> tVar "a" ~> tVar "a" ~> tBool
+      OAdd -> tVar "a" ~> tVar "a" ~> tVar "a"
+      OSub -> tVar "a" ~> tVar "a" ~> tVar "a"
+      OMul -> tVar "a" ~> tVar "a" ~> tVar "a"
+      ODiv -> tVar "a" ~> tVar "a" ~> tVar "a"
       OLogicOr -> tBool ~> tBool ~> tBool
       OLogicAnd -> tBool ~> tBool ~> tBool
 

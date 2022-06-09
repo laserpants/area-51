@@ -22,7 +22,7 @@ import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, 
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 
-mapRow :: (e -> f) -> Row e r -> Row f r
+mapRow :: (e -> f) -> Row e v -> Row f v
 mapRow f =
   cata $
     \case
@@ -30,7 +30,7 @@ mapRow f =
       RVar v -> rVar v
       RExt name elem row -> rExt name (f elem) row
 
-mapRowM :: (Monad m) => (e -> m f) -> Row e r -> m (Row f r)
+mapRowM :: (Monad m) => (e -> m f) -> Row e v -> m (Row f v)
 mapRowM f =
   cata $
     \case
@@ -38,10 +38,18 @@ mapRowM f =
       RVar v -> pure (rVar v)
       RExt name elem row -> rExt name <$> f elem <*> row
 
-normalizeRow :: Row e r -> Row e r
+bimapRow :: (e -> f) -> (v -> w) -> Row e v -> Row f w
+bimapRow f g =
+  cata $
+    \case
+      RNil -> rNil
+      RVar v -> rVar (g v)
+      RExt name elem row -> rExt name (f elem) row
+
+normalizeRow :: Row e v -> Row e v
 normalizeRow = uncurry (flip foldRow) . unwindRow
 
-noramlizeTypeRows :: Type v s -> Type v s
+noramlizeTypeRows :: Type v -> Type v
 noramlizeTypeRows =
   cata $
     \case
@@ -49,14 +57,14 @@ noramlizeTypeRows =
       t -> embed t
 
 {-# INLINE foldRow #-}
-foldRow :: Row e r -> Map Name [e] -> Row e r
+foldRow :: Row e v -> Map Name [e] -> Row e v
 foldRow = Map.foldrWithKey (flip . foldr . rExt)
 
 {-# INLINE foldRow1 #-}
-foldRow1 :: Map Name [e] -> Row e r
+foldRow1 :: Map Name [e] -> Row e v
 foldRow1 = foldRow rNil
 
-unwindRow :: Row e r -> (Map Name [e], Row e r)
+unwindRow :: Row e v -> (Map Name [e], Row e v)
 unwindRow row = (toMap fields, leaf)
   where
     toMap = foldr (uncurry (Map.insertWith (<>))) mempty
@@ -73,7 +81,7 @@ unwindRow row = (toMap fields, leaf)
             r -> embed r
         )
 
-restrictRow :: Name -> Row e r -> (e, Row e r)
+restrictRow :: Name -> Row e v -> (e, Row e v)
 restrictRow name row =
   ( e
   , normalizeRow
@@ -87,10 +95,10 @@ restrictRow name row =
     Just (e : es) = Map.lookup name m
     (m, k) = unwindRow row
 
-rowEq :: (Eq e, Eq r) => Row e r -> Row e r -> Bool
+rowEq :: (Eq e, Eq v) => Row e v -> Row e v -> Bool
 rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
 
-typeEq :: (Eq v, Eq s) => Type v s -> Type v s -> Bool
+typeEq :: (Eq v) => Type v -> Type v -> Bool
 typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
 
 class FreeIn f where
@@ -102,7 +110,7 @@ instance FreeIn Scheme where
 instance FreeIn Void where
   freeIn _ = []
 
-instance FreeIn (Type Int s) where
+instance FreeIn MonoType where
   freeIn =
     cata
       ( \case
@@ -113,7 +121,7 @@ instance FreeIn (Type Int s) where
           _ -> []
       )
 
-instance FreeIn (Row (Type Int s) Int) where
+instance FreeIn (Row MonoType Int) where
   freeIn =
     cata
       ( \case
@@ -254,7 +262,7 @@ freeIndex ts =
     [] -> 0
     vs -> succ (maximum vs)
 
-isConT :: ConT -> Type v s -> Bool
+isConT :: ConT -> Type v -> Bool
 isConT con =
   project >>> \case
     TArr{}
@@ -327,35 +335,15 @@ freeVars =
           ERes (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
       )
 
-toMonoType :: Map Name MonoType -> Type Void Name -> MonoType
+toMonoType :: Map Name Int -> Type Name -> MonoType
 toMonoType vs =
-  cata
-    ( \case
-        TGen s ->
-          case Map.lookup s vs of
-            Nothing -> error "Implementation error"
-            Just t -> t
-        TUnit -> tUnit
-        TBool -> tBool
-        TInt -> tInt
-        TFloat -> tFloat
-        TDouble -> tDouble
-        TChar -> tChar
-        TString -> tString
-        TCon con ts -> tCon con ts
-        TArr t1 t2 -> tArr t1 t2
-        TRec row -> tRec (mapRow (toMonoType vs) row)
-    )
-
-toScheme :: Name -> [Int] -> MonoType -> Scheme
-toScheme prefix vars = Scheme <<< go
-  where
-    names =
-      Map.fromList (varSequence prefix vars)
-    go =
-      cata
+  let typeIx s =
+        case Map.lookup s vs of
+          Nothing -> error "Implementation error"
+          Just t -> t
+   in cata
         ( \case
-            TVar n -> tGen (names ! n)
+            TVar s -> tVar (typeIx s)
             TUnit -> tUnit
             TBool -> tBool
             TInt -> tInt
@@ -365,7 +353,28 @@ toScheme prefix vars = Scheme <<< go
             TString -> tString
             TCon con ts -> tCon con ts
             TArr t1 t2 -> tArr t1 t2
-            TRec row -> tRec (mapRow go row)
+            TRec row -> tRec (bimapRow (toMonoType vs) typeIx row)
+        )
+
+toScheme :: Name -> [Int] -> MonoType -> Scheme
+toScheme prefix vars = Scheme <<< go
+  where
+    names =
+      Map.fromList (varSequence prefix vars)
+    go =
+      cata
+        ( \case
+            TVar n -> tVar (names ! n)
+            TUnit -> tUnit
+            TBool -> tBool
+            TInt -> tInt
+            TFloat -> tFloat
+            TDouble -> tDouble
+            TChar -> tChar
+            TString -> tString
+            TCon con ts -> tCon con ts
+            TArr t1 t2 -> tArr t1 t2
+            TRec row -> tRec (bimapRow go (names !) row)
         )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
@@ -395,11 +404,11 @@ mapTypes f =
             RExt name elem row -> rExt name (mapTypes f elem) row
         )
 
-boundVars :: Type v Name -> Set Name
+boundVars :: Type Name -> Set Name
 boundVars =
   cata
     ( \case
-        TGen s -> Set.singleton s
+        TVar s -> Set.singleton s
         TCon _ ts -> Set.unions ts
         TArr t1 t2 -> Set.union t1 t2
         TRec row ->
@@ -412,11 +421,11 @@ boundVars =
     )
 
 {-# INLINE foldType #-}
-foldType :: Type v s -> [Type v s] -> Type v s
+foldType :: Type v -> [Type v] -> Type v
 foldType = foldr tArr
 
 {-# INLINE foldType1 #-}
-foldType1 :: [Type v s] -> Type v s
+foldType1 :: [Type v] -> Type v
 foldType1 = foldr1 tArr
 
 {-# INLINE insertArgs #-}
@@ -489,27 +498,27 @@ programForM ::
 programForM = flip programMapM
 
 {-# INLINE tUnit #-}
-tUnit :: Type v s
+tUnit :: Type v
 tUnit = embed TUnit
 
 {-# INLINE tBool #-}
-tBool :: Type v s
+tBool :: Type v
 tBool = embed TBool
 
 {-# INLINE tInt #-}
-tInt :: Type v s
+tInt :: Type v
 tInt = embed TInt
 
 {-# INLINE tFloat #-}
-tFloat :: Type v s
+tFloat :: Type v
 tFloat = embed TFloat
 
 {-# INLINE tDouble #-}
-tDouble :: Type v s
+tDouble :: Type v
 tDouble = embed TDouble
 
 {-# INLINE tArr #-}
-tArr :: Type v s -> Type v s -> Type v s
+tArr :: Type v -> Type v -> Type v
 tArr = embed2 TArr
 
 infixr 1 `tArr`
@@ -520,39 +529,35 @@ infixr 1 `tArr`
 infixr 1 ~>
 
 {-# INLINE tCon #-}
-tCon :: Name -> [Type v s] -> Type v s
+tCon :: Name -> [Type v] -> Type v
 tCon = embed2 TCon
 
 {-# INLINE tVar #-}
-tVar :: v -> Type v s
+tVar :: v -> Type v
 tVar = embed1 TVar
 
 {-# INLINE tRec #-}
-tRec :: Row (Type v s) Int -> Type v s
+tRec :: Row (Type v) v -> Type v
 tRec = embed1 TRec
 
 {-# INLINE tChar #-}
-tChar :: Type v s
+tChar :: Type v
 tChar = embed TChar
 
 {-# INLINE tString #-}
-tString :: Type v s
+tString :: Type v
 tString = embed TString
 
-{-# INLINE tGen #-}
-tGen :: s -> Type v s
-tGen = embed1 TGen
-
 {-# INLINE rNil #-}
-rNil :: Row e r
+rNil :: Row e v
 rNil = embed RNil
 
 {-# INLINE rVar #-}
-rVar :: r -> Row e r
+rVar :: v -> Row e v
 rVar = embed1 RVar
 
 {-# INLINE rExt #-}
-rExt :: Name -> e -> Row e r -> Row e r
+rExt :: Name -> e -> Row e v -> Row e v
 rExt = embed3 RExt
 
 {-# INLINE eOp1 #-}
@@ -612,37 +617,37 @@ eRes :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eRes = embed3 ERes
 
 {-# INLINE oAddInt #-}
-oAddInt :: (Type v s, Op2)
+oAddInt :: (Type v, Op2)
 oAddInt = (tInt ~> tInt ~> tInt, OAdd)
 
 {-# INLINE oSubInt #-}
-oSubInt :: (Type v s, Op2)
+oSubInt :: (Type v, Op2)
 oSubInt = (tInt ~> tInt ~> tInt, OSub)
 
 {-# INLINE oMulInt #-}
-oMulInt :: (Type v s, Op2)
+oMulInt :: (Type v, Op2)
 oMulInt = (tInt ~> tInt ~> tInt, OMul)
 
 {-# INLINE oEqInt #-}
-oEqInt :: (Type v s, Op2)
+oEqInt :: (Type v, Op2)
 oEqInt = (tInt ~> tInt ~> tBool, OEq)
 
 {-# INLINE oNEqInt #-}
-oNEqInt :: (Type v s, Op2)
+oNEqInt :: (Type v, Op2)
 oNEqInt = (tInt ~> tInt ~> tBool, ONEq)
 
 {-# INLINE oLtInt #-}
-oLtInt :: (Type v s, Op2)
+oLtInt :: (Type v, Op2)
 oLtInt = (tInt ~> tInt ~> tBool, OLt)
 
 {-# INLINE oGtInt #-}
-oGtInt :: (Type v s, Op2)
+oGtInt :: (Type v, Op2)
 oGtInt = (tInt ~> tInt ~> tBool, OGt)
 
 {-# INLINE oLtEInt #-}
-oLtEInt :: (Type v s, Op2)
+oLtEInt :: (Type v, Op2)
 oLtEInt = (tInt ~> tInt ~> tBool, OLtE)
 
 {-# INLINE oGtEInt #-}
-oGtEInt :: (Type v s, Op2)
+oGtEInt :: (Type v, Op2)
 oGtEInt = (tInt ~> tInt ~> tBool, OGtE)

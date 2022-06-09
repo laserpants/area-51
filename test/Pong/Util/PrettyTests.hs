@@ -6,6 +6,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
+import Pong.Util
 import Pong.Util.Pretty
 import Prettyprinter
 import Prettyprinter.Render.Text
@@ -31,3 +32,9 @@ utilPrettyTests =
     describe "- Type" $ do
       -------------------------------------------------------------------------
       it "unit" (show (pretty (tUnit :: MonoType)) == "unit")
+      -------------------------------------------------------------------------
+      it "'0" (show (pretty (tVar 0 :: MonoType)) == "'0")
+      -------------------------------------------------------------------------
+      it "a" (show (pretty (tVar "a" :: Type Name)) == "a")
+      -------------------------------------------------------------------------
+      it "int -> int" (show (pretty (tInt ~> tInt :: MonoType)) == "int -> int")

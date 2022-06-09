@@ -275,7 +275,7 @@ prim =
 scheme :: Parser Scheme
 scheme = Scheme <$> type_
 
-type_ :: Parser (Type Void Name)
+type_ :: Parser (Type Name)
 type_ =
   makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
@@ -295,7 +295,7 @@ type_ =
       ts <- many type_
       pure (tCon con ts)
     genType =
-      tGen <$> identifier
+      tVar <$> identifier
     recType =
       braces $ do
         fields <- commaSep field
@@ -304,7 +304,7 @@ type_ =
           tRec
             ( case fields of
                 [] -> rNil
-                _ -> undefined -- foldr (uncurry rExt) (maybe rNil (rVar) tail) fields
+                _ -> foldr (uncurry rExt) (maybe rNil rVar tail) fields
             )
       where
         field = do
@@ -313,7 +313,7 @@ type_ =
           rhs <- type_
           pure (lhs, rhs)
 
-arg :: Parser (Label (Type Void Name))
+arg :: Parser (Label (Type Name))
 arg = do
   name <- identifier
   symbol ":"
@@ -349,7 +349,7 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       name <- identifier
       symbol ":"
       t <- type_
-      let names = Map.fromList (Set.toList (boundVars t) `zip` (tVar <$> [0 ..]))
+      let names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
           t0 = toMonoType names t
       pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
 

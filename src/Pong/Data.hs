@@ -17,9 +17,9 @@ import Pong.Util (Fix (..), List1, Name, Text, Void, deriveEq1, deriveOrd1, deri
 
 {- ORMOLU_DISABLE -}
 
-data RowF e r a
+data RowF e v a
   = RNil                           -- ^ Empty row
-  | RVar r                         -- ^ Row variable
+  | RVar v                         -- ^ Row variable
   | RExt Name e a                  -- ^ Row extension
 
 {- ORMOLU_ENABLE -}
@@ -28,11 +28,11 @@ data RowF e r a
 -- of records, both at the type and expression level. A row can be either
 -- /open/ or /closed/. An open row has a variable in the tail of the sequence,
 -- whereas a closed row is one that ends with the empty row.
-type Row e r = Fix (RowF e r)
+type Row e v = Fix (RowF e v)
 
 {- ORMOLU_DISABLE -}
 
-data TypeF v s a
+data TypeF v a
   = TUnit                          -- ^ Unit type
   | TBool                          -- ^ Boolean type
   | TInt                           -- ^ Type of integers (machine bounded)
@@ -42,20 +42,19 @@ data TypeF v s a
   | TString                        -- ^ Unicode strings
   | TCon Name [a]                  -- ^ Algebraic data-types
   | TArr a a                       -- ^ Function types
-  | TVar v                         -- ^ Type variable (monomorphic)
-  | TGen s                         -- ^ Quantified type variable
-  | TRec (Row (Type v s) Int)      -- ^ Record type
+  | TVar v                         -- ^ Type variable
+  | TRec (Row (Type v) v)          -- ^ Record type
 
 {- ORMOLU_ENABLE -}
 
 -- | Parameterized type representation
-type Type v s = Fix (TypeF v s)
+type Type v = Fix (TypeF v)
 
 -- | Monomorphic type
-type MonoType = Type Int Void
+type MonoType = Type Int
 
 -- | Polymorphic type scheme
-newtype Scheme = Scheme (Type Void Name)
+newtype Scheme = Scheme (Type Name)
 
 {- ORMOLU_DISABLE -}
 
@@ -170,15 +169,15 @@ newtype Program t a
 -------------------------------------------------------------------------------
 
 -- Row
-deriving instance (Show e, Show r, Show a) => Show (RowF e r a)
+deriving instance (Show e, Show v, Show a) => Show (RowF e v a)
 
-deriving instance (Eq e, Eq r, Eq a) => Eq (RowF e r a)
+deriving instance (Eq e, Eq v, Eq a) => Eq (RowF e v a)
 
-deriving instance (Ord e, Ord r, Ord a) => Ord (RowF e r a)
+deriving instance (Ord e, Ord v, Ord a) => Ord (RowF e v a)
 
-deriving instance (Data e, Data r, Data a) => Data (RowF e r a)
+deriving instance (Data e, Data v, Data a) => Data (RowF e v a)
 
-deriving instance (Typeable e, Typeable r, Typeable a) => Typeable (RowF e r a)
+deriving instance (Typeable e, Typeable v, Typeable a) => Typeable (RowF e v a)
 
 deriveShow1 ''RowF
 
@@ -186,22 +185,22 @@ deriveEq1 ''RowF
 
 deriveOrd1 ''RowF
 
-deriving instance Functor (RowF e r)
+deriving instance Functor (RowF e v)
 
-deriving instance Foldable (RowF e r)
+deriving instance Foldable (RowF e v)
 
-deriving instance Traversable (RowF e r)
+deriving instance Traversable (RowF e v)
 
 -- Type
-deriving instance (Show v, Show s, Show a) => Show (TypeF v s a)
+deriving instance (Show v, Show a) => Show (TypeF v a)
 
-deriving instance (Eq v, Eq s, Eq a) => Eq (TypeF v s a)
+deriving instance (Eq v, Eq a) => Eq (TypeF v a)
 
-deriving instance (Ord v, Ord s, Ord a) => Ord (TypeF v s a)
+deriving instance (Ord v, Ord a) => Ord (TypeF v a)
 
-deriving instance (Data v, Data s, Data a) => Data (TypeF v s a)
+deriving instance (Data v, Data a) => Data (TypeF v a)
 
-deriving instance (Typeable v, Typeable s, Typeable a) => Typeable (TypeF v s a)
+deriving instance (Typeable v, Typeable a) => Typeable (TypeF v a)
 
 deriveShow1 ''TypeF
 
@@ -209,11 +208,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor (TypeF v s)
+deriving instance Functor (TypeF v)
 
-deriving instance Foldable (TypeF v s)
+deriving instance Foldable (TypeF v)
 
-deriving instance Traversable (TypeF v s)
+deriving instance Traversable (TypeF v)
 
 -- Scheme
 deriving instance Show Scheme

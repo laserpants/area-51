@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -30,7 +31,7 @@ instance Pretty Prim where
 
 {- ORMOLU_ENABLE -}
 
-instance (Pretty v, Pretty s) => Pretty (Row (Type v s) Int) where
+instance (Pretty v, Pretty (TypeVar v)) => Pretty (Row (Type v) v) where
   pretty =
     para
       ( \case
@@ -47,7 +48,15 @@ instance (Pretty v, Pretty s) => Pretty (Row (Type v s) Int) where
                     " ," <+> doc
       )
 
-instance (Pretty v, Pretty s) => Pretty (Type v s) where
+newtype TypeVar a = TypeVar a
+
+instance (Pretty (TypeVar Name)) where
+  pretty (TypeVar v) = pretty v
+
+instance (Pretty (TypeVar Int)) where
+  pretty (TypeVar v) = "'" <> pretty v
+
+instance (Pretty v, Pretty (TypeVar v)) => Pretty (Type v) where
   pretty =
     para
       ( \case
@@ -60,8 +69,7 @@ instance (Pretty v, Pretty s) => Pretty (Type v s) where
           TString -> "string"
           TArr (t1, doc1) (_, doc2) ->
             parensIf (isConT ArrT t1) doc1 <+> "->" <+> doc2
-          TVar v -> "'" <> pretty v
-          TGen s -> pretty s
+          TVar v -> pretty (TypeVar v)
           TRec row -> "{" <+> pretty row <+> "}"
           TCon con ts ->
             pretty con
