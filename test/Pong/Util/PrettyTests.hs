@@ -5,11 +5,11 @@ module Pong.Util.PrettyTests where
 import Pong.Data
 import Pong.Lang
 import Pong.Read
-import Pong.Util.Pretty
 import Pong.TestData.JackOfClubs
-import Test.Hspec
+import Pong.Util.Pretty
 import Prettyprinter
 import Prettyprinter.Render.Text
+import Test.Hspec
 
 utilPrettyTests :: SpecWith ()
 utilPrettyTests =
