@@ -252,20 +252,17 @@ hoistTopLambdas ::
   Definition MonoType (Expr MonoType a0 a1 a2) ->
   Definition MonoType (Expr MonoType a0 a1 a2)
 hoistTopLambdas =
-  \case
-    Function args (t, expr)
-      | isConE LamE expr -> combine t (toList args) expr
-    Constant (t, expr)
-      | isConE LamE expr -> combine t [] expr
-    def -> def
+  fmap combineLambdas
+    >>> \case
+      Function args (t, expr)
+        | isConE LamE expr -> combine t (toList args) expr
+      Constant (t, expr)
+        | isConE LamE expr -> combine t [] expr
+      def -> def
   where
-    combine t as =
-      combineLambdas
-        >>> project
-        >>> \case
-          ELam _ bs expr ->
-            Function (fromList (as <> bs)) (returnType t, expr)
-          _ -> error "Implementation error"
+    combine t as (Fix (ELam _ bs expr)) =
+      Function (fromList (as <> bs)) (returnType t, expr)
+    combine _ _ _ = error "Implementation error"
 
 normalizeDefs :: Definition MonoType Ast -> Definition MonoType Ast
 normalizeDefs = \case

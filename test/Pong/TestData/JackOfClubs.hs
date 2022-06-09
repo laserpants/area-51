@@ -135,6 +135,49 @@ program7 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
+                  (tVar 0 ~> tVar 0, "id")
+                  (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+                  ( eLet
+                      (tVar 1 ~> tVar 1 ~> tVar 1, "add")
+                      ( eLam
+                          ()
+                          [(tVar 1, "x"), (tVar 1, "y")]
+                          ( eOp2
+                              (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                              (eVar (tVar 1, "x"))
+                              (eVar (tVar 1, "y"))
+                          )
+                      )
+                      ( eLet
+                          (tInt ~> tInt, "add2")
+                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 2)])
+                          ( eOp2
+                              oAddInt
+                              ( eApp
+                                  tInt
+                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id")) [eVar (tInt ~> tInt, "add2")])
+                                  [ eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]
+                                  ]
+                              )
+                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 4), eLit (PInt 5)])
+                          )
+                      )
+                  )
+              )
+          )
+        ]
+    )
+
+program8 :: Program MonoType TypedExpr
+program8 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
                   ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
                   (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
                   ( eLet
@@ -192,8 +235,67 @@ program7 =
         ]
     )
 
--- program8 :: Program MonoType Ast
--- program8 =
+program9 :: Program MonoType TypedExpr
+program9 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                  (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
+                  ( eLet
+                      (tInt ~> tInt, "$var_id_4")
+                      (eLam () [(tInt, "x")] (eVar (tInt, "x")))
+                      ( eLet
+                          (tInt ~> tInt ~> tInt, "$var_add_1")
+                          ( eLam
+                              ()
+                              [(tInt, "x"), (tInt, "y")]
+                              ( eOp2
+                                  oAddInt
+                                  (eVar (tInt, "x"))
+                                  (eVar (tInt, "y"))
+                              )
+                          )
+                          ( eLet
+                              (tInt ~> tInt ~> tInt, "$var_add_2")
+                              ( eLam
+                                  ()
+                                  [(tInt, "x"), (tInt, "y")]
+                                  ( eOp2
+                                      oAddInt
+                                      (eVar (tInt, "x"))
+                                      (eVar (tInt, "y"))
+                                  )
+                              )
+                              ( eLet
+                                  (tInt ~> tInt, "add2")
+                                  (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "$var_add_1")) [eLit (PInt 2)])
+                                  ( eOp2
+                                      oAddInt
+                                      ( eApp
+                                          tInt
+                                          (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")) [eVar (tInt ~> tInt, "add2")])
+                                          [ eApp tInt (eVar (tInt ~> tInt, "$var_id_4")) [eLit (PInt 3)]
+                                          ]
+                                      )
+                                      (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_add_2")) [eLit (PInt 4), eLit (PInt 5)])
+                                  )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+        ]
+    )
+
+-- program10 :: Program MonoType Ast
+-- program10 =
 --  Program
 --    ( Map.fromList
 --        [

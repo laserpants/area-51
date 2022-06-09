@@ -32,6 +32,8 @@ treeTests =
               (tInt, eVar (tInt, "y"))
 
       it "1" (hoistTopLambdas def == result)
+      -------------------------------------------------------------------------
+      it "2" (testHoistProgram program6 == program7)
 
     describe "- combineLambdas" $ do
       -------------------------------------------------------------------------
@@ -117,8 +119,10 @@ treeTests =
 
     describe "- monomorphizeLets" $ do
       -------------------------------------------------------------------------
-      it "1" (testMonomorphizeProgram program6 == program7)
+      it "1" (testMonomorphizeProgram program6 == program8)
+      -------------------------------------------------------------------------
+      it "2" (transform1 program6 == program9)
 
 --    describe "- compileProgram" $ do
 --      -------------------------------------------------------------------------
---      it "1" (compileProgram program7 == program8)
+--      it "1" (compileProgram program8 == program10)
