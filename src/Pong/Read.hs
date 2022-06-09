@@ -288,6 +288,7 @@ type_ =
         <|> keyword "char" $> tChar
         <|> keyword "string" $> tString
         <|> conType
+        <|> recType
         <|> genType
     conType = do
       con <- constructor
@@ -295,6 +296,22 @@ type_ =
       pure (tCon con ts)
     genType =
       tGen <$> identifier
+    recType =
+      braces $ do
+        fields <- commaSep field
+        tail <- optional (symbol "|" *> identifier)
+        pure $
+          tRec
+            ( case fields of
+                [] -> rNil
+                _ -> undefined -- foldr (uncurry rExt) (maybe rNil (rVar) tail) fields
+            )
+      where
+        field = do
+          lhs <- identifier
+          symbol ":"
+          rhs <- type_
+          pure (lhs, rhs)
 
 arg :: Parser (Label (Type Void Name))
 arg = do

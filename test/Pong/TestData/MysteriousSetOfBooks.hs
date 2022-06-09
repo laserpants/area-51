@@ -35,3 +35,34 @@ program20 =
   \"
 
 -- "
+
+program21 :: Text
+program21 =
+  "def baz(a : unit) : { a : int, b : bool } =\
+  \  { a = 5, b = true }\
+  \\r\n\
+  \def foo(a : unit) : int =\
+  \  5\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      baz(())\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          letr\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              if\
+  \                x == foo(())\
+  \                then\
+  \                  100\
+  \                else\
+  \                  200\
+  \"
+
+-- "
