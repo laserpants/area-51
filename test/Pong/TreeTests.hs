@@ -138,3 +138,7 @@ treeTests =
     describe "- normalizeProgramDefs" $ do
       -------------------------------------------------------------------------
       it "1" (normalizeProgramDefs fragment7 == fragment8)
+
+    describe "- compileSource" $ do
+      -------------------------------------------------------------------------
+      it "1" (compileSource program4 == program11)

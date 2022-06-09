@@ -392,10 +392,12 @@ typeTests =
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------
       let t1 :: MonoType
-          t1 = tCon "Cons" [tVar 0, tVar 1]
+          -- T '0 '1
+          t1 = tCon "T" [tVar 0, tVar 1]
 
       let t2 :: MonoType
-          t2 = tCon "Cons" [tInt, tCon "Cons" [tInt, tCon "Nil" []]]
+          -- T int (T int Y)
+          t2 = tCon "T" [tInt, tCon "T" [tInt, tCon "Y" []]]
 
       it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
       -------------------------------------------------------------------------
