@@ -53,3 +53,5 @@ tests:
     dependencies:
     - pong
     - hspec
+    - directory
+    - template-haskell

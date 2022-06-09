@@ -125,7 +125,7 @@ expr :: Parser SourceExpr
 expr = makeExprParser apps operator
   where
     apps = do
-      f <- parens expr <|> item
+      f <- parens (expr <|> spaces $> eLit PUnit) <|> item
       optional (args expr)
         >>= ( fromMaybe [] >>> pure <<< \case
                 [] -> f
@@ -258,7 +258,7 @@ prim =
     <|> try primDouble
     <|> primIntegral
   where
-    primUnit = symbol "()" $> PUnit
+    primUnit = symbol "(" $> symbol ")" $> PUnit
     primTrue = keyword "true" $> PBool True
     primFalse = keyword "false" $> PBool False
     primChar = PChar <$> surroundedBy (symbol "'") printChar

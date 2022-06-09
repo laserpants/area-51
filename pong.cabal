@@ -97,6 +97,7 @@ test-suite pong-test
       Pong.TestData.GeraniumPlant
       Pong.TestData.GoAwayDixieGillian
       Pong.TestData.JackOfClubs
+      Pong.TestData.MysteriousSetOfBooks
       Pong.TestData.ShirtMixUpAtTheLaundry
       Pong.TestHelpers
       Pong.TreeTests
@@ -114,6 +115,7 @@ test-suite pong-test
     , containers
     , data-fix
     , deriving-compat
+    , directory
     , extra
     , hspec
     , llvm-hs
@@ -127,6 +129,7 @@ test-suite pong-test
     , prettyprinter
     , process
     , recursion-schemes
+    , template-haskell
     , temporary
     , text
     , text-show

@@ -314,7 +314,7 @@ parseAndAnnotate =
 compileSource :: Text -> Program MonoType Ast
 compileSource input =
   case parseAndAnnotate input of
-    Left e -> error "TODO"
+    Left e -> error (show e)
     Right p -> transformProgram p
 
 deriving instance Show CompilerError

@@ -17,6 +17,7 @@ import qualified Data.Map.Strict as Map
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first, second)
+import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
@@ -187,6 +188,8 @@ emitBody =
 emitCall :: Name -> [CodeGen Info] -> CodeGen Info
 emitCall fun args = do
   as <- sequence args
+  traceShowM "//////////////////"
+  traceShowM as
   Env.askLookup fun
     >>= \case
       Just (Op t, op) ->
