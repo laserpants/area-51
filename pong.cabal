@@ -90,6 +90,7 @@ test-suite pong-test
   main-is: Spec.hs
   other-modules:
       Pong.TestData.AnEnvelopeForJohnStJohn
+      Pong.TestData.GeraniumPlant
       Pong.TestData.GoAwayDixieGillian
       Pong.TestData.JackOfClubs
       Pong.TestData.ShirtMixUpAtTheLaundry

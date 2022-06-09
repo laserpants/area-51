@@ -156,7 +156,7 @@ liftDef ::
 liftDef name vs args expr = do
   let ty = foldType t ts
   insertDef (toScheme "a" (free ty) ty, name) def
-  pure (eVar (ty, name))
+  pure (appArgs (eVar <$> vs) (eVar (ty, name)))
   where
     t = typeOf expr
     ts = fst <$> as

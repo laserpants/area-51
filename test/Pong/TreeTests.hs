@@ -123,6 +123,18 @@ treeTests =
       -------------------------------------------------------------------------
       it "2" (transform1 program6 == program9)
 
---    describe "- compileProgram" $ do
---      -------------------------------------------------------------------------
---      it "1" (compileProgram program8 == program10)
+    describe "- compileProgram" $ do
+      -------------------------------------------------------------------------
+      it "1" (compileProgram program8 == program10)
+      -------------------------------------------------------------------------
+      it "2" (compileProgram fragment6 == fragment7)
+      -------------------------------------------------------------------------
+      it "3" (compileProgram fragment4 == fragment5)
+      -------------------------------------------------------------------------
+      it "4" (compileProgram fragment3 == fragment9)
+      -------------------------------------------------------------------------
+      it "5" (compileProgram fragment1 == fragment2)
+
+    describe "- normalizeProgramDefs" $ do
+      -------------------------------------------------------------------------
+      it "1" (normalizeProgramDefs fragment7 == fragment8)
