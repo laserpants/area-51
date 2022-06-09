@@ -21,7 +21,7 @@ utilTests =
       -------------------------------------------------------------------------
       let prog = do
             put 1
-            getAndModify (+1)
+            getAndModify (+ 1)
 
       it "1" (runState prog 0 == (1, 2))
 
