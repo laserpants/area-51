@@ -65,24 +65,18 @@ llvmRep = fromString <<< unpack
 charPtr :: LLVM.Type
 charPtr = ptr i8
 
-forEachDef3 ::
+forEachIn ::
   (Monad m) =>
   Program MonoType t ->
   (Name -> MonoType -> Definition MonoType t -> m a) ->
   m [a]
-forEachDef3 p f = forEachDef p (\label def -> f (snd label) (typeOf def) def)
-
-buildEnv ::
-  Program MonoType Ast ->
-  (Name -> MonoType -> Definition MonoType Ast -> ModuleBuilder [(Name, Info)]) ->
-  ModuleBuilder CodeGenEnv
-buildEnv p = Env.fromList . concat <$$> forEachDef3 p
+forEachIn p f = forEachDef p (\(_, name) def -> f name (typeOf def) def)
 
 buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram pname p = do
   buildModule (llvmRep pname) $ do
     env <-
-      buildEnv p $ \name t ->
+      buildEnv $ \name t ->
         \case
           Extern args t1 -> do
             op <-
@@ -117,7 +111,7 @@ buildProgram pname p = do
                   )
                 )
               ]
-    forEachDef3 p $ \name t ->
+    forEachIn p $ \name t ->
       \case
         Constant (t1, body) -> do
           void $
@@ -145,6 +139,8 @@ buildProgram pname p = do
               )
         _ ->
           pure ()
+  where
+    buildEnv = Env.fromList . concat <$$> forEachIn p
 
 emitBody :: Ast -> CodeGen Info
 emitBody =
@@ -312,6 +308,10 @@ malloc ty = do
 
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll
+
+-------------------------------------------------------------------------------
+-- Typeclass instances
+-------------------------------------------------------------------------------
 
 -- OpType
 deriving instance Show OpType

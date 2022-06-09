@@ -2,6 +2,7 @@
 
 module Pong.UtilTests where
 
+import Control.Monad.State
 import Pong.Read
 import Pong.TestData.JackOfClubs
 import Pong.Util
@@ -17,7 +18,12 @@ utilTests =
       it "2" (null $ [] `without` [2, 4, 6])
 
     describe "- getAndModify" $ do
-      pure ()
+      -------------------------------------------------------------------------
+      let prog = do
+            put 1
+            getAndModify (+1)
+
+      it "1" (runState prog 0 == (1, 2))
 
     describe "- varSequence" $ do
       -------------------------------------------------------------------------
