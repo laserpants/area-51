@@ -91,6 +91,7 @@ test-suite pong-test
   other-modules:
       Pong.EvalTests
       Pong.LangTests
+      Pong.LLVM.EmitTests
       Pong.ReadTests
       Pong.TestData.AnEnvelopeForJohnStJohn
       Pong.TestData.GeraniumPlant
@@ -100,6 +101,8 @@ test-suite pong-test
       Pong.TestHelpers
       Pong.TreeTests
       Pong.TypeTests
+      Pong.Util.EnvTests
+      Pong.Util.PrettyTests
       Pong.UtilTests
       Paths_pong
   hs-source-dirs:
