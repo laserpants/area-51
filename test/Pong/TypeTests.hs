@@ -2,15 +2,15 @@
 
 module Pong.TypeTests where
 
-import Test.Hspec
-import Pong.TestHelpers
 import Pong.Data
-import Pong.Tree
 import Pong.Lang
-import Pong.Util
-import Pong.Type
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs
+import Pong.TestHelpers
+import Pong.Tree
+import Pong.Type
+import Pong.Util
+import Test.Hspec
 
 typeTests :: SpecWith ()
 typeTests =

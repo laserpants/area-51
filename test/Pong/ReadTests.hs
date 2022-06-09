@@ -2,9 +2,9 @@
 
 module Pong.ReadTests where
 
-import Test.Hspec
 import Pong.Read
 import Pong.TestData.JackOfClubs
+import Test.Hspec
 
 readTests :: SpecWith ()
 readTests =
