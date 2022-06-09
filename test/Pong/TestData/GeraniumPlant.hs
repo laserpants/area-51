@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Pong.TestData.GeraniumPlant where
 
 import Data.List.NonEmpty (fromList, toList)
