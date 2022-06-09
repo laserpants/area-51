@@ -5,11 +5,11 @@ module Pong.TestData.MysteriousSetOfBooks where
 import Data.Functor
 import Pong.Data
 import Pong.Lang
-import Pong.Util
 import Pong.TestHelpers
+import Pong.Util
 
 program20 :: Text
-program20 = 
+program20 =
   "def foo(a : unit) : int =\
   \  5\
   \\r\n\

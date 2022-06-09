@@ -3,11 +3,11 @@
 module Pong.ReadTests where
 
 import Pong.Data
-import Text.Megaparsec hiding (token)
 import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
 import Test.Hspec
+import Text.Megaparsec hiding (token)
 
 readTests :: SpecWith ()
 readTests =

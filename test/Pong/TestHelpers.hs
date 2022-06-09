@@ -33,5 +33,5 @@ unsafeReadFile = pack . unsafePerformIO . readFile
 readProjectFile :: String -> Text
 readProjectFile path = unsafeReadFile (projectDir <> "/" <> path)
 
-mainSig :: Label Scheme 
+mainSig :: Label Scheme
 mainSig = (Scheme (tUnit ~> tInt), "main")

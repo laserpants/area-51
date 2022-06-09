@@ -9,8 +9,8 @@ import Pong.Lang
 import Pong.Read
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
-import Pong.TestData.ShirtMixUpAtTheLaundry
 import Pong.TestData.MysteriousSetOfBooks
+import Pong.TestData.ShirtMixUpAtTheLaundry
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
@@ -44,4 +44,3 @@ evalTests =
           program = compileSource program20
 
       it "5" (Just (PrimValue (PInt 100)) == evalProgram program mainSig)
-
