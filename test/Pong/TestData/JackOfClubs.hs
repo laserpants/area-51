@@ -402,12 +402,12 @@ program10 =
 --               let
 --                 $var_add_2 =
 --                   $lam4
---                  in
---                    let
---                      add2 =
---                        $var_add_1(2)
---                      in
---                        ($var_id_3(add2))($var_id_4(3)) + $var_add_2(4, 5)
+--                 in
+--                   let
+--                     add2 =
+--                       $var_add_1(2)
+--                     in
+--                       ($var_id_3(add2))($var_id_4(3)) + $var_add_2(4, 5)
 --
 -- def $lam1(x : int -> int, $v0 : int) : int =
 --   x($v0)
