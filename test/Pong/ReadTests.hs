@@ -3,6 +3,7 @@
 module Pong.ReadTests where
 
 import Data.Either.Extra (isLeft, isRight)
+import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
 import Pong.Read
@@ -42,46 +43,69 @@ readTests =
       it "$" (isLeft (runParser prim "" "$"))
 
     describe "- expr" $ do
+      describe "Literals" $ do
+        -------------------------------------------------------------------------
+        runTestParser expr "()" (eLit PUnit)
+        -------------------------------------------------------------------------
+        runTestParser expr "(())" (eLit PUnit)
+        -------------------------------------------------------------------------
+        runTestParser expr "((()))" (eLit PUnit)
+        -------------------------------------------------------------------------
+        runTestParser expr "( )" (eLit PUnit)
+        -------------------------------------------------------------------------
+        runTestParser expr "(( ))" (eLit PUnit)
+        -------------------------------------------------------------------------
+        runTestParser expr "5" (eLit (PInt 5))
+
+      describe "Function application" $ do
+        runTestParser expr "f(5)" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
+        -------------------------------------------------------------------------
+        runTestParser expr "(f(5))" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
+        -------------------------------------------------------------------------
+        runTestParser expr "f(())" (eApp () (eVar ((), "f")) [eLit PUnit])
+        -------------------------------------------------------------------------
+        runTestParser expr "f(( ))" (eApp () (eVar ((), "f")) [eLit PUnit])
+        -------------------------------------------------------------------------
+        runTestParser expr "f( () )" (eApp () (eVar ((), "f")) [eLit PUnit])
+        -------------------------------------------------------------------------
+        runTestParser expr "f (())" (eApp () (eVar ((), "f")) [eLit PUnit])
+        -------------------------------------------------------------------------
+        runTestParser expr "(f(()))" (eApp () (eVar ((), "f")) [eLit PUnit])
+
+      describe "If statements" $ do
+        runTestParser expr "if foo(1) then 1 else 2" (eIf (eApp () (eVar ((), "foo")) [eLit (PInt 1)]) (eLit (PInt 1)) (eLit (PInt 2)))
+        -------------------------------------------------------------------------
+        runTestParser expr "if foo(()) then 1 else 2" (eIf (eApp () (eVar ((), "foo")) [eLit PUnit]) (eLit (PInt 1)) (eLit (PInt 2)))
+        -------------------------------------------------------------------------
+        runTestParser expr "(if foo(()) then 1 else 2)" (eIf (eApp () (eVar ((), "foo")) [eLit PUnit]) (eLit (PInt 1)) (eLit (PInt 2)))
+        -------------------------------------------------------------------------
+        runTestParser expr "if (foo(())) then 1 else 2" (eIf (eApp () (eVar ((), "foo")) [eLit PUnit]) (eLit (PInt 1)) (eLit (PInt 2)))
+
+      describe "Records" $ do
+        -------------------------------------------------------------------------
+        runTestParser expr "{ a = 5 }" (eRec (rExt "a" (eLit (PInt 5)) rNil))
+        -------------------------------------------------------------------------
+        runTestParser expr "{ a = 5, b = \"foo\" }" (eRec (rExt "a" (eLit (PInt 5)) (rExt "b" (eLit (PString "foo")) rNil)))
+        -------------------------------------------------------------------------
+        runTestParser expr "{ a = 5, b = \"foo\" | r }" (eRec (rExt "a" (eLit (PInt 5)) (rExt "b" (eLit (PString "foo")) (rVar ((), "r")))))
+
+      describe "Lambda expressions" $ do
+        -------------------------------------------------------------------------
+        runTestParser expr "lam(x) => x" (eLam () [((), "x")] (eVar ((), "x")))
+        -------------------------------------------------------------------------
+        runTestParser expr "(lam(x) => x)" (eLam () [((), "x")] (eVar ((), "x")))
+
+    describe "- def" $ do
       -------------------------------------------------------------------------
-      runTestParser expr "()" (eLit PUnit)
-      -------------------------------------------------------------------------
-      runTestParser expr "(())" (eLit PUnit)
-      -------------------------------------------------------------------------
-      runTestParser expr "((()))" (eLit PUnit)
-      -------------------------------------------------------------------------
-      runTestParser expr "( )" (eLit PUnit)
-      -------------------------------------------------------------------------
-      runTestParser expr "(( ))" (eLit PUnit)
-      -------------------------------------------------------------------------
-      runTestParser expr "f(5)" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
-      -------------------------------------------------------------------------
-      runTestParser expr "(f(5))" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
-      -------------------------------------------------------------------------
-      runTestParser expr "f(())" (eApp () (eVar ((), "f")) [eLit PUnit])
-      -------------------------------------------------------------------------
-      runTestParser expr "f(( ))" (eApp () (eVar ((), "f")) [eLit PUnit])
-      -------------------------------------------------------------------------
-      runTestParser expr "f( () )" (eApp () (eVar ((), "f")) [eLit PUnit])
-      -------------------------------------------------------------------------
-      runTestParser expr "f (())" (eApp () (eVar ((), "f")) [eLit PUnit])
-      -------------------------------------------------------------------------
-      it "12" (runParser expr "" "(f(()))" == Right (eApp () (eVar ((), "f")) [eLit PUnit]))
-      -------------------------------------------------------------------------
-      it "13" (runParser expr "" "if foo(1) then 1 else 2" == Right (eIf (eApp () (eVar ((), "foo")) [eLit (PInt 1)]) (eLit (PInt 1)) (eLit (PInt 2))))
-      -------------------------------------------------------------------------
-      it "14" (runParser expr "" "if foo(()) then 1 else 2" == Right (eIf (eApp () (eVar ((), "foo")) [eLit PUnit]) (eLit (PInt 1)) (eLit (PInt 2))))
-      -------------------------------------------------------------------------
-      it "15" (runParser expr "" "(if foo(()) then 1 else 2)" == Right (eIf (eApp () (eVar ((), "foo")) [eLit PUnit]) (eLit (PInt 1)) (eLit (PInt 2))))
-      -------------------------------------------------------------------------
-      it "16" (runParser expr "" "if (foo(())) then 1 else 2" == Right (eIf (eApp () (eVar ((), "foo")) [eLit PUnit]) (eLit (PInt 1)) (eLit (PInt 2))))
-      -------------------------------------------------------------------------
-      it "17" (runParser expr "" "5" == Right (eLit (PInt 5)))
-      -------------------------------------------------------------------------
-      it "18" (runParser expr "" "{ a = 5 }" == Right (eRec (rExt "a" (eLit (PInt 5)) rNil)))
-      -------------------------------------------------------------------------
-      it "19" (runParser expr "" "{ a = 5, b = \"foo\" }" == Right (eRec (rExt "a" (eLit (PInt 5)) (rExt "b" (eLit (PString "foo")) rNil))))
-      -------------------------------------------------------------------------
-      it "20" (runParser expr "" "{ a = 5, b = \"foo\" | r }" == Right (eRec (rExt "a" (eLit (PInt 5)) (rExt "b" (eLit (PString "foo")) (rVar ((), "r"))))))
+      runTestParser
+        def
+        "def foo(x : int, y : int) : int = 5"
+        (
+          ( Scheme (tInt ~> tInt ~> tInt)
+          , "foo"
+          )
+        , Function (fromList [((), "x"), ((), "y")]) ((), eLit (PInt 5))
+        )
 
     describe "- parseProgram" $ do
       -------------------------------------------------------------------------

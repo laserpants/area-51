@@ -192,7 +192,12 @@ treeTests =
       it "1" (compileSource program4 == program11)
 
     describe "- isPolymorphic" $ do
-      it "TODO" True
+      passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0))
+      passIt "'0" (isPolymorphic (tVar 0))
+      passIt "(int -> int -> '0) -> int -> int -> '0" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0))
+      passIt "(int -> int -> '0) -> int -> int -> int" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt))
+      failIt "int -> int -> bool" (not $ isPolymorphic (tInt ~> tInt ~> tBool))
+      failIt "bool" (not $ isPolymorphic tBool)
 
     describe "- appArgs" $ do
       it "TODO" True

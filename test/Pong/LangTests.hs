@@ -107,5 +107,6 @@ langTests =
       it "1" (foldType1 [tUnit, tInt, tBool] == (tUnit ~> tInt ~> tBool :: MonoType))
 
     describe "- unwindType" $ do
-      it "1" (unwindType (tUnit ~> tInt ~> tBool :: MonoType) == [tUnit, tInt, tBool])
-      it "2" (unwindType (tUnit :: MonoType) == [tUnit])
+      it "unit -> int -> bool" (unwindType (tUnit ~> tInt ~> tBool :: MonoType) == [tUnit, tInt, tBool])
+      it "unit" (unwindType (tUnit :: MonoType) == [tUnit])
+      it "unit -> (int -> unit) -> bool" (unwindType (tUnit ~> (tInt ~> tUnit) ~> tBool :: MonoType) == [tUnit, tInt ~> tUnit, tBool])

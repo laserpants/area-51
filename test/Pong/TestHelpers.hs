@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Pong.TestHelpers where
 
 import Pong.Data
@@ -42,3 +44,9 @@ mainSig = (Scheme (tUnit ~> tInt), "main")
 runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
 runTestParser parser input expect =
   it (unpack input) (runParser parser "" input == Right expect)
+
+passIt :: Example a => String -> a -> SpecWith (Arg a)
+passIt = it . ("OK ✔ " <>)
+
+failIt :: Example a => String -> a -> SpecWith (Arg a)
+failIt = it . ("OK ✗ " <>)
