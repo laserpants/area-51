@@ -11,6 +11,7 @@ import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ShirtMixUpAtTheLaundry
+import Pong.TestData.TheFatalAuction
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
@@ -59,3 +60,18 @@ evalTests =
           program = compileSource program23
 
       it "8" (Just (PrimValue (PInt 1)) == evalProgram program mainSig)
+      -------------------------------------------------------------------------
+      let program :: Program MonoType Ast
+          program = compileSource program44
+
+      it "9" (Just (PrimValue (PInt 4)) == evalProgram program mainSig)
+      -------------------------------------------------------------------------
+      let program :: Program MonoType Ast
+          program = compileSource program46
+
+      it "10" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
+      -------------------------------------------------------------------------
+      let program :: Program MonoType Ast
+          program = compileSource program48
+
+      it "11" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)

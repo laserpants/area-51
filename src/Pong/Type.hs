@@ -93,6 +93,9 @@ rowSubstitute sub =
 class Substitutable a where
   apply :: Substitution -> a -> a
 
+instance Substitutable () where
+  apply _ = const ()
+
 instance Substitutable MonoType where
   apply = substitute . unpack
 

@@ -9,6 +9,8 @@ import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.GeraniumPlant
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
+import Pong.TestData.MysteriousSetOfBooks
+import Pong.TestData.TheFatalAuction
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
@@ -190,6 +192,10 @@ treeTests =
     describe "- compileSource" $ do
       -------------------------------------------------------------------------
       it "1" (compileSource program4 == program11)
+      -------------------------------------------------------------------------
+      passIt "2" (canonical (compileSource program44) == program45)
+      passIt "3" (canonical (compileSource program46) == program47)
+      passIt "4" (canonical (compileSource program48) == program49)
 
     describe "- isPolymorphic" $ do
       passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0))

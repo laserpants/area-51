@@ -110,6 +110,9 @@ instance FreeIn Scheme where
 instance FreeIn Void where
   freeIn _ = []
 
+instance FreeIn () where
+  freeIn _ = []
+
 instance FreeIn MonoType where
   freeIn =
     cata
@@ -157,7 +160,7 @@ instance (FreeIn t, FreeIn a) => FreeIn (Program t a) where
 instance (FreeIn a) => FreeIn (Environment a) where
   freeIn env = freeIn =<< Env.elems env
 
-instance (FreeIn t, FreeIn a2) => FreeIn (Expr t t a1 a2) where
+instance (FreeIn t, FreeIn a0, FreeIn a2) => FreeIn (Expr t a0 a1 a2) where
   freeIn =
     cata
       ( \case
