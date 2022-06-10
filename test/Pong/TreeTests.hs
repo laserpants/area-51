@@ -80,6 +80,54 @@ treeTests =
               (eLit (PInt 5))
 
       it "2" (combineLambdas before == after)
+      -------------------------------------------------------------------------
+      let before :: TypedExpr
+          before =
+            eLam
+              ()
+              [(tInt, "a")]
+              ( eLam
+                  ()
+                  [(tInt, "b")]
+                  ( eLam
+                      ()
+                      [(tInt, "c")]
+                      ( eLet
+                          (tInt ~> tInt ~> tInt, "f")
+                          ( eLam
+                              ()
+                              [(tInt, "a")]
+                              ( eLam
+                                  ()
+                                  [(tInt, "b")]
+                                  (eVar (tInt, "a"))
+                              )
+                          )
+                          ( eLam
+                              ()
+                              [(tInt, "a")]
+                              ( eLam
+                                  ()
+                                  [(tInt, "b")]
+                                  (eVar (tInt, "a"))
+                              )
+                          )
+                      )
+                  )
+              )
+
+      let after :: TypedExpr
+          after =
+            eLam
+              ()
+              [(tInt, "a"), (tInt, "b"), (tInt, "c")]
+              ( eLet
+                  (tInt ~> tInt ~> tInt, "f")
+                  (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
+                  (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
+              )
+
+      it "3" (combineLambdas before == after)
 
     describe "- parseAndAnnotate" $ do
       -------------------------------------------------------------------------
@@ -142,3 +190,9 @@ treeTests =
     describe "- compileSource" $ do
       -------------------------------------------------------------------------
       it "1" (compileSource program4 == program11)
+
+    describe "- isPolymorphic" $ do
+      it "TODO" True
+
+    describe "- appArgs" $ do
+      it "TODO" True

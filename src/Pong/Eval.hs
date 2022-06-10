@@ -223,9 +223,9 @@ evalOp2 _ _ _ = error "Not implemented"
 evalProgram :: Program MonoType Ast -> Label Scheme -> Maybe Value
 evalProgram (Program p) def =
   case Map.lookup def p of
-    Just (Function _ (_, ast)) -> evald ast
-    Just (Constant (_, ast)) -> evald ast
+    Just (Function _ (_, ast)) -> evaluate ast
+    Just (Constant (_, ast)) -> evaluate ast
     _ -> Nothing
   where
-    evald ast = Just (runReader (unEval (eval ast)) (env, mempty))
+    evaluate ast = Just (runReader (unEval (eval ast)) (env, mempty))
     env = Env.fromList (first snd <$> Map.toList p)

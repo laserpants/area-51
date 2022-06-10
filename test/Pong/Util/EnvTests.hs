@@ -9,4 +9,4 @@ import Test.Hspec
 utilEnvTests :: SpecWith ()
 utilEnvTests =
   describe "Pong.Util.Env" $ do
-    pure ()
+    it "TODO" True

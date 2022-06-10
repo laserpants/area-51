@@ -2,11 +2,14 @@ module Pong.TestHelpers where
 
 import Pong.Data
 import Pong.Lang
+import Pong.Read
 import Pong.Tree
 import Pong.Type
 import Pong.Util
 import System.Directory
 import System.IO.Unsafe
+import Test.Hspec
+import Text.Megaparsec
 
 typeCheck :: TypeChecker a -> Either TypeError a
 typeCheck = evalTypeChecker 1 mempty
@@ -35,3 +38,7 @@ readProjectFile path = unsafeReadFile (projectDir <> "/" <> path)
 
 mainSig :: Label Scheme
 mainSig = (Scheme (tUnit ~> tInt), "main")
+
+runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
+runTestParser parser input expect =
+  it (unpack input) (runParser parser "" input == Right expect)

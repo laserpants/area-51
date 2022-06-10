@@ -337,24 +337,20 @@ freeVars =
 
 toMonoType :: Map Name Int -> Type Name -> MonoType
 toMonoType vs =
-  let typeIx s =
-        case Map.lookup s vs of
-          Nothing -> error "Implementation error"
-          Just t -> t
-   in cata
-        ( \case
-            TVar s -> tVar (typeIx s)
-            TUnit -> tUnit
-            TBool -> tBool
-            TInt -> tInt
-            TFloat -> tFloat
-            TDouble -> tDouble
-            TChar -> tChar
-            TString -> tString
-            TCon con ts -> tCon con ts
-            TArr t1 t2 -> tArr t1 t2
-            TRec row -> tRec (bimapRow (toMonoType vs) typeIx row)
-        )
+  cata
+    ( \case
+        TVar s -> tVar (vs ! s)
+        TUnit -> tUnit
+        TBool -> tBool
+        TInt -> tInt
+        TFloat -> tFloat
+        TDouble -> tDouble
+        TChar -> tChar
+        TString -> tString
+        TCon con ts -> tCon con ts
+        TArr t1 t2 -> tArr t1 t2
+        TRec row -> tRec (bimapRow (toMonoType vs) (vs !) row)
+    )
 
 toScheme :: Name -> [Int] -> MonoType -> Scheme
 toScheme prefix vars = Scheme <<< go

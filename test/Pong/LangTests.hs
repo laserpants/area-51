@@ -77,3 +77,35 @@ langTests =
       it "1" (free expr1 == [3, 7])
       -------------------------------------------------------------------------
       it "2" (free program6 == [0, 1])
+
+    describe "- foldRow" $ do
+      it "TODO" True
+
+    describe "- foldRow1" $ do
+      it "TODO" True
+
+    describe "- unwindRow" $ do
+      it "TODO" True
+
+    describe "- restrictRow" $ do
+      it "TODO" True
+
+    describe "- freeIndex" $ do
+      it "TODO" True
+
+    describe "- returnType" $ do
+      it "int -> bool" (returnType (tInt ~> tBool :: MonoType) == tBool)
+
+    describe "- argTypes" $ do
+      it "unit -> int -> bool" (argTypes (tUnit ~> tInt ~> tBool :: MonoType) == [tUnit, tInt])
+      it "(unit -> unit) -> int -> bool" (argTypes ((tUnit ~> tUnit) ~> tInt ~> tBool :: MonoType) == [(tUnit ~> tUnit), tInt])
+
+    describe "- foldType" $ do
+      it "1" (foldType tBool [tUnit, tInt] == (tUnit ~> tInt ~> tBool :: MonoType))
+
+    describe "- foldType1" $ do
+      it "1" (foldType1 [tUnit, tInt, tBool] == (tUnit ~> tInt ~> tBool :: MonoType))
+
+    describe "- unwindType" $ do
+      it "1" (unwindType (tUnit ~> tInt ~> tBool :: MonoType) == [tUnit, tInt, tBool])
+      it "2" (unwindType (tUnit :: MonoType) == [tUnit])

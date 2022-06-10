@@ -230,22 +230,7 @@ caseClause = do
   pure (ls, e)
 
 recExpr :: Parser SourceExpr
-recExpr =
-  braces $ do
-    fields <- commaSep field
-    tail <- optional (symbol "|" *> identifier)
-    pure $
-      eRec
-        ( case fields of
-            [] -> rNil
-            _ -> foldr (uncurry rExt) (maybe rNil (rVar . toLabel) tail) fields
-        )
-  where
-    field = do
-      lhs <- identifier
-      symbol "="
-      rhs <- expr
-      pure (lhs, rhs)
+recExpr = eRec <$> braces (rowFields expr toLabel "=")
 
 prim :: Parser Prim
 prim =
@@ -258,7 +243,7 @@ prim =
     <|> try primDouble
     <|> primIntegral
   where
-    primUnit = symbol "(" $> symbol ")" $> PUnit
+    primUnit = symbol "(" *> spaces *> symbol ")" $> PUnit
     primTrue = keyword "true" $> PBool True
     primFalse = keyword "false" $> PBool False
     primChar = PChar <$> surroundedBy (symbol "'") printChar
@@ -273,10 +258,10 @@ prim =
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
 
 scheme :: Parser Scheme
-scheme = Scheme <$> type_
+scheme = Scheme <$> polyType
 
-type_ :: Parser (Type Name)
-type_ =
+polyType :: Parser (Type Name)
+polyType =
   makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
     item =
@@ -292,32 +277,33 @@ type_ =
         <|> genType
     conType = do
       con <- constructor
-      ts <- many type_
+      ts <- many polyType
       pure (tCon con ts)
     genType =
       tVar <$> identifier
     recType =
-      braces $ do
-        fields <- commaSep field
-        tail <- optional (symbol "|" *> identifier)
-        pure $
-          tRec
-            ( case fields of
-                [] -> rNil
-                _ -> foldr (uncurry rExt) (maybe rNil rVar tail) fields
-            )
-      where
-        field = do
-          lhs <- identifier
-          symbol ":"
-          rhs <- type_
-          pure (lhs, rhs)
+      tRec <$> braces (rowFields polyType id ":")
+
+rowFields :: Parser e -> (Name -> v) -> Text -> Parser (Row e v)
+rowFields parser f sep = do
+  fields <- commaSep field
+  tail <- optional (symbol "|" *> identifier)
+  pure $
+    case fields of
+      [] -> rNil
+      _ -> foldr (uncurry rExt) (maybe rNil (rVar . f) tail) fields
+  where
+    field = do
+      lhs <- identifier
+      symbol sep
+      rhs <- parser
+      pure (lhs, rhs)
 
 arg :: Parser (Label (Type Name))
 arg = do
   name <- identifier
   symbol ":"
-  t <- type_
+  t <- polyType
   pure (t, name)
 
 def :: Parser (Label Scheme, Definition () SourceExpr)
@@ -328,7 +314,7 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       name <- identifier
       args <- parens (commaSep1 arg)
       symbol ":"
-      t <- type_
+      t <- polyType
       symbol "="
       e <- expr
       let ts = fst <$> args
@@ -339,7 +325,7 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       keyword "const"
       name <- identifier
       symbol ":"
-      t <- type_
+      t <- polyType
       symbol "="
       e <- expr
       pure ((Scheme t, name), Constant ((), e))
@@ -348,7 +334,7 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       keyword "extern"
       name <- identifier
       symbol ":"
-      t <- type_
+      t <- polyType
       let names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
           t0 = toMonoType names t
       pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))

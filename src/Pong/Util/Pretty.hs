@@ -24,7 +24,7 @@ instance Pretty Prim where
       PBool   False -> "false"
       PUnit         -> "()"
       PInt    p     -> pretty p
-      PFloat  p     -> pretty p
+      PFloat  p     -> pretty p <> "f"
       PDouble p     -> pretty p
       PChar   p     -> squotes (pretty p)
       PString p     -> dquotes (pretty p)
@@ -45,7 +45,7 @@ instance (Pretty v, Pretty (TypeVar v)) => Pretty (Row (Type v) v) where
                   RVar v ->
                     " |" <+> "'" <> pretty v
                   _ ->
-                    " ," <+> doc
+                    "," <+> doc
       )
 
 newtype TypeVar a = TypeVar a

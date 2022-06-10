@@ -66,3 +66,58 @@ program21 =
   \"
 
 -- "
+
+program22 :: Text
+program22 =
+  "const foo : int =\
+  \  5\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          letr\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              if\
+  \                x == foo\
+  \                then\
+  \                  102\
+  \                else\
+  \                  200\
+  \"
+
+-- "
+
+program23 :: Text
+program23 =
+  "const foo : int =\
+  \  5\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          letr\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              letr\
+  \                { c = y | t } =\
+  \                  s\
+  \                in\
+  \                  y\
+  \"
+
+-- "
