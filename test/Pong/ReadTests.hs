@@ -60,6 +60,8 @@ readTests =
       describe "Function application" $ do
         runTestParser expr "f(5)" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
         -------------------------------------------------------------------------
+        runTestParser expr "(f)(5)" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
+        -------------------------------------------------------------------------
         runTestParser expr "(f(5))" (eApp () (eVar ((), "f")) [eLit (PInt 5)])
         -------------------------------------------------------------------------
         runTestParser expr "f(())" (eApp () (eVar ((), "f")) [eLit PUnit])

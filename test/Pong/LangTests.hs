@@ -8,6 +8,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs
+import Pong.TestHelpers
 import Test.Hspec
 
 langTests :: SpecWith ()
@@ -50,17 +51,17 @@ langTests =
     describe "- typeOf" $ do
       describe "Prim" $ do
         -----------------------------------------------------------------------
-        it "1" (typeOf (PInt 1) == tInt)
+        passIt "1 : int" (typeOf (PInt 1) == tInt)
         -----------------------------------------------------------------------
-        it "2" (typeOf (PBool True) == tBool)
+        passIt "true : bool" (typeOf (PBool True) == tBool)
 
       describe "Expr" $ do
         -----------------------------------------------------------------------
-        it "1" (typeOf (eLit (PInt 1) :: TypedExpr) == tInt)
+        passIt "1 : int" (typeOf (eLit (PInt 1) :: TypedExpr) == tInt)
         -----------------------------------------------------------------------
-        it "2" (typeOf (eLit (PBool True) :: TypedExpr) == tBool)
+        passIt "true : bool" (typeOf (eLit (PBool True) :: TypedExpr) == tBool)
         -----------------------------------------------------------------------
-        it "3" (typeOf (eVar (tInt, "x") :: TypedExpr) == tInt)
+        passIt "x : int" (typeOf (eVar (tInt, "x") :: TypedExpr) == tInt)
 
       describe "Definition" $ do
         -----------------------------------------------------------------------
