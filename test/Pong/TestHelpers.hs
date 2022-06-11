@@ -14,10 +14,7 @@ import Test.Hspec
 import Text.Megaparsec
 
 typeCheck :: TypeChecker a -> Either TypeError a
-typeCheck = 
-
-
-  evalTypeChecker 1 mempty
+typeCheck = evalTypeChecker 1 mempty
 
 runUnify :: MonoType -> MonoType -> Either TypeError Substitution
 runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
