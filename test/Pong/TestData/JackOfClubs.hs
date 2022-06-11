@@ -388,7 +388,7 @@ program10 =
 --
 -- def main(a : unit) : int =
 --   let
---     $var_id_3 =
+--     $var_id_3 =                          : (int ~> int) ~> int ~> int
 --       $lam1
 --     in
 --       let
@@ -404,7 +404,7 @@ program10 =
 --                   $lam4
 --                 in
 --                   let
---                     add2 =
+--                     add2 =               : int -> int
 --                       $var_add_1(2)
 --                     in
 --                       ($var_id_3(add2))($var_id_4(3)) + $var_add_2(4, 5)
