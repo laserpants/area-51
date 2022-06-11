@@ -3,7 +3,6 @@
 module Pong.Util.EnvTests where
 
 import Pong.Read
-import Pong.TestData.JackOfClubs
 import Test.Hspec
 
 utilEnvTests :: SpecWith ()
