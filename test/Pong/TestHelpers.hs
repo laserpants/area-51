@@ -28,6 +28,12 @@ runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 runUnifyRows :: Row MonoType Int -> Row MonoType Int -> Either TypeError Substitution
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)
 
+runInferProgramWithEnv ::
+  TypeEnv ->
+  Program () SourceExpr ->
+  Either TypeError (Program MonoType TypedExpr)
+runInferProgramWithEnv env = runTypeChecker 1 env . inferProgram <&> fst
+
 testHoistProgram :: Program MonoType TypedExpr -> Program MonoType TypedExpr
 testHoistProgram p = programFor p (const hoistTopLambdas)
 

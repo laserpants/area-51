@@ -410,7 +410,7 @@ typeTests =
        in it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
 
     describe "- unifyRows" $ do
-      let testUnifyRows row1 row2 =
+      let passUnifyRows row1 row2 =
             passIt
               (show msg)
               ( let Right sub = runUnifyRows row1 row2
@@ -420,143 +420,149 @@ typeTests =
               msg =
                 "{" <+> pretty row1 <+> "} ~ {" <+> pretty row2 <+> "}"
 
+      let failUnifyRows row1 row2 err =
+            failIt (show msg) (Left err == runUnifyRows row1 row2)
+            where
+              msg =
+                "{" <+> pretty row1 <+> "} /~ {" <+> pretty row2 <+> "}"
+
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" (tVar 0) (rVar 1)
 
           r2 :: Row MonoType Int
           r2 = rExt "id" tInt (rExt "name" tString rNil)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt rNil)
 
           r2 :: Row MonoType Int
           r2 = rExt "id" tString (rExt "name" tInt rNil)
-       in it "2" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+       in failUnifyRows r1 r2 UnificationError
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt rNil)
 
           r2 :: Row MonoType Int
           r2 = rExt "id" tInt (rExt "name" tString rNil)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rVar 0)
 
           r2 :: Row MonoType Int
           r2 = rExt "name" tString (rVar 0)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "a" tString (rVar 0)
 
           r2 :: Row MonoType Int
           r2 = rExt "b" tString (rVar 0)
-       in it "5" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+       in failUnifyRows r1 r2 UnificationError
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rVar 0)
 
           r2 :: Row MonoType Int
           r2 = rExt "name" tString (rVar 1)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString rNil))
 
           r2 :: Row MonoType Int
           r2 = rExt "id" tInt (rVar 0)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "pw" tString (rExt "name" tString (rVar 0))
 
           r2 :: Row MonoType Int
           r2 = rVar 0
-       in it "8" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+       in failUnifyRows r1 r2 UnificationError
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString (rVar 0)))
 
           r2 :: Row MonoType Int
           r2 = rExt "id" tInt (rVar 0)
-       in it "9" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+       in failUnifyRows r1 r2 UnificationError
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
 
           r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rExt "name" tString rNil))
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
 
           r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rVar 0)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
 
           r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
 
           r2 :: Row MonoType Int
           r2 = rVar 0
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt rNil))
 
           r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt rNil))
 
           r2 :: Row MonoType Int
           r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rVar 0))
-       in it "15" (let Left e = runUnifyRows r1 r2 in UnificationError == e)
+       in failUnifyRows r1 r2 UnificationError
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rVar 0
 
           r2 :: Row MonoType Int
           r2 = rVar 1
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "a" tInt (rVar 0)
 
           r2 :: Row MonoType Int
           r2 = rExt "a" tInt (rVar 0)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "a" tInt (rVar 0)
 
           r2 :: Row MonoType Int
           r2 = rExt "a" tInt (rVar 1)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "a" tInt rNil
 
           r2 :: Row MonoType Int
           r2 = rExt "a" tInt (rVar 1)
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
       -------------------------------------------------------------------------
       let r1 :: Row MonoType Int
           r1 = rExt "a" tInt rNil
 
           r2 :: Row MonoType Int
           r2 = rExt "a" tInt rNil
-       in testUnifyRows r1 r2
+       in passUnifyRows r1 r2
