@@ -191,12 +191,11 @@ emitCall fun args = do
             r <- call f (zip (q : (snd <$> as)) (repeat []))
             pure (u, r)
           else do
-            n <- uniqueName "$g"
+            n <- uniqueName "$f"
             let zs = take (length as) (argTypes t)
                 us = drop (length as) (argTypes t)
                 xx0 = foldType u (tVar 0 : us)
                 xx1 = foldType u (tVar 0 : zs <> us)
-                -- sty = StructureType False (llvmType xx0 : llvmType xx1 : (llvmType <$> zs))
                 sty = StructureType False (llvmType xx0 : charPtr : (llvmType <$> zs))
                 sty2 = StructureType False [llvmType xx1]
             f <-
@@ -206,30 +205,20 @@ emitCall fun args = do
                 (llvmType u)
                 ( \(a : as) -> do
                     s <- bitcast a (ptr sty)
-                    -- p0 <- gep s [int32 0, int32 0]
-                    -- p0 <- gep s [int32 0, int32 0]
-                    ------yy <- load p0 0
-                    -- q0 <- load p0 0
                     p1 <- gep s [int32 0, int32 1]
                     q1 <- load p1 0
                     ss <- bitcast q1 (ptr sty2)
                     p2 <- gep ss [int32 0, int32 0]
                     q2 <- load p2 0
-                    -- p2 <- gep s [int32 0, int32 2]
-                    -- q2 <- load p2 0
                     bs <- forM [2 .. (1 + length args)] $ \i -> do
-                      -- bs <- forM [1..(length args)] $ \i -> do
                       pi <- gep s [int32 0, int32 (fromIntegral i)]
                       load pi 0
                     r <- call q2 (zip (q1 : bs <> as) (repeat []))
-                    -- r <- lift $ emitPrim (PInt 99)
                     ret r
                 )
             s <- malloc sty
             p0 <- gep s [int32 0, int32 0]
             p1 <- gep s [int32 0, int32 1]
-            -- p2 <- gep s [int32 0, int32 2]
-            ----- store p 0 f
             store p0 0 f
             xx0 <- bitcast op charPtr
             store p1 0 xx0
@@ -237,8 +226,6 @@ emitCall fun args = do
               pi <- gep s [int32 0, int32 (fromIntegral i)]
               store pi 0 a
             pure (foldType u us, s)
-      -- r <- emitPrim (PInt 987)
-      -- pure (foldType u us, [], r)
 
       Just (t, op) -> do
         let u = returnType t

@@ -190,9 +190,7 @@ treeTests =
       it "1" (normalizeProgramDefs fragment7 == fragment8)
 
     describe "- compileSource" $ do
-      -------------------------------------------------------------------------
-      it "1" (compileSource program4 == program11)
-      -------------------------------------------------------------------------
+      passIt "1" (compileSource program4 == program11)
       passIt "2" (canonical (compileSource program44) == program45)
       passIt "3" (canonical (compileSource program46) == program47)
       passIt "4" (canonical (compileSource program48) == program49)
