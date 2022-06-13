@@ -36,14 +36,14 @@ instance (Pretty v, Pretty (TypeVar v)) => Pretty (Row (Type v) v) where
     para
       ( \case
           RNil -> ""
-          RVar v -> pretty v
+          RVar v -> pretty (TypeVar v)
           RExt name t (Fix row, doc) ->
             let field = pretty name <+> ":" <+> pretty t
              in field <> case row of
                   RNil ->
                     ""
                   RVar v ->
-                    " |" <+> "'" <> pretty v
+                    " |" <+> pretty (TypeVar v)
                   _ ->
                     "," <+> doc
       )
