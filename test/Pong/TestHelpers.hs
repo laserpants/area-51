@@ -61,8 +61,8 @@ passIt = it . ("OK ✔ " <>)
 failIt :: Example a => String -> a -> SpecWith (Arg a)
 failIt = it . ("OK ✗ " <>)
 
-compileModule :: Program MonoType Ast -> IO (ExitCode, String)
-compileModule program = compileBinary >> exec
+emitModule :: Program MonoType Ast -> IO (ExitCode, String)
+emitModule program = compileBinary >> exec
   where
     compileBinary = do
       let mdul = ppll (buildProgram "Main" program)
@@ -83,5 +83,5 @@ compileModule program = compileBinary >> exec
             , std_out = CreatePipe
             }
       outp <- hGetContents stdoutHandle
-      extc <- waitForProcess procHandle
-      pure (extc, takeWhile (/= '\n') outp)
+      exc <- waitForProcess procHandle
+      pure (exc, takeWhile (/= '\n') outp)

@@ -17,7 +17,7 @@ llvmEmitTests =
   describe "Pong.LLVM.Emit" $ do
     describe "- buildProgram" $ do
       let runTest =
-            runIO <<< compileModule <<< compileSource
+            runIO <<< emitModule <<< compileSource
       -------------------------------------------------------------------------
       r <- runTest program50
       it "1" ((ExitSuccess, "5") == r)
