@@ -8,6 +8,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Test.Hspec
 import Text.Megaparsec
@@ -111,3 +112,5 @@ readTests =
     describe "- parseProgram" $ do
       -------------------------------------------------------------------------
       it "1" (parseProgram program4 == Right program5)
+      -------------------------------------------------------------------------
+      it "2" (parseProgram program200 == Right program201)
