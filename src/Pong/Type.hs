@@ -13,20 +13,29 @@ module Pong.Type where
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Newtype.Generics
+import Control.Newtype.Generics (Newtype, over2, pack, unpack)
 import Data.Foldable (foldrM)
 import Data.List.NonEmpty (fromList, toList)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tuple.Extra (first, firstM, second, secondM, swap)
-import Debug.Trace
 import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Fix (..), Name, Void, cata, embed, project, varSequence, (!), (!?), (<$$>), (<&>), (<<<), (>>>))
+import Pong.Util
+  ( Fix (..)
+  , Name
+  , Void
+  , cata
+  , embed
+  , project
+  , (!?)
+  , (<$$>)
+  , (<&>)
+  , (<<<)
+  )
 import Pong.Util.Env (Environment)
 import qualified Pong.Util.Env as Env
 
@@ -214,20 +223,20 @@ unifyRows ::
   Row MonoType Int ->
   Row MonoType Int ->
   TypeChecker Substitution
-unifyRows r1 r2 =
-  case (unwindRow r1, unwindRow r2) of
+unifyRows row1 row2 =
+  case (unwindRow row1, unwindRow row2) of
     ((m1, Fix RNil), (m2, Fix RNil))
       | Map.null m1 && Map.null m2 -> pure mempty
     ((m1, Fix (RVar r)), (m2, k))
       | Map.null m1 && not (Map.null m2) && k == rVar r ->
           throwError UnificationError
-      | Map.null m1 -> pure (r `mapsTo` tRec r2)
+      | Map.null m1 -> pure (r `mapsTo` tRec row2)
     ((m1, j), (m2, Fix (RVar r)))
       | Map.null m2 && not (Map.null m1) && j == rVar r ->
           throwError UnificationError
-      | Map.null m2 -> pure (r `mapsTo` tRec r1)
+      | Map.null m2 -> pure (r `mapsTo` tRec row1)
     ((m1, j), (m2, k))
-      | Map.null m1 -> unifyRows r2 r1
+      | Map.null m1 -> unifyRows row2 row1
       | otherwise ->
           case Map.lookup a m2 of
             Just (u : us) -> do
@@ -246,11 +255,11 @@ unifyRows r1 r2 =
         updateMap m =
           \case
             [] -> Map.delete a m
-            ts -> Map.insert a ts m
+            us -> Map.insert a us m
 
 unifyTypes :: MonoType -> MonoType -> TypeChecker Substitution
-unifyTypes t1 t2 =
-  case (project t1, project t2) of
+unifyTypes ty1 ty2 =
+  case (project ty1, project ty2) of
     (TVar n, t) -> pure (n `mapsTo` embed t)
     (t, TVar n) -> pure (n `mapsTo` embed t)
     (TCon c1 ts1, TCon c2 ts2)
@@ -258,7 +267,7 @@ unifyTypes t1 t2 =
     (TArr t1 t2, TArr u1 u2) -> unifyMany [t1, t2] [u1, u2]
     (TRec r, TRec s) -> unifyRows r s
     _
-      | t1 == t2 -> pure mempty
+      | ty1 == ty2 -> pure mempty
       | otherwise -> throwError UnificationError
 
 applySubstitution :: (Substitutable s) => s -> TypeChecker s
@@ -331,14 +340,14 @@ inferExpr =
       as <- traverse (pure . first tVar) args
       e <- local (insertArgs (first (Left . tVar) <$> args)) expr
       pure (eLam () as e)
-    EOp1 (t, op) expr1 -> do
+    EOp1 (_, op) expr1 -> do
       e1 <- expr1
       t0 <- instantiate (unopType op)
       let [t1] = argTypes t0
       t1 `unify` typeOf e1
       ty <- applySubstitution t0
       pure (eOp1 (ty, op) e1)
-    EOp2 (t, op) expr1 expr2 -> do
+    EOp2 (_, op) expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
       t0 <- instantiate (binopType op)
@@ -362,22 +371,24 @@ inferRestriction ::
   [Label Int] ->
   TypeChecker TypedExpr ->
   TypeChecker (Clause MonoType TypedExpr)
-inferRestriction (Fix (TRec row)) args expr = do
-  case args of
-    [(u0, label), (u1, v1), (u2, v2)] -> do
-      let (r1, q) = restrictRow label row
-      let [t0, t1, t2] = tVar <$> [u0, u1, u2]
-      t1 `unify` r1
-      t2 `unify` tRec q
-      traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRec row]
-        >>= \case
-          [ty0, ty1, ty2, ty3] -> do
-            ty0 `unify` ty3
-            e <-
-              local
-                (Env.inserts [(label, Left ty0), (v1, Left ty1), (v2, Left ty2)])
-                expr
-            pure ([(t0, label), (t1, v1), (t2, v2)], e)
+inferRestriction (Fix (TRec row)) [(u0, label), (u1, v1), (u2, v2)] expr = do
+  let (r1, q) = restrictRow label row
+  let [t0, t1, t2] = tVar <$> [u0, u1, u2]
+  t1 `unify` r1
+  t2 `unify` tRec q
+  traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRec row]
+    >>= \case
+      [ty0, ty1, ty2, ty3] -> do
+        ty0 `unify` ty3
+        e <-
+          local
+            (Env.inserts [(label, Left ty0), (v1, Left ty1), (v2, Left ty2)])
+            expr
+        pure ([(t0, label), (t1, v1), (t2, v2)], e)
+      _ ->
+        error "Implementation error"
+inferRestriction _ _ _ =
+  error "Implementation error"
 
 unopType :: Op1 -> Scheme
 unopType =
@@ -432,6 +443,7 @@ inferCase mt (con : vs) expr = do
       tVar t0 `unify` t1
       pure (tVar t0, n)
   pure ((t, snd con) : tvs, e)
+inferCase _ _ _ = error "Implementation error"
 
 inferRec ::
   Row TaggedExpr (Label Int) ->
@@ -451,17 +463,19 @@ inferProgram p = local (<> programEnv p) (programForM p (curry go))
       tagExpr >=> inferExpr >=> applySubstitution
     go =
       \case
-        ((scheme, name), Function args (_, expr)) -> do
+        ((scheme, _), Function args (_, expr)) -> do
           lam <- inferTypes (eLam () (toList args) expr)
           t0 <- instantiate scheme
           t0 `unify` typeOf lam
           applySubstitution lam <&> project >>= \case
             ELam () as body ->
               pure (Function (fromList as) (typeOf body, body))
-        (key, Constant (_, expr)) -> do
-          const <- inferTypes expr
-          pure (Constant (typeOf const, const))
-        (key, Extern as r) -> do
+            _ ->
+              error "Implementation error"
+        (_, Constant (_, expr)) -> do
+          e <- inferTypes expr
+          pure (Constant (typeOf e, e))
+        (_, Extern as r) -> do
           pure (Extern as r)
         _ ->
           error "TODO"

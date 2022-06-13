@@ -3,7 +3,7 @@
 module Pong.LangTests where
 
 import Data.Function ((&))
-import Data.List.NonEmpty (fromList, toList)
+import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn

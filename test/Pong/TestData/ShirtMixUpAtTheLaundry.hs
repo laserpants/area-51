@@ -2,8 +2,6 @@
 
 module Pong.TestData.ShirtMixUpAtTheLaundry where
 
-import Pong.Data
-import Pong.Lang
 import Pong.Util
 
 program2 :: Text

@@ -10,11 +10,10 @@ module Pong.Eval where
 
 import Control.Monad.Reader
 import Data.Char (isUpper)
-import Data.List.NonEmpty (fromList, toList)
+import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import Data.Tuple.Extra (first)
-import Debug.Trace
 import Pong.Data
 import Pong.Lang
 import Pong.Util
@@ -85,10 +84,12 @@ eval =
           case Env.lookup var defs of
             Just (Constant (_, expr)) -> do
               eval expr
-            Just (Function args (_, expr)) ->
+            Just Function{} ->
               pure (Closure (t, var) [])
             Nothing ->
               error ("Variable not in scope: " <> show var)
+            _ ->
+              error "Eval error"
     ELit prim ->
       pure (PrimValue prim)
     EIf cond true false ->
@@ -126,6 +127,8 @@ eval =
     ERes field expr1 expr2 -> do
       e1 <- expr1
       evalRestriction (getRow e1) field expr2
+    _ ->
+      error "Eval error"
 
 evalCall :: Label MonoType -> [Eval Value] -> Eval Value
 evalCall (t, fun) args
@@ -134,6 +137,7 @@ evalCall (t, fun) args
   | arity t < length args =
       evalCall (t, fun) (take (arity t) args) >>= \case
         Closure c as1 -> evalCall c (as1 <> drop (arity t) args)
+        _ -> error "Eval error"
   | isUpper (Text.head fun) =
       ConValue fun <$> sequence args
   | otherwise = do
@@ -144,7 +148,7 @@ evalCall (t, fun) args
           localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
         Just Extern{} ->
           case (fun, as) of
-            ("print_int", [PrimValue (PInt n)]) ->
+            ("print_int", [PrimValue (PInt _)]) ->
               pure (PrimValue (PInt 0))
             _ ->
               error "Not implemented"
@@ -154,12 +158,14 @@ evalCall (t, fun) args
               evalCall g (vs <> args)
             _ ->
               error "Eval error"
+        _ ->
+          error "Eval error"
 
 evalMatch :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
-evalMatch _ [] = error "Eval error: no match"
 evalMatch (ConValue name fields) (((_, con) : vars, value) : clauses)
   | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
   | otherwise = evalMatch (ConValue name fields) clauses
+evalMatch _ _ = error "Eval error"
 
 evalRow :: Row Ast (Label MonoType) -> Eval (Row Value Void)
 evalRow =
@@ -177,6 +183,7 @@ evalRestriction :: Row Value Void -> [Label MonoType] -> Eval Value -> Eval Valu
 evalRestriction row [(_, name), (_, v), (_, r)] =
   let (p, q) = restrictRow name row
    in localSecond (Env.inserts [(v, p), (r, RecValue q)])
+evalRestriction _ _ = error "Eval error"
 
 getPrim :: Value -> Prim
 getPrim (PrimValue prim) = prim
@@ -191,6 +198,7 @@ evalOp1 ONot (PBool b) = PBool (not b)
 evalOp1 ONeg (PFloat p) = PFloat (negate p)
 evalOp1 ONeg (PDouble p) = PDouble (negate p)
 evalOp1 ONeg (PInt n) = PInt (negate n)
+evalOp1 _ _ = error "Not implemented"
 
 evalOp2 :: Op2 -> Prim -> Prim -> Prim
 evalOp2 OAdd (PFloat p) (PFloat q) = PFloat (p + q)

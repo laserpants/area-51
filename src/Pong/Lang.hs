@@ -6,7 +6,7 @@
 module Pong.Lang where
 
 import Control.Monad.State
-import Control.Newtype.Generics (over, overF, unpack)
+import Control.Newtype.Generics (over, unpack)
 import Data.Char (isUpper)
 import Data.Foldable (foldrM)
 import Data.List (nub)
@@ -18,7 +18,24 @@ import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
-import Pong.Util (Map, Name, Void, cata, embed, embed1, embed2, embed3, embed4, para, project, varSequence, without, (!), (<$$>), (<&>), (<<<), (>>>))
+import Pong.Util
+  ( Map
+  , Name
+  , Void
+  , cata
+  , embed
+  , embed1
+  , embed2
+  , embed3
+  , para
+  , project
+  , varSequence
+  , (!)
+  , (<$$>)
+  , (<&>)
+  , (<<<)
+  , (>>>)
+  )
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 
@@ -28,7 +45,7 @@ mapRow f =
     \case
       RNil -> rNil
       RVar v -> rVar v
-      RExt name elem row -> rExt name (f elem) row
+      RExt name el row -> rExt name (f el) row
 
 mapRowM :: (Monad m) => (e -> m f) -> Row e v -> m (Row f v)
 mapRowM f =
@@ -36,7 +53,7 @@ mapRowM f =
     \case
       RNil -> pure rNil
       RVar v -> pure (rVar v)
-      RExt name elem row -> rExt name <$> f elem <*> row
+      RExt name el row -> rExt name <$> f el <*> row
 
 bimapRow :: (e -> f) -> (v -> w) -> Row e v -> Row f w
 bimapRow f g =
@@ -44,7 +61,7 @@ bimapRow f g =
     \case
       RNil -> rNil
       RVar v -> rVar (g v)
-      RExt name elem row -> rExt name (f elem) row
+      RExt name el row -> rExt name (f el) row
 
 normalizeRow :: Row e v -> Row e v
 normalizeRow = uncurry (flip foldRow) . unwindRow
@@ -186,7 +203,7 @@ instance (FreeIn t, FreeIn a0, FreeIn a2) => FreeIn (Expr t a0 a1 a2) where
           ( \case
               RNil -> []
               RVar (t, _) -> freeIn t
-              RExt _ elem row -> freeIn elem <> row
+              RExt _ el row -> freeIn el <> row
           )
 
 free :: (FreeIn a) => a -> [Int]
@@ -218,9 +235,9 @@ instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
       ( \case
           RNil -> tRec rNil
           RVar (t, _) -> typeOf t
-          RExt name elem r ->
+          RExt name el r ->
             let TRec row = project r
-             in tRec (rExt name (typeOf elem) row)
+             in tRec (rExt name (typeOf el) row)
       )
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
@@ -233,7 +250,7 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EIf _ _ e3 -> e3
           ELet _ _ e3 -> e3
           ELam _ args expr -> foldType expr (typeOf . fst <$> args)
-          EApp t fun as -> typeOf t
+          EApp t _ _ -> typeOf t
           ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
           EOp1 (t, _) _ -> returnType t
           EOp2 (t, _) _ _ -> returnType t
@@ -333,9 +350,10 @@ freeVars =
               ( \case
                   RNil -> mempty
                   RVar v -> Set.singleton v
-                  RExt _ elem r -> Set.fromList (freeVars elem) <> r
+                  RExt _ el r -> Set.fromList (freeVars el) <> r
               )
           ERes (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
+          _ -> error "Implementation error"
       )
 
 toMonoType :: Map Name Int -> Type Name -> MonoType
@@ -400,7 +418,7 @@ mapTypes f =
         ( \case
             RNil -> rNil
             RVar (t, v) -> rVar (f t, v)
-            RExt name elem row -> rExt name (mapTypes f elem) row
+            RExt name el row -> rExt name (mapTypes f el) row
         )
 
 boundVars :: Type Name -> Set Name
@@ -523,6 +541,7 @@ tArr = embed2 TArr
 infixr 1 `tArr`
 
 {-# INLINE (~>) #-}
+(~>) :: Type v -> Type v -> Type v
 (~>) = tArr
 
 infixr 1 ~>

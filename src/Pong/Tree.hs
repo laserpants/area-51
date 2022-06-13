@@ -10,26 +10,23 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
-import Control.Newtype.Generics
+import Control.Newtype.Generics (over, unpack)
 import Data.Either.Extra (mapLeft)
-import Data.Function (on)
-import Data.List (nubBy)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import Data.Tuple.Extra (first, second)
-import Debug.Trace
 import Pong.Data
 import Pong.Lang
-import Pong.Read
+import Pong.Read (ParserError, parseProgram)
 import Pong.Type
 import Pong.Util hiding (unpack)
 import qualified Pong.Util.Env as Env
 import TextShow (showt)
 
 canonical :: (Substitutable a, FreeIn a) => a -> a
-canonical t = apply (Substitution map) t
+canonical t = apply (Substitution map_) t
   where
-    map = Map.fromList (free t `zip` (tVar <$> [0 ..]))
+    map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
 isIsomorphicTo :: (Eq a, Substitutable a, FreeIn a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
@@ -187,7 +184,7 @@ compile ::
   m Ast
 compile =
   cata $ \case
-    ELam t args expr1 -> do
+    ELam _ args expr1 -> do
       e1 <- expr1
       defs <- programDefs
       ndef <- uniqueName "$lam"
@@ -203,13 +200,14 @@ compile =
       e2 <- expr2
       e3 <- expr3
       makeDef "$if" (eIf e1 e2 e3) (\app -> eIf e1 (app e2) (app e3))
-    EApp t fun args -> do
+    EApp _ fun args -> do
       f <- fun
       xs <- sequence args
       pure
         ( case project f of
             ECall _ g ys -> eCall g (ys <> xs)
             EVar v -> eCall v xs
+            _ -> error "Implementation error"
         )
     ELet var expr1 expr2 -> do
       e1 <- expr1

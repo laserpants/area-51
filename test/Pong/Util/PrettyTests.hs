@@ -4,12 +4,9 @@ module Pong.Util.PrettyTests where
 
 import Pong.Data
 import Pong.Lang
-import Pong.Read
-import Pong.TestData.JackOfClubs
 import Pong.Util
-import Pong.Util.Pretty
+import Pong.Util.Pretty ()
 import Prettyprinter
-import Prettyprinter.Render.Text
 import Test.Hspec
 
 utilPrettyTests :: SpecWith ()

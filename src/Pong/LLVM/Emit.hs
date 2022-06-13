@@ -13,24 +13,20 @@ module Pong.LLVM.Emit where
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.List.NonEmpty (toList)
-import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
-import Data.Tuple.Extra (first, fst3, second)
-import Debug.Trace
+import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
-import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
-import Pong.LLVM hiding (Typed, typeOf, void)
+import Pong.LLVM hiding (Typed, typeOf, var, void)
 import Pong.Lang
-import Pong.Type
 import Pong.Util
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
-import TextShow (TextShow, showt)
+import TextShow (showt)
 
 type OpInfo = (MonoType, Operand)
 
@@ -62,30 +58,30 @@ forEachIn ::
   Program MonoType t ->
   (Name -> MonoType -> Definition MonoType t -> m a) ->
   m [a]
-forEachIn p f = forEachDef p (\(_, name) def -> f name (typeOf def) def)
+forEachIn p f = forEachDef p (\label def -> f (snd label) (typeOf def) def)
 
 buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram pname p = do
   buildModule (llvmRep pname) $ do
-    extern "gc_malloc" [i64] charPtr
+    void (extern "gc_malloc" [i64] charPtr)
     env <-
-      buildEnv $ \name t ->
+      buildEnv $ \name_ t ->
         \case
           Extern args t1 -> do
             op <-
               extern
-                (llvmRep name)
+                (llvmRep name_)
                 (llvmType <$> args)
                 (llvmType t1)
-            pure [(name, (t, op))]
+            pure [(name_, (t, op))]
           Constant (t1, _) -> do
             pure
               [
-                ( name
+                ( name_
                 ,
                   ( t
                   , functionRef
-                      (llvmRep name)
+                      (llvmRep name_)
                       (llvmType t1)
                       []
                   )
@@ -94,25 +90,27 @@ buildProgram pname p = do
           Function args (t1, _) ->
             pure
               [
-                ( name
+                ( name_
                 ,
                   ( t
                   , functionRef
-                      (llvmRep name)
+                      (llvmRep name_)
                       (llvmType t1)
                       (llvmType . fst <$> toList args)
                   )
                 )
               ]
-    forEachIn p $ \name t ->
+          _ ->
+            error "TODO"
+    forEachIn p $ \name_ _ ->
       \case
         Constant (t1, body) -> do
           void $
             function
-              (llvmRep name)
+              (llvmRep name_)
               []
               (llvmType t1)
-              ( \ops -> do
+              ( \_ -> do
                   runCodeGen
                     env
                     p
@@ -121,14 +119,14 @@ buildProgram pname p = do
         Function args (t1, body) ->
           void $
             function
-              (llvmRep name)
+              (llvmRep name_)
               (toList args <&> llvmType *** llvmRep)
               (llvmType t1)
               ( \ops -> do
                   runCodeGen
                     ( Env.inserts
-                        [ (n, (t, op))
-                        | (op, (t, n)) <- zip ops (toList args)
+                        [ (n, (ty, op))
+                        | (op, (ty, n)) <- zip ops (toList args)
                         ]
                         env
                     )
@@ -143,9 +141,9 @@ buildProgram pname p = do
 emitBody :: Ast -> CodeGen OpInfo
 emitBody =
   cata $ \case
-    ELet (t, name) expr1 expr2 -> do
+    ELet (_, var) expr1 expr2 -> do
       e1 <- expr1
-      local (Env.insert name e1) expr2
+      local (Env.insert var e1) expr2
     ELit lit -> do
       op <- emitPrim lit
       pure (typeOf lit, op)
@@ -170,13 +168,15 @@ emitBody =
       (_, b) <- expr2
       r <- emitOp2Instr op a b
       pure (returnType (fst op), r)
-    EVar (t, name) ->
-      Env.askLookup name <&> fromMaybe (error "Implementation error")
+    EVar (_, var) ->
+      Env.askLookup var <&> fromMaybe (error "Implementation error")
     ECall () (_, fun) args -> do
       emitCall fun args
     ERec{} ->
       error "TODO"
     ERes{} ->
+      error "TODO"
+    _ ->
       error "TODO"
 
 emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
@@ -198,22 +198,22 @@ emitCall fun args = do
           else do
             n <- uniqueName "$f"
             let (ts, us) = splitAt (length as) (argTypes t)
-                toFty ts = llvmType (foldType u (tVar 0 : ts))
+                toFty tys = llvmType (foldType u (tVar 0 : tys))
                 sty1 = StructureType False (toFty us : charPtr : (llvmType <$> ts))
                 sty2 = StructureType False [toFty (ts <> us)]
             s <- malloc sty1
             storeOffset 0 s
               =<< function
                 (llvmRep n)
-                ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
+                ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
                 (llvmType u)
-                ( \(a : as) -> do
-                    s1 <- bitcast a (ptr sty1)
+                ( \(w : ws) -> do
+                    s1 <- bitcast w (ptr sty1)
                     v <- loadOffset 1 s1
                     f <- loadOffset 0 =<< bitcast v (ptr sty2)
                     vs <- forM [2 .. (1 + length args)] $ \i ->
                       loadOffset i s1
-                    r <- call f (zip (v : vs <> as) (repeat []))
+                    r <- call f (zip (v : vs <> ws) (repeat []))
                     ret r
                 )
             storeOffset 1 s =<< bitcast op charPtr
@@ -236,18 +236,20 @@ emitCall fun args = do
             storeOffset 0 s
               =<< function
                 (llvmRep n)
-                ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
+                ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
                 (llvmType u)
-                ( \(a : as) -> do
-                    s <- bitcast a (ptr sty)
+                ( \(w : ws) -> do
+                    s1 <- bitcast w (ptr sty)
                     vs <- forM [1 .. length args] $ \i ->
-                      loadOffset i s
-                    r <- call op (zip (vs <> as) (repeat []))
+                      loadOffset i s1
+                    r <- call op (zip (vs <> ws) (repeat []))
                     ret r
                 )
-            forM_ (as `zip` [1 ..]) $ \((_, a), i) ->
+            forM_ (as `zip` [1 :: Int ..]) $ \((_, a), i) ->
               storeOffset i s a
             pure (foldType u us, s)
+      _ ->
+        error "Implementation error"
 
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
@@ -271,6 +273,7 @@ llvmType =
               , resultType = last types
               , isVarArg = False
               }
+      _ -> error "Not implemented" -- TODO
 
 llvmPrim :: Prim -> Constant
 llvmPrim =
@@ -280,8 +283,8 @@ llvmPrim =
     PInt n -> Int 64 (toInteger n)
     PFloat f -> Float (Single f)
     PDouble d -> Float (Double d)
-    PChar c -> error "Not implemented" -- TODO
-    PString s -> error "Not implemented" -- TODO
+    PChar{} -> error "Not implemented" -- TODO
+    PString{} -> error "Not implemented" -- TODO
     PUnit -> Struct Nothing False []
 
 emitPrim :: Prim -> CodeGen Operand
@@ -294,6 +297,7 @@ emitOp1Instr =
     (t, ONeg) | (tInt ~> tInt) == t -> undefined
     (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
     (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
+    o -> error (show o)
 
 emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =
@@ -318,17 +322,17 @@ emitOp2Instr =
     o -> error (show o)
 
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
-globalRef name ty = ConstantOperand (GlobalReference ty name)
+globalRef name_ ty = ConstantOperand (GlobalReference ty name_)
 
 ptrRef :: LLVM.Name -> LLVM.Type -> Operand
-ptrRef name = globalRef name . ptr
+ptrRef name_ = globalRef name_ . ptr
 
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
-functionRef name rty argtys = ptrRef name (FunctionType rty argtys False)
+functionRef name_ rty argtys = ptrRef name_ (FunctionType rty argtys False)
 
 loadOffset ::
-  (MonadIRBuilder m, MonadModuleBuilder m, Integral a) =>
-  a ->
+  (MonadIRBuilder m, MonadModuleBuilder m) =>
+  Int ->
   Operand ->
   m Operand
 loadOffset i ds = do
@@ -336,8 +340,8 @@ loadOffset i ds = do
   load p 0
 
 storeOffset ::
-  (MonadIRBuilder m, MonadModuleBuilder m, Integral a) =>
-  a ->
+  (MonadIRBuilder m, MonadModuleBuilder m) =>
+  Int ->
   Operand ->
   Operand ->
   m ()
@@ -347,11 +351,11 @@ storeOffset i ds op = do
 
 malloc :: (MonadIRBuilder m) => LLVM.Type -> m Operand
 malloc ty = do
-  size <- zext (ConstantOperand (sizeof ty)) i64
-  m <- allocate size
+  size_ <- zext (ConstantOperand (sizeof ty)) i64
+  m <- allocate size_
   bitcast m (ptr ty)
   where
-    allocate size = call (functionRef "gc_malloc" charPtr [i64]) [(size, [])]
+    allocate n = call (functionRef "gc_malloc" charPtr [i64]) [(n, [])]
 
 uniqueName :: Name -> CodeGen Name
 uniqueName prefix = do

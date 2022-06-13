@@ -33,9 +33,8 @@ import Control.Newtype.Generics (Newtype, over, pack, unpack)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
-import Pong.Data
 import Pong.Util (Name, (<$$>))
-import Prelude hiding (insert, lookup, map)
+import Prelude hiding (lookup, map)
 
 newtype Environment a
   = Environment (Map Name a)

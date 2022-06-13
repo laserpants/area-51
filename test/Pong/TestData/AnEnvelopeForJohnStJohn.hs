@@ -4,7 +4,6 @@ module Pong.TestData.AnEnvelopeForJohnStJohn where
 
 import Pong.Data
 import Pong.Lang
-import Pong.Util
 
 expr0 :: SourceExpr
 expr0 =

@@ -2,10 +2,6 @@
 
 module Pong.LLVM.EmitTests where
 
-import Control.Arrow ((<<<), (>>>))
-import Pong.LLVM.Emit
-import Pong.Read
-import Pong.TestData.JackOfClubs
 import Pong.TestData.TheFatalAuction
 import Pong.TestHelpers
 import Pong.Tree
@@ -16,14 +12,12 @@ llvmEmitTests :: SpecWith ()
 llvmEmitTests =
   describe "Pong.LLVM.Emit" $ do
     describe "- buildProgram" $ do
-      let runTest =
-            runIO <<< emitModule <<< compileSource
+      let runTest msg prog res = do
+            r <- runIO $ emitModule $ compileSource prog
+            passIt msg (res == r)
       -------------------------------------------------------------------------
-      r <- runTest program50
-      it "1" ((ExitSuccess, "5") == r)
+      runTest "1" program50 (ExitSuccess, "5")
       -------------------------------------------------------------------------
-      r <- runTest program51
-      it "2" ((ExitSuccess, "7") == r)
+      runTest "2" program51 (ExitSuccess, "7")
       -------------------------------------------------------------------------
-      r <- runTest program52
-      it "2" ((ExitSuccess, "9") == r)
+      runTest "3" program52 (ExitSuccess, "9")

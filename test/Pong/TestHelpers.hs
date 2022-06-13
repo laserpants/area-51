@@ -6,7 +6,6 @@ import qualified Data.Text.Lazy as TextLazy
 import GHC.IO.Handle
 import LLVM.Pretty
 import Pong.Data
-import Pong.LLVM
 import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Read
@@ -62,10 +61,10 @@ failIt :: Example a => String -> a -> SpecWith (Arg a)
 failIt = it . ("OK ✗ " <>)
 
 emitModule :: Program MonoType Ast -> IO (ExitCode, String)
-emitModule program = compileBinary >> exec
+emitModule prog = compileBinary >> exec
   where
     compileBinary = do
-      let mdul = ppll (buildProgram "Main" program)
+      let mdul = ppll (buildProgram "Main" prog)
           echo = proc "echo" [TextLazy.unpack mdul]
       (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
       (_, _, _, procHandle) <-

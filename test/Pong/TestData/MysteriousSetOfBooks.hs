@@ -2,10 +2,6 @@
 
 module Pong.TestData.MysteriousSetOfBooks where
 
-import Data.Functor
-import Pong.Data
-import Pong.Lang
-import Pong.TestHelpers
 import Pong.Util
 
 program20 :: Text

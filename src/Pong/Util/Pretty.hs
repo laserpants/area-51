@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Pong.Util.Pretty where
 
@@ -9,7 +10,6 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util
 import Prettyprinter
-import Prettyprinter.Render.Text
 
 parensIf :: Bool -> Doc a -> Doc a
 parensIf True doc = parens doc

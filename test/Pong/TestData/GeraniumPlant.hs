@@ -2,11 +2,10 @@
 
 module Pong.TestData.GeraniumPlant where
 
-import Data.List.NonEmpty (fromList, toList)
+import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
-import Pong.Util
 
 fragment1 :: Program MonoType TypedExpr
 fragment1 =

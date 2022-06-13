@@ -2,19 +2,18 @@
 
 module Pong.TreeTests where
 
-import Data.List.NonEmpty (fromList, toList)
+import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.GeraniumPlant
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
-import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.TheFatalAuction
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
-import Test.Hspec
+import Test.Hspec hiding (after, before)
 
 treeTests :: SpecWith ()
 treeTests =
@@ -27,13 +26,12 @@ treeTests =
               (fromList [(tInt, "x")])
               (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
 
-      let result :: Definition MonoType TypedExpr
+          result :: Definition MonoType TypedExpr
           result =
             Function
               (fromList [(tInt, "x"), (tInt, "y")])
               (tInt, eVar (tInt, "y"))
-
-      it "1" (hoistTopLambdas def == result)
+       in it "1" (hoistTopLambdas def == result)
       -------------------------------------------------------------------------
       it "2" (testHoistProgram program6 == program7)
 
@@ -50,14 +48,13 @@ treeTests =
                   (eVar (tInt, "b"))
               )
 
-      let after :: TypedExpr
+          after :: TypedExpr
           after =
             eLam
               ()
               [(tInt, "a"), (tInt, "b")]
               (eVar (tInt, "b"))
-
-      it "1" (combineLambdas before == after)
+       in it "1" (combineLambdas before == after)
       -------------------------------------------------------------------------
       let before :: TypedExpr
           before =
@@ -74,14 +71,13 @@ treeTests =
                   )
               )
 
-      let after :: TypedExpr
+          after :: TypedExpr
           after =
             eLam
               ()
               [(tInt, "x"), (tInt, "y"), (tInt, "z")]
               (eLit (PInt 5))
-
-      it "2" (combineLambdas before == after)
+       in it "2" (combineLambdas before == after)
       -------------------------------------------------------------------------
       let before :: TypedExpr
           before =
@@ -118,7 +114,7 @@ treeTests =
                   )
               )
 
-      let after :: TypedExpr
+          after :: TypedExpr
           after =
             eLam
               ()
@@ -128,8 +124,7 @@ treeTests =
                   (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
                   (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
               )
-
-      it "3" (combineLambdas before == after)
+       in it "3" (combineLambdas before == after)
 
     describe "- parseAndAnnotate" $ do
       -------------------------------------------------------------------------
@@ -149,13 +144,12 @@ treeTests =
             \        in\
             \          x\
             \"
-      -- "
+          -- "
 
-      let program :: Program MonoType TypedExpr
+          program :: Program MonoType TypedExpr
           program =
             program1
-
-      it "1" (parseAndAnnotate input == Right program)
+       in it "1" (parseAndAnnotate input == Right program)
 
     describe "- canonical" $ do
       -------------------------------------------------------------------------
@@ -196,10 +190,10 @@ treeTests =
       passIt "4" (canonical (compileSource program48) == program49)
 
     describe "- isPolymorphic" $ do
-      passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0))
-      passIt "'0" (isPolymorphic (tVar 0))
-      passIt "(int -> int -> '0) -> int -> int -> '0" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0))
-      passIt "(int -> int -> '0) -> int -> int -> int" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt))
+      passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0 :: MonoType))
+      passIt "'0" (isPolymorphic (tVar 0 :: MonoType))
+      passIt "(int -> int -> '0) -> int -> int -> '0" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0 :: MonoType))
+      passIt "(int -> int -> '0) -> int -> int -> int" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt :: MonoType))
       failIt "int -> int -> bool" (not $ isPolymorphic (tInt ~> tInt ~> tBool))
       failIt "bool" (not $ isPolymorphic tBool)
 

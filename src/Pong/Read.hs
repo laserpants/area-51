@@ -4,15 +4,15 @@
 
 module Pong.Read where
 
+import Control.Monad (void)
 import Control.Monad.Combinators.Expr
-import qualified Control.Newtype.Generics as Generics
 import Data.Functor (($>))
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text, pack, unpack)
-import Data.Tuple.Extra (first, second)
+import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
@@ -40,6 +40,10 @@ lexeme = Lexer.lexeme spaces
 {-# INLINE symbol #-}
 symbol :: Text -> Parser Text
 symbol = Lexer.symbol spaces
+
+{-# INLINE symbol_ #-}
+symbol_ :: Text -> Parser ()
+symbol_ = void . symbol
 
 parens :: Parser a -> Parser a
 parens = symbol "(" `between` symbol ")"
@@ -210,9 +214,9 @@ resExpr = do
   keyword "letr"
   f <- braces $ do
     lhs <- identifier
-    symbol "="
+    symbol_ "="
     rhs <- identifier
-    symbol "|"
+    symbol_ "|"
     row <- identifier
     pure [toLabel lhs, toLabel rhs, toLabel row]
   e1 <- symbol "=" *> expr
@@ -225,7 +229,7 @@ caseClause = do
     con <- constructor
     ids <- fromMaybe [] <$> optional (args identifier)
     pure (toLabel <$> con : ids)
-  symbol "=>"
+  symbol_ "=>"
   e <- expr
   pure (ls, e)
 
@@ -252,7 +256,7 @@ prim =
       f <- lexeme (Lexer.float <* (char 'f' <|> char 'F'))
       pure (PFloat f)
     primDouble = do
-      d <- lexeme Lexer.float
+      d <- lexeme (Lexer.float :: Parser Double)
       pure $ PDouble (realToFrac d)
     primIntegral = PInt <$> lexeme Lexer.decimal
     chars = char '\"' *> manyTill Lexer.charLiteral (char '\"')
@@ -287,22 +291,22 @@ polyType =
 rowFields :: Parser e -> (Name -> v) -> Text -> Parser (Row e v)
 rowFields parser f sep = do
   fields <- commaSep field
-  tail <- optional (symbol "|" *> identifier)
+  tail_ <- optional (symbol "|" *> identifier)
   pure $
     case fields of
       [] -> rNil
-      _ -> foldr (uncurry rExt) (maybe rNil (rVar . f) tail) fields
+      _ -> foldr (uncurry rExt) (maybe rNil (rVar . f) tail_) fields
   where
     field = do
       lhs <- identifier
-      symbol sep
+      symbol_ sep
       rhs <- parser
       pure (lhs, rhs)
 
 arg :: Parser (Label (Type Name))
 arg = do
   name <- identifier
-  symbol ":"
+  symbol_ ":"
   t <- polyType
   pure (t, name)
 
@@ -312,28 +316,28 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
     functionDef = do
       keyword "def"
       name <- identifier
-      args <- parens (commaSep1 arg)
-      symbol ":"
+      as <- parens (commaSep1 arg)
+      symbol_ ":"
       t <- polyType
-      symbol "="
+      symbol_ "="
       e <- expr
-      let ts = fst <$> args
-          fun = Function (fromList (first (const ()) <$> args)) ((), e)
+      let ts = fst <$> as
+          fun = Function (fromList (first (const ()) <$> as)) ((), e)
       pure ((Scheme (foldType t ts), name), fun)
 
     constantDef = do
       keyword "const"
       name <- identifier
-      symbol ":"
+      symbol_ ":"
       t <- polyType
-      symbol "="
+      symbol_ "="
       e <- expr
       pure ((Scheme t, name), Constant ((), e))
 
     externalDef = do
       keyword "extern"
       name <- identifier
-      symbol ":"
+      symbol_ ":"
       t <- polyType
       let names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
           t0 = toMonoType names t

@@ -2,14 +2,13 @@
 
 module Pong.ReadTests where
 
-import Data.Either.Extra (isLeft, isRight)
+import Data.Either.Extra (isLeft)
 import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
 import Pong.TestHelpers
-import Pong.Util
 import Test.Hspec
 import Text.Megaparsec
 

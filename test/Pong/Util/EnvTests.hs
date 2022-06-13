@@ -2,7 +2,6 @@
 
 module Pong.Util.EnvTests where
 
-import Pong.Read
 import Test.Hspec
 
 utilEnvTests :: SpecWith ()
