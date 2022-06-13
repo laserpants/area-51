@@ -17,7 +17,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
-import Data.Tuple.Extra (first, fst3, second, snd3, thd3)
+import Data.Tuple.Extra (first, fst3, second)
 import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
@@ -32,7 +32,7 @@ import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 import TextShow (TextShow, showt)
 
-type OpInfo = (MonoType, [MonoType], Operand)
+type OpInfo = (MonoType, Operand)
 
 type CodeGenEnv = Environment OpInfo
 
@@ -77,14 +77,13 @@ buildProgram pname p = do
                 (llvmRep name)
                 (llvmType <$> args)
                 (llvmType t1)
-            pure [(name, (t, [], op))]
+            pure [(name, (t, op))]
           Constant (t1, _) -> do
             pure
               [
                 ( name
                 ,
                   ( t
-                  , []
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -98,7 +97,6 @@ buildProgram pname p = do
                 ( name
                 ,
                   ( t
-                  , []
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -118,7 +116,7 @@ buildProgram pname p = do
                   runCodeGen
                     env
                     p
-                    (emitBody body >>= ret . thd3)
+                    (emitBody body >>= ret . snd)
               )
         Function args (t1, body) ->
           void $
@@ -128,9 +126,9 @@ buildProgram pname p = do
               (llvmType t1)
               ( \ops -> do
                   runCodeGen
-                    (Env.inserts [(n, (t, [], op)) | (op, (t, n)) <- zip ops (toList args)] env)
+                    (Env.inserts [(n, (t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
                     p
-                    (emitBody body >>= ret . thd3)
+                    (emitBody body >>= ret . snd)
               )
         _ ->
           pure ()
@@ -145,28 +143,28 @@ emitBody =
       local (Env.insert name e1) expr2
     ELit lit -> do
       op <- emitPrim lit
-      pure (typeOf lit, [], op)
+      pure (typeOf lit, op)
     EIf expr1 expr2 expr3 -> mdo
-      (_, _, ifOp) <- expr1
+      (_, ifOp) <- expr1
       condBr ifOp thenBlock elseBlock
       thenBlock <- block `named` "then"
-      (_, _, thenOp) <- expr2
+      (_, thenOp) <- expr2
       br mergeBlock
       elseBlock <- block `named` "else"
-      (t, _, elseOp) <- expr3
+      (t, elseOp) <- expr3
       br mergeBlock
       mergeBlock <- block `named` "ifcont"
       r <- phi [(thenOp, thenBlock), (elseOp, elseBlock)]
-      pure (t, [], r)
+      pure (t, r)
     EOp1 op expr1 -> do
-      (_, _, a) <- expr1
+      (_, a) <- expr1
       r <- emitOp1Instr op a
-      pure (returnType (fst op), [], r)
+      pure (returnType (fst op), r)
     EOp2 op expr1 expr2 -> do
-      (_, _, a) <- expr1
-      (_, _, b) <- expr2
+      (_, a) <- expr1
+      (_, b) <- expr2
       r <- emitOp2Instr op a b
-      pure (returnType (fst op), [], r)
+      pure (returnType (fst op), r)
     EVar (t, name) ->
       Env.askLookup name <&> fromMaybe (error "Implementation error")
     ECall () (_, fun) args -> do
@@ -181,7 +179,7 @@ emitCall fun args = do
   as <- sequence args
   Env.askLookup fun
     >>= \case
-      Just (t, _, op@LocalReference{}) -> do
+      Just (t, op@LocalReference{}) -> do
         let u = returnType t
         if arity t == length as
           then do
@@ -190,8 +188,8 @@ emitCall fun args = do
             p <- gep s [int32 0, int32 0]
             q <- bitcast op charPtr
             f <- load p 0
-            r <- call f (zip (q : (thd3 <$> as)) (repeat []))
-            pure (u, [], r)
+            r <- call f (zip (q : (snd <$> as)) (repeat []))
+            pure (u, r)
           else do
             n <- uniqueName "$g"
             let zs = take (length as) (argTypes t)
@@ -235,19 +233,19 @@ emitCall fun args = do
             store p0 0 f
             xx0 <- bitcast op charPtr
             store p1 0 xx0
-            forM_ (as `zip` [2 ..]) $ \((_, _, a), i) -> do
+            forM_ (as `zip` [2 ..]) $ \((_, a), i) -> do
               pi <- gep s [int32 0, int32 (fromIntegral i)]
               store pi 0 a
-            pure (foldType u us, [], s)
+            pure (foldType u us, s)
       -- r <- emitPrim (PInt 987)
       -- pure (foldType u us, [], r)
 
-      Just (t, _, op) -> do
+      Just (t, op) -> do
         let u = returnType t
         if arity t == length as
           then do
-            r <- call op (zip (thd3 <$> as) (repeat []))
-            pure (u, [], r)
+            r <- call op (zip (snd <$> as) (repeat []))
+            pure (u, r)
           else do
             n <- uniqueName "$f"
             let zs = take (length as) (argTypes t)
@@ -270,10 +268,10 @@ emitCall fun args = do
             s <- malloc sty
             p <- gep s [int32 0, int32 0]
             store p 0 f
-            forM_ (as `zip` [1 ..]) $ \((_, _, a), i) -> do
+            forM_ (as `zip` [1 ..]) $ \((_, a), i) -> do
               pi <- gep s [int32 0, int32 (fromIntegral i)]
               store pi 0 a
-            pure (foldType u us, [], s)
+            pure (foldType u us, s)
 
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
