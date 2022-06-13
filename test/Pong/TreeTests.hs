@@ -10,6 +10,7 @@ import Pong.TestData.GeraniumPlant
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
 import Pong.TestData.TheFatalAuction
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
@@ -166,6 +167,8 @@ treeTests =
       it "1" (testMonomorphizeProgram program6 == program8)
       -------------------------------------------------------------------------
       it "2" (transform1 program6 == program9)
+      -------------------------------------------------------------------------
+      it "3" (transform1 program205 == program206)
 
     describe "- compileProgram" $ do
       -------------------------------------------------------------------------
@@ -190,12 +193,15 @@ treeTests =
       passIt "4" (canonical (compileSource program48) == program49)
 
     describe "- isPolymorphic" $ do
-      passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0 :: MonoType))
-      passIt "'0" (isPolymorphic (tVar 0 :: MonoType))
-      passIt "(int -> int -> '0) -> int -> int -> '0" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0 :: MonoType))
-      passIt "(int -> int -> '0) -> int -> int -> int" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt :: MonoType))
-      failIt "int -> int -> bool" (not $ isPolymorphic (tInt ~> tInt ~> tBool))
-      failIt "bool" (not $ isPolymorphic tBool)
+      describe "- Pass" $ do
+        passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0 :: MonoType))
+        passIt "'0" (isPolymorphic (tVar 0 :: MonoType))
+        passIt "(int -> int -> '0) -> int -> int -> '0" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0 :: MonoType))
+        passIt "(int -> int -> '0) -> int -> int -> int" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt :: MonoType))
+
+      describe "- Fail" $ do
+        failIt "int -> int -> bool" (not $ isPolymorphic (tInt ~> tInt ~> tBool))
+        failIt "bool" (not $ isPolymorphic tBool)
 
     describe "- appArgs" $ do
       it "TODO" True

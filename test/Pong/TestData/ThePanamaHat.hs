@@ -129,3 +129,26 @@ program205 =
           )
         ]
     )
+
+program206 :: Program MonoType TypedExpr
+program206 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tInt], "$var_xs_1")
+                  (eCon (tCon "List" [tInt], "Nil"))
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "$var_xs_1"))
+                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                      , ([(tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons"), (tInt, "y"), (tCon "List" [tInt], "ys")], eVar (tInt, "y"))
+                      ]
+                  )
+              )
+          )
+        ]
+    )
