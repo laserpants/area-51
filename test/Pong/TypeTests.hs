@@ -6,10 +6,12 @@ import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Type
 import Pong.Util
+import qualified Pong.Util.Env as Env
 import Pong.Util.Pretty ()
 import Prettyprinter
 import Test.Hspec
@@ -383,6 +385,15 @@ typeTests =
     describe "- inferProgram" $ do
       -------------------------------------------------------------------------
       it "1" ((runInferProgram program5 <&> canonical) == Right program6)
+      -------------------------------------------------------------------------
+      let env =
+            Env.fromList
+              [
+                ( "Nil"
+                , Right (Scheme (tCon "List" [tVar "a"]))
+                )
+              ]
+       in it "2" ((runInferProgramWithEnv env program201 <&> canonical) == Right program202)
 
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------

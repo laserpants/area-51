@@ -37,3 +37,21 @@ program201 =
           )
         ]
     )
+
+program202 :: Program MonoType TypedExpr
+program202 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tVar 0], "xs")
+                  (eCon (tCon "List" [tVar 0], "Nil"))
+                  (eLit (PInt 200))
+              )
+          )
+        ]
+    )
