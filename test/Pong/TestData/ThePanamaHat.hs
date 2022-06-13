@@ -15,7 +15,10 @@ program200 =
   \    xs =\
   \      Nil()\
   \    in\
-  \      200\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => 402\
+  \        }\
   \"
 
 -- "
@@ -32,7 +35,12 @@ program201 =
               , eLet
                   ((), "xs")
                   (eCon ((), "Nil"))
-                  (eLit (PInt 200))
+                  ( ePat
+                      (eVar ((), "xs"))
+                      [ ([((), "Nil")], eLit (PInt 401))
+                      , ([((), "Cons"), ((), "y"), ((), "ys")], eLit (PInt 402))
+                      ]
+                  )
               )
           )
         ]
@@ -50,7 +58,12 @@ program202 =
               , eLet
                   (tCon "List" [tVar 0], "xs")
                   (eCon (tCon "List" [tVar 0], "Nil"))
-                  (eLit (PInt 200))
+                  ( ePat
+                      (eVar (tCon "List" [tVar 1], "xs"))
+                      [ ([(tCon "List" [tVar 1], "Nil")], eLit (PInt 401))
+                      , ([(tVar 1 ~> tCon "List" [tVar 1] ~> tCon "List" [tVar 1], "Cons"), (tVar 1, "y"), (tCon "List" [tVar 1], "ys")], eLit (PInt 402))
+                      ]
+                  )
               )
           )
         ]

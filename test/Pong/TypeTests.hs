@@ -392,6 +392,10 @@ typeTests =
                 ( "Nil"
                 , Right (Scheme (tCon "List" [tVar "a"]))
                 )
+              ,
+                ( "Cons"
+                , Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]))
+                )
               ]
        in it "2" ((runInferProgramWithEnv env program201 <&> canonical) == Right program202)
 
