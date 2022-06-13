@@ -186,7 +186,7 @@ emitCall fun args = do
             let sty = StructureType False [llvmType (tVar 0 ~> t)]
             s <- bitcast op (ptr sty)
             a <- bitcast op charPtr
-            f <- loadOffset s 0
+            f <- loadOffset 0 s
             r <- call f (zip (a : (snd <$> as)) (repeat []))
             pure (u, r)
           else do
@@ -196,24 +196,23 @@ emitCall fun args = do
                 sty1 = StructureType False (toFty us : charPtr : (llvmType <$> ts))
                 sty2 = StructureType False [toFty (ts <> us)]
             s <- malloc sty1
-            storeOffset s 0
+            storeOffset 0 s
               =<< function
                 (llvmRep n)
                 ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
                 (llvmType u)
                 ( \(a : as) -> do
                     s1 <- bitcast a (ptr sty1)
-                    v <- loadOffset s1 1
-                    s2 <- bitcast v (ptr sty2)
-                    f <- loadOffset s2 0
+                    v <- loadOffset 1 s1
+                    f <- loadOffset 0 =<< bitcast v (ptr sty2)
                     vs <- forM [2 .. (1 + length args)] $ \i ->
-                      loadOffset s1 i
+                      loadOffset i s1
                     r <- call f (zip (v : vs <> as) (repeat []))
                     ret r
                 )
-            storeOffset s 1 =<< bitcast op charPtr
+            storeOffset 1 s =<< bitcast op charPtr
             forM_ (as `zip` [2 ..]) $ \((_, a), i) ->
-              storeOffset s i a
+              storeOffset i s a
             pure (foldType u us, s)
       Just (t, op) -> do
         let u = returnType t
@@ -227,7 +226,7 @@ emitCall fun args = do
                 fty = llvmType (foldType u (tVar 0 : us))
                 sty = StructureType False (fty : (llvmType <$> ts))
             s <- malloc sty
-            storeOffset s 0
+            storeOffset 0 s
               =<< function
                 (llvmRep n)
                 ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
@@ -235,12 +234,12 @@ emitCall fun args = do
                 ( \(a : as) -> do
                     s <- bitcast a (ptr sty)
                     vs <- forM [1 .. length args] $ \i ->
-                      loadOffset s i
+                      loadOffset i s
                     r <- call op (zip (vs <> as) (repeat []))
                     ret r
                 )
             forM_ (as `zip` [1 ..]) $ \((_, a), i) ->
-              storeOffset s i a
+              storeOffset i s a
             pure (foldType u us, s)
 
 -- | Translate a language type to its equivalent LLVM type
@@ -320,13 +319,13 @@ ptrRef name = globalRef name . ptr
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
 functionRef name rty argtys = ptrRef name (FunctionType rty argtys False)
 
-loadOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => Operand -> a -> m Operand
-loadOffset ds i = do
+loadOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => a -> Operand -> m Operand
+loadOffset i ds = do
   p <- gep ds [int32 0, int32 (fromIntegral i)]
   load p 0
 
-storeOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => Operand -> a -> Operand -> m ()
-storeOffset ds i op = do
+storeOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => a -> Operand -> Operand -> m ()
+storeOffset i ds op = do
   p <- gep ds [int32 0, int32 (fromIntegral i)]
   store p 0 op
 
