@@ -15,7 +15,7 @@ import Pong.Util
 import System.Directory
 import System.Exit
 import System.IO.Unsafe
-import System.Process
+import System.Process hiding (env)
 import Test.Hspec
 import Text.Megaparsec
 

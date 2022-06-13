@@ -15,6 +15,7 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+    Setup.hs
 
 library
   exposed-modules:
@@ -33,6 +34,7 @@ library
       Paths_pong
   hs-source-dirs:
       src
+  ghc-options: -Wall -Werror
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -110,7 +112,7 @@ test-suite pong-test
       Paths_pong
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       base >=4.7 && <5
     , bytestring

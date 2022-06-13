@@ -11,7 +11,6 @@ import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ShirtMixUpAtTheLaundry
 import Pong.TestData.TheFatalAuction
-import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 import Test.Hspec
