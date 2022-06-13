@@ -68,3 +68,64 @@ program202 =
           )
         ]
     )
+
+program203 :: Text
+program203 =
+  "def main(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Nil()\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => y\
+  \        }\
+  \"
+
+-- "
+
+program204 :: Program () SourceExpr
+program204 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [((), "a")])
+              ( ()
+              , eLet
+                  ((), "xs")
+                  (eCon ((), "Nil"))
+                  ( ePat
+                      (eVar ((), "xs"))
+                      [ ([((), "Nil")], eLit (PInt 401))
+                      , ([((), "Cons"), ((), "y"), ((), "ys")], eVar ((), "y"))
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+program205 :: Program MonoType TypedExpr
+program205 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tVar 0], "xs")
+                  (eCon (tCon "List" [tVar 0], "Nil"))
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "xs"))
+                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                      , ([(tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons"), (tInt, "y"), (tCon "List" [tInt], "ys")], eVar (tInt, "y"))
+                      ]
+                  )
+              )
+          )
+        ]
+    )

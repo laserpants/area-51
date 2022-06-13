@@ -397,7 +397,10 @@ typeTests =
                 , Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]))
                 )
               ]
-       in it "2" ((runInferProgramWithEnv env program201 <&> canonical) == Right program202)
+      -------------------------------------------------------------------------
+      it "2" ((runInferProgramWithEnv env program201 <&> canonical) == Right program202)
+      -------------------------------------------------------------------------
+      it "3" ((runInferProgramWithEnv env program204 <&> canonical) == Right program205)
 
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------
