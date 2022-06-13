@@ -2,14 +2,21 @@
 
 module Pong.TestHelpers where
 
+import qualified Data.Text.Lazy as TextLazy
+import GHC.IO.Handle
+import LLVM.Pretty
 import Pong.Data
+import Pong.LLVM
+import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Read
 import Pong.Tree
 import Pong.Type
 import Pong.Util
 import System.Directory
+import System.Exit
 import System.IO.Unsafe
+import System.Process
 import Test.Hspec
 import Text.Megaparsec
 
@@ -38,6 +45,7 @@ unsafeReadFile = pack . unsafePerformIO . readFile
 readProjectFile :: String -> Text
 readProjectFile path = unsafeReadFile (projectDir <> "/" <> path)
 
+{-# INLINE mainSig #-}
 mainSig :: Label Scheme
 mainSig = (Scheme (tUnit ~> tInt), "main")
 
@@ -45,8 +53,35 @@ runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
 runTestParser parser input expect =
   it (unpack input) (runParser parser "" input == Right expect)
 
+{-# INLINE passIt #-}
 passIt :: Example a => String -> a -> SpecWith (Arg a)
 passIt = it . ("OK ✔ " <>)
 
+{-# INLINE failIt #-}
 failIt :: Example a => String -> a -> SpecWith (Arg a)
 failIt = it . ("OK ✗ " <>)
+
+compileModule :: Program MonoType Ast -> IO (ExitCode, String)
+compileModule program = compileBinary >> exec
+  where
+    compileBinary = do
+      let mdul = ppll (buildProgram "Main" program)
+          echo = proc "echo" [TextLazy.unpack mdul]
+      (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
+      (_, _, _, procHandle) <-
+        createProcess
+          (proc "clang" ["memory.c", "-xir", "-lgc", "-Wno-override-module", "-o", "tmp/out", "-"])
+            { std_in = UseHandle stdoutHandle
+            , cwd = Just projectDir
+            }
+      waitForProcess procHandle
+    exec = do
+      (_, Just stdoutHandle, _, procHandle) <-
+        createProcess
+          (proc "tmp/out" [])
+            { cwd = Just projectDir
+            , std_out = CreatePipe
+            }
+      outp <- hGetContents stdoutHandle
+      extc <- waitForProcess procHandle
+      pure (extc, takeWhile (/= '\n') outp)

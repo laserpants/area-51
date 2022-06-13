@@ -16,7 +16,8 @@ import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
-import Data.Tuple.Extra (first, second)
+import Data.Tuple.Extra (first, second, fst3, snd3, thd3)
+import Data.Maybe (fromMaybe)
 import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
@@ -31,19 +32,9 @@ import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 import TextShow (TextShow, showt)
 
-data OpType
-  = Op MonoType
-  | Partial MonoType [MonoType]
+type OpInfo = (MonoType, [MonoType], Operand)
 
-instance Typed OpType where
-  typeOf =
-    \case
-      Op t -> t
-      Partial t _ -> t
-
-type Info = (OpType, Operand)
-
-type CodeGenEnv = Environment Info
+type CodeGenEnv = Environment OpInfo
 
 newtype CodeGen a = CodeGen
   { getCodeGen ::
@@ -76,6 +67,7 @@ forEachIn p f = forEachDef p (\(_, name) def -> f name (typeOf def) def)
 buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram pname p = do
   buildModule (llvmRep pname) $ do
+    extern "gc_malloc" [i64] charPtr
     env <-
       buildEnv $ \name t ->
         \case
@@ -85,13 +77,14 @@ buildProgram pname p = do
                 (llvmRep name)
                 (llvmType <$> args)
                 (llvmType t1)
-            pure [(name, (Op t, op))]
+            pure [(name, (t, [], op))]
           Constant (t1, _) -> do
             pure
               [
                 ( name
                 ,
-                  ( Op t
+                  ( t
+                  , []
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -104,7 +97,8 @@ buildProgram pname p = do
               [
                 ( name
                 ,
-                  ( Op t
+                  ( t
+                  , []
                   , functionRef
                       (llvmRep name)
                       (llvmType t1)
@@ -124,7 +118,7 @@ buildProgram pname p = do
                   runCodeGen
                     env
                     p
-                    (emitBody body >>= ret . snd)
+                    (emitBody body >>= ret . thd3)
               )
         Function args (t1, body) ->
           void $
@@ -134,16 +128,16 @@ buildProgram pname p = do
               (llvmType t1)
               ( \ops -> do
                   runCodeGen
-                    (Env.inserts [(n, (Op t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
+                    (Env.inserts [(n, (t, [], op)) | (op, (t, n)) <- zip ops (toList args)] env)
                     p
-                    (emitBody body >>= ret . snd)
+                    (emitBody body >>= ret . thd3)
               )
         _ ->
           pure ()
   where
     buildEnv = Env.fromList . concat <$$> forEachIn p
 
-emitBody :: Ast -> CodeGen Info
+emitBody :: Ast -> CodeGen OpInfo
 emitBody =
   cata $ \case
     ELet (t, name) expr1 expr2 -> do
@@ -151,33 +145,30 @@ emitBody =
       local (Env.insert name e1) expr2
     ELit lit -> do
       op <- emitPrim lit
-      pure (Op (typeOf lit), op)
+      pure (typeOf lit, [], op)
     EIf expr1 expr2 expr3 -> mdo
-      (_, ifOp) <- expr1
+      (_, _, ifOp) <- expr1
       condBr ifOp thenBlock elseBlock
       thenBlock <- block `named` "then"
-      (_, thenOp) <- expr2
+      (_, _, thenOp) <- expr2
       br mergeBlock
       elseBlock <- block `named` "else"
-      (t, elseOp) <- expr3
+      (t, _, elseOp) <- expr3
       br mergeBlock
       mergeBlock <- block `named` "ifcont"
       r <- phi [(thenOp, thenBlock), (elseOp, elseBlock)]
-      pure (t, r)
+      pure (t, [], r)
     EOp1 op expr1 -> do
-      (_, a) <- expr1
+      (_, _, a) <- expr1
       r <- emitOp1Instr op a
-      pure (Op (returnType (fst op)), r)
+      pure (returnType (fst op), [], r)
     EOp2 op expr1 expr2 -> do
-      (_, a) <- expr1
-      (_, b) <- expr2
+      (_, _, a) <- expr1
+      (_, _, b) <- expr2
       r <- emitOp2Instr op a b
-      pure (Op (returnType (fst op)), r)
+      pure (returnType (fst op), [], r)
     EVar (t, name) ->
-      Env.askLookup name
-        >>= \case
-          Just c -> pure c
-          _ -> error "Implementation error"
+      Env.askLookup name <&> fromMaybe (error "Implementation error")
     ECall () (_, fun) args -> do
       emitCall fun args
     ERec{} ->
@@ -185,44 +176,102 @@ emitBody =
     ERes{} ->
       error "TODO"
 
-emitCall :: Name -> [CodeGen Info] -> CodeGen Info
+emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
 emitCall fun args = do
   as <- sequence args
-  traceShowM "//////////////////"
-  traceShowM as
   Env.askLookup fun
     >>= \case
-      Just (Op t, op) ->
+      Just (t, _, op@LocalReference{}) -> do
+        let u = returnType t
         if arity t == length as
           then do
-            r <- call op (zip (snd <$> as) (repeat []))
-            pure (Op (returnType t), r)
-          else partial t op as
-      Just (Partial t ts, op) -> do
-        let sty = StructureType False (llvmType t : (llvmType <$> ts))
-        s <- bitcast op (ptr sty)
-        p <- gep s [int32 0, int32 0]
-        f <- load p 0
-        bs <- forM (zip (unwindType t) [1 .. length ts]) $ \(ti, i) -> do
-          pi <- gep s [int32 0, int32 (fromIntegral i)]
-          r <- load pi 0
-          pure (Op ti, r)
-        if arity t == length bs + length as
-          then do
-            r <- call f (zip (snd <$> (bs <> as)) (repeat []))
-            pure (Op (returnType t), r)
-          else partial t f (bs <> as)
+            let sty = StructureType False [llvmType (tVar 0 ~> t)]
+            s <- bitcast op (ptr sty)
+            p <- gep s [int32 0, int32 0]
+            q <- bitcast op charPtr 
+            f <- load p 0
+            r <- call f (zip (q : (thd3 <$> as)) (repeat []))
+            pure (u, [], r)
+          else do
+            n <- uniqueName "$g"
+            let zs = take (length as) (argTypes t)
+                us = drop (length as) (argTypes t)
+                xx0 = foldType u (tVar 0 : us)
+                xx1 = foldType u (tVar 0 : zs <> us)
+                --sty = StructureType False (llvmType xx0 : llvmType xx1 : (llvmType <$> zs))
+                sty = StructureType False (llvmType xx0 : charPtr : (llvmType <$> zs))
+                sty2 = StructureType False [llvmType xx1]
+            f <- function
+              (llvmRep n)
+              ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us]) 
+              (llvmType u)
+              ( \(a : as) -> do
+                  s <- bitcast a (ptr sty)
+                  --p0 <- gep s [int32 0, int32 0]
+                  --p0 <- gep s [int32 0, int32 0]
+                  ------yy <- load p0 0
+                  --q0 <- load p0 0
+                  p1 <- gep s [int32 0, int32 1]
+                  q1 <- load p1 0
+                  ss <- bitcast q1 (ptr sty2)
+                  p2 <- gep ss [int32 0, int32 0]
+                  q2 <- load p2 0
+                  --p2 <- gep s [int32 0, int32 2]
+                  --q2 <- load p2 0
+                  bs <- forM [2..(1 + length args)] $ \i -> do
+                  --bs <- forM [1..(length args)] $ \i -> do
+                    pi <- gep s [int32 0, int32 (fromIntegral i)]
+                    load pi 0
+                  r <- call q2 (zip (q1 : bs <> as) (repeat []))
+                  --r <- lift $ emitPrim (PInt 99)
+                  ret r
+              )
+            s <- malloc sty
+            p0 <- gep s [int32 0, int32 0]
+            p1 <- gep s [int32 0, int32 1]
+            --p2 <- gep s [int32 0, int32 2]
+            ----- store p 0 f
+            store p0 0 f
+            xx0 <- bitcast op charPtr
+            store p1 0 xx0
+            forM_ (as `zip` [2..]) $ \((_, _, a), i) -> do
+              pi <- gep s [int32 0, int32 (fromIntegral i)]
+              store pi 0 a
+            pure (foldType u us, [], s)
+            --r <- emitPrim (PInt 987)
+            --pure (foldType u us, [], r)
 
-partial :: MonoType -> Operand -> [(OpType, Operand)] -> CodeGen Info
-partial t op as = do
-  let sty = StructureType False (llvmType t : (LLVM.typeOf . snd <$> as))
-  s <- malloc sty
-  p <- gep s [int32 0, int32 0]
-  store p 0 op
-  forM_ (as `zip` [1 ..]) $ \((_, arg), i) -> do
-    q <- gep s [int32 0, int32 i]
-    store q 0 arg
-  pure (Partial t (typeOf . fst <$> as), s)
+      Just (t, _, op) -> do
+        let u = returnType t
+        if arity t == length as
+          then do
+            r <- call op (zip (thd3 <$> as) (repeat []))
+            pure (u, [], r)
+          else do
+            n <- uniqueName "$f"
+            let zs = take (length as) (argTypes t)
+                us = drop (length as) (argTypes t)
+                xx1 = foldType u (tVar 0 : us)
+                sty = StructureType False (llvmType xx1 : (llvmType <$> zs))
+            f <- function
+              (llvmRep n)
+              ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us]) 
+              (llvmType u)
+              ( \(a : as) -> do
+                  s <- bitcast a (ptr sty)
+                  bs <- forM [1..length args] $ \i -> do
+                    pi <- gep s [int32 0, int32 (fromIntegral i)]
+                    load pi 0
+                  r <- call op (zip (bs <> as) (repeat []))
+                  ret r
+              )
+            s <- malloc sty
+            p <- gep s [int32 0, int32 0]
+            store p 0 f
+            forM_ (as `zip` [1..]) $ \((_, _, a), i) -> do
+              pi <- gep s [int32 0, int32 (fromIntegral i)]
+              store pi 0 a
+            pure (foldType u us, [], s)
 
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
@@ -309,19 +358,18 @@ malloc ty = do
   where
     allocate size = call (functionRef "gc_malloc" charPtr [i64]) [(size, [])]
 
+uniqueName :: Name -> CodeGen Name
+uniqueName prefix = do
+  n <- gets fst
+  modify (first succ)
+  pure (prefix <> showt n)
+
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll
 
 -------------------------------------------------------------------------------
 -- Typeclass instances
 -------------------------------------------------------------------------------
-
--- OpType
-deriving instance Show OpType
-
-deriving instance Eq OpType
-
-deriving instance Ord OpType
 
 -- CodeGen
 deriving instance Functor CodeGen
