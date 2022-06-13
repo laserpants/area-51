@@ -319,12 +319,21 @@ ptrRef name = globalRef name . ptr
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
 functionRef name rty argtys = ptrRef name (FunctionType rty argtys False)
 
-loadOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => a -> Operand -> m Operand
+loadOffset ::
+  (MonadIRBuilder m, MonadModuleBuilder m, Integral a) =>
+  a ->
+  Operand ->
+  m Operand
 loadOffset i ds = do
   p <- gep ds [int32 0, int32 (fromIntegral i)]
   load p 0
 
-storeOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => a -> Operand -> Operand -> m ()
+storeOffset ::
+  (MonadIRBuilder m, MonadModuleBuilder m, Integral a) =>
+  a ->
+  Operand ->
+  Operand ->
+  m ()
 storeOffset i ds op = do
   p <- gep ds [int32 0, int32 (fromIntegral i)]
   store p 0 op
