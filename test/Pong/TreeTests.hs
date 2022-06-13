@@ -181,6 +181,8 @@ treeTests =
       it "4" (compileProgram fragment3 == fragment9)
       -------------------------------------------------------------------------
       it "5" (compileProgram fragment1 == fragment2)
+      -------------------------------------------------------------------------
+      it "6" (compileProgram program206 == program207)
 
     describe "- normalizeProgramDefs" $ do
       -------------------------------------------------------------------------

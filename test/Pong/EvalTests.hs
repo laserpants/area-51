@@ -11,6 +11,7 @@ import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ShirtMixUpAtTheLaundry
 import Pong.TestData.TheFatalAuction
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 import Test.Hspec
@@ -63,3 +64,5 @@ evalTests =
       let program :: Program MonoType Ast
           program = compileSource program48
        in it "11" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
+      -------------------------------------------------------------------------
+      it "12" (Just (PrimValue (PInt 401)) == evalProgram program207 mainSig)

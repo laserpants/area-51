@@ -122,7 +122,14 @@ program205 =
                   ( ePat
                       (eVar (tCon "List" [tInt], "xs"))
                       [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
-                      , ([(tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons"), (tInt, "y"), (tCon "List" [tInt], "ys")], eVar (tInt, "y"))
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eVar (tInt, "y")
+                        )
                       ]
                   )
               )
@@ -145,7 +152,44 @@ program206 =
                   ( ePat
                       (eVar (tCon "List" [tInt], "$var_xs_1"))
                       [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
-                      , ([(tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons"), (tInt, "y"), (tCon "List" [tInt], "ys")], eVar (tInt, "y"))
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eVar (tInt, "y")
+                        )
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+program207 :: Program MonoType Ast
+program207 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tInt], "$var_xs_1")
+                  (eCall (tCon "List" [tInt], "Nil") [])
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "$var_xs_1"))
+                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eVar (tInt, "y")
+                        )
                       ]
                   )
               )
