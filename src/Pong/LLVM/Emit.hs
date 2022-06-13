@@ -14,10 +14,10 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
-import Data.Tuple.Extra (first, second, fst3, snd3, thd3)
-import Data.Maybe (fromMaybe)
+import Data.Tuple.Extra (first, fst3, second, snd3, thd3)
 import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
@@ -188,7 +188,7 @@ emitCall fun args = do
             let sty = StructureType False [llvmType (tVar 0 ~> t)]
             s <- bitcast op (ptr sty)
             p <- gep s [int32 0, int32 0]
-            q <- bitcast op charPtr 
+            q <- bitcast op charPtr
             f <- load p 0
             r <- call f (zip (q : (thd3 <$> as)) (repeat []))
             pure (u, [], r)
@@ -198,48 +198,49 @@ emitCall fun args = do
                 us = drop (length as) (argTypes t)
                 xx0 = foldType u (tVar 0 : us)
                 xx1 = foldType u (tVar 0 : zs <> us)
-                --sty = StructureType False (llvmType xx0 : llvmType xx1 : (llvmType <$> zs))
+                -- sty = StructureType False (llvmType xx0 : llvmType xx1 : (llvmType <$> zs))
                 sty = StructureType False (llvmType xx0 : charPtr : (llvmType <$> zs))
                 sty2 = StructureType False [llvmType xx1]
-            f <- function
-              (llvmRep n)
-              ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us]) 
-              (llvmType u)
-              ( \(a : as) -> do
-                  s <- bitcast a (ptr sty)
-                  --p0 <- gep s [int32 0, int32 0]
-                  --p0 <- gep s [int32 0, int32 0]
-                  ------yy <- load p0 0
-                  --q0 <- load p0 0
-                  p1 <- gep s [int32 0, int32 1]
-                  q1 <- load p1 0
-                  ss <- bitcast q1 (ptr sty2)
-                  p2 <- gep ss [int32 0, int32 0]
-                  q2 <- load p2 0
-                  --p2 <- gep s [int32 0, int32 2]
-                  --q2 <- load p2 0
-                  bs <- forM [2..(1 + length args)] $ \i -> do
-                  --bs <- forM [1..(length args)] $ \i -> do
-                    pi <- gep s [int32 0, int32 (fromIntegral i)]
-                    load pi 0
-                  r <- call q2 (zip (q1 : bs <> as) (repeat []))
-                  --r <- lift $ emitPrim (PInt 99)
-                  ret r
-              )
+            f <-
+              function
+                (llvmRep n)
+                ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
+                (llvmType u)
+                ( \(a : as) -> do
+                    s <- bitcast a (ptr sty)
+                    -- p0 <- gep s [int32 0, int32 0]
+                    -- p0 <- gep s [int32 0, int32 0]
+                    ------yy <- load p0 0
+                    -- q0 <- load p0 0
+                    p1 <- gep s [int32 0, int32 1]
+                    q1 <- load p1 0
+                    ss <- bitcast q1 (ptr sty2)
+                    p2 <- gep ss [int32 0, int32 0]
+                    q2 <- load p2 0
+                    -- p2 <- gep s [int32 0, int32 2]
+                    -- q2 <- load p2 0
+                    bs <- forM [2 .. (1 + length args)] $ \i -> do
+                      -- bs <- forM [1..(length args)] $ \i -> do
+                      pi <- gep s [int32 0, int32 (fromIntegral i)]
+                      load pi 0
+                    r <- call q2 (zip (q1 : bs <> as) (repeat []))
+                    -- r <- lift $ emitPrim (PInt 99)
+                    ret r
+                )
             s <- malloc sty
             p0 <- gep s [int32 0, int32 0]
             p1 <- gep s [int32 0, int32 1]
-            --p2 <- gep s [int32 0, int32 2]
+            -- p2 <- gep s [int32 0, int32 2]
             ----- store p 0 f
             store p0 0 f
             xx0 <- bitcast op charPtr
             store p1 0 xx0
-            forM_ (as `zip` [2..]) $ \((_, _, a), i) -> do
+            forM_ (as `zip` [2 ..]) $ \((_, _, a), i) -> do
               pi <- gep s [int32 0, int32 (fromIntegral i)]
               store pi 0 a
             pure (foldType u us, [], s)
-            --r <- emitPrim (PInt 987)
-            --pure (foldType u us, [], r)
+      -- r <- emitPrim (PInt 987)
+      -- pure (foldType u us, [], r)
 
       Just (t, _, op) -> do
         let u = returnType t
@@ -253,22 +254,23 @@ emitCall fun args = do
                 us = drop (length as) (argTypes t)
                 xx1 = foldType u (tVar 0 : us)
                 sty = StructureType False (llvmType xx1 : (llvmType <$> zs))
-            f <- function
-              (llvmRep n)
-              ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us]) 
-              (llvmType u)
-              ( \(a : as) -> do
-                  s <- bitcast a (ptr sty)
-                  bs <- forM [1..length args] $ \i -> do
-                    pi <- gep s [int32 0, int32 (fromIntegral i)]
-                    load pi 0
-                  r <- call op (zip (bs <> as) (repeat []))
-                  ret r
-              )
+            f <-
+              function
+                (llvmRep n)
+                ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
+                (llvmType u)
+                ( \(a : as) -> do
+                    s <- bitcast a (ptr sty)
+                    bs <- forM [1 .. length args] $ \i -> do
+                      pi <- gep s [int32 0, int32 (fromIntegral i)]
+                      load pi 0
+                    r <- call op (zip (bs <> as) (repeat []))
+                    ret r
+                )
             s <- malloc sty
             p <- gep s [int32 0, int32 0]
             store p 0 f
-            forM_ (as `zip` [1..]) $ \((_, _, a), i) -> do
+            forM_ (as `zip` [1 ..]) $ \((_, _, a), i) -> do
               pi <- gep s [int32 0, int32 (fromIntegral i)]
               store pi 0 a
             pure (foldType u us, [], s)

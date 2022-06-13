@@ -3,20 +3,20 @@
 module Pong.LLVM.EmitTests where
 
 import Control.Arrow ((<<<), (>>>))
-import System.Exit
-import Pong.Read
 import Pong.LLVM.Emit
-import Pong.Tree
+import Pong.Read
 import Pong.TestData.JackOfClubs
-import Pong.TestHelpers
-import Test.Hspec
 import Pong.TestData.TheFatalAuction
+import Pong.TestHelpers
+import Pong.Tree
+import System.Exit
+import Test.Hspec
 
 llvmEmitTests :: SpecWith ()
 llvmEmitTests =
   describe "Pong.LLVM.Emit" $ do
     describe "- buildProgram" $ do
-      let runTest = 
+      let runTest =
             runIO <<< compileModule <<< compileSource
       -------------------------------------------------------------------------
       r <- runTest program50

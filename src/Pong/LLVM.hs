@@ -14,7 +14,7 @@ module Pong.LLVM
   )
 where
 
-import LLVM.AST (Module(..))
+import LLVM.AST (Module (..))
 import LLVM.AST.AddrSpace
 import LLVM.AST.Constant
 import LLVM.AST.Float
@@ -22,7 +22,7 @@ import LLVM.AST.Operand hiding (Module, PointerType, Undef, Vector, local)
 import LLVM.AST.Type hiding (Type, double, half, isPacked)
 import LLVM.AST.Typed
 import LLVM.IRBuilder
-import LLVM.Target
 import LLVM.IRBuilder.Constant
 import LLVM.IRBuilder.Instruction
 import LLVM.Pretty
+import LLVM.Target
