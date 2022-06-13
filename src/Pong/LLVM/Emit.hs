@@ -185,46 +185,35 @@ emitCall fun args = do
           then do
             let sty = StructureType False [llvmType (tVar 0 ~> t)]
             s <- bitcast op (ptr sty)
-            p <- gep s [int32 0, int32 0]
-            q <- bitcast op charPtr
-            f <- load p 0
-            r <- call f (zip (q : (snd <$> as)) (repeat []))
+            a <- bitcast op charPtr
+            f <- loadOffset s 0
+            r <- call f (zip (a : (snd <$> as)) (repeat []))
             pure (u, r)
           else do
             n <- uniqueName "$f"
-            let zs = take (length as) (argTypes t)
-                us = drop (length as) (argTypes t)
-                xx0 = foldType u (tVar 0 : us)
-                xx1 = foldType u (tVar 0 : zs <> us)
-                sty = StructureType False (llvmType xx0 : charPtr : (llvmType <$> zs))
-                sty2 = StructureType False [llvmType xx1]
-            f <-
-              function
+            let (ts, us) = splitAt (length as) (argTypes t)
+                toFty ts = llvmType (foldType u (tVar 0 : ts))
+                sty1 = StructureType False (toFty us : charPtr : (llvmType <$> ts))
+                sty2 = StructureType False [toFty (ts <> us)]
+            s <- malloc sty1
+            storeOffset s 0
+              =<< function
                 (llvmRep n)
                 ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
                 (llvmType u)
                 ( \(a : as) -> do
-                    s <- bitcast a (ptr sty)
-                    p1 <- gep s [int32 0, int32 1]
-                    q1 <- load p1 0
-                    ss <- bitcast q1 (ptr sty2)
-                    p2 <- gep ss [int32 0, int32 0]
-                    q2 <- load p2 0
-                    bs <- forM [2 .. (1 + length args)] $ \i -> do
-                      pi <- gep s [int32 0, int32 (fromIntegral i)]
-                      load pi 0
-                    r <- call q2 (zip (q1 : bs <> as) (repeat []))
+                    s1 <- bitcast a (ptr sty1)
+                    v <- loadOffset s1 1
+                    s2 <- bitcast v (ptr sty2)
+                    f <- loadOffset s2 0
+                    vs <- forM [2 .. (1 + length args)] $ \i ->
+                      loadOffset s1 i
+                    r <- call f (zip (v : vs <> as) (repeat []))
                     ret r
                 )
-            s <- malloc sty
-            p0 <- gep s [int32 0, int32 0]
-            p1 <- gep s [int32 0, int32 1]
-            store p0 0 f
-            xx0 <- bitcast op charPtr
-            store p1 0 xx0
-            forM_ (as `zip` [2 ..]) $ \((_, a), i) -> do
-              pi <- gep s [int32 0, int32 (fromIntegral i)]
-              store pi 0 a
+            storeOffset s 1 =<< bitcast op charPtr
+            forM_ (as `zip` [2 ..]) $ \((_, a), i) ->
+              storeOffset s i a
             pure (foldType u us, s)
       Just (t, op) -> do
         let u = returnType t
@@ -234,29 +223,24 @@ emitCall fun args = do
             pure (u, r)
           else do
             n <- uniqueName "$f"
-            let zs = take (length as) (argTypes t)
-                us = drop (length as) (argTypes t)
-                xx1 = foldType u (tVar 0 : us)
-                sty = StructureType False (llvmType xx1 : (llvmType <$> zs))
-            f <-
-              function
+            let (ts, us) = splitAt (length as) (argTypes t)
+                fty = llvmType (foldType u (tVar 0 : us))
+                sty = StructureType False (fty : (llvmType <$> ts))
+            s <- malloc sty
+            storeOffset s 0
+              =<< function
                 (llvmRep n)
                 ((charPtr, "s") : [(llvmType t, llvmRep "a") | t <- us])
                 (llvmType u)
                 ( \(a : as) -> do
                     s <- bitcast a (ptr sty)
-                    bs <- forM [1 .. length args] $ \i -> do
-                      pi <- gep s [int32 0, int32 (fromIntegral i)]
-                      load pi 0
-                    r <- call op (zip (bs <> as) (repeat []))
+                    vs <- forM [1 .. length args] $ \i ->
+                      loadOffset s i
+                    r <- call op (zip (vs <> as) (repeat []))
                     ret r
                 )
-            s <- malloc sty
-            p <- gep s [int32 0, int32 0]
-            store p 0 f
-            forM_ (as `zip` [1 ..]) $ \((_, a), i) -> do
-              pi <- gep s [int32 0, int32 (fromIntegral i)]
-              store pi 0 a
+            forM_ (as `zip` [1 ..]) $ \((_, a), i) ->
+              storeOffset s i a
             pure (foldType u us, s)
 
 -- | Translate a language type to its equivalent LLVM type
@@ -335,6 +319,16 @@ ptrRef name = globalRef name . ptr
 
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
 functionRef name rty argtys = ptrRef name (FunctionType rty argtys False)
+
+loadOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => Operand -> a -> m Operand
+loadOffset ds i = do
+  p <- gep ds [int32 0, int32 (fromIntegral i)]
+  load p 0
+
+storeOffset :: (MonadIRBuilder m, MonadModuleBuilder m, Integral a) => Operand -> a -> Operand -> m ()
+storeOffset ds i op = do
+  p <- gep ds [int32 0, int32 (fromIntegral i)]
+  store p 0 op
 
 malloc :: (MonadIRBuilder m) => LLVM.Type -> m Operand
 malloc ty = do
