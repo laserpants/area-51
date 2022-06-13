@@ -62,6 +62,10 @@ langTests =
         passIt "true : bool" (typeOf (eLit (PBool True) :: TypedExpr) == tBool)
         -----------------------------------------------------------------------
         passIt "x : int" (typeOf (eVar (tInt, "x") :: TypedExpr) == tInt)
+        -----------------------------------------------------------------------
+        passIt "lam(x) => x : int -> int" (typeOf (eLam () [(tInt, "x")] (eVar (tInt, "x")) :: TypedExpr) == (tInt ~> tInt))
+        -----------------------------------------------------------------------
+        passIt "lam(x) => x : '0 -> '0" (typeOf (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")) :: TypedExpr) == (tVar 0 ~> tVar 0))
 
       describe "Definition" $ do
         -----------------------------------------------------------------------
