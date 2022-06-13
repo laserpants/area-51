@@ -100,6 +100,7 @@ test-suite pong-test
       Pong.TestData.MysteriousSetOfBooks
       Pong.TestData.ShirtMixUpAtTheLaundry
       Pong.TestData.TheFatalAuction
+      Pong.TestData.ThePanamaHat
       Pong.TestHelpers
       Pong.TreeTests
       Pong.TypeTests
