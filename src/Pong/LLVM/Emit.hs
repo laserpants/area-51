@@ -328,7 +328,7 @@ ptrRef :: LLVM.Name -> LLVM.Type -> Operand
 ptrRef name_ = globalRef name_ . ptr
 
 functionRef :: LLVM.Name -> LLVM.Type -> [LLVM.Type] -> Operand
-functionRef name_ rty argtys = ptrRef name_ (FunctionType rty argtys False)
+functionRef name_ rty atys = ptrRef name_ (FunctionType rty atys False)
 
 loadOffset ::
   (MonadIRBuilder m, MonadModuleBuilder m) =>
