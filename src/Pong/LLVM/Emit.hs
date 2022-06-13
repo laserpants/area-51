@@ -226,7 +226,6 @@ emitCall fun args = do
               pi <- gep s [int32 0, int32 (fromIntegral i)]
               store pi 0 a
             pure (foldType u us, s)
-
       Just (t, op) -> do
         let u = returnType t
         if arity t == length as
