@@ -126,7 +126,12 @@ buildProgram pname p = do
               (llvmType t1)
               ( \ops -> do
                   runCodeGen
-                    (Env.inserts [(n, (t, op)) | (op, (t, n)) <- zip ops (toList args)] env)
+                    ( Env.inserts
+                        [ (n, (t, op))
+                        | (op, (t, n)) <- zip ops (toList args)
+                        ]
+                        env
+                    )
                     p
                     (emitBody body >>= ret . snd)
               )
@@ -180,6 +185,7 @@ emitCall fun args = do
   Env.askLookup fun
     >>= \case
       Just (t, op@LocalReference{}) -> do
+        -- Partially applied function
         let u = returnType t
         if arity t == length as
           then do
@@ -215,6 +221,7 @@ emitCall fun args = do
               storeOffset i s a
             pure (foldType u us, s)
       Just (t, op) -> do
+        -- Regular function pointer
         let u = returnType t
         if arity t == length as
           then do
