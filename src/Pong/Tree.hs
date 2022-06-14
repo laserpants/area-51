@@ -206,7 +206,7 @@ compile =
       pure
         ( case project f of
             ECall _ g ys -> eCall g (ys <> xs)
-            EVar v -> eCall v xs
+            EVar v -> if null xs then eVar v else eCall v xs
             _ -> error "Implementation error"
         )
     ELet var expr1 expr2 -> do
@@ -218,7 +218,7 @@ compile =
       e2 <- expr2
       makeDef "$res" (eRes fs e1 e2) (\app -> eRes fs e1 (app e2))
     ECon con ->
-      pure (eCall con [])
+      pure (eVar con)
     EOp1 op a1 ->
       eOp1 op <$> a1
     EOp2 op a1 a2 ->

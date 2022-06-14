@@ -182,9 +182,9 @@ treeTests =
       -------------------------------------------------------------------------
       it "5" (compileProgram fragment1 == fragment2)
       -------------------------------------------------------------------------
-      it "6" (compileProgram program206 == program207)
+      it "6" (compileProgram program206 == program217)
       -------------------------------------------------------------------------
-      it "7" (compileProgram program210 == program211)
+      it "7" (compileProgram program210 == program271)
 
     describe "- normalizeProgramDefs" $ do
       -------------------------------------------------------------------------

@@ -167,36 +167,6 @@ program206 =
         ]
     )
 
-program207 :: Program MonoType Ast
-program207 =
-  Program
-    ( Map.fromList
-        [
-          ( (Scheme (tUnit ~> tInt), "main")
-          , Function
-              (fromList [(tUnit, "a")])
-              ( tInt
-              , eLet
-                  (tCon "List" [tInt], "$var_xs_1")
-                  (eCall (tCon "List" [tInt], "Nil") [])
-                  ( ePat
-                      (eVar (tCon "List" [tInt], "$var_xs_1"))
-                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
-                      ,
-                        (
-                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
-                          , (tInt, "y")
-                          , (tCon "List" [tInt], "ys")
-                          ]
-                        , eVar (tInt, "y")
-                        )
-                      ]
-                  )
-              )
-          )
-        ]
-    )
-
 program217 :: Program MonoType Ast
 program217 =
   Program
@@ -301,8 +271,8 @@ program210 =
         ]
     )
 
-program211 :: Program MonoType Ast
-program211 =
+program271 :: Program MonoType Ast
+program271 =
   Program
     ( Map.fromList
         [
@@ -315,7 +285,7 @@ program211 =
                   ( eCall
                       (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
                       [ eLit (PInt 5)
-                      , eCall (tCon "List" [tInt], "Nil") []
+                      , eVar (tCon "List" [tInt], "Nil")
                       ]
                   )
                   ( ePat

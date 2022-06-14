@@ -66,9 +66,9 @@ evalTests =
           program = compileSource program48
        in it "11" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
       -------------------------------------------------------------------------
-      it "12" (Just (PrimValue (PInt 401)) == evalProgram program207 mainSig)
+      it "12" (Just (PrimValue (PInt 401)) == evalProgram program217 mainSig)
       -------------------------------------------------------------------------
-      it "13" (Just (PrimValue (PInt 5)) == evalProgram program211 mainSig)
+      it "13" (Just (PrimValue (PInt 5)) == evalProgram program271 mainSig)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSourceWithEnv env program212
