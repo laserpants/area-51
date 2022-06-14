@@ -196,3 +196,112 @@ program207 =
           )
         ]
     )
+
+program208 :: Text
+program208 =
+  "def main(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Cons(5, Nil)\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => y\
+  \        }\
+  \"
+
+-- "
+
+program209 :: Program () SourceExpr
+program209 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [((), "a")])
+              ( ()
+              , eLet
+                  ((), "xs")
+                  (eApp () (eCon ((), "Cons")) [eLit (PInt 5), eCon ((), "Nil")])
+                  ( ePat
+                      (eVar ((), "xs"))
+                      [ ([((), "Nil")], eLit (PInt 401))
+                      , ([((), "Cons"), ((), "y"), ((), "ys")], eVar ((), "y"))
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+program210 :: Program MonoType TypedExpr
+program210 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tInt], "xs")
+                  ( eApp
+                      (tCon "List" [tInt])
+                      (eCon (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons"))
+                      [ eLit (PInt 5)
+                      , eCon (tCon "List" [tInt], "Nil")
+                      ]
+                  )
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "xs"))
+                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eVar (tInt, "y")
+                        )
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+program211 :: Program MonoType Ast
+program211 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tInt], "xs")
+                  ( eCall
+                      (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                      [ eLit (PInt 5)
+                      , eCall (tCon "List" [tInt], "Nil") []
+                      ]
+                  )
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "xs"))
+                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eVar (tInt, "y")
+                        )
+                      ]
+                  )
+              )
+          )
+        ]
+    )

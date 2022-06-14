@@ -401,6 +401,8 @@ typeTests =
       it "2" ((runInferProgramWithEnv env program201 <&> canonical) == Right program202)
       -------------------------------------------------------------------------
       it "3" ((runInferProgramWithEnv env program204 <&> canonical) == Right program205)
+      -------------------------------------------------------------------------
+      it "4" ((runInferProgramWithEnv env program209 <&> canonical) == Right program210)
 
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------
