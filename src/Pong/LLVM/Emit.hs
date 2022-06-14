@@ -20,6 +20,8 @@ import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
+import Debug.Trace
+import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, typeOf, var, void)
 import Pong.Lang
@@ -64,6 +66,13 @@ buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram pname p = do
   buildModule (llvmRep pname) $ do
     void (extern "gc_malloc" [i64] charPtr)
+
+    --function
+    --  undefined
+    --  undefined
+    --  undefined
+    --  undefined
+
     env <-
       buildEnv $ \name_ t ->
         \case
@@ -102,6 +111,22 @@ buildProgram pname p = do
               ]
           _ ->
             error "TODO"
+--    let env = env <> Env.fromList 
+--          [ ( "Cons"
+--            , ( tVar 0 ~> tCon "List" [tVar 0] ~> tCon "List" [tVar 0]
+--              , functionRef (llvmRep "Cons")
+--                  charPtr
+--                  undefined
+--              )
+--            )
+--          , ( "Nil"
+--            , ( tCon "List" [tVar 0]
+--              , functionRef (llvmRep "Nil")
+--                  charPtr
+--                  undefined
+--              )
+--            ) 
+--          ]
     forEachIn p $ \name_ _ ->
       \case
         Constant (t1, body) -> do
@@ -170,14 +195,16 @@ emitBody =
       pure (returnType (fst op), r)
     EVar (_, var) ->
       Env.askLookup var <&> fromMaybe (error "Implementation error")
-    ECall () (_, fun) args -> do
+    ECall () (_, fun) args -> 
       emitCall fun args
+    EPat expr cs ->
+      emitPat expr cs
     ERec{} ->
-      error "TODO"
+      error "TODO: ERec"
     ERes{} ->
-      error "TODO"
-    _ ->
-      error "TODO"
+      error "TODO: ERes"
+    ECon {} ->
+      error "TODO: ECon"
 
 emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
 emitCall fun args = do
@@ -250,6 +277,16 @@ emitCall fun args = do
             pure (foldType u us, s)
       _ ->
         error "Implementation error"
+
+emitPat 
+  :: CodeGen (MonoType, Operand) 
+  -> [Clause MonoType (CodeGen (MonoType, Operand))] 
+  -> CodeGen (MonoType, Operand)
+emitPat expr cs = do
+  (_, e) <- expr
+  traceShowM (LLVM.typeOf e)
+  m <- loadOffset 0 e
+  undefined
 
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type

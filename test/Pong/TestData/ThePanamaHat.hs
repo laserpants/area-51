@@ -61,7 +61,12 @@ program202 =
                   ( ePat
                       (eVar (tCon "List" [tVar 1], "xs"))
                       [ ([(tCon "List" [tVar 1], "Nil")], eLit (PInt 401))
-                      , ([(tVar 1 ~> tCon "List" [tVar 1] ~> tCon "List" [tVar 1], "Cons"), (tVar 1, "y"), (tCon "List" [tVar 1], "ys")], eLit (PInt 402))
+                      , ( [ (tVar 1 ~> tCon "List" [tVar 1] ~> tCon "List" [tVar 1], "Cons")
+                          , (tVar 1, "y")
+                          , (tCon "List" [tVar 1], "ys")
+                          ]
+                        , eLit (PInt 402)
+                        )
                       ]
                   )
               )
@@ -324,3 +329,23 @@ program212 =
   \"
 
 -- "
+
+program300 :: Text
+program300 =
+  "\
+  \def main(a : unit) : int =\
+  \  3\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  3\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Nil()\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => 402\
+  \        }\
+  \"
