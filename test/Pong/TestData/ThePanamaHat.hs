@@ -61,7 +61,9 @@ program202 =
                   ( ePat
                       (eVar (tCon "List" [tVar 1], "xs"))
                       [ ([(tCon "List" [tVar 1], "Nil")], eLit (PInt 401))
-                      , ( [ (tVar 1 ~> tCon "List" [tVar 1] ~> tCon "List" [tVar 1], "Cons")
+                      ,
+                        (
+                          [ (tVar 1 ~> tCon "List" [tVar 1] ~> tCon "List" [tVar 1], "Cons")
                           , (tVar 1, "y")
                           , (tCon "List" [tVar 1], "ys")
                           ]
