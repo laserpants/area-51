@@ -14,6 +14,7 @@ import Pong.TestData.TheFatalAuction
 import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
+import qualified Pong.Util.Env as Env
 import Test.Hspec
 
 evalTests :: SpecWith ()
@@ -68,3 +69,18 @@ evalTests =
       it "12" (Just (PrimValue (PInt 401)) == evalProgram program207 mainSig)
       -------------------------------------------------------------------------
       it "13" (Just (PrimValue (PInt 5)) == evalProgram program211 mainSig)
+      -------------------------------------------------------------------------
+      let program :: Program MonoType Ast
+          program = compileSourceWithEnv env program212
+          env =
+            Env.fromList
+              [
+                ( "Nil"
+                , Right (Scheme (tCon "List" [tVar "a"]))
+                )
+              ,
+                ( "Cons"
+                , Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]))
+                )
+              ]
+       in it "14" (Just (PrimValue (PInt 4)) == evalProgram program mainSig)

@@ -305,3 +305,22 @@ program211 =
           )
         ]
     )
+
+program212 :: Text
+program212 =
+  "def main(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Cons(5, Cons(4, Cons(3, Nil)))\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) =>\
+  \            match ys\
+  \              { Nil => 404\
+  \              | Cons(z, zs) => z\
+  \              }\
+  \        }\
+  \"
+
+-- "

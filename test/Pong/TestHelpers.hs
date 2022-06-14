@@ -2,6 +2,8 @@
 
 module Pong.TestHelpers where
 
+import Control.Monad ((>=>))
+import Data.Either.Extra (mapLeft)
 import qualified Data.Text.Lazy as TextLazy
 import GHC.IO.Handle
 import LLVM.Pretty
@@ -33,6 +35,20 @@ runInferProgramWithEnv ::
   Program () SourceExpr ->
   Either TypeError (Program MonoType TypedExpr)
 runInferProgramWithEnv env = runTypeChecker 1 env . inferProgram <&> fst
+
+parseAndAnnotateWithEnv ::
+  TypeEnv ->
+  Text ->
+  Either CompilerError (Program MonoType TypedExpr)
+parseAndAnnotateWithEnv env =
+  mapLeft ParserError . parseProgram
+    >=> mapLeft TypeError . runInferProgramWithEnv env
+
+compileSourceWithEnv :: TypeEnv -> Text -> Program MonoType Ast
+compileSourceWithEnv env input =
+  case parseAndAnnotateWithEnv env input of
+    Left e -> error (show e)
+    Right p -> transformProgram p
 
 testHoistProgram :: Program MonoType TypedExpr -> Program MonoType TypedExpr
 testHoistProgram p = programFor p (const hoistTopLambdas)
