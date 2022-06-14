@@ -76,6 +76,8 @@ newtype Eval a = Eval {unEval :: Reader ValueEnv a}
 eval :: Ast -> Eval Value
 eval =
   cata $ \case
+    EVar (_, var) | isUpper (Text.head var) -> do
+      pure (ConValue var [])
     EVar (t, var) -> do
       (defs, vals) <- ask
       case Env.lookup var vals of
