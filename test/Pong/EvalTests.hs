@@ -66,3 +66,5 @@ evalTests =
        in it "11" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
       -------------------------------------------------------------------------
       it "12" (Just (PrimValue (PInt 401)) == evalProgram program207 mainSig)
+      -------------------------------------------------------------------------
+      it "13" (Just (PrimValue (PInt 5)) == evalProgram program211 mainSig)
