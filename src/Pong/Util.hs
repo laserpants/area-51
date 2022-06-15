@@ -23,6 +23,7 @@ module Pong.Util
   , embed4
   , embed5
   , without
+  , withoutLabels
   , localFirst
   , asksFirst
   , localSecond
@@ -42,6 +43,7 @@ import Data.Functor.Foldable
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
 import Data.Ord.Deriving (deriveOrd1)
+import qualified Data.Set as Set
 import Data.Text (Text, pack, unpack)
 import Data.Tuple.Extra (first, second)
 import Data.Void (Void)
@@ -51,6 +53,9 @@ import TextShow (showt)
 {-# INLINE without #-}
 without :: (Eq a) => [a] -> [a] -> [a]
 without = foldr (filter <<< (/=))
+
+withoutLabels :: [Name] -> [(t, Name)] -> [(t, Name)]
+withoutLabels elems = filter (\a -> snd a `notElem` Set.fromList elems)
 
 {-# INLINE (<$$>) #-}
 (<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)

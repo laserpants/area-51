@@ -122,8 +122,8 @@ appArgs xs =
           error "Implementation error"
     )
 
-exclude :: [Label s] -> [Name] -> [Label s]
-exclude = foldr (\label -> filter ((/=) label . snd))
+exclude :: [Label t] -> [Name] -> [Label t]
+exclude = flip withoutLabels
 
 extra :: MonoType -> [Label MonoType]
 extra t

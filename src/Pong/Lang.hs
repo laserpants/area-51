@@ -31,6 +31,7 @@ import Pong.Util
   , para
   , project
   , varSequence
+  , withoutLabels
   , (!)
   , (<$$>)
   , (<&>)
@@ -337,8 +338,8 @@ instance (Ord t) => FreeVars (Expr t a0 a1 a2) t where
           ECon _ -> mempty
           ELit _ -> mempty
           EIf e1 e2 e3 -> e1 <> e2 <> e3
-          ELet bind e1 e2 -> (e1 <> e2) `excluding` [bind]
-          ELam _ args expr -> expr `excluding` args
+          ELet var e1 e2 -> (e1 <> e2) \\\ [var]
+          ELam _ args expr -> expr \\\ args
           EApp _ fun args -> fun <> Set.unions args
           ECall _ fun args
             | isUpper (Text.head (snd fun)) -> Set.unions args
@@ -347,7 +348,7 @@ instance (Ord t) => FreeVars (Expr t a0 a1 a2) t where
           EOp2 _ e1 e2 -> e1 <> e2
           EPat e1 cs ->
             e1
-              <> Set.unions (cs <&> \(_ : vs, expr) -> expr `excluding` vs)
+              <> Set.unions (cs <&> \(_ : vs, expr) -> expr \\\ vs)
           ERec row ->
             (`cata` row)
               ( \case
@@ -355,7 +356,7 @@ instance (Ord t) => FreeVars (Expr t a0 a1 a2) t where
                   RVar v -> Set.singleton v
                   RExt _ el r -> Set.fromList (freeVars el) <> r
               )
-          ERes (_ : vs) e1 e2 -> (e1 <> e2) `excluding` vs
+          ERes (_ : vs) e1 e2 -> (e1 <> e2) \\\ vs
           _ -> error "Implementation error"
       )
 
@@ -365,15 +366,18 @@ instance (Ord t) => FreeVars (Program t (Expr t a0 a1 a2)) t where
       go =
         \case
           Function args (_, expr) ->
-            freeVarsIn expr `excluding` toList args
+            freeVarsIn expr \\\ toList args
           Constant (_, expr) ->
             freeVarsIn expr
           _ ->
             mempty
 
--- TODO
-excluding :: Set (Label t) -> [Label t] -> Set (Label t)
-excluding s vs = Set.filter (\(_, v) -> v `notElem` (snd <$> vs)) s
+(\\\) :: (Ord t) => Set (Label t) -> [Label t] -> Set (Label t)
+(\\\) = flip (overSet . withoutLabels . fmap snd)
+  where
+    overSet f = Set.fromList . f . Set.toList
+
+infix 5 \\\
 
 {-# INLINE freeVars #-}
 freeVars :: (FreeVars f t) => f -> [Label t]
