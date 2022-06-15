@@ -67,13 +67,13 @@ instance (Pretty v, Pretty (TypeVar v)) => Pretty (Type v) where
           TDouble -> "double"
           TChar -> "char"
           TString -> "string"
-          TArr (t1, doc1) (_, doc2) ->
-            parensIf (isConT ArrT t1) doc1 <+> "->" <+> doc2
           TVar v -> pretty (TypeVar v)
           TRec row -> "{" <+> pretty row <+> "}"
           TCon con ts ->
             pretty con
               <+> hsep (uncurry (parensIf . addParens) <$> ts)
+          TArr (t1, doc1) (_, doc2) ->
+            parensIf (isConT ArrT t1) doc1 <+> "->" <+> doc2
       )
     where
       addParens =
