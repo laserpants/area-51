@@ -105,8 +105,7 @@ typeTests =
                   )
                   [eLit (PInt 1)]
               )
-          i =
-            freeIndex (tVar . fst <$> freeVars tagged)
+          i = succ (maximum (untag tagged))
        in it "1" (Right typed == evalTypeChecker i mempty (applySubstitution =<< inferExpr tagged))
       -------------------------------------------------------------------------
       let source :: SourceExpr
