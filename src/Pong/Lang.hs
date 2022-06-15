@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -12,7 +13,7 @@ import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
-import Data.Set (Set, (\\))
+import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Tuple (swap)
@@ -118,19 +119,19 @@ rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
 typeEq :: (Eq v) => Type v -> Type v -> Bool
 typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
 
-class FreeIn f where
+class Free f where
   freeIn :: f -> [Int]
 
-instance FreeIn Scheme where
+instance Free Scheme where
   freeIn _ = []
 
-instance FreeIn Void where
+instance Free Void where
   freeIn _ = []
 
-instance FreeIn () where
+instance Free () where
   freeIn _ = []
 
-instance FreeIn MonoType where
+instance Free MonoType where
   freeIn =
     cata
       ( \case
@@ -141,7 +142,7 @@ instance FreeIn MonoType where
           _ -> []
       )
 
-instance FreeIn (Row MonoType Int) where
+instance Free (Row MonoType Int) where
   freeIn =
     cata
       ( \case
@@ -150,16 +151,16 @@ instance FreeIn (Row MonoType Int) where
           _ -> []
       )
 
-instance (FreeIn a) => FreeIn [a] where
+instance (Free a) => Free [a] where
   freeIn = concatMap freeIn
 
-instance (FreeIn a) => FreeIn (Either e a) where
+instance (Free a) => Free (Either e a) where
   freeIn = concatMap freeIn
 
-instance (FreeIn t) => FreeIn (Constructor t) where
+instance (Free t) => Free (Constructor t) where
   freeIn (Constructor _ fs) = freeIn fs
 
-instance (FreeIn t, FreeIn a) => FreeIn (Definition t a) where
+instance (Free t, Free a) => Free (Definition t a) where
   freeIn =
     \case
       Function as (t, a) ->
@@ -171,13 +172,13 @@ instance (FreeIn t, FreeIn a) => FreeIn (Definition t a) where
       Data _ cs ->
         freeIn cs
 
-instance (FreeIn t, FreeIn a) => FreeIn (Program t a) where
+instance (Free t, Free a) => Free (Program t a) where
   freeIn (Program p) = freeIn (Map.elems p)
 
-instance (FreeIn a) => FreeIn (Environment a) where
+instance (Free a) => Free (Environment a) where
   freeIn env = freeIn =<< Env.elems env
 
-instance (FreeIn t, FreeIn a0, FreeIn a2) => FreeIn (Expr t a0 a1 a2) where
+instance (Free t, Free a0, Free a2) => Free (Expr t a0 a1 a2) where
   freeIn =
     cata
       ( \case
@@ -206,7 +207,7 @@ instance (FreeIn t, FreeIn a0, FreeIn a2) => FreeIn (Expr t a0 a1 a2) where
               RExt _ el row -> freeIn el <> row
           )
 
-free :: (FreeIn a) => a -> [Int]
+free :: (Free a) => a -> [Int]
 free = nub . freeIn
 
 class Typed t where
@@ -276,7 +277,7 @@ instance (Typed t) => Typed (Definition t a) where
 arity :: (Typed t) => t -> Int
 arity = pred <<< length <<< unwindType
 
-freeIndex :: (FreeIn t) => [t] -> Int
+freeIndex :: (Free t) => [t] -> Int
 freeIndex ts =
   case free =<< ts of
     [] -> 0
@@ -323,10 +324,12 @@ returnType = last <<< unwindType
 argTypes :: (Typed t) => t -> [MonoType]
 argTypes = init <<< unwindType
 
-freeVars :: (Eq t, Ord t) => Expr t a0 a1 a2 -> [Label t]
-freeVars =
-  Set.toList
-    <<< cata
+class FreeVars f t | f -> t where
+  freeVarsIn :: f -> Set (Label t)
+
+instance (Ord t) => FreeVars (Expr t a0 a1 a2) t where
+  freeVarsIn =
+    cata
       ( \case
           EVar v
             | isUpper (Text.head (snd v)) -> mempty
@@ -334,8 +337,8 @@ freeVars =
           ECon _ -> mempty
           ELit _ -> mempty
           EIf e1 e2 e3 -> e1 <> e2 <> e3
-          ELet bind e1 e2 -> Set.delete bind (e1 <> e2)
-          ELam _ args expr -> expr \\ Set.fromList args
+          ELet bind e1 e2 -> (e1 <> e2) `excluding` [bind]
+          ELam _ args expr -> expr `excluding` args
           EApp _ fun args -> fun <> Set.unions args
           ECall _ fun args
             | isUpper (Text.head (snd fun)) -> Set.unions args
@@ -344,7 +347,7 @@ freeVars =
           EOp2 _ e1 e2 -> e1 <> e2
           EPat e1 cs ->
             e1
-              <> Set.unions (cs <&> \(_ : vs, expr) -> expr \\ Set.fromList vs)
+              <> Set.unions (cs <&> \(_ : vs, expr) -> expr `excluding` vs)
           ERec row ->
             (`cata` row)
               ( \case
@@ -352,9 +355,29 @@ freeVars =
                   RVar v -> Set.singleton v
                   RExt _ el r -> Set.fromList (freeVars el) <> r
               )
-          ERes (_ : vs) e1 e2 -> e1 <> e2 \\ Set.fromList vs
+          ERes (_ : vs) e1 e2 -> (e1 <> e2) `excluding` vs
           _ -> error "Implementation error"
       )
+
+instance (Ord t) => FreeVars (Program t (Expr t a0 a1 a2)) t where
+  freeVarsIn (Program p) = Set.unions (go . snd <$> Map.toList p)
+    where
+      go =
+        \case
+          Function args (_, expr) ->
+            freeVarsIn expr `excluding` toList args
+          Constant (_, expr) ->
+            freeVarsIn expr
+          _ ->
+            mempty
+
+-- TODO
+excluding :: Set (Label t) -> [Label t] -> Set (Label t)
+excluding s vs = Set.filter (\(_, v) -> v `notElem` (snd <$> vs)) s
+
+{-# INLINE freeVars #-}
+freeVars :: (FreeVars f t) => f -> [Label t]
+freeVars = Set.toList . freeVarsIn
 
 toMonoType :: Map Name Int -> Type Name -> MonoType
 toMonoType vs =
@@ -409,16 +432,44 @@ mapTypes f =
         EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
         EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
         EPat e1 cs -> ePat e1 ((first . fmap . first) f <$> cs)
-        ERec r -> eRec (mapRowTypes r)
+        ERec r -> eRec (mapTypesRow r)
         ERes fs e1 e2 -> eRes (first f <$> fs) e1 e2
     )
   where
-    mapRowTypes =
+    mapTypesRow =
       cata
         ( \case
             RNil -> rNil
             RVar (t, v) -> rVar (f t, v)
             RExt name el row -> rExt name (mapTypes f el) row
+        )
+
+untag :: (Eq t) => Expr t t a1 a2 -> [t]
+untag =
+  nub
+    <<< cata
+      ( \case
+          EVar (t, _) -> [t]
+          ECon (t, _) -> [t]
+          ELit _ -> []
+          EIf e1 e2 e3 -> e1 <> e2 <> e3
+          ELet (t, _) e1 e2 -> [t] <> e1 <> e2
+          ELam _ args e1 -> (fst <$> args) <> e1
+          EApp t fun as -> [t] <> fun <> concat as
+          ECall _ (t, _) as -> [t] <> concat as
+          EOp1 (t, _) e1 -> [t] <> e1
+          EOp2 (t, _) e1 e2 -> [t] <> e1 <> e2
+          EPat e1 cs -> e1 <> concat (fmap fst . fst <$> cs)
+          ERec r -> untagRow r
+          ERes fs e1 e2 -> (fst <$> fs) <> e1 <> e2
+      )
+  where
+    untagRow =
+      cata
+        ( \case
+            RNil -> []
+            RVar (t, _) -> [t]
+            RExt _ el row -> untag el <> row
         )
 
 boundVars :: Type Name -> Set Name
