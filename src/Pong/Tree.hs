@@ -262,8 +262,8 @@ hoistTopLambdas =
       Function (fromList (as <> bs)) (returnType t, expr)
     combine _ _ _ = error "Implementation error"
 
-normalizeDefs :: Definition MonoType Ast -> Definition MonoType Ast
-normalizeDefs = \case
+normalizeDef :: Definition MonoType Ast -> Definition MonoType Ast
+normalizeDef = \case
   Function args (t, expr)
     | isConT ArrT t ->
         fun t (toList args) expr
@@ -278,7 +278,7 @@ normalizeDefs = \case
        in Function (fromList (xs <> ys)) (returnType t, appArgs (eVar <$> ys) expr)
 
 normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast
-normalizeProgramDefs = over Program (Map.map normalizeDefs)
+normalizeProgramDefs = over Program (Map.map normalizeDef)
 
 runTransform :: State (Int, ()) a -> a
 runTransform = flip evalState (1, ())

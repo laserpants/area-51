@@ -112,7 +112,9 @@ langTests =
                 (fromList [(tInt, "x")])
                 (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
 
-        it "1" (typeOf def == (tInt ~> tInt ~> tInt))
+        passIt
+          "fun : int -> int -> int ; def fun(x : int) : int -> int = lam(y) => y"
+          (typeOf def == (tInt ~> tInt ~> tInt))
 
     describe "- free" $ do
       -------------------------------------------------------------------------

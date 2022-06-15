@@ -188,6 +188,22 @@ treeTests =
       -------------------------------------------------------------------------
       it "7" (compileProgram program210 == program271)
 
+    describe "- normalizeDef" $ do
+      -------------------------------------------------------------------------
+      let before :: Definition MonoType Ast
+          before =
+            Function
+              (fromList [(tInt, "x")])
+              (tInt ~> tInt, eVar (tInt ~> tInt, "foo"))
+
+      let after :: Definition MonoType Ast
+          after =
+            Function
+              (fromList [(tInt, "x"), (tInt, "$v0")])
+              (tInt, eCall (tInt ~> tInt, "foo") [eVar (tInt, "$v0")])
+
+      passIt "1" (normalizeDef before == after)
+
     describe "- normalizeProgramDefs" $ do
       -------------------------------------------------------------------------
       it "1" (normalizeProgramDefs fragment7 == fragment8)
