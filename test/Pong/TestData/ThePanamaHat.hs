@@ -174,6 +174,40 @@ program206 =
         ]
     )
 
+program207 :: Program MonoType TypedExpr
+program207 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tInt], "$var_xs_1")
+                  (eCon (tCon "List" [tInt], "Nil"))
+                  ( eLet
+                      (tCon "List" [tVar 0], "xs")
+                      (eCon (tCon "List" [tVar 0], "Nil"))
+                      ( ePat
+                          (eVar (tCon "List" [tInt], "$var_xs_1"))
+                          [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                          ,
+                            (
+                              [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                              , (tInt, "y")
+                              , (tCon "List" [tInt], "ys")
+                              ]
+                            , eVar (tInt, "y")
+                            )
+                          ]
+                      )
+                  )
+              )
+          )
+        ]
+    )
+
 program217 :: Program MonoType Ast
 program217 =
   Program
@@ -332,22 +366,108 @@ program212 =
 
 -- "
 
-program300 :: Text
-program300 =
-  "\
-  \def main(a : unit) : int =\
-  \  3\
-  \\r\n\
-  \def main(a : unit) : int =\
-  \  3\
-  \\r\n\
-  \def main(a : unit) : int =\
-  \  let\
-  \    xs =\
-  \      Nil()\
-  \    in\
-  \      match xs\
-  \        { Nil => 401\
-  \        | Cons(y, ys) => 402\
-  \        }\
-  \"
+-- program300 :: Text
+-- program300 =
+--  "\
+--  \def main(a : unit) : int =\
+--  \  let\
+--  \    xs =\
+--  \      Nil()\
+--  \    in\
+--  \      match xs\
+--  \        { Nil => 401\
+--  \        | Cons(y, ys) => 402\
+--  \        }\
+--  \"
+--
+---- "
+
+-- program301 :: Program () SourceExpr
+-- program301 =
+--  Program
+--    ( Map.fromList
+--        [
+--          ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
+--          , Function
+--              (fromList [(tVar 0, "x"), ((), "xs")])
+--              ((), eVar ((), "foo"))
+--          )
+--        , ( (Scheme (tCon "List" [tVar "a"]), "Nil")
+--          , Constant ((), eVar ((), "foo"))
+--          )
+--        , ( (Scheme (tUnit ~> tInt), "main")
+--          , Function
+--              (fromList [((), "a")])
+--              ( ()
+--              , eLet
+--                  ((), "xs")
+--                  (eCon ((), "Nil"))
+--                  ( ePat
+--                      (eVar ((), "xs"))
+--                      [ ([((), "Nil")], eLit (PInt 401))
+--                      , ([((), "Cons"), ((), "y"), ((), "ys")], eLit (PInt 402))
+--                      ]
+--                  )
+--              )
+--          )
+--        ]
+--    )
+
+--          ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
+--          , Function
+--              (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
+--              ( tCon "List" [tVar 0]
+--              , eVar (tCon "List" [tVar 0], "foo")
+--              )
+--          )
+--        , ( (Scheme (tCon "List" [tVar "a"]), "Nil")
+--          , Constant
+--              ( tCon "List" [tVar 0]
+--              , eVar (tCon "List" [tVar 0], "foo")
+--              )
+--          )
+
+program302 :: Program MonoType TypedExpr
+program302 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
+          , Function
+              (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
+              (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tCon "List" [tVar "a"]), "Nil")
+          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tVar 0], "xs")
+                  (eCon (tCon "List" [tVar 0], "Nil"))
+                  ( ePat
+                      (eVar (tCon "List" [tVar 1], "xs"))
+                      [
+                        (
+                          [ (tCon "List" [tVar 1], "Nil")
+                          ]
+                        , eLit (PInt 401)
+                        )
+                      ,
+                        (
+                          [ (tVar 1 ~> tCon "List" [tVar 1] ~> tCon "List" [tVar 1], "Cons")
+                          , (tVar 1, "y")
+                          , (tCon "List" [tVar 1], "ys")
+                          ]
+                        , eLit (PInt 402)
+                        )
+                      ]
+                  )
+              )
+          )
+        ]
+    )

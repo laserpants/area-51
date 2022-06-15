@@ -17,11 +17,10 @@ import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
-import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
-import qualified LLVM.AST.Typed as LLVM
+-- import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, typeOf, var, void)
 import Pong.Lang
@@ -197,8 +196,8 @@ emitBody =
       Env.askLookup var <&> fromMaybe (error "Implementation error")
     ECall () (_, fun) args ->
       emitCall fun args
-    EPat expr cs ->
-      emitPat expr cs
+    EPat expr_ cs ->
+      emitPat expr_ cs
     ERec{} ->
       error "TODO: ERec"
     ERes{} ->
@@ -282,10 +281,11 @@ emitPat ::
   CodeGen (MonoType, Operand) ->
   [Clause MonoType (CodeGen (MonoType, Operand))] ->
   CodeGen (MonoType, Operand)
-emitPat expr cs = do
-  (_, e) <- expr
-  traceShowM (LLVM.typeOf e)
-  m <- loadOffset 0 e
+emitPat _ _ = do
+  -- emitPat expr_ cs = do
+  --  (_, e) <- expr_
+  --  traceShowM (LLVM.typeOf e)
+  --  m <- loadOffset 0 e
   undefined
 
 -- | Translate a language type to its equivalent LLVM type
