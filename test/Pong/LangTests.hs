@@ -152,3 +152,22 @@ langTests =
       it "unit -> int -> bool" (unwindType (tUnit ~> tInt ~> tBool :: MonoType) == [tUnit, tInt, tBool])
       it "unit" (unwindType (tUnit :: MonoType) == [tUnit])
       it "unit -> (int -> unit) -> bool" (unwindType (tUnit ~> (tInt ~> tUnit) ~> tBool :: MonoType) == [tUnit, tInt ~> tUnit, tBool])
+
+    describe "- untag" $ do
+      describe "- x" $ do
+        -------------------------------------------------------------------------
+        passIt "x" (untag (eVar (tInt, "x") :: TypedExpr) == [tInt])
+
+      describe "- 5" $ do
+        -------------------------------------------------------------------------
+        passIt "5" (untag (eLit (PInt 5) :: TypedExpr) == [])
+
+      describe "- if" $ do
+        -------------------------------------------------------------------------
+        let expr :: TypedExpr
+            expr =
+              eIf
+                (eVar (tBool, "x"))
+                (eVar (tInt, "a"))
+                (eVar (tInt, "b"))
+         in passIt "if x then a else b" (untag expr == [tBool, tInt])
