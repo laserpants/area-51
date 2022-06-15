@@ -45,6 +45,43 @@ langTests =
       it "14" (freeVars (ePat (eVar ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], eVar ((), "y"))] :: SourceExpr) == [((), "xs"), ((), "y")])
       -------------------------------------------------------------------------
       it "15" (freeVars (ePat (eVar ((), "xs")) [([((), "Cons"), ((), "x"), ((), "ys")], eVar ((), "x")), ([((), "Nil")], eVar ((), "y"))] :: SourceExpr) == [((), "xs"), ((), "y")])
+      -------------------------------------------------------------------------
+      let expr_ :: TypedExpr
+          expr_ =
+            eLet
+              (tVar 0 ~> tVar 0, "id")
+              (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+              ( eLet
+                  (tVar 1 ~> tVar 1 ~> tVar 1, "add")
+                  ( eLam
+                      ()
+                      [(tVar 1, "x")]
+                      ( eLam
+                          ()
+                          [(tVar 1, "y")]
+                          ( eOp2
+                              (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                              (eVar (tVar 1, "x"))
+                              (eVar (tVar 1, "y"))
+                          )
+                      )
+                  )
+                  ( eLet
+                      (tInt ~> tInt, "add2")
+                      (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 2)])
+                      ( eOp2
+                          oAddInt
+                          ( eApp
+                              tInt
+                              (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id")) [eVar (tInt ~> tInt, "add2")])
+                              [ eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]
+                              ]
+                          )
+                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 4), eLit (PInt 5)])
+                      )
+                  )
+              )
+       in it "16" (freeVars expr_ == [])
 
     {- HLINT ignore "Use typeRep -}
 
@@ -115,3 +152,22 @@ langTests =
       it "unit -> int -> bool" (unwindType (tUnit ~> tInt ~> tBool :: MonoType) == [tUnit, tInt, tBool])
       it "unit" (unwindType (tUnit :: MonoType) == [tUnit])
       it "unit -> (int -> unit) -> bool" (unwindType (tUnit ~> (tInt ~> tUnit) ~> tBool :: MonoType) == [tUnit, tInt ~> tUnit, tBool])
+
+    describe "- untag" $ do
+      describe "- x" $ do
+        -------------------------------------------------------------------------
+        passIt "x" (untag (eVar (tInt, "x") :: TypedExpr) == [tInt])
+
+      describe "- 5" $ do
+        -------------------------------------------------------------------------
+        passIt "5" (untag (eLit (PInt 5) :: TypedExpr) == [])
+
+      describe "- if" $ do
+        -------------------------------------------------------------------------
+        let expr :: TypedExpr
+            expr =
+              eIf
+                (eVar (tBool, "x"))
+                (eVar (tInt, "a"))
+                (eVar (tInt, "b"))
+         in passIt "if x then a else b" (untag expr == [tBool, tInt])

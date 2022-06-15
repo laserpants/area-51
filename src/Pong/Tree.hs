@@ -23,12 +23,12 @@ import Pong.Util hiding (unpack)
 import qualified Pong.Util.Env as Env
 import TextShow (showt)
 
-canonical :: (Substitutable a, FreeIn a) => a -> a
+canonical :: (Substitutable a, Free a) => a -> a
 canonical t = apply (Substitution map_) t
   where
     map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
-isIsomorphicTo :: (Eq a, Substitutable a, FreeIn a) => a -> a -> Bool
+isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 
 -- | Predicate to test if the type contains at least one type variable
@@ -96,7 +96,7 @@ monomorphizeLets =
           e1 <- expr1
           e2 <- expr2
           (e, binds) <- runWriterT (monomorphize t var e1 e2)
-          pure (foldr (uncurry eLet) e binds)
+          pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
         expr ->
           embed <$> sequence expr
     )
@@ -122,8 +122,8 @@ appArgs xs =
           error "Implementation error"
     )
 
-exclude :: [Label s] -> [Name] -> [Label s]
-exclude = foldr (\label -> filter ((/=) label . snd))
+exclude :: [Label t] -> [Name] -> [Label t]
+exclude = flip withoutLabels
 
 extra :: MonoType -> [Label MonoType]
 extra t
@@ -301,9 +301,19 @@ data CompilerError
   = ParserError ParserError
   | TypeError TypeError
 
+postProcess :: Program MonoType Ast -> Program MonoType Ast
+postProcess p =
+  over Program (Map.filterWithKey (\s _ -> snd s `elem` names)) p
+  where
+    names = "main" : (snd <$> (freeVars p :: [Label MonoType]))
+
 transformProgram :: Program MonoType TypedExpr -> Program MonoType Ast
 transformProgram =
-  transform1 >>> transform2 >>> compileProgram >>> normalizeProgramDefs
+  transform1
+    >>> transform2
+    >>> compileProgram
+    >>> normalizeProgramDefs
+    >>> postProcess
 
 parseAndAnnotate :: Text -> Either CompilerError (Program MonoType TypedExpr)
 parseAndAnnotate =
