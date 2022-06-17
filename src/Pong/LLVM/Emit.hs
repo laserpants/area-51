@@ -17,7 +17,7 @@ import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
---import Debug.Trace
+-- import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
@@ -202,7 +202,7 @@ emitBody =
       (_, b) <- expr2
       r <- emitOp2Instr op a b
       pure (returnType (fst op), r)
-      -- TODO
+    -- TODO
     EVar (t, "Nil") | 0 == arity t -> do
       r <- call (functionRef "Nil" charPtr []) []
       pure (t, r)
