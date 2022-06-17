@@ -17,12 +17,13 @@ import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
+--import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
 -- import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
-import Pong.LLVM hiding (Typed, typeOf, var, void)
+import Pong.LLVM hiding (Typed, name, typeOf, var, void)
 import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment (..))
@@ -65,13 +66,6 @@ buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram pname p = do
   buildModule (llvmRep pname) $ do
     void (extern "gc_malloc" [i64] charPtr)
-
-    -- function
-    --  undefined
-    --  undefined
-    --  undefined
-    --  undefined
-
     env <-
       buildEnv $ \name_ t ->
         \case
@@ -128,7 +122,23 @@ buildProgram pname p = do
     --          ]
     forEachIn p $ \name_ _ ->
       \case
-        Constant (t1, body) -> do
+        Constant (t1, _)
+          | "Nil" == name_ ->
+              void $
+                -- TODO
+                function
+                  (llvmRep "Nil")
+                  []
+                  (llvmType t1)
+                  ( \_ -> do
+                      runCodeGen env p $ do
+                        let sty = StructureType False [i8]
+                        s <- malloc sty
+                        storeOffset 0 s (int8 1) -- TODO
+                        a <- bitcast s charPtr
+                        ret a
+                  )
+        Constant (t1, body) ->
           void $
             function
               (llvmRep name_)
@@ -192,6 +202,10 @@ emitBody =
       (_, b) <- expr2
       r <- emitOp2Instr op a b
       pure (returnType (fst op), r)
+      -- TODO
+    EVar (t, "Nil") | 0 == arity t -> do
+      r <- call (functionRef "Nil" charPtr []) []
+      pure (t, r)
     EVar (_, var) ->
       Env.askLookup var <&> fromMaybe (error "Implementation error")
     ECall () (_, fun) args ->
@@ -281,12 +295,37 @@ emitPat ::
   CodeGen (MonoType, Operand) ->
   [Clause MonoType (CodeGen (MonoType, Operand))] ->
   CodeGen (MonoType, Operand)
-emitPat _ _ = do
-  -- emitPat expr_ cs = do
-  --  (_, e) <- expr_
-  --  traceShowM (LLVM.typeOf e)
-  --  m <- loadOffset 0 e
-  undefined
+emitPat expr_ cs = mdo
+  (_, e) <- expr_
+  let sty = StructureType False [i8]
+  s <- bitcast e (ptr sty)
+  m <- loadOffset 0 s
+  let names = blocks <&> snd
+  switch
+    m
+    (last names) -- Default case
+    [ (Int 8 (fromIntegral i), blk)
+    | (i, blk) <- zip [1 :: Integer ..] (init names)
+    ]
+  blocks <-
+    forM cs $ \((t, _) : fields, body) -> do
+      blk <- block `named` "case"
+      r <-
+        if null fields
+          then body
+          else do
+            s1 <- bitcast e (ptr (StructureType False (i8 : (argTypes t <&> llvmType))))
+            ops <-
+              forM (zip [1 ..] (argTypes t)) $ \(i, ti) -> do
+                op <- loadOffset i s1
+                pure (ti, op)
+            local (Env.inserts (zip (fields <&> snd) ops)) body
+      br end
+      cb <- currentBlock
+      pure ((r, cb), blk)
+  end <- block `named` "end"
+  o <- phi (first snd . fst <$> blocks)
+  pure (fst (fst (fst (head blocks))), o)
 
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
@@ -310,7 +349,7 @@ llvmType =
               , resultType = last types
               , isVarArg = False
               }
-      _ -> error "Not implemented" -- TODO
+      _ -> charPtr
 
 llvmPrim :: Prim -> Constant
 llvmPrim =

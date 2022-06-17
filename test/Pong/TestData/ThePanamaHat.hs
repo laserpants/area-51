@@ -432,6 +432,10 @@ program302 =
   Program
     ( Map.fromList
         [
+          ( (Scheme (tInt ~> tInt), "print_int")
+          , Extern [tInt] tInt
+          )
+        ,
           ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
           , Function
               (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
@@ -443,6 +447,14 @@ program302 =
           )
         ,
           ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eApp tInt (eVar (tInt ~> tInt, "print_int")) [eApp tInt (eVar (tUnit ~> tInt, "fun1")) [eLit PUnit]]
+              )
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "fun1")
           , Function
               (fromList [(tUnit, "a")])
               ( tInt
