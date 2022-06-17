@@ -328,14 +328,24 @@ argTypes = init <<< unwindType
 class FreeVars f t | f -> t where
   freeVarsIn :: f -> Set (Label t)
 
-instance (Ord t) => FreeVars (Expr t a0 a1 a2) t where
+instance FreeVars (Label Void) MonoType where
+  freeVarsIn _ = mempty
+
+instance FreeVars (Label ()) () where
+  freeVarsIn = Set.singleton
+
+instance FreeVars (Label MonoType) MonoType where
+  freeVarsIn = Set.singleton
+
+instance
+  (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
+  FreeVars (Expr t a0 a1 a2) t
+  where
   freeVarsIn =
     cata
       ( \case
-          EVar v
-            | isUpper (Text.head (snd v)) -> mempty
-            | otherwise -> Set.singleton v
-          ECon _ -> mempty
+          EVar var -> freeVarsIn var
+          ECon con -> freeVarsIn con
           ELit _ -> mempty
           EIf e1 e2 e3 -> e1 <> e2 <> e3
           ELet var e1 e2 -> (e1 <> e2) \\\ [var]
@@ -360,7 +370,10 @@ instance (Ord t) => FreeVars (Expr t a0 a1 a2) t where
           _ -> error "Implementation error"
       )
 
-instance (Ord t) => FreeVars (Program t (Expr t a0 a1 a2)) t where
+instance
+  (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
+  FreeVars (Program t (Expr t a0 a1 a2)) t
+  where
   freeVarsIn (Program p) = Set.unions (go . snd <$> Map.toList p)
     where
       go =
