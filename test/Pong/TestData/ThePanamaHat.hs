@@ -154,10 +154,10 @@ program206 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tCon "List" [tInt], "$var_xs_1")
+                  (tCon "List" [tInt], "v$_xs_1")
                   (eCon (tCon "List" [tInt], "Nil"))
                   ( ePat
-                      (eVar (tCon "List" [tInt], "$var_xs_1"))
+                      (eVar (tCon "List" [tInt], "v$_xs_1"))
                       [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
                       ,
                         (
@@ -184,13 +184,13 @@ program207 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tCon "List" [tInt], "$var_xs_1")
+                  (tCon "List" [tInt], "v$_xs_1")
                   (eCon (tCon "List" [tInt], "Nil"))
                   ( eLet
                       (tCon "List" [tVar 0], "xs")
                       (eCon (tCon "List" [tVar 0], "Nil"))
                       ( ePat
-                          (eVar (tCon "List" [tInt], "$var_xs_1"))
+                          (eVar (tCon "List" [tInt], "v$_xs_1"))
                           [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
                           ,
                             (
@@ -218,10 +218,10 @@ program217 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tCon "List" [tInt], "$var_xs_1")
+                  (tCon "List" [tInt], "v$_xs_1")
                   (eVar (tCon "List" [tInt], "Nil"))
                   ( ePat
-                      (eVar (tCon "List" [tInt], "$var_xs_1"))
+                      (eVar (tCon "List" [tInt], "v$_xs_1"))
                       [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
                       ,
                         (
@@ -450,11 +450,11 @@ program302 =
           , Function
               (fromList [(tUnit, "a")])
               ( tInt
-              , eApp tInt (eVar (tInt ~> tInt, "print_int")) [eApp tInt (eVar (tUnit ~> tInt, "fun1")) [eLit PUnit]]
+              , eApp tInt (eVar (tInt ~> tInt, "print_int")) [eApp tInt (eVar (tUnit ~> tInt, "main1")) [eLit PUnit]]
               )
           )
         ,
-          ( (Scheme (tUnit ~> tInt), "fun1")
+          ( (Scheme (tUnit ~> tInt), "main1")
           , Function
               (fromList [(tUnit, "a")])
               ( tInt
@@ -478,6 +478,177 @@ program302 =
                         , eLit (PInt 402)
                         )
                       ]
+                  )
+              )
+          )
+        ]
+    )
+
+--  print_int(main1())
+
+-- program300 :: Text
+-- program300 =
+--   "\
+--   \extern print_int : int -> int\
+--   \\r\n\
+--   \const nil : List a =\
+--   \  foo\
+--   \\r\n\
+--   \def cons(x : a, xs : List a) : List a =\
+--   \  foo\
+--   \\r\n\
+--   \def main(a : unit) : int =\
+--   \  print_int(main1( () ))\
+--   \\r\n\
+--   \def main1(a : unit) : int =\
+--   \  let\
+--   \    xs =\
+--   \      Cons(111, Nil())\
+--   \    in\
+--   \      match xs\
+--   \        { Nil => 401\
+--   \        | Cons(y, ys) => 402\
+--   \        }\
+--   \"
+--
+-- -- "
+
+program303 :: Program MonoType TypedExpr
+program303 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tInt ~> tInt), "print_int")
+          , Extern [tInt] tInt
+          )
+        ,
+          ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
+          , Function
+              (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
+              (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tCon "List" [tVar "a"]), "Nil")
+          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eApp
+                  tInt
+                  (eVar (tInt ~> tInt, "print_int"))
+                  [ eApp tInt (eVar (tUnit ~> tInt, "main1")) [eLit PUnit]
+                  ]
+              )
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "main1")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tCon "List" [tInt], "xs")
+                  ( eApp
+                      (tCon "List" [tInt])
+                      (eCon (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons"))
+                      [ eLit (PInt 111)
+                      , eCon (tCon "List" [tInt], "Nil")
+                      ]
+                  )
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "xs"))
+                      [
+                        (
+                          [ (tCon "List" [tInt], "Nil")
+                          ]
+                        , eLit (PInt 401)
+                        )
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eLit (PInt 402)
+                        )
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+program304 :: Program MonoType TypedExpr
+program304 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tInt ~> tInt), "print_int")
+          , Extern [tInt] tInt
+          )
+        ,
+          ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
+          , Function
+              (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
+              (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tCon "List" [tVar "a"]), "Nil")
+          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eApp
+                  tInt
+                  (eVar (tInt ~> tInt, "print_int"))
+                  [ eApp tInt (eVar (tUnit ~> tInt, "main1")) [eLit PUnit]
+                  ]
+              )
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "main1")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$_Cons_1")
+                  ( eLam
+                      ()
+                      [(tInt, "x"), (tCon "List" [tInt], "xs")]
+                      (eVar (tCon "List" [tInt], "foo"))
+                  )
+                  ( eLet
+                      (tCon "List" [tInt], "xs")
+                      ( eApp
+                          (tCon "List" [tInt])
+                          (eCon (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$_Cons_1"))
+                          [ eLit (PInt 111)
+                          , eCon (tCon "List" [tInt], "Nil")
+                          ]
+                      )
+                      ( ePat
+                          (eVar (tCon "List" [tInt], "xs"))
+                          [
+                            (
+                              [ (tCon "List" [tInt], "Nil")
+                              ]
+                            , eLit (PInt 401)
+                            )
+                          ,
+                            (
+                              [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                              , (tInt, "y")
+                              , (tCon "List" [tInt], "ys")
+                              ]
+                            , eLit (PInt 402)
+                            )
+                          ]
+                      )
                   )
               )
           )

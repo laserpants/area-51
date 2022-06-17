@@ -172,8 +172,13 @@ treeTests =
       -------------------------------------------------------------------------
       it "3" (transform1 program205 == program207)
 
+    describe "- transform2" $ do
+      -------------------------------------------------------------------------
+      it "1" (transform2 program303 == program304)
+
     describe "- compileProgram" $ do
       -------------------------------------------------------------------------
+      -- TODO
       --      it "1" (compileProgram program8 == program10)
       -------------------------------------------------------------------------
       it "2" (compileProgram fragment6 == fragment7)
@@ -211,12 +216,16 @@ treeTests =
     describe "- compileSource" $ do
       it "TODO" True
     -------------------------------------------------------------------------
+    -- TODO
     --  passIt "1" (compileSource program4 == program11)
     -------------------------------------------------------------------------
+    -- TODO
     --      passIt "2" (canonical (compileSource program44) == program45)
     -------------------------------------------------------------------------
+    -- TODO
     --      passIt "3" (canonical (compileSource program46) == program47)
     -------------------------------------------------------------------------
+    -- TODO
     --      passIt "4" (canonical (compileSource program48) == program49)
 
     describe "- isPolymorphic" $ do

@@ -62,20 +62,24 @@ monomorphize t name e1 =
         ELet (t0, var) (expr1, _) (expr2, _)
           | var == name ->
               pure (eLet (t0, var) expr1 expr2)
-        EVar (t0, var) | var == name && not (t `isIsomorphicTo` t0) ->
-          case getSubst t t0 of
-            Right sub -> do
-              newVar <- uniqueName ("$var_" <> var <> "_")
-              tell [((t0, newVar), apply sub e1)]
-              pure (eVar (t0, newVar))
-            _ ->
-              error "Implementation error"
+        ECon (t0, con)
+          | con == name && not (t `isIsomorphicTo` t0) -> do
+              eCon <$> runSubst "C$" con e1 t t0
+        EVar (t0, var)
+          | var == name && not (t `isIsomorphicTo` t0) -> do
+              eVar <$> runSubst "v$" var e1 t t0
         expr ->
           embed <$> sequence (expr <&> snd)
     )
   where
-    getSubst t1 t2 =
-      evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
+    runSubst pfix var expr t1 t2 =
+      case evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2) of
+        Right sub -> do
+          newVar <- uniqueName (pfix <> "_" <> var <> "_")
+          tell [((t2, newVar), apply sub expr)]
+          pure (t2, newVar)
+        _ ->
+          error "Implementation error"
 
 monomorphizeDef ::
   (MonadState (Int, a) m) =>

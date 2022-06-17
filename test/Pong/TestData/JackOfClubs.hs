@@ -178,16 +178,16 @@ program8 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                  ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")
                   (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
                   ( eLet
-                      (tInt ~> tInt, "$var_id_4")
+                      (tInt ~> tInt, "v$_id_4")
                       (eLam () [(tInt, "x")] (eVar (tInt, "x")))
                       ( eLet
                           (tVar 0 ~> tVar 0, "id")
                           (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
                           ( eLet
-                              (tInt ~> tInt ~> tInt, "$var_add_1")
+                              (tInt ~> tInt ~> tInt, "v$_add_1")
                               ( eLam
                                   ()
                                   [(tInt, "x")]
@@ -202,7 +202,7 @@ program8 =
                                   )
                               )
                               ( eLet
-                                  (tInt ~> tInt ~> tInt, "$var_add_2")
+                                  (tInt ~> tInt ~> tInt, "v$_add_2")
                                   ( eLam
                                       ()
                                       [(tInt, "x")]
@@ -233,16 +233,16 @@ program8 =
                                       )
                                       ( eLet
                                           (tInt ~> tInt, "add2")
-                                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "$var_add_1")) [eLit (PInt 2)])
+                                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "v$_add_1")) [eLit (PInt 2)])
                                           ( eOp2
                                               oAddInt
                                               ( eApp
                                                   tInt
-                                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")) [eVar (tInt ~> tInt, "add2")])
-                                                  [ eApp tInt (eVar (tInt ~> tInt, "$var_id_4")) [eLit (PInt 3)]
+                                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")) [eVar (tInt ~> tInt, "add2")])
+                                                  [ eApp tInt (eVar (tInt ~> tInt, "v$_id_4")) [eLit (PInt 3)]
                                                   ]
                                               )
-                                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_add_2")) [eLit (PInt 4), eLit (PInt 5)])
+                                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "v$_add_2")) [eLit (PInt 4), eLit (PInt 5)])
                                           )
                                       )
                                   )
@@ -265,16 +265,16 @@ program9 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                  ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")
                   (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
                   ( eLet
-                      (tInt ~> tInt, "$var_id_4")
+                      (tInt ~> tInt, "v$_id_4")
                       (eLam () [(tInt, "x")] (eVar (tInt, "x")))
                       ( eLet
                           (tVar 0 ~> tVar 0, "id")
                           (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
                           ( eLet
-                              (tInt ~> tInt ~> tInt, "$var_add_1")
+                              (tInt ~> tInt ~> tInt, "v$_add_1")
                               ( eLam
                                   ()
                                   [(tInt, "x"), (tInt, "y")]
@@ -285,7 +285,7 @@ program9 =
                                   )
                               )
                               ( eLet
-                                  (tInt ~> tInt ~> tInt, "$var_add_2")
+                                  (tInt ~> tInt ~> tInt, "v$_add_2")
                                   ( eLam
                                       ()
                                       [(tInt, "x"), (tInt, "y")]
@@ -308,16 +308,16 @@ program9 =
                                       )
                                       ( eLet
                                           (tInt ~> tInt, "add2")
-                                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "$var_add_1")) [eLit (PInt 2)])
+                                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "v$_add_1")) [eLit (PInt 2)])
                                           ( eOp2
                                               oAddInt
                                               ( eApp
                                                   tInt
-                                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")) [eVar (tInt ~> tInt, "add2")])
-                                                  [ eApp tInt (eVar (tInt ~> tInt, "$var_id_4")) [eLit (PInt 3)]
+                                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")) [eVar (tInt ~> tInt, "add2")])
+                                                  [ eApp tInt (eVar (tInt ~> tInt, "v$_id_4")) [eLit (PInt 3)]
                                                   ]
                                               )
-                                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "$var_add_2")) [eLit (PInt 4), eLit (PInt 5)])
+                                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "v$_add_2")) [eLit (PInt 4), eLit (PInt 5)])
                                           )
                                       )
                                   )
@@ -340,29 +340,29 @@ program10 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                  ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")
                   (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1"))
                   ( eLet
-                      (tInt ~> tInt, "$var_id_4")
+                      (tInt ~> tInt, "v$_id_4")
                       (eVar (tInt ~> tInt, "$lam2"))
                       ( eLet
-                          (tInt ~> tInt ~> tInt, "$var_add_1")
+                          (tInt ~> tInt ~> tInt, "v$_add_1")
                           (eVar (tInt ~> tInt ~> tInt, "$lam4"))
                           ( eLet
-                              (tInt ~> tInt ~> tInt, "$var_add_2")
+                              (tInt ~> tInt ~> tInt, "v$_add_2")
                               (eVar (tInt ~> tInt ~> tInt, "$lam6"))
                               ( eLet
                                   (tInt ~> tInt, "add2")
-                                  (eCall (tInt ~> tInt ~> tInt, "$var_add_1") [eLit (PInt 2)])
+                                  (eCall (tInt ~> tInt ~> tInt, "v$_add_1") [eLit (PInt 2)])
                                   ( eOp2
                                       oAddInt
                                       ( eCall
-                                          ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                                          ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")
                                           [ eVar (tInt ~> tInt, "add2")
-                                          , eCall (tInt ~> tInt, "$var_id_4") [eLit (PInt 3)]
+                                          , eCall (tInt ~> tInt, "v$_id_4") [eLit (PInt 3)]
                                           ]
                                       )
-                                      (eCall (tInt ~> tInt ~> tInt, "$var_add_2") [eLit (PInt 4), eLit (PInt 5)])
+                                      (eCall (tInt ~> tInt ~> tInt, "v$_add_2") [eLit (PInt 4), eLit (PInt 5)])
                                   )
                               )
                           )
@@ -424,26 +424,26 @@ program10 =
 --
 -- def main(a : unit) : int =
 --   let
---     $var_id_3 =                          : (int ~> int) ~> int ~> int
+--     v$_id_3 =                          : (int ~> int) ~> int ~> int
 --       $lam1
 --     in
 --       let
---         $var_id_4 =
+--         v$_id_4 =
 --           $lam2
 --         in
 --           let
---             $var_add_1 =
+--             v$_add_1 =
 --               $lam3
 --             in
 --               let
---                 $var_add_2 =
+--                 v$_add_2 =
 --                   $lam4
 --                 in
 --                   let
 --                     add2 =               : int -> int
---                       $var_add_1(2)
+--                       v$_add_1(2)
 --                     in
---                       ($var_id_3(add2))($var_id_4(3)) + $var_add_2(4, 5)
+--                       (v$_id_3(add2))($var_id_4(3)) + $var_add_2(4, 5)
 --
 -- def $lam1(x : int -> int, $v0 : int) : int =
 --   x($v0)
@@ -468,29 +468,29 @@ program11 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                  ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")
                   (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1"))
                   ( eLet
-                      (tInt ~> tInt, "$var_id_4")
+                      (tInt ~> tInt, "v$_id_4")
                       (eVar (tInt ~> tInt, "$lam2"))
                       ( eLet
-                          (tInt ~> tInt ~> tInt, "$var_add_1")
+                          (tInt ~> tInt ~> tInt, "v$_add_1")
                           (eVar (tInt ~> tInt ~> tInt, "$lam3"))
                           ( eLet
-                              (tInt ~> tInt ~> tInt, "$var_add_2")
+                              (tInt ~> tInt ~> tInt, "v$_add_2")
                               (eVar (tInt ~> tInt ~> tInt, "$lam4"))
                               ( eLet
                                   (tInt ~> tInt, "add2")
-                                  (eCall (tInt ~> tInt ~> tInt, "$var_add_1") [eLit (PInt 2)])
+                                  (eCall (tInt ~> tInt ~> tInt, "v$_add_1") [eLit (PInt 2)])
                                   ( eOp2
                                       oAddInt
                                       ( eCall
-                                          ((tInt ~> tInt) ~> tInt ~> tInt, "$var_id_3")
+                                          ((tInt ~> tInt) ~> tInt ~> tInt, "v$_id_3")
                                           [ eVar (tInt ~> tInt, "add2")
-                                          , eCall (tInt ~> tInt, "$var_id_4") [eLit (PInt 3)]
+                                          , eCall (tInt ~> tInt, "v$_id_4") [eLit (PInt 3)]
                                           ]
                                       )
-                                      (eCall (tInt ~> tInt ~> tInt, "$var_add_2") [eLit (PInt 4), eLit (PInt 5)])
+                                      (eCall (tInt ~> tInt ~> tInt, "v$_add_2") [eLit (PInt 4), eLit (PInt 5)])
                                   )
                               )
                           )
