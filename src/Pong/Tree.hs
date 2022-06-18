@@ -63,10 +63,10 @@ monomorphize t name e1 =
           | var == name ->
               pure (eLet (t0, var) expr1 expr2)
         ECon (t0, con)
-          | con == name && not (t `isIsomorphicTo` t0) -> do
+          | con == name && not (t `isIsomorphicTo` t0) ->
               eCon <$> runSubst "C$" con e1 t t0
         EVar (t0, var)
-          | var == name && not (t `isIsomorphicTo` t0) -> do
+          | var == name && not (t `isIsomorphicTo` t0) ->
               eVar <$> runSubst "v$" var e1 t t0
         expr ->
           embed <$> sequence (expr <&> snd)
@@ -75,7 +75,7 @@ monomorphize t name e1 =
     runSubst pfix var expr t1 t2 =
       case evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2) of
         Right sub -> do
-          newVar <- uniqueName (pfix <> "_" <> var <> "_")
+          newVar <- uniqueName (pfix <> "-" <> var <> "-")
           tell [((t2, newVar), apply sub expr)]
           pure (t2, newVar)
         _ ->
@@ -328,6 +328,10 @@ compileSource input =
   case parseAndAnnotate input of
     Left e -> error (show e)
     Right p -> transformProgram p
+
+-------------------------------------------------------------------------------
+-- Typeclass instances
+-------------------------------------------------------------------------------
 
 deriving instance Show CompilerError
 

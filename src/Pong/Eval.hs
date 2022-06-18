@@ -65,11 +65,12 @@ type ValueEnv =
   , Environment Value
   )
 
-newtype Eval a = Eval {unEval :: Reader ValueEnv a}
+newtype Eval a = Eval {unEval :: ReaderT ValueEnv IO a}
   deriving
     ( Functor
     , Applicative
     , Monad
+    , MonadIO
     , MonadReader ValueEnv
     )
 
@@ -123,7 +124,7 @@ eval =
           PrimValue <$> (evalOp2 op <$> (getPrim <$> a) <*> (getPrim <$> b))
     EPat expr cs -> do
       e <- expr
-      evalMatch e cs
+      evalPat e cs
     ERec row ->
       RecValue <$> evalRow row
     ERes field expr1 expr2 -> do
@@ -150,7 +151,8 @@ evalCall (t, fun) args
           localSecond (Env.inserts (zip (snd <$> toList vs) as)) (eval body)
         Just Extern{} ->
           case (fun, as) of
-            ("print_int", [PrimValue (PInt _)]) ->
+            ("print_int", [PrimValue (PInt n)]) -> do
+              liftIO (print n)
               pure (PrimValue (PInt 0))
             _ ->
               error "Not implemented"
@@ -163,11 +165,19 @@ evalCall (t, fun) args
         _ ->
           error "Eval error"
 
-evalMatch :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
-evalMatch (ConValue name fields) (((_, con) : vars, value) : clauses)
-  | name == con = localSecond (Env.inserts (zip (snd <$> vars) fields)) value
-  | otherwise = evalMatch (ConValue name fields) clauses
-evalMatch _ _ = error "Eval error"
+evalPat :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
+evalPat (ConValue name fields) (((_, con) : vars, value) : clauses)
+  | constructorName == con =
+      localSecond (Env.inserts (zip (snd <$> vars) fields)) value
+  | otherwise =
+      evalPat (ConValue name fields) clauses
+  where
+    constructorName =
+      case Text.splitOn "-" name of
+        [c] -> c
+        _ : c : _ -> c
+        _ -> ""
+evalPat c _ = error ("No constructor: " <> show c)
 
 evalRow :: Row Ast (Label MonoType) -> Eval (Row Value Void)
 evalRow =
@@ -230,12 +240,15 @@ evalOp2 OLtE (PInt p) (PInt q) = PBool (p <= q)
 evalOp2 OGtE (PInt p) (PInt q) = PBool (p >= q)
 evalOp2 _ _ _ = error "Not implemented"
 
-evalProgram :: Program MonoType Ast -> Label Scheme -> Maybe Value
+runEval :: Environment (Definition MonoType Ast) -> Eval a -> IO a
+runEval env ast = runReaderT (unEval ast) (env, mempty)
+
+evalProgram :: Program MonoType Ast -> Label Scheme -> IO (Maybe Value)
 evalProgram (Program p) def =
   case Map.lookup def p of
     Just (Function _ (_, ast)) -> evaluate ast
     Just (Constant (_, ast)) -> evaluate ast
-    _ -> Nothing
+    _ -> pure Nothing
   where
-    evaluate ast = Just (runReader (unEval (eval ast)) (env, mempty))
+    evaluate ast = Just <$> runEval env (eval ast)
     env = Env.fromList (first snd <$> Map.toList p)

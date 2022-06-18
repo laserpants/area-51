@@ -22,53 +22,79 @@ evalTests =
   describe "Pong.Eval" $ do
     describe "- evalProgram" $ do
       -------------------------------------------------------------------------
-      it "1" (Just (PrimValue (PInt 100)) == evalProgram (transformProgram program1) mainSig)
+      do
+        v <- runIO $ evalProgram (transformProgram program1) mainSig
+        it "1" (Just (PrimValue (PInt 100)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program =
             transformProgram (fromRight emptyProgram (parseAndAnnotate program2))
-       in it "2" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "2" (Just (PrimValue (PInt 5)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program =
             transformProgram (fromRight emptyProgram (parseAndAnnotate program3))
-       in it "3" (Just (PrimValue (PInt 1)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "3" (Just (PrimValue (PInt 1)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program4
-       in it "4" (Just (PrimValue (PInt 14)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "4" (Just (PrimValue (PInt 14)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program20
-       in it "5" (Just (PrimValue (PInt 100)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "5" (Just (PrimValue (PInt 100)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program21
-       in it "6" (Just (PrimValue (PInt 101)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "6" (Just (PrimValue (PInt 101)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program22
-       in it "7" (Just (PrimValue (PInt 102)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "7" (Just (PrimValue (PInt 102)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program23
-       in it "8" (Just (PrimValue (PInt 1)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "8" (Just (PrimValue (PInt 1)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program44
-       in it "9" (Just (PrimValue (PInt 4)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "9" (Just (PrimValue (PInt 4)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program46
-       in it "10" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "10" (Just (PrimValue (PInt 5)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSource program48
-       in it "11" (Just (PrimValue (PInt 5)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "11" (Just (PrimValue (PInt 5)) == v)
       -------------------------------------------------------------------------
-      it "12" (Just (PrimValue (PInt 401)) == evalProgram program217 mainSig)
+      do
+        v <- runIO $ evalProgram program217 mainSig
+        it "12" (Just (PrimValue (PInt 401)) == v)
       -------------------------------------------------------------------------
-      it "13" (Just (PrimValue (PInt 5)) == evalProgram program271 mainSig)
+      do
+        v <- runIO $ evalProgram program271 mainSig
+        it "13" (Just (PrimValue (PInt 5)) == v)
       -------------------------------------------------------------------------
       let program :: Program MonoType Ast
           program = compileSourceWithEnv env program212
@@ -83,6 +109,22 @@ evalTests =
                 , Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]))
                 )
               ]
-       in it "14" (Just (PrimValue (PInt 4)) == evalProgram program mainSig)
+       in do
+            v <- runIO $ evalProgram program mainSig
+            it "14" (Just (PrimValue (PInt 4)) == v)
       -------------------------------------------------------------------------
-      it "15" (Just (PrimValue (PInt 401)) == evalProgram program217 mainSig)
+      do
+        v <- runIO $ evalProgram program217 mainSig
+        it "15" (Just (PrimValue (PInt 401)) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ runEval mempty (eval expr305)
+        it "16" (PrimValue (PInt 401) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ runEval mempty (eval expr306)
+        it "17" (PrimValue (PInt 402) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalProgram (compileProgram program305) mainSig
+        it "18" (Just (PrimValue (PInt 402)) == v)

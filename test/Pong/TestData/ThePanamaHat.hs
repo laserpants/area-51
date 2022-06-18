@@ -154,10 +154,10 @@ program206 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tCon "List" [tInt], "v$_xs_1")
+                  (tCon "List" [tInt], "v$-xs-1")
                   (eCon (tCon "List" [tInt], "Nil"))
                   ( ePat
-                      (eVar (tCon "List" [tInt], "v$_xs_1"))
+                      (eVar (tCon "List" [tInt], "v$-xs-1"))
                       [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
                       ,
                         (
@@ -184,13 +184,13 @@ program207 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tCon "List" [tInt], "v$_xs_1")
+                  (tCon "List" [tInt], "v$-xs-1")
                   (eCon (tCon "List" [tInt], "Nil"))
                   ( eLet
                       (tCon "List" [tVar 0], "xs")
                       (eCon (tCon "List" [tVar 0], "Nil"))
                       ( ePat
-                          (eVar (tCon "List" [tInt], "v$_xs_1"))
+                          (eVar (tCon "List" [tInt], "v$-xs-1"))
                           [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
                           ,
                             (
@@ -218,10 +218,10 @@ program217 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tCon "List" [tInt], "v$_xs_1")
+                  (tCon "List" [tInt], "v$-xs-1")
                   (eVar (tCon "List" [tInt], "Nil"))
                   ( ePat
-                      (eVar (tCon "List" [tInt], "v$_xs_1"))
+                      (eVar (tCon "List" [tInt], "v$-xs-1"))
                       [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
                       ,
                         (
@@ -616,7 +616,7 @@ program304 =
               (fromList [(tUnit, "a")])
               ( tInt
               , eLet
-                  (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$_Cons_1")
+                  (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$-Cons-1")
                   ( eLam
                       ()
                       [(tInt, "x"), (tCon "List" [tInt], "xs")]
@@ -626,7 +626,123 @@ program304 =
                       (tCon "List" [tInt], "xs")
                       ( eApp
                           (tCon "List" [tInt])
-                          (eCon (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$_Cons_1"))
+                          (eCon (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$-Cons-1"))
+                          [ eLit (PInt 111)
+                          , eCon (tCon "List" [tInt], "Nil")
+                          ]
+                      )
+                      ( ePat
+                          (eVar (tCon "List" [tInt], "xs"))
+                          [
+                            (
+                              [ (tCon "List" [tInt], "Nil")
+                              ]
+                            , eLit (PInt 401)
+                            )
+                          ,
+                            (
+                              [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                              , (tInt, "y")
+                              , (tCon "List" [tInt], "ys")
+                              ]
+                            , eLit (PInt 402)
+                            )
+                          ]
+                      )
+                  )
+              )
+          )
+        ]
+    )
+
+expr305 :: Ast
+expr305 =
+  eLet
+    (tCon "List" [tInt], "xs")
+    (eVar (tCon "List" [tInt], "Nil"))
+    ( ePat
+        (eVar (tCon "List" [tInt], "xs"))
+        [
+          (
+            [ (tCon "List" [tInt], "Nil")
+            ]
+          , eLit (PInt 401)
+          )
+        ,
+          (
+            [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+            , (tInt, "y")
+            , (tCon "List" [tInt], "ys")
+            ]
+          , eLit (PInt 402)
+          )
+        ]
+    )
+
+expr306 :: Ast
+expr306 =
+  eLet
+    (tCon "List" [tInt], "xs")
+    ( eCall
+        (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+        [ eLit (PInt 5)
+        , eVar (tCon "List" [tInt], "Nil")
+        ]
+    )
+    ( ePat
+        (eVar (tCon "List" [tInt], "xs"))
+        [
+          (
+            [ (tCon "List" [tInt], "Nil")
+            ]
+          , eLit (PInt 401)
+          )
+        ,
+          (
+            [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+            , (tInt, "y")
+            , (tCon "List" [tInt], "ys")
+            ]
+          , eLit (PInt 402)
+          )
+        ]
+    )
+
+program305 :: Program MonoType TypedExpr
+program305 =
+  Program
+    ( Map.fromList
+        [
+          ( (Scheme (tInt ~> tInt), "print_int")
+          , Extern [tInt] tInt
+          )
+        ,
+          ( (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]), "Cons")
+          , Function
+              (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
+              (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tCon "List" [tVar "a"]), "Nil")
+          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "foo"))
+          )
+        ,
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$-Cons-1")
+                  ( eLam
+                      ()
+                      [(tInt, "x"), (tCon "List" [tInt], "xs")]
+                      (eVar (tCon "List" [tInt], "foo"))
+                  )
+                  ( eLet
+                      (tCon "List" [tInt], "xs")
+                      ( eApp
+                          (tCon "List" [tInt])
+                          (eCon (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "C$-Cons-1"))
                           [ eLit (PInt 111)
                           , eCon (tCon "List" [tInt], "Nil")
                           ]
