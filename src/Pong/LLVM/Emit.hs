@@ -17,7 +17,7 @@ import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
--- import Debug.Trace
+import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
@@ -67,23 +67,23 @@ buildProgram pname p = do
   buildModule (llvmRep pname) $ do
     void (extern "gc_malloc" [i64] charPtr)
     env <-
-      buildEnv $ \name_ t ->
+      buildEnv $ \defn t ->
         \case
           Extern args t1 -> do
             op <-
               extern
-                (llvmRep name_)
+                (llvmRep defn)
                 (llvmType <$> args)
                 (llvmType t1)
-            pure [(name_, (t, op))]
+            pure [(defn, (t, op))]
           Constant (t1, _) -> do
             pure
               [
-                ( name_
+                ( defn
                 ,
                   ( t
                   , functionRef
-                      (llvmRep name_)
+                      (llvmRep defn)
                       (llvmType t1)
                       []
                   )
@@ -92,11 +92,11 @@ buildProgram pname p = do
           Function args (t1, _) ->
             pure
               [
-                ( name_
+                ( defn
                 ,
                   ( t
                   , functionRef
-                      (llvmRep name_)
+                      (llvmRep defn)
                       (llvmType t1)
                       (llvmType . fst <$> toList args)
                   )
@@ -120,28 +120,45 @@ buildProgram pname p = do
     --              )
     --            )
     --          ]
-    forEachIn p $ \name_ _ ->
+    forEachIn p $ \defn _ ->
       \case
-        Constant (t1, _)
-          | "Nil" == name_ ->
+        -- TODO
+        Constant{} -- (_, _)
+          | "Nil" == defn ->
               void $
                 -- TODO
                 function
                   (llvmRep "Nil")
                   []
-                  (llvmType t1)
+                  charPtr -- (llvmType t1)
                   ( \_ -> do
                       runCodeGen env p $ do
                         let sty = StructureType False [i8]
                         s <- malloc sty
-                        storeOffset 0 s (int8 1) -- TODO
+                        storeOffset s 0 (int8 1) -- TODO
+                        a <- bitcast s charPtr
+                        ret a
+                  )
+        -- TODO
+        Function args _ -- (t1, _)
+          | "Cons" == defn || "C$-Cons-1" == defn || "$lam1" == defn ->
+              void $
+                function
+                  (llvmRep defn)
+                  (toList args <&> llvmType *** llvmRep)
+                  charPtr -- (llvmType t1)
+                  ( \ops -> do
+                      runCodeGen env p $ do
+                        let sty = StructureType False (i8 : (llvmType . fst <$> toList args))
+                        s <- malloc sty
+                        storeRange s 0 (int8 0 : ops) -- TODO
                         a <- bitcast s charPtr
                         ret a
                   )
         Constant (t1, body) ->
           void $
             function
-              (llvmRep name_)
+              (llvmRep defn)
               []
               (llvmType t1)
               ( \_ -> do
@@ -151,22 +168,24 @@ buildProgram pname p = do
                     (emitBody body >>= ret . snd)
               )
         Function args (t1, body) ->
-          void $
-            function
-              (llvmRep name_)
-              (toList args <&> llvmType *** llvmRep)
-              (llvmType t1)
-              ( \ops -> do
-                  runCodeGen
-                    ( Env.inserts
-                        [ (n, (ty, op))
-                        | (op, (ty, n)) <- zip ops (toList args)
-                        ]
-                        env
-                    )
-                    p
-                    (emitBody body >>= ret . snd)
-              )
+          traceShow defn $
+            traceShow ("------" :: String) $
+              void $
+                function
+                  (llvmRep defn)
+                  (toList args <&> llvmType *** llvmRep)
+                  (llvmType t1)
+                  ( \ops -> do
+                      runCodeGen
+                        ( Env.inserts
+                            [ (n, (ty, op))
+                            | (op, (ty, n)) <- zip ops (toList args)
+                            ]
+                            env
+                        )
+                        p
+                        (emitBody body >>= ret . snd)
+                  )
         _ ->
           pure ()
   where
@@ -206,8 +225,15 @@ emitBody =
     EVar (t, "Nil") | 0 == arity t -> do
       r <- call (functionRef "Nil" charPtr []) []
       pure (t, r)
+    -- TODO
+    EVar (_, "Cons") -> do
+      undefined
+    EVar (_, "foo") -> do
+      -- TOOD
+      x <- emitPrim (PInt 9876)
+      pure (tInt, x)
     EVar (_, var) ->
-      Env.askLookup var <&> fromMaybe (error "Implementation error")
+      Env.askLookup var <&> fromMaybe (error ("Not in scope: " <> show var))
     ECall () (_, fun) args ->
       emitCall fun args
     EPat expr_ cs ->
@@ -232,7 +258,7 @@ emitCall fun args = do
             let sty = StructureType False [llvmType (tVar 0 ~> t)]
             s <- bitcast op (ptr sty)
             a <- bitcast op charPtr
-            f <- loadOffset 0 s
+            f <- loadOffset s 0
             r <- call f (zip (a : (snd <$> as)) (repeat []))
             pure (u, r)
           else do
@@ -242,23 +268,22 @@ emitCall fun args = do
                 sty1 = StructureType False (toFty us : charPtr : (llvmType <$> ts))
                 sty2 = StructureType False [toFty (ts <> us)]
             s <- malloc sty1
-            storeOffset 0 s
+            storeOffset s 0
               =<< function
                 (llvmRep n)
                 ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
                 (llvmType u)
                 ( \(w : ws) -> do
                     s1 <- bitcast w (ptr sty1)
-                    v <- loadOffset 1 s1
-                    f <- loadOffset 0 =<< bitcast v (ptr sty2)
-                    vs <- forM [2 .. (1 + length args)] $ \i ->
-                      loadOffset i s1
+                    v <- loadOffset s1 1
+                    s2 <- bitcast v (ptr sty2)
+                    f <- loadOffset s2 0
+                    vs <- loadRange s1 [2 .. 1 + length args]
                     r <- call f (zip (v : vs <> ws) (repeat []))
                     ret r
                 )
-            storeOffset 1 s =<< bitcast op charPtr
-            forM_ (as `zip` [2 ..]) $ \((_, a), i) ->
-              storeOffset i s a
+            storeOffset s 1 =<< bitcast op charPtr
+            storeRange s 2 (snd <$> as)
             pure (foldType u us, s)
       Just (t, op) -> do
         -- Regular function pointer
@@ -273,20 +298,18 @@ emitCall fun args = do
                 fty = llvmType (foldType u (tVar 0 : us))
                 sty = StructureType False (fty : (llvmType <$> ts))
             s <- malloc sty
-            storeOffset 0 s
+            storeOffset s 0
               =<< function
                 (llvmRep n)
                 ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
                 (llvmType u)
                 ( \(w : ws) -> do
                     s1 <- bitcast w (ptr sty)
-                    vs <- forM [1 .. length args] $ \i ->
-                      loadOffset i s1
+                    vs <- loadRange s1 [1 .. length args]
                     r <- call op (zip (vs <> ws) (repeat []))
                     ret r
                 )
-            forM_ (as `zip` [1 :: Int ..]) $ \((_, a), i) ->
-              storeOffset i s a
+            storeRange s 1 (snd <$> as)
             pure (foldType u us, s)
       _ ->
         error "Implementation error"
@@ -299,7 +322,7 @@ emitPat expr_ cs = mdo
   (_, e) <- expr_
   let sty = StructureType False [i8]
   s <- bitcast e (ptr sty)
-  m <- loadOffset 0 s
+  m <- loadOffset s 0
   let names = blocks <&> snd
   switch
     m
@@ -309,23 +332,21 @@ emitPat expr_ cs = mdo
     ]
   blocks <-
     forM cs $ \((t, _) : fields, body) -> do
-      blk <- block `named` "case"
+      blk <-
+        block `named` "case"
       r <-
         if null fields
           then body
           else do
             s1 <- bitcast e (ptr (StructureType False (i8 : (argTypes t <&> llvmType))))
-            ops <-
-              forM (zip [1 ..] (argTypes t)) $ \(i, ti) -> do
-                op <- loadOffset i s1
-                pure (ti, op)
+            ops <- zip (argTypes t) <$> loadRange s1 [1 .. arity t]
             local (Env.inserts (zip (fields <&> snd) ops)) body
       br end
       cb <- currentBlock
       pure ((r, cb), blk)
   end <- block `named` "end"
-  o <- phi (first snd . fst <$> blocks)
-  pure (fst (fst (fst (head blocks))), o)
+  op <- phi (first snd . fst <$> blocks)
+  pure (fst (fst (fst (head blocks))), op)
 
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
@@ -408,22 +429,39 @@ functionRef name_ rty atys = ptrRef name_ (FunctionType rty atys False)
 
 loadOffset ::
   (MonadIRBuilder m, MonadModuleBuilder m) =>
-  Int ->
   Operand ->
+  Int ->
   m Operand
-loadOffset i ds = do
+loadOffset ds i = do
   p <- gep ds [int32 0, int32 (fromIntegral i)]
   load p 0
 
 storeOffset ::
   (MonadIRBuilder m, MonadModuleBuilder m) =>
+  Operand ->
   Int ->
   Operand ->
-  Operand ->
   m ()
-storeOffset i ds op = do
+storeOffset ds i op = do
   p <- gep ds [int32 0, int32 (fromIntegral i)]
   store p 0 op
+
+loadRange ::
+  (MonadIRBuilder m, MonadModuleBuilder m) =>
+  Operand ->
+  [Int] ->
+  m [Operand]
+loadRange = mapM . loadOffset
+
+storeRange ::
+  (MonadIRBuilder m, MonadModuleBuilder m) =>
+  Operand ->
+  Int ->
+  [Operand] ->
+  m ()
+storeRange ds from ops = forM_ as (uncurry (storeOffset ds))
+  where
+    as = [from ..] `zip` ops
 
 malloc :: (MonadIRBuilder m) => LLVM.Type -> m Operand
 malloc ty = do
