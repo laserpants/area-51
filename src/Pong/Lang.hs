@@ -505,6 +505,27 @@ boundVars =
         _ -> mempty
     )
 
+substituteVar :: Name -> Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+substituteVar from to =
+  para $
+    \case
+      ELet (t, var) (e1, _) (e2, _)
+        | var == from -> eLet (t, var) e1 e2
+      ERes r@[_, (_, var), _] (e1, _) (e2, _)
+        | var == from -> eRes r e1 e2
+      EPat (_, e1) cs ->
+        ePat
+          e1
+          ( cs <&> \(ps, (l, r)) ->
+              (ps, if from `elem` (snd <$> ps) then l else r)
+          )
+      EVar (t, v)
+        | v == from -> eVar (t, to)
+      ECon (t, c)
+        | c == from -> eCon (t, to)
+      e ->
+        embed (snd <$> e)
+
 {-# INLINE foldType #-}
 foldType :: Type v -> [Type v] -> Type v
 foldType = foldr tArr

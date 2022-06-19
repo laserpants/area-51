@@ -62,6 +62,14 @@ monomorphize t name e1 =
         ELet (t0, var) (expr1, _) (expr2, _)
           | var == name ->
               pure (eLet (t0, var) expr1 expr2)
+        ERes r@[_, (_, var), _] (expr1, _) (expr2, _)
+          | var == name ->
+              pure (eRes r expr1 expr2)
+        EPat (_, expr1) cs ->
+          let updateClause (ps, e)
+                | name `elem` (snd <$> ps) = pure (ps, fst e)
+                | otherwise = (,) ps . snd <$> sequence e
+           in ePat <$> expr1 <*> traverse updateClause cs
         ECon (t0, con)
           | con == name && not (t `isIsomorphicTo` t0) ->
               eCon <$> runSubst "C$" con e1 t t0
@@ -216,7 +224,12 @@ compile =
     ELet var expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
-      makeDef "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))
+      case project e1 of
+        EVar (_, rep) -> do
+          let body = substituteVar (snd var) rep e2
+          makeDef "$let" body ($ body)
+        _ ->
+          makeDef "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))
     ERes fs expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
