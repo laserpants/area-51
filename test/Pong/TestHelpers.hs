@@ -4,8 +4,8 @@ module Pong.TestHelpers where
 
 import Control.Monad ((>=>))
 import Data.Either.Extra (mapLeft)
-import qualified Data.Text.Lazy as TextLazy
 import qualified Data.Map.Strict as Map
+import qualified Data.Text.Lazy as TextLazy
 import GHC.IO.Handle
 import LLVM.Pretty
 import Pong.Data
