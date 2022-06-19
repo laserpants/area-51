@@ -330,13 +330,124 @@ program9 =
         ]
     )
 
+--  def main(a : unit) : int =
+--    let
+--      id =
+--        lam(x) =>
+--          x
+--      in
+--        let
+--          add =
+--            lam(x) =>
+--              lam(y) =>
+--                x + y
+--          in
+--            let
+--              add2 =
+--                add(2)
+--              in
+--                (id(add2))(id(3)) + add(4, 5)
+
 --
 -- let
---   add2 =
---     v$-add-1(2)
+--   v$-id-3 =
+--     lam(x) => x
 --   in
+--     let
+--       v$-id-4 =
+--         lam(x) => x
+--       in
+--         let
+--           id =
+--             lam(x) => x
+--           in
+--             let
+--               v$-add-1 =
+--                 lam(x) =>
+--                   lam(y) =>
+--                     x + y
+--               in
+--                 let
+--                   v$-add-2 =
+--                     lam(x) =>
+--                       lam(y) =>
+--                         x + y
+--                   in
+--                     let
+--                       add =
+--                         lam(x) =>
+--                           lam(y) =>
+--                             x + y
+--                       in
+--                         let
+--                           add2 =
+--                             v$-add-1(2)
+--                           in
+--                             (v$-id-3(add2))(v$-id-4(3))
+--                             +
+--                             v$-add-2(4, 5)
 --
 --
+
+-------------------------------------------------------------------------------
+
+-- def main(a : unit) : int =
+--   let
+--     add2 =
+--       v$-add-1(2)
+--     in
+--       v$-id-3(add2, v$-id-4(3))
+--       +
+--       v$-add-2(4, 5)
+--
+-- def $lam2(x : int) : int =
+--   x
+--
+-- def $lam4(x : int, y : int) : int =
+--   x + y
+--
+-- def $lam5(x : int, $v0 : int) : int =
+--   $lam4(x, $v0)
+--
+-- def $lam6(x : int, y : int) : int =
+--   x + y
+--
+-- def $lam7(x : int, $v0 : int) : int =
+--   $lam6(x, $v0)
+--
+-- def $lam1(x : int -> int, $v0 : int) : int =
+--   x($v0)
+--
+-- def $lam8(x : '1, y : '1) : '1 =
+--   x + y
+--
+-- def $lam9(x : '1, $v0 : '1) : '1 =
+--   $lam8(x, $v0)
+--
+-- def $lam3(x : '0) : '0 =
+--   x
+--
+
+-- ((Scheme (Fix (TArr (Fix (TVar "a0")) (Fix (TArr (Fix (TVar "a0")) (Fix (TVar "a0")))))),"$lam8"),
+--   Function ((Fix (TVar 1),"x") :| [(Fix (TVar 1),"y")]) (Fix (TVar 1),Fix (EOp2 (Fix (TArr (Fix (TVar 1)) (Fix (TArr (Fix (TVar 1)) (Fix (TVar 1))))),OAdd) (Fix (EVar (Fix (TVar 1),"x"))) (Fix (EVar (Fix (TVar 1),"y")))))),((Scheme (Fix (TArr (Fix (TVar "a0")) (Fix (TArr (Fix (TVar "a0")) (Fix (TVar "a0")))))),"$lam9"),Function ((Fix (TVar 1),"x") :| [(Fix (TVar 1),"$v0")]) (Fix (TVar 1),Fix (ECall () (Fix (TArr (Fix (TVar 1)) (Fix (TArr (Fix (TVar 1)) (Fix (TVar 1))))),"$lam8") [Fix (EVar (Fix (TVar 1),"x")),Fix (EVar (Fix (TVar 1),"$v0"))]))),((Scheme (Fix (TArr (Fix (TVar "a0")) (Fix (TVar "a0")))),"$lam3"),Function ((Fix (TVar 0),"x") :| []) (Fix (TVar 0),Fix (EVar (Fix (TVar 0),"x"))))])
+
+--  def main(a : unit) : int =
+--    let
+--      id =
+--        lam(x) =>
+--          x
+--      in
+--        let
+--          add =
+--            lam(x) =>
+--              lam(y) =>
+--                x + y
+--          in
+--            let
+--              add2 =
+--                add(2)
+--              in
+--                (id(add2))(id(3)) + add(4, 5)\
 
 program10 :: Program MonoType Ast
 program10 =

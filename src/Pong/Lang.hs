@@ -523,6 +523,8 @@ substituteVar from to =
         | v == from -> eVar (t, to)
       ECon (t, c)
         | c == from -> eCon (t, to)
+      ECall a (t, fun) args
+        | fun == from -> eCall_ a (t, to) (snd <$> args)
       e ->
         embed (snd <$> e)
 
