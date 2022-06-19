@@ -8,6 +8,116 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util
 
+expr101 :: Text
+expr101 =
+  "let\
+  \  x =\
+  \    5\
+  \  in\
+  \    y\
+  \"
+
+-- "
+
+expr102 :: Text
+expr102 =
+  "let\
+  \  x =\
+  \    5\
+  \  in\
+  \    z\
+  \"
+
+-- "
+
+expr113 :: Text
+expr113 =
+  "let\
+  \  x =\
+  \    5\
+  \  in\
+  \    let\
+  \      a =\
+  \        6\
+  \      in\
+  \        y\
+  \"
+
+-- "
+
+expr114 :: Text
+expr114 =
+  "let\
+  \  x =\
+  \    5\
+  \  in\
+  \    let\
+  \      a =\
+  \        6\
+  \      in\
+  \        z\
+  \"
+
+-- "
+
+expr103 :: Text
+expr103 =
+  "let\
+  \  x =\
+  \    5\
+  \  in\
+  \    let\
+  \      y =\
+  \        6\
+  \      in\
+  \        y\
+  \"
+
+-- "
+
+expr104 :: Text
+expr104 =
+  "let\
+  \  x =\
+  \    y\
+  \  in\
+  \    match xs {\
+  \      | A(y) => y\
+  \      | B(x) => y\
+  \    }\
+  \"
+
+-- "
+
+expr105 :: Text
+expr105 =
+  "let\
+  \  x =\
+  \    z\
+  \  in\
+  \    match xs {\
+  \      | A(y) => y\
+  \      | B(x) => z\
+  \    }\
+  \"
+
+-- "
+
+expr106 :: Text
+expr106 =
+  "let\
+  \  r =\
+  \    { a = 5 }\
+  \  in\
+  \    letr\
+  \      { a = y | q } =\
+  \        r\
+  \      in\
+  \        y\
+  \"
+
+-- "
+
 program200 :: Text
 program200 =
   "def main(a : unit) : int =\
@@ -217,22 +327,18 @@ program217 =
           , Function
               (fromList [(tUnit, "a")])
               ( tInt
-              , eLet
-                  (tCon "List" [tInt], "v$-xs-1")
+              , ePat
                   (eVar (tCon "List" [tInt], "Nil"))
-                  ( ePat
-                      (eVar (tCon "List" [tInt], "v$-xs-1"))
-                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
-                      ,
-                        (
-                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
-                          , (tInt, "y")
-                          , (tCon "List" [tInt], "ys")
-                          ]
-                        , eVar (tInt, "y")
-                        )
+                  [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                  ,
+                    (
+                      [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                      , (tInt, "y")
+                      , (tCon "List" [tInt], "ys")
                       ]
-                  )
+                    , eVar (tInt, "y")
+                    )
+                  ]
               )
           )
         ]

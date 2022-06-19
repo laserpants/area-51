@@ -330,6 +330,15 @@ program9 =
         ]
     )
 
+
+--
+-- let
+--   add2 = 
+--     v$-add-1(2)
+--   in
+--     
+--
+
 program10 :: Program MonoType Ast
 program10 =
   Program

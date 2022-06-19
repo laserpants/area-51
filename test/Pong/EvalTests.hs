@@ -69,24 +69,24 @@ evalTests =
        in do
             v <- runIO $ evalProgram program mainSig
             it "8" (Just (PrimValue (PInt 1)) == v)
-      -------------------------------------------------------------------------
-      let program :: Program MonoType Ast
-          program = compileSource program44
-       in do
-            v <- runIO $ evalProgram program mainSig
-            it "9" (Just (PrimValue (PInt 4)) == v)
-      -------------------------------------------------------------------------
-      let program :: Program MonoType Ast
-          program = compileSource program46
-       in do
-            v <- runIO $ evalProgram program mainSig
-            it "10" (Just (PrimValue (PInt 5)) == v)
-      -------------------------------------------------------------------------
-      let program :: Program MonoType Ast
-          program = compileSource program48
-       in do
-            v <- runIO $ evalProgram program mainSig
-            it "11" (Just (PrimValue (PInt 5)) == v)
+--      -------------------------------------------------------------------------
+--      let program :: Program MonoType Ast
+--          program = compileSource program44
+--       in do
+--            v <- runIO $ evalProgram program mainSig
+--            it "9" (Just (PrimValue (PInt 4)) == v)
+--      -------------------------------------------------------------------------
+--      let program :: Program MonoType Ast
+--          program = compileSource program46
+--       in do
+--            v <- runIO $ evalProgram program mainSig
+--            it "10" (Just (PrimValue (PInt 5)) == v)
+--      -------------------------------------------------------------------------
+--      let program :: Program MonoType Ast
+--          program = compileSource program48
+--       in do
+--            v <- runIO $ evalProgram program mainSig
+--            it "11" (Just (PrimValue (PInt 5)) == v)
       -------------------------------------------------------------------------
       do
         v <- runIO $ evalProgram program217 mainSig

@@ -5,6 +5,7 @@ module Pong.TestHelpers where
 import Control.Monad ((>=>))
 import Data.Either.Extra (mapLeft)
 import qualified Data.Text.Lazy as TextLazy
+import qualified Data.Map.Strict as Map
 import GHC.IO.Handle
 import LLVM.Pretty
 import Pong.Data
@@ -29,6 +30,9 @@ runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 
 runUnifyRows :: Row MonoType Int -> Row MonoType Int -> Either TypeError Substitution
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)
+
+lookupDef :: (Scheme, Name) -> Program t a -> Maybe (Definition t a)
+lookupDef defn (Program p) = Map.lookup defn p
 
 runInferProgramWithEnv ::
   TypeEnv ->

@@ -46,10 +46,7 @@ fragment2 =
           , Function
               (fromList [(tUnit, "a")])
               ( tInt
-              , eLet
-                  (tInt ~> tInt ~> tInt, "f")
-                  (eVar (tInt ~> tInt ~> tInt, "$lam2"))
-                  (eLit (PInt 123))
+              , eLit (PInt 123)
               )
           )
         ,
@@ -122,10 +119,7 @@ fragment9 =
           , Function
               (fromList [(tUnit, "a")])
               ( tInt
-              , eLet
-                  (tInt ~> tInt ~> tInt, "f")
-                  (eVar (tInt ~> tInt ~> tInt, "$lam1"))
-                  (eLit (PInt 123))
+              , eLit (PInt 123)
               )
           )
         ]
