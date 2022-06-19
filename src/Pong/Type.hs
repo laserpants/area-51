@@ -495,7 +495,8 @@ inferProgram p = local (<> programEnv p) (programForM p (curry go))
           error "TODO"
 
 runInferProgram ::
-  Program () SourceExpr -> Either TypeError (Program MonoType TypedExpr)
+  Program () SourceExpr ->
+  Either TypeError (Program MonoType TypedExpr)
 runInferProgram = runTypeChecker 1 mempty . inferProgram <&> fst
 
 -------------------------------------------------------------------------------
