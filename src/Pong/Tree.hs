@@ -11,9 +11,11 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Newtype.Generics (over, unpack)
+import Data.Char (isUpper)
 import Data.Either.Extra (mapLeft)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Lang
@@ -226,7 +228,14 @@ compile =
       e2 <- expr2
       case project e1 of
         EVar (_, rep) -> do
-          let body = substituteVar (snd var) rep e2
+          let name_ = snd var
+          rep_ <-
+            if isUpper (Text.head name_)
+              then do
+                modify (second (renameDef rep name_))
+                pure name_
+              else pure rep
+          let body = substituteVar name_ rep_ e2
           makeDef "$let" body ($ body)
         _ ->
           makeDef "$let" (eLet var e1 e2) (\app -> eLet var e1 (app e2))

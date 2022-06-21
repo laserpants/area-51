@@ -12,9 +12,11 @@ module Pong.LLVM.Emit where
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Char (isUpper)
 import Data.List.NonEmpty (toList)
 import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
+import qualified Data.Text as Text
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
@@ -121,15 +123,13 @@ buildProgram pname p = do
     --          ]
     forEachIn p $ \defn _ ->
       \case
-        -- TODO
-        Constant{} -- (_, _)
-          | "Nil" == defn ->
+        Constant{}
+          | isUpper (Text.head defn) ->
               void $
-                -- TODO
                 function
-                  (llvmRep "Nil")
+                  (llvmRep defn)
                   []
-                  charPtr -- (llvmType t1)
+                  charPtr
                   ( \_ -> do
                       runCodeGen env p $ do
                         let sty = StructureType False [i8]
@@ -139,8 +139,8 @@ buildProgram pname p = do
                         ret a
                   )
         -- TODO
-        Function args _ -- (t1, _)
-          | "Cons" == defn || "C$-Cons-1" == defn || "$lam1" == defn ->
+        Function args _
+          | isUpper (Text.head defn) ->
               void $
                 function
                   (llvmRep defn)

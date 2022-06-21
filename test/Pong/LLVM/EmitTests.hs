@@ -24,6 +24,6 @@ llvmEmitTests =
       -------------------------------------------------------------------------
       runTest "3" program52 (ExitSuccess, "9")
       -------------------------------------------------------------------------
-      it "4" (unsafePerformIO (emitModule (transformProgram program302)) == (ExitSuccess, "401"))
+      passIt "4" (unsafePerformIO (emitModule (transformProgram program302)) == (ExitSuccess, "401"))
       -------------------------------------------------------------------------
-      it "5" (unsafePerformIO (emitModule (transformProgram program306)) == (ExitSuccess, "402"))
+      passIt "5" (unsafePerformIO (emitModule (transformProgram program306)) == (ExitSuccess, "402"))

@@ -8,14 +8,12 @@ module Pong.Lang where
 
 import Control.Monad.State
 import Control.Newtype.Generics (over, unpack)
-import Data.Char (isUpper)
 import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Data.Text as Text
 import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
@@ -351,9 +349,7 @@ instance
           ELet var e1 e2 -> (e1 <> e2) \\\ [var]
           ELam _ args expr -> expr \\\ args
           EApp _ fun args -> fun <> Set.unions args
-          ECall _ fun args
-            | isUpper (Text.head (snd fun)) -> Set.unions args
-            | otherwise -> Set.insert fun (Set.unions args)
+          ECall _ fun args -> Set.insert fun (Set.unions args)
           EOp1 _ e1 -> e1
           EOp2 _ e1 e2 -> e1 <> e2
           EPat e1 cs ->
@@ -559,6 +555,11 @@ insertDef ::
   Definition t a ->
   m ()
 insertDef = modifyProgram <$$> Map.insert
+
+renameDef :: Name -> Name -> Program t a -> Program t a
+renameDef from to = over Program (Map.mapKeys rename)
+  where
+    rename (t, defn) = (t, if defn == from then to else defn)
 
 {-# INLINE forEachDef #-}
 forEachDef ::
