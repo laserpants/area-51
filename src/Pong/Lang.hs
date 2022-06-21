@@ -390,7 +390,7 @@ infix 5 \\\
 
 {-# INLINE freeVars #-}
 freeVars :: (FreeVars f t) => f -> [Label t]
-freeVars = Set.toList . freeVarsIn
+freeVars = Set.toList . Set.filter ((/= "{{data}}") . snd) . freeVarsIn
 
 toMonoType :: Map Name Int -> Type Name -> MonoType
 toMonoType vs =

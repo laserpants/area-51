@@ -827,25 +827,14 @@ program305 =
           , Function
               (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
               ( tCon "List" [tVar 0]
-              , eApp
-                  (tCon "List" [tVar 0])
-                  (eVar (tVar 0 ~> tCon "List" [tVar 0] ~> tCon "List" [tVar 0], "Cons"))
-                  [eVar (tVar 0, "x"), eVar (tCon "List" [tVar 0], "xs")]
+              , eVar (tCon "List" [tVar 0], "{{data}}")
               )
           )
         ,
           ( (Scheme (tCon "List" [tVar "a"]), "Nil")
-          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "Nil"))
+          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "{{data}}"))
           )
-        , --        ,
-          --          ( (Scheme (tUnit ~> tInt), "main")
-          --          , Function
-          --              (fromList [(tUnit, "a")])
-          --              ( tInt
-          --              , eApp tInt (eVar (tInt ~> tInt, "print_int")) [eApp tInt (eVar (tUnit ~> tInt, "main1")) [eLit PUnit]]
-          --              )
-          --          )
-
+        ,
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
               (fromList [(tUnit, "a")])
@@ -907,11 +896,13 @@ program306 =
           , Function
               (fromList [(tVar 0, "x"), (tCon "List" [tVar 0], "xs")])
               ( tCon "List" [tVar 0]
-              , eApp
-                  (tCon "List" [tVar 0])
-                  (eVar (tVar 0 ~> tCon "List" [tVar 0] ~> tCon "List" [tVar 0], "Cons"))
-                  [eVar (tVar 0, "x"), eVar (tCon "List" [tVar 0], "xs")]
+              , eVar (tCon "List" [tVar 0], "{{data}}")
               )
+              -- , eApp
+              --    (tCon "List" [tVar 0])
+              --    (eVar (tVar 0 ~> tCon "List" [tVar 0] ~> tCon "List" [tVar 0], "Cons"))
+              --    [eVar (tVar 0, "x"), eVar (tCon "List" [tVar 0], "xs")]
+              -- )
           )
         ,
           ( (Scheme (tCon "List" [tVar "a"]), "Nil")

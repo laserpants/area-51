@@ -22,7 +22,6 @@ import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
--- import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, name, typeOf, var, void)
 import Pong.Lang
@@ -77,7 +76,7 @@ buildProgram pname p = do
                 (llvmType <$> args)
                 (llvmType t1)
             pure [(defn, (t, op))]
-          Constant (t1, _) -> do
+          Constant (t1, _) ->
             pure
               [
                 ( defn
@@ -114,7 +113,7 @@ buildProgram pname p = do
                   (llvmRep defn)
                   []
                   charPtr
-                  ( \_ -> do
+                  ( \_ ->
                       runCodeGen env p $ do
                         let sty = StructureType False [i8]
                         s <- malloc sty
@@ -144,7 +143,7 @@ buildProgram pname p = do
               (llvmRep defn)
               []
               (llvmType t1)
-              ( \_ -> do
+              ( \_ ->
                   runCodeGen
                     env
                     p
@@ -156,7 +155,7 @@ buildProgram pname p = do
               (llvmRep defn)
               (toList args <&> llvmType *** llvmRep)
               (llvmType t1)
-              ( \ops -> do
+              ( \ops ->
                   runCodeGen
                     ( Env.inserts
                         [ (n, (ty, op))
@@ -205,6 +204,10 @@ emitBody =
     EVar (t, var) | isUpper (Text.head var) && 0 == arity t -> do
       r <- call (functionRef (llvmRep var) charPtr []) []
       pure (t, r)
+    EVar (t, "{{data}}") -> do
+      r <- emitPrim PUnit
+      s <- inttoptr r charPtr
+      pure (t, s)
     EVar (_, var) ->
       Env.askLookup var <&> fromMaybe (error ("Not in scope: " <> show var))
     ECall () (_, fun) args ->
