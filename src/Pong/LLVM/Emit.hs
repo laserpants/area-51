@@ -105,22 +105,6 @@ buildProgram pname p = do
               ]
           _ ->
             error "TODO"
-    --    let env = env <> Env.fromList
-    --          [ ( "Cons"
-    --            , ( tVar 0 ~> tCon "List" [tVar 0] ~> tCon "List" [tVar 0]
-    --              , functionRef (llvmRep "Cons")
-    --                  charPtr
-    --                  undefined
-    --              )
-    --            )
-    --          , ( "Nil"
-    --            , ( tCon "List" [tVar 0]
-    --              , functionRef (llvmRep "Nil")
-    --                  charPtr
-    --                  undefined
-    --              )
-    --            )
-    --          ]
     forEachIn p $ \defn _ ->
       \case
         Constant{}
@@ -218,17 +202,9 @@ emitBody =
       (_, b) <- expr2
       r <- emitOp2Instr op a b
       pure (returnType (fst op), r)
-    -- TODO
-    EVar (t, "Nil") | 0 == arity t -> do
-      r <- call (functionRef "Nil" charPtr []) []
+    EVar (t, var) | isUpper (Text.head var) && 0 == arity t -> do
+      r <- call (functionRef (llvmRep var) charPtr []) []
       pure (t, r)
-    -- TODO
-    EVar (_, "Cons") -> do
-      undefined
-    EVar (_, "foo") -> do
-      -- TOOD
-      x <- emitPrim (PInt 9876)
-      pure (tInt, x)
     EVar (_, var) ->
       Env.askLookup var <&> fromMaybe (error ("Not in scope: " <> show var))
     ECall () (_, fun) args ->
