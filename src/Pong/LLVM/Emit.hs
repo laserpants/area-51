@@ -17,7 +17,6 @@ import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
-import Debug.Trace
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
@@ -168,24 +167,22 @@ buildProgram pname p = do
                     (emitBody body >>= ret . snd)
               )
         Function args (t1, body) ->
-          traceShow defn $
-            traceShow ("------" :: String) $
-              void $
-                function
-                  (llvmRep defn)
-                  (toList args <&> llvmType *** llvmRep)
-                  (llvmType t1)
-                  ( \ops -> do
-                      runCodeGen
-                        ( Env.inserts
-                            [ (n, (ty, op))
-                            | (op, (ty, n)) <- zip ops (toList args)
-                            ]
-                            env
-                        )
-                        p
-                        (emitBody body >>= ret . snd)
-                  )
+          void $
+            function
+              (llvmRep defn)
+              (toList args <&> llvmType *** llvmRep)
+              (llvmType t1)
+              ( \ops -> do
+                  runCodeGen
+                    ( Env.inserts
+                        [ (n, (ty, op))
+                        | (op, (ty, n)) <- zip ops (toList args)
+                        ]
+                        env
+                    )
+                    p
+                    (emitBody body >>= ret . snd)
+              )
         _ ->
           pure ()
   where
