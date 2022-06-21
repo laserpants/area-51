@@ -76,6 +76,10 @@ readTests =
         runTestParser expr "f (())" (eApp () (eVar ((), "f")) [eLit PUnit])
         -------------------------------------------------------------------------
         runTestParser expr "(f(()))" (eApp () (eVar ((), "f")) [eLit PUnit])
+        -------------------------------------------------------------------------
+        runTestParser expr "f()" (eApp () (eVar ((), "f")) [eLit PUnit])
+        -------------------------------------------------------------------------
+        runTestParser expr "(f())" (eApp () (eVar ((), "f")) [eLit PUnit])
 
       describe "If statements" $ do
         runTestParser expr "if foo(1) then 1 else 2" (eIf (eApp () (eVar ((), "foo")) [eLit (PInt 1)]) (eLit (PInt 1)) (eLit (PInt 2)))

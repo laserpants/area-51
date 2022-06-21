@@ -16,7 +16,7 @@ import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Name, (<<<), (>>>))
+import Pong.Util (Name, (<&>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
@@ -131,9 +131,10 @@ expr = makeExprParser apps operator
     apps = do
       f <- parens (expr <|> spaces $> eLit PUnit) <|> item
       optional (args expr)
-        >>= ( fromMaybe [] >>> pure <<< \case
-                [] -> f
-                as -> eApp () f as
+        <&> ( \case
+                Nothing -> f
+                Just [] -> eApp () f [eLit PUnit]
+                Just as -> eApp () f as
             )
     item =
       litExpr
@@ -206,7 +207,7 @@ matchExpr :: Parser SourceExpr
 matchExpr = do
   keyword "match"
   e <- expr
-  cs <- braces (optional (symbol "|") >> caseClause `sepBy1` symbol "|")
+  cs <- braces (optional (symbol "|") >> matchClause `sepBy1` symbol "|")
   pure (ePat e cs)
 
 resExpr :: Parser SourceExpr
@@ -223,8 +224,8 @@ resExpr = do
   e2 <- symbol "in" *> expr
   pure (eRes f e1 e2)
 
-caseClause :: Parser ([Label ()], SourceExpr)
-caseClause = do
+matchClause :: Parser ([Label ()], SourceExpr)
+matchClause = do
   ls <- do
     con <- constructor
     ids <- fromMaybe [] <$> optional (args identifier)

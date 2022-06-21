@@ -123,7 +123,7 @@ program200 =
   "def main(a : unit) : int =\
   \  let\
   \    xs =\
-  \      Nil()\
+  \      Nil\
   \    in\
   \      match xs\
   \        { Nil => 401\
@@ -191,7 +191,7 @@ program203 =
   "def main(a : unit) : int =\
   \  let\
   \    xs =\
-  \      Nil()\
+  \      Nil\
   \    in\
   \      match xs\
   \        { Nil => 401\
@@ -952,3 +952,22 @@ program306 =
           )
         ]
     )
+
+program400 :: Text
+program400 =
+  "\
+  \def main(a : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \def runner(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Nil\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => 402\
+  \        }\
+  \"
+
+-- "
