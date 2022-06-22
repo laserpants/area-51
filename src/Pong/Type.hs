@@ -20,7 +20,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
-import Data.Tuple.Extra (first, firstM, second, secondM, swap)
+import Data.Tuple.Extra (first, firstM, second, secondM)
 import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Lang
@@ -67,8 +67,16 @@ runTypeChecker n env (TypeChecker c) =
   runState (runReaderT (runExceptT c) env) (n, mempty)
 
 programEnv :: Program t a -> TypeEnv
-programEnv program =
-  Env.fromList (Map.keys (unpack program) <&> swap . first Right)
+programEnv = Env.fromList . concatMap go . Map.toList . unpack
+  where
+    go = \case
+      ((Scheme s, _), Data _ cons) ->
+        cons
+          <&> ( \(Constructor con fs) ->
+                  (con, Right (Scheme (foldType s fs)))
+              )
+      ((scheme, defn), _) ->
+        [(defn, Right scheme)]
 
 -- Substitution
 
@@ -488,8 +496,8 @@ inferProgram p = local (<> programEnv p) (programForM p (curry go))
           pure (Constant (typeOf e, e))
         (_, Extern as r) -> do
           pure (Extern as r)
-        _ ->
-          error "TODO"
+        (_, Data name cons) ->
+          pure (Data name cons)
 
 runInferProgram ::
   Program () SourceExpr ->

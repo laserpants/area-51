@@ -906,7 +906,7 @@ program306 =
           )
         ,
           ( (Scheme (tCon "List" [tVar "a"]), "Nil")
-          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "Nil"))
+          , Constant (tCon "List" [tVar 0], eVar (tCon "List" [tVar 0], "{{data}}"))
           )
         ,
           ( (Scheme (tUnit ~> tInt), "main")
@@ -956,6 +956,8 @@ program306 =
 program400 :: Text
 program400 =
   "\
+  \extern print_int : int -> int\
+  \\r\n\
   \type List a\
   \  = Nil\
   \  | Cons a (List a)\
@@ -971,6 +973,56 @@ program400 =
   \      match xs\
   \        { Nil => 401\
   \        | Cons(y, ys) => 402\
+  \        }\
+  \"
+
+-- "
+
+program500 :: Text
+program500 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type List a\
+  \  = Nil\
+  \  | Cons a (List a)\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \def runner(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Cons(4, Nil)\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => 402\
+  \        }\
+  \"
+
+-- "
+
+program501 :: Text
+program501 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type List a\
+  \  = Nil\
+  \  | Cons a (List a)\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \def runner(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Cons(4, Nil)\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => y\
   \        }\
   \"
 

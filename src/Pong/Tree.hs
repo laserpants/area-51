@@ -15,6 +15,7 @@ import Data.Char (isUpper)
 import Data.Either.Extra (mapLeft)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
 import Pong.Data
@@ -323,6 +324,29 @@ transform2 p = runTransform (programForM p (const (traverse (flip (foldDefsM go)
         _ ->
           pure e
 
+insertConstructors ::
+  Program MonoType (Expr MonoType a0 a1 a2) ->
+  Program MonoType (Expr MonoType a0 a1 a2)
+insertConstructors (Program p) = Program (p <> Map.fromList (concat extra_))
+  where
+    extra_ =
+      Map.toList p
+        <&> \((Scheme s, _), def) ->
+          case def of
+            Data _ cons ->
+              cons <&> \(Constructor con fs) ->
+                let t = foldType s fs
+                    names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
+                    t0 = toMonoType names t
+                    body = (returnType t0, eVar (t0, "{{data}}"))
+                 in ( (Scheme t, con)
+                    , if null fs
+                        then Constant body
+                        else Function (fromList (varSequence "d" (argTypes t0))) body
+                    )
+            _ ->
+              []
+
 data CompilerError
   = ParserError ParserError
   | TypeError TypeError
@@ -335,7 +359,8 @@ postProcess p =
 
 transformProgram :: Program MonoType TypedExpr -> Program MonoType Ast
 transformProgram =
-  transform1
+  insertConstructors
+    >>> transform1
     >>> transform2
     >>> compileProgram
     >>> normalizeProgramDefs
