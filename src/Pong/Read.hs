@@ -16,7 +16,7 @@ import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Name, (<&>))
+import Pong.Util (Name, project, (<&>), (>>>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
@@ -277,9 +277,9 @@ polyType =
         <|> keyword "double" $> tDouble
         <|> keyword "char" $> tChar
         <|> keyword "string" $> tString
-        <|> conType
         <|> recType
         <|> genType
+        <|> conType
     conType = do
       con <- constructor
       ts <- many polyType
@@ -312,7 +312,7 @@ arg = do
   pure (t, name)
 
 def :: Parser (Label Scheme, Definition () SourceExpr)
-def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
+def = functionDef <|> constantDef <|> externalDef <|> typeDef
   where
     functionDef = do
       keyword "def"
@@ -343,6 +343,22 @@ def = functionDef <|> constantDef <|> externalDef -- <|> dataDef -- TODO
       let names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
           t0 = toMonoType names t
       pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
+
+    typeDef = do
+      keyword "type"
+      name <- constructor
+      tvs <- many identifier <* symbol "="
+      let t = tCon name (tVar <$> tvs)
+      cons <- dataCon `sepBy` symbol "|"
+      pure ((Scheme t, name), Data name cons)
+
+    dataCon = do
+      polyType
+        >>= ( project
+                >>> \case
+                  TCon con ts -> pure (Constructor con ts)
+                  _ -> fail "Not a constructor"
+            )
 
 program :: Parser (Program () SourceExpr)
 program = do

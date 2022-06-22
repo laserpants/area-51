@@ -956,6 +956,10 @@ program306 =
 program400 :: Text
 program400 =
   "\
+  \type List a\
+  \  = Nil\
+  \  | Cons a (List a)\
+  \\r\n\
   \def main(a : unit) : int =\
   \  print_int(runner())\
   \\r\n\

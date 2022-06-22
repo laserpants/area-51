@@ -156,9 +156,6 @@ instance (Free a) => Free [a] where
 instance (Free a) => Free (Either e a) where
   freeIn = concatMap freeIn
 
-instance (Free t) => Free (Constructor t) where
-  freeIn (Constructor _ fs) = freeIn fs
-
 instance (Free t, Free a) => Free (Definition t a) where
   freeIn =
     \case
@@ -168,8 +165,8 @@ instance (Free t, Free a) => Free (Definition t a) where
         freeIn t <> freeIn a
       Extern ts t ->
         freeIn ts <> freeIn t
-      Data _ cs ->
-        freeIn cs
+      _ ->
+        []
 
 instance (Free t, Free a) => Free (Program t a) where
   freeIn (Program p) = freeIn (Map.elems p)

@@ -142,9 +142,6 @@ instance Substitutable (Row MonoType Int) where
 instance Substitutable Void where
   apply = const id
 
-instance (Substitutable t) => Substitutable (Constructor t) where
-  apply = fmap . apply
-
 instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) where
   apply sub =
     \case
@@ -154,8 +151,8 @@ instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) wh
         Constant (apply sub t, apply sub a)
       Extern ts t ->
         Extern (apply sub ts) (apply sub t)
-      Data name cs ->
-        Data name (apply sub cs)
+      def ->
+        def
 
 instance (Substitutable t, Substitutable a) => Substitutable (Program t a) where
   apply sub (Program p) = Program (apply sub p)

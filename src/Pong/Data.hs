@@ -150,16 +150,16 @@ data ConE
 
 {- ORMOLU_ENABLE -}
 
-data Constructor t = Constructor
+data Constructor = Constructor
   { conName :: Name
-  , conFields :: [t]
+  , conFields :: [Type Name]
   }
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)
   | Constant (t, a)
   | Extern [MonoType] MonoType
-  | Data Name [Constructor t]
+  | Data Name [Constructor]
 
 newtype Program t a
   = Program (Map (Label Scheme) (Definition t a))
@@ -310,17 +310,11 @@ deriving instance Foldable (ExprF t a0 a1 a2)
 deriving instance Traversable (ExprF t a0 a1 a2)
 
 -- Constructor
-deriving instance (Show t) => Show (Constructor t)
+deriving instance Show Constructor
 
-deriving instance (Eq t) => Eq (Constructor t)
+deriving instance Eq Constructor
 
-deriving instance (Ord t) => Ord (Constructor t)
-
-deriving instance Functor Constructor
-
-deriving instance Foldable Constructor
-
-deriving instance Traversable Constructor
+deriving instance Ord Constructor
 
 -- Definition
 deriving instance (Show t, Show a) => Show (Definition t a)
