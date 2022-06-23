@@ -75,18 +75,18 @@ monomorphize t name e1 =
            in ePat <$> expr1 <*> traverse updateClause cs
         ECon (t0, con)
           | con == name && not (t `isIsomorphicTo` t0) ->
-              eCon <$> runSubst "C$" con e1 t t0
+              eCon <$> runSubst con e1 t t0
         EVar (t0, var)
           | var == name && not (t `isIsomorphicTo` t0) ->
-              eVar <$> runSubst "v$" var e1 t t0
+              eVar <$> runSubst var e1 t t0
         expr ->
           embed <$> sequence (expr <&> snd)
     )
   where
-    runSubst pfix var expr t1 t2 =
+    runSubst var expr t1 t2 =
       case evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2) of
         Right sub -> do
-          newVar <- uniqueName (pfix <> "-" <> var <> "-")
+          newVar <- uniqueName (var <> "-")
           tell [((t2, newVar), apply sub expr)]
           pure (t2, newVar)
         _ ->

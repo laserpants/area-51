@@ -191,9 +191,8 @@ buildProgram pname p = do
           )
     normalizedCon con =
       case Text.splitOn "-" con of
-        [c] -> c
-        _ : c : _ -> c
-        _ -> ""
+        [c, _] -> c
+        _ -> con
 
 emitBody :: Ast -> CodeGen OpInfo
 emitBody =

@@ -174,9 +174,8 @@ evalPat (ConValue name fields) (((_, con) : vars, value) : clauses)
   where
     constructorName =
       case Text.splitOn "-" name of
-        [c] -> c
-        _ : c : _ -> c
-        _ -> ""
+        [c, _] -> c
+        _ -> name
 evalPat c _ = error ("No constructor: " <> show c)
 
 evalRow :: Row Ast (Label MonoType) -> Eval (Row Value Void)
