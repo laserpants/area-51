@@ -9,7 +9,7 @@ program20 =
   "def foo(a : unit) : int =\
   \  5\
   \\r\n\
-  \def main(a : unit) : int =\
+  \def main(_ : unit) : int =\
   \  let\
   \    r =\
   \      { a = 5, b = true }\
