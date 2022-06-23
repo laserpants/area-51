@@ -267,7 +267,7 @@ instance (Typed t) => Typed (Definition t a) where
       Extern ts t ->
         foldType t ts
       _ ->
-        error "TODO"
+        error "Not implemented"
 
 {-# INLINE arity #-}
 arity :: (Typed t) => t -> Int
