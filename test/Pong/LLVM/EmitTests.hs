@@ -37,3 +37,9 @@ llvmEmitTests =
       passIt "9" (unsafePerformIO (emitModule (compileSource program600)) == (ExitSuccess, "1"))
       -------------------------------------------------------------------------
       passIt "10" (unsafePerformIO (emitModule (compileSource program601)) == (ExitSuccess, "2"))
+      -------------------------------------------------------------------------
+      passIt "11" (unsafePerformIO (emitModule (compileSource program602)) == (ExitSuccess, "50"))
+      -------------------------------------------------------------------------
+      passIt "12" (unsafePerformIO (emitModule (compileSource program603)) == (ExitSuccess, "121"))
+      -------------------------------------------------------------------------
+      passIt "13" (unsafePerformIO (emitModule (compileSource program604)) == (ExitSuccess, "6"))

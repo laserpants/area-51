@@ -120,7 +120,7 @@ expr106 =
 
 program200 :: Text
 program200 =
-  "def main(a : unit) : int =\
+  "def main(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Nil\
@@ -140,7 +140,7 @@ program201 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [((), "a")])
+              (fromList [((), "_")])
               ( ()
               , eLet
                   ((), "xs")
@@ -163,7 +163,7 @@ program202 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , eLet
                   (tCon "List" [tVar 0], "xs")
@@ -188,7 +188,7 @@ program202 =
 
 program203 :: Text
 program203 =
-  "def main(a : unit) : int =\
+  "def main(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Nil\
@@ -208,7 +208,7 @@ program204 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [((), "a")])
+              (fromList [((), "_")])
               ( ()
               , eLet
                   ((), "xs")
@@ -231,7 +231,7 @@ program205 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , eLet
                   (tCon "List" [tVar 0], "xs")
@@ -261,7 +261,7 @@ program206 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , eLet
                   (tCon "List" [tInt], "xs-1")
@@ -291,7 +291,7 @@ program207 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , eLet
                   (tCon "List" [tInt], "xs-1")
@@ -325,7 +325,7 @@ program217 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , ePat
                   (eVar (tCon "List" [tInt], "Nil"))
@@ -346,7 +346,7 @@ program217 =
 
 program208 :: Text
 program208 =
-  "def main(a : unit) : int =\
+  "def main(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Cons(5, Nil)\
@@ -366,7 +366,7 @@ program209 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [((), "a")])
+              (fromList [((), "_")])
               ( ()
               , eLet
                   ((), "xs")
@@ -389,7 +389,7 @@ program210 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , eLet
                   (tCon "List" [tInt], "xs")
@@ -425,7 +425,7 @@ program271 =
         [
           ( (Scheme (tUnit ~> tInt), "main")
           , Function
-              (fromList [(tUnit, "a")])
+              (fromList [(tUnit, "_")])
               ( tInt
               , eLet
                   (tCon "List" [tInt], "xs")
@@ -455,7 +455,7 @@ program271 =
 
 program212 :: Text
 program212 =
-  "def main(a : unit) : int =\
+  "def main(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Cons(5, Cons(4, Cons(3, Nil)))\
@@ -475,7 +475,7 @@ program212 =
 -- program300 :: Text
 -- program300 =
 --  "\
---  \def main(a : unit) : int =\
+--  \def main(_ : unit) : int =\
 --  \  let\
 --  \    xs =\
 --  \      Nil()\
@@ -611,10 +611,10 @@ program302 =
 --   \def cons(x : a, xs : List a) : List a =\
 --   \  foo\
 --   \\r\n\
---   \def main(a : unit) : int =\
+--   \def main(_ : unit) : int =\
 --   \  print_int(main1( () ))\
 --   \\r\n\
---   \def main1(a : unit) : int =\
+--   \def main1(_ : unit) : int =\
 --   \  let\
 --   \    xs =\
 --   \      Cons(111, Nil())\
@@ -978,10 +978,10 @@ program400 =
   \  = Nil\
   \  | Cons a (List a)\
   \\r\n\
-  \def main(a : unit) : int =\
+  \def main(_ : unit) : int =\
   \  print_int(runner())\
   \\r\n\
-  \def runner(a : unit) : int =\
+  \def runner(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Nil\
@@ -1003,10 +1003,10 @@ program500 =
   \  = Nil\
   \  | Cons a (List a)\
   \\r\n\
-  \def main(a : unit) : int =\
+  \def main(_ : unit) : int =\
   \  print_int(runner())\
   \\r\n\
-  \def runner(a : unit) : int =\
+  \def runner(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Cons(4, Nil)\
@@ -1028,10 +1028,10 @@ program501 =
   \  = Nil\
   \  | Cons a (List a)\
   \\r\n\
-  \def main(a : unit) : int =\
+  \def main(_ : unit) : int =\
   \  print_int(runner())\
   \\r\n\
-  \def runner(a : unit) : int =\
+  \def runner(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Cons(4, Nil)\
@@ -1053,10 +1053,10 @@ program600 =
   \  = Left a\
   \  | Right b\
   \\r\n\
-  \def main(a : unit) : int =\
+  \def main(_ : unit) : int =\
   \  print_int(runner())\
   \\r\n\
-  \def runner(a : unit) : int =\
+  \def runner(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Left(5)\
@@ -1078,10 +1078,10 @@ program601 =
   \  = Left a\
   \  | Right b\
   \\r\n\
-  \def main(a : unit) : int =\
+  \def main(_ : unit) : int =\
   \  print_int(runner())\
   \\r\n\
-  \def runner(a : unit) : int =\
+  \def runner(_ : unit) : int =\
   \  let\
   \    xs =\
   \      Right(5)\
@@ -1090,6 +1090,116 @@ program601 =
   \        { Left(a) => 1\
   \        | Right(b) => 2\
   \        }\
+  \"
+
+-- "
+
+program602 :: Text
+program602 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = Left a\
+  \  | Right b\
+  \\r\n\
+  \def main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      runner()\
+  \    in\
+  \      print_int(r)\
+  \\r\n\
+  \def runner(_ : unit) : int =\
+  \  let\
+  \    ys =\
+  \      Left(50)\
+  \    in\
+  \      let\
+  \        xs =\
+  \          Right(5)\
+  \        in\
+  \          match xs\
+  \            { Left(a) => a\
+  \            | Right(b) =>\
+  \                match ys\
+  \                  { Left(c) => c\
+  \                  | Right(d) => 0\
+  \                  }\
+  \            }\
+  \"
+
+-- "
+
+program603 :: Text
+program603 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \const num : int =\
+  \  5\
+  \\r\n\
+  \def fact(n : int) : int =\
+  \  if 0 == n\
+  \    then\
+  \      1\
+  \     else\
+  \      n * fact(n - 1)\
+  \\r\n\
+  \def main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \def runner(_ : unit) : int =\
+  \  let\
+  \    ys =\
+  \      This(50)\
+  \    in\
+  \      let\
+  \        xs =\
+  \          That(5)\
+  \        in\
+  \          match xs\
+  \            { This(a) => a\
+  \            | That(b) =>\
+  \                match ys\
+  \                  { This(c) => 1 + fact(num)\
+  \                  | That(d) => 0\
+  \                  }\
+  \            }\
+  \"
+
+-- "
+
+program604 :: Text
+program604 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \const succ : int -> int =\
+  \  lam(x) =>\
+  \    x + 1\
+  \\r\n\
+  \def main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \def runner(_ : unit) : int =\
+  \  succ(5)\
   \"
 
 -- "

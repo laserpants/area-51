@@ -18,7 +18,6 @@ import Data.Function ((&))
 import Data.List (sort, sortOn)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy.IO as Text
@@ -231,8 +230,16 @@ emitBody =
       r <- emitPrim PUnit
       s <- inttoptr r charPtr
       pure (t, s)
-    EVar (_, var) ->
-      Env.askLookup var <&> fromMaybe (error ("Not in scope: " <> show var))
+    EVar (_, var) -> do
+      Env.askLookup var
+        >>= \case
+          Just (t, op@(ConstantOperand (GlobalReference PointerType{pointerReferent = FunctionType{}} _)))
+            | arity t == 0 -> do
+                r <- call op []
+                pure (t, r)
+          Just op ->
+            pure op
+          Nothing -> error ("Not in scope: " <> show var)
     ECall () (_, fun) args ->
       emitCall fun args
     EPat expr_ cs ->
