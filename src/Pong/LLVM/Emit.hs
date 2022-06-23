@@ -230,7 +230,7 @@ emitBody =
       r <- emitPrim PUnit
       s <- inttoptr r charPtr
       pure (t, s)
-    EVar (_, var) -> do
+    EVar (_, var) ->
       Env.askLookup var
         >>= \case
           Just (t, op@(ConstantOperand (GlobalReference PointerType{pointerReferent = FunctionType{}} _)))
