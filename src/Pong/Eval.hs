@@ -89,8 +89,6 @@ eval =
               eval expr
             Just Function{} ->
               pure (Closure (t, var) [])
-            Nothing ->
-              error ("Variable not in scope: " <> show var)
             _ ->
               error "Eval error"
     ELit prim ->
