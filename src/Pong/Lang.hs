@@ -360,7 +360,8 @@ instance
                   RExt _ el r -> Set.fromList (freeVars el) <> r
               )
           ERes (_ : vs) e1 e2 -> (e1 <> e2) \\\ vs
-          _ -> error "Implementation error"
+          _ ->
+            error "Implementation error"
       )
 
 instance
