@@ -95,7 +95,7 @@ emitModule prog = compileBinary >> exec
       (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
       (_, _, _, procHandle) <-
         createProcess
-          (proc "clang" ["runtime.c", "-xir", "-lgc", "-Wno-override-module", "-o", "tmp/out", "-"])
+          (proc "clang" ["runtime.c", "-O0", "-g", "-xir", "-lgc", "-Wno-override-module", "-o", "tmp/out", "-"])
             { std_in = UseHandle stdoutHandle
             , cwd = Just projectDir
             }
