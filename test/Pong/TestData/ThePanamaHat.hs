@@ -538,6 +538,14 @@ program302 =
   Program
     ( Map.fromList
         [
+          ( (Scheme (tCon "List" [tVar "a"]), "List")
+          , Data
+              "List"
+              [ Constructor "Nil" []
+              , Constructor "Cons" [tVar "a", tCon "List" [tVar "a"]]
+              ]
+          )
+        ,
           ( (Scheme (tInt ~> tInt), "print_int")
           , Extern [tInt] tInt
           )
@@ -888,6 +896,14 @@ program306 =
   Program
     ( Map.fromList
         [
+          ( (Scheme (tCon "List" [tVar "a"]), "List")
+          , Data
+              "List"
+              [ Constructor "Nil" []
+              , Constructor "Cons" [tVar "a", tCon "List" [tVar "a"]]
+              ]
+          )
+        ,
           ( (Scheme (tInt ~> tInt), "print_int")
           , Extern [tInt] tInt
           )
@@ -1023,6 +1039,56 @@ program501 =
   \      match xs\
   \        { Nil => 401\
   \        | Cons(y, ys) => y\
+  \        }\
+  \"
+
+-- "
+
+program600 :: Text
+program600 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = Left a\
+  \  | Right b\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \def runner(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Left(5)\
+  \    in\
+  \      match xs\
+  \        { Left(a) => 1\
+  \        | Right(b) => 2\
+  \        }\
+  \"
+
+-- "
+
+program601 :: Text
+program601 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = Left a\
+  \  | Right b\
+  \\r\n\
+  \def main(a : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \def runner(a : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Right(5)\
+  \    in\
+  \      match xs\
+  \        { Left(a) => 1\
+  \        | Right(b) => 2\
   \        }\
   \"
 

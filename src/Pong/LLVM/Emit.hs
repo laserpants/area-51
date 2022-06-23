@@ -12,8 +12,12 @@ module Pong.LLVM.Emit where
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Newtype.Generics (unpack)
 import Data.Char (isUpper)
+import Data.Function ((&))
+import Data.List (sort, sortOn)
 import Data.List.NonEmpty (toList)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified Data.Text as Text
@@ -25,7 +29,7 @@ import qualified LLVM.AST.Type as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, name, typeOf, var, void)
 import Pong.Lang
-import Pong.Util
+import Pong.Util (Name, cata, embed, project, (***), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 import TextShow (showt)
@@ -50,7 +54,7 @@ runCodeGen ::
 runCodeGen env prog (CodeGen code) = runReaderT (evalStateT code (1, prog)) env
 
 llvmRep :: (IsString s) => Name -> s
-llvmRep = fromString <<< unpack
+llvmRep = fromString <<< Text.unpack
 
 charPtr :: LLVM.Type
 charPtr = ptr i8
@@ -103,40 +107,45 @@ buildProgram pname p = do
                 )
               ]
           _ ->
-            error "TODO"
+            pure []
     forEachIn p $ \defn _ ->
       \case
         Constant{}
           | isUpper (Text.head defn) ->
-              void $
-                function
-                  (llvmRep defn)
-                  []
-                  charPtr
-                  ( \_ ->
-                      runCodeGen env p $ do
-                        let sty = StructureType False [i8]
-                        s <- malloc sty
-                        storeOffset s 0 (int8 1) -- TODO
-                        a <- bitcast s charPtr
-                        ret a
-                  )
-        -- TODO
+              case lookup (normalizedCon defn) consIndices of
+                Just n ->
+                  void $
+                    function
+                      (llvmRep defn)
+                      []
+                      charPtr
+                      ( \_ ->
+                          runCodeGen env p $ do
+                            let sty = StructureType False [i8]
+                            s <- malloc sty
+                            storeOffset s 0 (int8 n)
+                            a <- bitcast s charPtr
+                            ret a
+                      )
+                _ -> error "Implementation error"
         Function args _
           | isUpper (Text.head defn) ->
-              void $
-                function
-                  (llvmRep defn)
-                  (toList args <&> llvmType *** llvmRep)
-                  charPtr -- (llvmType t1)
-                  ( \ops -> do
-                      runCodeGen env p $ do
-                        let sty = StructureType False (i8 : (llvmType . fst <$> toList args))
-                        s <- malloc sty
-                        storeRange s 0 (int8 0 : ops) -- TODO
-                        a <- bitcast s charPtr
-                        ret a
-                  )
+              case lookup (normalizedCon defn) consIndices of
+                Just n ->
+                  void $
+                    function
+                      (llvmRep defn)
+                      (toList args <&> llvmType *** llvmRep)
+                      charPtr
+                      ( \ops -> do
+                          runCodeGen env p $ do
+                            let sty = StructureType False (i8 : (llvmType . fst <$> toList args))
+                            s <- malloc sty
+                            storeRange s 0 (int8 n : ops)
+                            a <- bitcast s charPtr
+                            ret a
+                      )
+                _ -> error "Implementation error"
         Constant (t1, body) ->
           void $
             function
@@ -170,6 +179,21 @@ buildProgram pname p = do
           pure ()
   where
     buildEnv = Env.fromList . concat <$$> forEachIn p
+    consIndices =
+      unpack p
+        & Map.toList
+        & concatMap
+          ( \case
+              (_, Data _ cs) ->
+                sort (conName <$> cs) `zip` [0 :: Integer ..]
+              _ ->
+                []
+          )
+    normalizedCon con =
+      case Text.splitOn "-" con of
+        [c] -> c
+        _ : c : _ -> c
+        _ -> ""
 
 emitBody :: Ast -> CodeGen OpInfo
 emitBody =
@@ -304,10 +328,10 @@ emitPat expr_ cs = mdo
     m
     (last names) -- Default case
     [ (Int 8 (fromIntegral i), blk)
-    | (i, blk) <- zip [1 :: Integer ..] (init names)
+    | (i, blk) <- zip [0 :: Integer ..] (init names)
     ]
   blocks <-
-    forM cs $ \((t, _) : fields, body) -> do
+    forM (sortOn (snd . head . fst) cs) $ \((t, _) : fields, body) -> do
       blk <-
         block `named` "case"
       r <-
@@ -370,7 +394,7 @@ emitOp1Instr =
     (t, ONeg) | (tInt ~> tInt) == t -> undefined
     (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
     (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
-    o -> error (show o)
+    o -> error ("Not implemented: " <> show o)
 
 emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =
@@ -392,7 +416,7 @@ emitOp2Instr =
     (t, OGtE) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.UGE
     (t, OLt) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.ULT
     (t, OLtE) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.ULE
-    o -> error (show o)
+    o -> error ("Not implemented: " <> show o)
 
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
 globalRef name_ ty = ConstantOperand (GlobalReference ty name_)

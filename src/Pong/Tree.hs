@@ -338,7 +338,8 @@ insertConstructors (Program p) = Program (p <> Map.fromList (concat extra_))
                 let t = foldType s fs
                     names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
                     t0 = toMonoType names t
-                    body = (returnType t0, eVar (t0, "{{data}}"))
+                    r0 = returnType t0
+                    body = (r0, eVar (r0, "{{data}}"))
                  in ( (Scheme t, con)
                     , if null fs
                         then Constant body
@@ -352,10 +353,13 @@ data CompilerError
   | TypeError TypeError
 
 postProcess :: Program MonoType Ast -> Program MonoType Ast
-postProcess p =
-  over Program (Map.filterWithKey (\s _ -> snd s `elem` names)) p
+postProcess p = over Program (Map.filterWithKey go) p
   where
     names = "main" : (snd <$> (freeVars p :: [Label MonoType]))
+    go (_, def) =
+      \case
+        Data{} -> True
+        _ -> def `elem` names
 
 transformProgram :: Program MonoType TypedExpr -> Program MonoType Ast
 transformProgram =
