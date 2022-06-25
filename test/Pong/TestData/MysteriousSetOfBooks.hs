@@ -154,3 +154,21 @@ program25 =
   \"
 
 -- "
+
+program26 :: Text
+program26 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 3.14159 }\
+  \    in\
+  \      letr\
+  \        { a = x | s } =\
+  \          r\
+  \        in\
+  \          if x > 3.0\
+  \            then 99\
+  \            else 109\
+  \"
+
+-- "

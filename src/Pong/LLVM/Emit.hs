@@ -23,7 +23,8 @@ import qualified Data.Text as Text
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
-import qualified LLVM.AST.IntegerPredicate as LLVM
+import qualified LLVM.AST.IntegerPredicate as Int
+import qualified LLVM.AST.FloatingPointPredicate as Float
 import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
@@ -70,10 +71,10 @@ revealOp op =
       ptrtoint op i1
     TFloat ->
       -- TOOD
-      undefined
+      bitcast op LLVM.float
     TDouble ->
       -- TOOD
-      undefined
+      bitcast op LLVM.double
     _ ->
       pure op
 
@@ -88,10 +89,10 @@ concealOp op =
       inttoptr op charPtr
     FloatingPointType FloatFP ->
       -- TODO
-      undefined
+      bitcast op charPtr
     FloatingPointType DoubleFP ->
       -- TODO
-      undefined
+      bitcast op charPtr
     _ ->
       bitcast op charPtr
 
@@ -479,8 +480,8 @@ emitOp1Instr =
 emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =
   \case
-    (t, OEq) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.EQ
-    (t, ONEq) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.NE
+    (t, OEq) | (tInt ~> tInt ~> tBool) == t -> icmp Int.EQ
+    (t, ONEq) | (tInt ~> tInt ~> tBool) == t -> icmp Int.NE
     (t, OAdd) | (tInt ~> tInt ~> tInt) == t -> add
     (t, OSub) | (tInt ~> tInt ~> tInt) == t -> sub
     (t, OMul) | (tInt ~> tInt ~> tInt) == t -> mul
@@ -492,10 +493,18 @@ emitOp2Instr =
     (t, OSub) | (tDouble ~> tDouble ~> tDouble) == t -> fsub
     (t, ODiv) | (tFloat ~> tFloat ~> tFloat) == t -> fdiv
     (t, ODiv) | (tDouble ~> tDouble ~> tDouble) == t -> fdiv
-    (t, OGt) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.UGT
-    (t, OGtE) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.UGE
-    (t, OLt) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.ULT
-    (t, OLtE) | (tInt ~> tInt ~> tBool) == t -> icmp LLVM.ULE
+    (t, OGt) | (tInt ~> tInt ~> tBool) == t -> icmp Int.UGT
+    (t, OGtE) | (tInt ~> tInt ~> tBool) == t -> icmp Int.UGE
+    (t, OLt) | (tInt ~> tInt ~> tBool) == t -> icmp Int.ULT
+    (t, OLtE) | (tInt ~> tInt ~> tBool) == t -> icmp Int.ULE
+    (t, OGt) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.UGT
+    (t, OGtE) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.UGE
+    (t, OLt) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.ULT
+    (t, OLtE) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.ULE
+    (t, OGt) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.UGT
+    (t, OGtE) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.UGE
+    (t, OLt) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.ULT
+    (t, OLtE) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.ULE
     o -> error ("Not implemented: " <> show o)
 
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
