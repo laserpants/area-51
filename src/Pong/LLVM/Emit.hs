@@ -13,7 +13,7 @@ module Pong.LLVM.Emit where
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Newtype.Generics (unpack)
-import Data.Char (isUpper)
+import Data.Char (isUpper, ord)
 import Data.Function ((&))
 import Data.List (sort, sortOn)
 import Data.List.NonEmpty (toList)
@@ -442,8 +442,8 @@ llvmType =
       TFloat{} -> LLVM.float
       TDouble{} -> LLVM.double
       TVar{} -> charPtr
-      TChar{} -> error "Not implemented" -- TODO
-      TString{} -> error "Not implemented" -- TODO
+      TString{} -> charPtr
+      TChar{} -> i8
       ty@TArr{} -> ptr funTy
         where
           types = llvmType <$> unwindType (embed ty)
@@ -455,20 +455,34 @@ llvmType =
               }
       _ -> charPtr
 
-llvmPrim :: Prim -> Constant
+llvmPrim :: Prim -> CodeGen Constant
 llvmPrim =
   \case
-    PBool True -> Int 1 1
-    PBool False -> Int 1 0
-    PInt n -> Int 64 (toInteger n)
-    PFloat f -> Float (Single f)
-    PDouble d -> Float (Double d)
-    PChar{} -> error "Not implemented" -- TODO
-    PString{} -> error "Not implemented" -- TODO
-    PUnit -> Int 1 0
+    PString s -> do
+      str <- uniqueName "$str"
+      globalStringPtr (Text.unpack s) (llvmRep str)
+    p ->
+      pure
+        ( p & \case
+            PBool True ->
+              Int 1 1
+            PBool False ->
+              Int 1 0
+            PInt n ->
+              Int 64 (toInteger n)
+            PFloat f ->
+              Float (Single f)
+            PDouble d ->
+              Float (Double d)
+            PChar c ->
+              Int 8 (fromIntegral (ord c))
+            PUnit -> Int 1 0
+            _ ->
+              error "Implementation error"
+        )
 
 emitPrim :: Prim -> CodeGen Operand
-emitPrim = pure <<< ConstantOperand <<< llvmPrim
+emitPrim = ConstantOperand <$$> llvmPrim
 
 emitOp1Instr :: (MonoType, Op1) -> Operand -> CodeGen Operand
 emitOp1Instr =
