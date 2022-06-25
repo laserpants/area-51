@@ -151,6 +151,7 @@ expr = makeExprParser apps operator
 fix8, fix7, fix6, fix4, fix3, fix2 :: [Operator Parser SourceExpr]
 fix8 =
   [ Prefix (eOp1 ((), ONot) <$ keyword "not")
+  , Prefix (eOp1 ((), ONeg) <$ symbol "-")
   ]
 fix7 = [InfixL (eOp2 ((), OMul) <$ symbol "*")]
 fix6 =

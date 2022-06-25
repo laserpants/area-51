@@ -190,3 +190,21 @@ program27 =
   \"
 
 -- "
+
+program28 :: Text
+program28 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          -b\
+  \        in\
+  \          if -5 == a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "

@@ -261,8 +261,10 @@ emitBody =
       (_, a) <- expr1
       r <- icmp Int.EQ (ConstantOperand (Int 1 0)) a
       pure (tBool, r)
-    EOp1 (_, ONeg) _ -> do
-      error "TODO"
+    EOp1 (t, ONeg) expr1 -> do
+      (_, a) <- expr1
+      r <- emitNegOp a t
+      pure (returnType t, r)
     EOp2 op expr1 expr2 -> do
       (_, a) <- expr1
       (_, b) <- expr2
@@ -485,6 +487,14 @@ llvmPrim =
 
 emitPrim :: Prim -> CodeGen Operand
 emitPrim = ConstantOperand <$$> llvmPrim
+
+emitNegOp :: Operand -> MonoType -> CodeGen Operand
+emitNegOp op =
+  \case
+    t | (tInt ~> tInt) == t -> sub (ConstantOperand (Int 64 0)) op
+    t | (tFloat ~> tFloat) == t -> sub (ConstantOperand (Float (Single 0))) op
+    t | (tDouble ~> tDouble) == t -> sub (ConstantOperand (Float (Double 0))) op
+    _ -> error "Not implemented"
 
 emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =
