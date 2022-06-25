@@ -23,8 +23,8 @@ import qualified Data.Text as Text
 import qualified Data.Text.Lazy.IO as Text
 import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
-import qualified LLVM.AST.IntegerPredicate as Int
 import qualified LLVM.AST.FloatingPointPredicate as Float
+import qualified LLVM.AST.IntegerPredicate as Int
 import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
