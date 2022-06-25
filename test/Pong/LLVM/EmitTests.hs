@@ -2,6 +2,7 @@
 
 module Pong.LLVM.EmitTests where
 
+import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.TheFatalAuction
 import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
@@ -43,3 +44,7 @@ llvmEmitTests =
       passIt "12" (unsafePerformIO (emitModule (compileSource program603)) == (ExitSuccess, "121"))
       -------------------------------------------------------------------------
       passIt "13" (unsafePerformIO (emitModule (compileSource program604)) == (ExitSuccess, "6"))
+      -------------------------------------------------------------------------
+      passIt "14" (unsafePerformIO (emitModule (compileSource program20)) == (ExitFailure 100, ""))
+      -------------------------------------------------------------------------
+      passIt "15" (unsafePerformIO (emitModule (compileSource program24)) == (ExitFailure 5, ""))

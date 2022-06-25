@@ -25,10 +25,11 @@ import Data.Tuple.Extra (first)
 import qualified LLVM.AST as LLVM
 import qualified LLVM.AST.IntegerPredicate as LLVM
 import qualified LLVM.AST.Type as LLVM
+import qualified LLVM.AST.Typed as LLVM
 import Pong.Data
 import Pong.LLVM hiding (Typed, name, typeOf, var, void)
 import Pong.Lang
-import Pong.Util (Name, cata, embed, project, (***), (<$$>), (<&>), (<<<), (>>>))
+import Pong.Util (Fix (..), Name, cata, embed, project, (***), (<$$>), (<&>), (<<<), (>>>))
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 import TextShow (showt)
@@ -58,6 +59,32 @@ llvmRep = fromString <<< Text.unpack
 charPtr :: LLVM.Type
 charPtr = ptr i8
 
+revealOp :: Operand -> MonoType -> CodeGen Operand
+revealOp op =
+  project >>> \case
+    TInt ->
+      ptrtoint op i64
+    _ ->
+      pure op
+
+concealOp :: Operand -> CodeGen Operand
+concealOp op =
+  case LLVM.typeOf op of
+    IntegerType 1 ->
+      inttoptr op charPtr
+    IntegerType 8 ->
+      inttoptr op charPtr
+    IntegerType 64 ->
+      inttoptr op charPtr
+    FloatingPointType FloatFP ->
+      -- TODO
+      undefined
+    FloatingPointType DoubleFP ->
+      -- TODO
+      undefined
+    _ ->
+      bitcast op charPtr
+
 forEachIn ::
   (Monad m) =>
   Program MonoType t ->
@@ -69,6 +96,9 @@ buildProgram :: Name -> Program MonoType Ast -> LLVM.Module
 buildProgram pname p = do
   buildModule (llvmRep pname) $ do
     void (extern "gc_malloc" [i64] charPtr)
+    void (extern "hashmap_init" [] charPtr)
+    void (extern "hashmap_lookup" [charPtr, charPtr] charPtr)
+    void (extern "hashmap_insert" [charPtr, charPtr, charPtr] LLVM.void)
     env <-
       buildEnv $ \defn t ->
         \case
@@ -244,12 +274,49 @@ emitBody =
       emitCall fun args
     EPat expr_ cs ->
       emitPat expr_ cs
-    ERec{} ->
-      error "TODO: ERec"
-    ERes{} ->
-      error "TODO: ERes"
+    ERec row ->
+      emitRow row
+    ERes fs e1 e2 ->
+      emitRes fs e1 e2
     ECon{} ->
-      error "TODO: ECon"
+      error "Implementation error"
+
+emitRes :: [Label MonoType] -> CodeGen OpInfo -> CodeGen OpInfo -> CodeGen OpInfo
+emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
+  str <- uniqueName "$str"
+  f <- globalStringPtr (Text.unpack field) (llvmRep str)
+  (_, hmap) <- a1
+  p <- call (functionRef "hashmap_lookup" charPtr []) (zip [hmap, ConstantOperand f] (repeat []))
+  op <- revealOp p t0
+  local (Env.inserts [(v, (t0, op)), (r, (t1, hmap))]) a2
+emitRes _ _ _ = error "Implementation error"
+
+emitRow :: Row Ast (Label MonoType) -> CodeGen OpInfo
+emitRow (Fix RNil) = do
+  hmap <- call (functionRef "hashmap_init" charPtr []) []
+  pure (tRec rNil, hmap)
+emitRow (Fix (RVar (_, var))) = do
+  Env.askLookup var
+    >>= \case
+      Just op ->
+        pure op
+      Nothing -> error ("Not in scope: " <> show var)
+emitRow row = do
+  let (fvs, r) = unwindRow row
+  (_, hmap) <- emitRow r
+  forM_ (Map.toList fvs) $ \(field, exprs) -> do
+    es <- traverse emitBody exprs
+    str <- uniqueName "$str"
+    f <- globalStringPtr (Text.unpack field) (llvmRep str)
+    -- TODO
+    let (_, e) = head es
+    v <- concealOp e
+    call (functionRef "hashmap_insert" LLVM.void []) (zip [hmap, ConstantOperand f, v] (repeat []))
+  -- TODO
+  -- forM_ es $ \(_, e) -> do
+  --  v <- concealOp e
+  --  call (functionRef "hashmap_insert" LLVM.void []) (zip [hmap, ConstantOperand k, v] (repeat []))
+  pure (typeOf row, hmap)
 
 emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
 emitCall fun args = do
@@ -320,10 +387,7 @@ emitCall fun args = do
       _ ->
         error "Implementation error"
 
-emitPat ::
-  CodeGen (MonoType, Operand) ->
-  [Clause MonoType (CodeGen (MonoType, Operand))] ->
-  CodeGen (MonoType, Operand)
+emitPat :: CodeGen OpInfo -> [Clause MonoType (CodeGen OpInfo)] -> CodeGen OpInfo
 emitPat expr_ cs = mdo
   (_, e) <- expr_
   let sty = StructureType False [i8]
@@ -359,9 +423,9 @@ llvmType :: MonoType -> LLVM.Type
 llvmType =
   project
     >>> \case
-      TUnit -> StructureType False []
-      TBool{} -> LLVM.i1
-      TInt{} -> LLVM.i64
+      TUnit -> i1
+      TBool{} -> i1
+      TInt{} -> i64
       TFloat{} -> LLVM.float
       TDouble{} -> LLVM.double
       TVar{} -> charPtr
@@ -388,7 +452,7 @@ llvmPrim =
     PDouble d -> Float (Double d)
     PChar{} -> error "Not implemented" -- TODO
     PString{} -> error "Not implemented" -- TODO
-    PUnit -> Struct Nothing False []
+    PUnit -> Int 1 0
 
 emitPrim :: Prim -> CodeGen Operand
 emitPrim = pure <<< ConstantOperand <<< llvmPrim

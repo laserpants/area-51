@@ -117,3 +117,19 @@ program23 =
   \"
 
 -- "
+
+program24 :: Text
+program24 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5 }\
+  \    in\
+  \      letr\
+  \        { a = x | s } =\
+  \          r\
+  \        in\
+  \          x\
+  \"
+
+-- "
