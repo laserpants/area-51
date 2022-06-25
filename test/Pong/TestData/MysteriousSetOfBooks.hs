@@ -133,3 +133,24 @@ program24 =
   \"
 
 -- "
+
+program25 :: Text
+program25 =
+  "def foo(a : unit) : int =\
+  \  5\
+  \\r\n\
+  \def main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = false }\
+  \    in\
+  \      letr\
+  \        { a = x | s } =\
+  \          r\
+  \        in\
+  \          if x\
+  \            then 9\
+  \            else 10\
+  \"
+
+-- "

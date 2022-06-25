@@ -64,6 +64,16 @@ revealOp op =
   project >>> \case
     TInt ->
       ptrtoint op i64
+    TBool ->
+      ptrtoint op i1
+    TUnit ->
+      ptrtoint op i1
+    TFloat ->
+      -- TOOD
+      undefined
+    TDouble ->
+      -- TOOD
+      undefined
     _ ->
       pure op
 
