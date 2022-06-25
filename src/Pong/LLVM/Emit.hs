@@ -69,12 +69,12 @@ revealOp op =
       ptrtoint op i1
     TUnit ->
       ptrtoint op i1
-    TFloat ->
-      -- TOOD
-      bitcast op LLVM.float
-    TDouble ->
-      -- TOOD
-      bitcast op LLVM.double
+    TFloat -> do
+      p <- bitcast op (ptr LLVM.float)
+      load p 0
+    TDouble -> do
+      p <- bitcast op (ptr LLVM.double)
+      load p 0
     _ ->
       pure op
 
@@ -87,12 +87,14 @@ concealOp op =
       inttoptr op charPtr
     IntegerType 64 ->
       inttoptr op charPtr
-    FloatingPointType FloatFP ->
-      -- TODO
-      bitcast op charPtr
-    FloatingPointType DoubleFP ->
-      -- TODO
-      bitcast op charPtr
+    FloatingPointType FloatFP -> do
+      p <- malloc LLVM.float
+      store p 0 op
+      bitcast p charPtr
+    FloatingPointType DoubleFP -> do
+      p <- malloc LLVM.double
+      store p 0 op
+      bitcast p charPtr
     _ ->
       bitcast op charPtr
 
