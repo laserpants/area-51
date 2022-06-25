@@ -257,10 +257,12 @@ emitBody =
       mergeBlock <- block `named` "ifcont"
       r <- phi [(thenOp, thenBlock), (elseOp, elseBlock)]
       pure (t, r)
-    EOp1 op expr1 -> do
+    EOp1 (_, ONot) expr1 -> do
       (_, a) <- expr1
-      r <- emitOp1Instr op a
-      pure (returnType (fst op), r)
+      r <- icmp Int.EQ (ConstantOperand (Int 1 0)) a
+      pure (tBool, r)
+    EOp1 (_, ONeg) _ -> do
+      error "TODO"
     EOp2 op expr1 expr2 -> do
       (_, a) <- expr1
       (_, b) <- expr2
@@ -483,15 +485,6 @@ llvmPrim =
 
 emitPrim :: Prim -> CodeGen Operand
 emitPrim = ConstantOperand <$$> llvmPrim
-
-emitOp1Instr :: (MonoType, Op1) -> Operand -> CodeGen Operand
-emitOp1Instr =
-  \case
-    (_, ONot) -> undefined
-    (t, ONeg) | (tInt ~> tInt) == t -> undefined
-    (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
-    (t, ONeg) | (tFloat ~> tFloat) == t -> undefined
-    o -> error ("Not implemented: " <> show o)
 
 emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =

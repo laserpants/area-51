@@ -172,3 +172,21 @@ program26 =
   \"
 
 -- "
+
+program27 :: Text
+program27 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          true\
+  \        in\
+  \          if not a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "

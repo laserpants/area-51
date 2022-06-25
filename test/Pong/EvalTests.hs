@@ -128,3 +128,7 @@ evalTests =
       do
         v <- runIO $ evalProgram (compileProgram program305) mainSig
         it "18" (Just (PrimValue (PInt 402)) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalProgram (compileSource program27) mainSig
+        it "19" (Just (PrimValue (PInt 2)) == v)

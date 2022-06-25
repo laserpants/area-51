@@ -84,6 +84,7 @@ keywords =
   , "true"
   , "false"
   , "def"
+  , "not"
   , "const"
   , "extern"
   , "bool"
@@ -147,7 +148,10 @@ expr = makeExprParser apps operator
         <|> varExpr
         <|> conExpr
 
-fix7, fix6, fix4, fix3, fix2 :: [Operator Parser SourceExpr]
+fix8, fix7, fix6, fix4, fix3, fix2 :: [Operator Parser SourceExpr]
+fix8 =
+  [ Prefix (eOp1 ((), ONot) <$ keyword "not")
+  ]
 fix7 = [InfixL (eOp2 ((), OMul) <$ symbol "*")]
 fix6 =
   [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
@@ -166,7 +170,8 @@ fix2 = [InfixR (eOp2 ((), OLogicOr) <$ symbol "||")]
 
 operator :: [[Operator Parser SourceExpr]]
 operator =
-  [ fix7
+  [ fix8
+  , fix7
   , fix6
   , fix4
   , fix3
