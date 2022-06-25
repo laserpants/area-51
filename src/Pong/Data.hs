@@ -150,7 +150,7 @@ data ConE
 
 {- ORMOLU_ENABLE -}
 
--- | Data (or value) constructor
+-- | Data (value) constructor
 data Constructor = Constructor
   { conName :: Name
   , conFields :: [Type Name]
