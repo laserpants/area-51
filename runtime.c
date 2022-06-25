@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <gc.h>
-#include "hashmap.h"
+#include "hashmap.h/hashmap.h"
 
 static
 void gc_finalizer (void *obj, void *client_data) 
