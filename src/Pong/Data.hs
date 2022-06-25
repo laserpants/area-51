@@ -150,16 +150,21 @@ data ConE
 
 {- ORMOLU_ENABLE -}
 
+-- | Data (or value) constructor
 data Constructor = Constructor
   { conName :: Name
   , conFields :: [Type Name]
   }
 
+{- ORMOLU_DISABLE -}
+
 data Definition t a
-  = Function (List1 (Label t)) (t, a)
-  | Constant (t, a)
-  | Extern [MonoType] MonoType
-  | Data Name [Constructor]
+  = Function (List1 (Label t)) (t, a)        -- ^ Function definition 
+  | Constant (t, a)                          -- ^ Constant expression
+  | Extern [MonoType] MonoType               -- ^ External function 
+  | Data Name [Constructor]                  -- ^ Data type declaration
+
+{- ORMOLU_ENABLE -}
 
 newtype Program t a
   = Program (Map (Label Scheme) (Definition t a))
