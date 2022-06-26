@@ -100,8 +100,10 @@ rowSubstitute :: Map Int MonoType -> Row MonoType Int -> Row MonoType Int
 rowSubstitute sub =
   cata $
     \case
-      RNil -> rNil
-      RExt name t row -> rExt name (substitute sub t) row
+      RNil ->
+        rNil
+      RExt name t row ->
+        rExt name (substitute sub t) row
       RVar n ->
         case project <$> (sub !? n) of
           Just (TRec r) -> r
@@ -230,7 +232,8 @@ tag = do
 
 -- Unification
 
-unifyAndCombine :: MonoType -> MonoType -> Substitution -> TypeChecker Substitution
+unifyAndCombine ::
+  MonoType -> MonoType -> Substitution -> TypeChecker Substitution
 unifyAndCombine t1 t2 sub1 = do
   sub2 <- unifyTypes (apply sub1 t1) (apply sub1 t2)
   pure (sub2 <> sub1)
