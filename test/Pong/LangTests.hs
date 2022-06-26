@@ -18,6 +18,49 @@ import Text.Megaparsec (runParser)
 langTests :: SpecWith ()
 langTests =
   describe "Pong.Lang" $ do
+    describe "- mapRow" $ do
+      let from :: Row TypedExpr Int
+          from = rExt "key" (eVar (tInt, "x")) rNil
+
+          to :: Row TypedExpr Int
+          to = rExt "key" (eVar (tInt, "y")) rNil
+
+       in 
+        passIt "#1" (mapRow (substituteVar "x" "y") from == to)
+
+      let from :: Row TypedExpr Int
+          from = rExt "one" (eVar (tInt, "x")) (rExt "two" (eVar (tInt, "x")) rNil)
+
+          to :: Row TypedExpr Int
+          to = rExt "one" (eVar (tInt, "y")) (rExt "two" (eVar (tInt, "y")) rNil)
+
+       in 
+        passIt "#1" (mapRow (substituteVar "x" "y") from == to)
+
+    describe "- mapRowM" $ do
+      it "TODO" True
+
+    describe "- bimapRow" $ do
+      it "TODO" True
+
+    describe "- normalizeRow" $ do
+      it "TODO" True
+
+    describe "- noramlizeTypeRows" $ do
+      it "TODO" True
+
+    describe "- foldRow" $ do
+      it "TODO" True
+
+    describe "- foldRow1" $ do
+      it "TODO" True
+
+    describe "- unwindRow" $ do
+      it "TODO" True
+
+    describe "- restrictRow" $ do
+      it "TODO" True
+
     describe "- freeVars" $ do
       -------------------------------------------------------------------------
       it "1" (freeVars (eVar (tInt, "x") :: TypedExpr) == [(tInt, "x")])
@@ -125,18 +168,6 @@ langTests =
       it "1" (free expr1 == [3, 7])
       -------------------------------------------------------------------------
       it "2" (free program6 == [0, 1])
-
-    describe "- foldRow" $ do
-      it "TODO" True
-
-    describe "- foldRow1" $ do
-      it "TODO" True
-
-    describe "- unwindRow" $ do
-      it "TODO" True
-
-    describe "- restrictRow" $ do
-      it "TODO" True
 
     describe "- freeIndex" $ do
       it "TODO" True
