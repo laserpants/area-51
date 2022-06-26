@@ -153,7 +153,10 @@ fix8 =
   [ Prefix (eOp1 ((), ONot) <$ keyword "not")
   , Prefix (eOp1 ((), ONeg) <$ symbol "-")
   ]
-fix7 = [InfixL (eOp2 ((), OMul) <$ symbol "*")]
+fix7 =
+  [ InfixL (eOp2 ((), OMul) <$ symbol "*")
+  , InfixL (eOp2 ((), ODiv) <$ (symbol "/" <* notFollowedBy (symbol "=")))
+  ]
 fix6 =
   [ InfixL (eOp2 ((), OAdd) <$ try (symbol "+" <* notFollowedBy (symbol "+")))
   , InfixL (eOp2 ((), OSub) <$ symbol "-")

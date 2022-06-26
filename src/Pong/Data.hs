@@ -70,8 +70,8 @@ data Prim
   | PInt Int                       -- ^ Integers (machine bounded)
   | PFloat Float                   -- ^ Single-precision floating point number
   | PDouble Double                 -- ^ Double-precision floating point number
-  | PChar Char                     -- ^ Char
-  | PString Text                   -- ^ Unicode strings
+  | PChar Char                     -- ^ Chars
+  | PString Text                   -- ^ Strings
   | PUnit                          -- ^ Unit value
 
 -- | Unary operators
