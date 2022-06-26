@@ -208,3 +208,57 @@ program28 =
   \"
 
 -- "
+
+program29 :: Text
+program29 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == 5 || b == -5\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
+
+program30 :: Text
+program30 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == 5 && 3 > 2\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
+
+program31 :: Text
+program31 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == -5 && 3 > 2\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "

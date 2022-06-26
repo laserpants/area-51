@@ -265,6 +265,28 @@ emitBody =
       (_, a) <- expr1
       r <- emitNegOp a t
       pure (returnType t, r)
+    EOp2 (_, OLogicOr) expr1 expr2 -> mdo
+      (_, a) <- expr1
+      condBr a op1Block op2Block
+      op1Block <- block `named` "op1"
+      br mergeBlock
+      op2Block <- block `named` "op2"
+      (_, b) <- expr1
+      br mergeBlock
+      mergeBlock <- block `named` "mergeOr"
+      r <- phi [(a, op1Block), (b, op2Block)]
+      pure (tBool, r)
+    EOp2 (_, OLogicAnd) expr1 expr2 -> mdo
+      (_, a) <- expr1
+      condBr a op1Block op2Block
+      op1Block <- block `named` "op1"
+      (_, b) <- expr1
+      br mergeBlock
+      op2Block <- block `named` "op2"
+      br mergeBlock
+      mergeBlock <- block `named` "mergeAnd"
+      r <- phi [(b, op1Block), (a, op2Block)]
+      pure (tBool, r)
     EOp2 op expr1 expr2 -> do
       (_, a) <- expr1
       (_, b) <- expr2
@@ -585,6 +607,7 @@ uniqueName prefix = do
   modify (first succ)
   pure (prefix <> showt n)
 
+-- ppllModule ?
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll
 
