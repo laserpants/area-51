@@ -271,7 +271,7 @@ emitBody =
       op1Block <- block `named` "op1"
       br mergeBlock
       op2Block <- block `named` "op2"
-      (_, b) <- expr1
+      (_, b) <- expr2
       br mergeBlock
       mergeBlock <- block `named` "mergeOr"
       r <- phi [(a, op1Block), (b, op2Block)]
@@ -280,7 +280,7 @@ emitBody =
       (_, a) <- expr1
       condBr a op1Block op2Block
       op1Block <- block `named` "op1"
-      (_, b) <- expr1
+      (_, b) <- expr2
       br mergeBlock
       op2Block <- block `named` "op2"
       br mergeBlock

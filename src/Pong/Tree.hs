@@ -116,9 +116,9 @@ monomorphizeLets =
           embed <$> sequence expr
     )
 
-appArgs :: [Ast] -> Ast -> Ast
-appArgs [] = id
-appArgs xs =
+applyArgs :: [Ast] -> Ast -> Ast
+applyArgs [] = id
+applyArgs xs =
   para
     ( \case
         EVar f ->
@@ -168,7 +168,7 @@ liftDef ::
 liftDef name vs args expr = do
   let ty = foldType t ts
   insertDef (toScheme "a" (free ty) ty, name) def
-  pure (appArgs (eVar <$> vs) (eVar (ty, name)))
+  pure (applyArgs (eVar <$> vs) (eVar (ty, name)))
   where
     t = typeOf expr
     ts = fst <$> as
@@ -188,7 +188,7 @@ makeDef name expr f =
       ndef <- uniqueName name
       let vs = freeVars expr `exclude` defs
           ys = extra t
-      liftDef ndef vs ys (f $ appArgs (eVar <$> ys))
+      liftDef ndef vs ys (f $ applyArgs (eVar <$> ys))
     else pure expr
   where
     t = typeOf expr
@@ -205,7 +205,7 @@ compile =
       ndef <- uniqueName "$lam"
       let vs = freeVars e1 `exclude` ((snd <$> args) <> defs)
           ys = extra (typeOf e1)
-      liftDef ndef vs (args <> ys) (appArgs (eVar <$> ys) e1)
+      liftDef ndef vs (args <> ys) (applyArgs (eVar <$> ys) e1)
     EPat expr1 clauses -> do
       e1 <- expr1
       cs <- traverse sequence clauses
@@ -302,7 +302,7 @@ normalizeDef = \case
   where
     fun t xs expr =
       let ys = extra t
-       in Function (fromList (xs <> ys)) (returnType t, appArgs (eVar <$> ys) expr)
+       in Function (fromList (xs <> ys)) (returnType t, applyArgs (eVar <$> ys) expr)
 
 normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast
 normalizeProgramDefs = over Program (Map.map normalizeDef)
