@@ -262,3 +262,21 @@ program31 =
   \"
 
 -- "
+
+program32 :: Text
+program32 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == -5 || b == 5\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "

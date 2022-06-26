@@ -24,18 +24,14 @@ langTests =
 
           to :: Row TypedExpr Int
           to = rExt "key" (eVar (tInt, "y")) rNil
-
-       in 
-        passIt "#1" (mapRow (substituteVar "x" "y") from == to)
+       in passIt "#1" (mapRow (substituteVar "x" "y") from == to)
 
       let from :: Row TypedExpr Int
           from = rExt "one" (eVar (tInt, "x")) (rExt "two" (eVar (tInt, "x")) rNil)
 
           to :: Row TypedExpr Int
           to = rExt "one" (eVar (tInt, "y")) (rExt "two" (eVar (tInt, "y")) rNil)
-
-       in 
-        passIt "#1" (mapRow (substituteVar "x" "y") from == to)
+       in passIt "#1" (mapRow (substituteVar "x" "y") from == to)
 
     describe "- mapRowM" $ do
       it "TODO" True

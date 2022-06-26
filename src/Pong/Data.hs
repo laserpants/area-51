@@ -148,15 +148,11 @@ data ConE
   | LamE                           -- ^ Expression is an ELam
   | RecE                           -- ^ Expression is an ERec
 
-{- ORMOLU_ENABLE -}
-
 -- | Data (value) constructor
 data Constructor = Constructor
-  { conName :: Name
-  , conFields :: [Type Name]
+  { conName   :: Name                        -- ^ Constructor name
+  , conFields :: [Type Name]                 -- ^ Field types
   }
-
-{- ORMOLU_DISABLE -}
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)        -- ^ Function definition 
