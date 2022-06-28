@@ -13,7 +13,16 @@ import Data.Data (Data)
 import Data.Map.Strict (Map)
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
-import Pong.Util (Fix (..), List1, Name, Text, Void, deriveEq1, deriveOrd1, deriveShow1)
+import Pong.Util
+  ( Fix (..)
+  , List1
+  , Name
+  , Text
+  , Void
+  , deriveEq1
+  , deriveOrd1
+  , deriveShow1
+  )
 
 {- ORMOLU_DISABLE -}
 
