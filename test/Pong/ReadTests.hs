@@ -8,6 +8,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
+import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Test.Hspec
@@ -125,3 +126,5 @@ readTests =
       it "3" (parseProgram program203 == Right program204)
       -------------------------------------------------------------------------
       it "4" (parseProgram program208 == Right program209)
+      -------------------------------------------------------------------------
+      it "5" (parseProgram program33 == Right program34)

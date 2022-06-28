@@ -106,8 +106,12 @@ rowSubstitute sub =
         rExt name (substitute sub t) row
       RVar n ->
         case project <$> (sub !? n) of
-          Just (TRec r) -> r
-          _ -> rVar n
+          Just (TRec r) ->
+            r
+          Just (TVar v) ->
+            rVar v
+          _ ->
+            rVar n
 
 class Substitutable a where
   apply :: Substitution -> a -> a
@@ -140,7 +144,7 @@ instance
         EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
         EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
         ERes field expr1 expr2 -> eRes (applyFst <$> field) expr1 expr2
-        ERec row -> eRec (mapRow (apply sub) row)
+        ERec row -> eRec (mapRow (apply sub) (apply sub row))
         ECall t fun args -> eCall_ (apply sub t) (applyFst fun) args
         e -> embed e
     where
@@ -148,6 +152,19 @@ instance
 
 instance Substitutable (Row MonoType Int) where
   apply = rowSubstitute . unpack
+
+instance
+  (Substitutable a0, Substitutable a2, Substitutable t) =>
+  Substitutable (Row (Expr t a0 a1 a2) (Label t))
+  where
+  apply sub =
+    cata $
+      \case
+        RNil -> rNil
+        RVar name -> rVar (applyFst name)
+        RExt name expr row -> rExt name (apply sub expr) row
+    where
+      applyFst = first (apply sub)
 
 instance Substitutable Void where
   apply = const id
@@ -360,7 +377,7 @@ inferExpr =
       pure (eApp t1 f as)
     ELam _ args expr -> do
       as <- traverse (pure . first tVar) args
-      e <- local (insertArgs (first (Left . tVar) <$> args)) expr
+      e <- local (insertArgs (first Left <$> as)) expr
       pure (eLam () as e)
     EOp1 (_, op) expr1 -> do
       e1 <- expr1
@@ -473,9 +490,12 @@ inferRec ::
 inferRec =
   cata $
     \case
-      RNil -> pure rNil
-      RVar var -> rVar <$> lookupName var NotInScope
-      RExt name expr row -> rExt name <$> inferExpr expr <*> row
+      RNil ->
+        pure rNil
+      RVar var ->
+        rVar <$> lookupName var NotInScope
+      RExt name expr row ->
+        rExt name <$> inferExpr expr <*> row
 
 inferProgram ::
   Program () SourceExpr -> TypeChecker (Program MonoType TypedExpr)

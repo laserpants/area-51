@@ -6,6 +6,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs
+import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
@@ -402,6 +403,12 @@ typeTests =
       it "3" ((runInferProgramWithEnv env program204 <&> canonical) == Right program205)
       -------------------------------------------------------------------------
       it "4" ((runInferProgramWithEnv env program209 <&> canonical) == Right program210)
+      -------------------------------------------------------------------------
+      it "5" ((runInferProgram program341 <&> canonical) == Right program3412)
+      -------------------------------------------------------------------------
+      it "6" ((runInferProgram program342 <&> canonical) == Right program3422)
+    --      -------------------------------------------------------------------------
+    --      it "7" ((runInferProgram program343 <&> canonical) == Right program3432)
 
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------

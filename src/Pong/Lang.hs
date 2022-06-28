@@ -233,8 +233,11 @@ instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
           RNil -> tRec rNil
           RVar (t, _) -> typeOf t
           RExt name el r ->
-            let TRec row = project r
-             in tRec (rExt name (typeOf el) row)
+            case project r of
+              TRec row ->
+                tRec (rExt name (typeOf el) row)
+              TVar v ->
+                tRec (rExt name (typeOf el) (rVar v))
       )
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where

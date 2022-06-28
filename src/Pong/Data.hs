@@ -115,7 +115,7 @@ data ExprF t a0 a1 a2 a
   | ECall a2 (Label t) [a]                   -- ^ Function call
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
-  | EPat a [Clause t a]                      -- ^ Match statement
+  | EPat a [Clause t a]                      -- ^ Pattern match statement
   | ERec (Row (Expr t a0 a1 a2) (Label t))   -- ^ Record
   | ERes [Label t] a a                       -- ^ Field restriction operator
 

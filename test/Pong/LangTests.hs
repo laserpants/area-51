@@ -146,6 +146,14 @@ langTests =
         passIt "lam(x) => x : int -> int" (typeOf (eLam () [(tInt, "x")] (eVar (tInt, "x")) :: TypedExpr) == (tInt ~> tInt))
         -----------------------------------------------------------------------
         passIt "lam(x) => x : '0 -> '0" (typeOf (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")) :: TypedExpr) == (tVar 0 ~> tVar 0))
+      -- TODO
+      --        -----------------------------------------------------------------------
+      --        passIt "#6" (typeOf expr35 == TODO)
+      describe "Row" $ do
+        -- TODO
+        --        -----------------------------------------------------------------------
+        --        passIt "#1" (typeOf row36 == TODO)
+        it "TODO" True
 
       describe "Definition" $ do
         -----------------------------------------------------------------------
