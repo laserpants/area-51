@@ -197,20 +197,25 @@ instance (Free t, Free a0, Free a2) => Free (Expr t a0 a1 a2) where
           ECall a (t, _) as -> freeIn a <> freeIn t <> concat as
           EOp1 (t, _) e1 -> freeIn t <> e1
           EOp2 (t, _) e1 e2 -> freeIn t <> e1 <> e2
-          EPat e1 cs -> e1 <> (freeInClause =<< cs)
-          ERec row -> freeInRow row
+          EPat e1 cs -> e1 <> (freeIn =<< cs)
+          ERec row -> freeIn row
           ERes fs e1 e2 -> freeIn (fst <$> fs) <> e1 <> e2
       )
-    where
-      freeInClause (ls, e) =
-        (freeIn . fst =<< ls) <> e
-      freeInRow =
-        cata
-          ( \case
-              RNil -> []
-              RVar (t, _) -> freeIn t
-              RExt _ el row -> freeIn el <> row
-          )
+
+instance
+  (Free t, Free a0, Free a2) =>
+  Free (Row (Expr t a0 a1 a2) (Label t))
+  where
+  freeIn =
+    cata
+      ( \case
+          RNil -> []
+          RVar (t, _) -> freeIn t
+          RExt _ el row -> freeIn el <> row
+      )
+
+instance (Free t) => Free (Clause t [Int]) where
+  freeIn (ls, e) = (freeIn . fst =<< ls) <> e
 
 free :: (Free a) => a -> [Int]
 free = nub . freeIn
