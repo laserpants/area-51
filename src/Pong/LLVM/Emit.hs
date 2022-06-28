@@ -467,7 +467,7 @@ emitPat expr_ cs = mdo
 
 {- ORMOLU_DISABLE -}
 
--- | Translate a language type to its equivalent LLVM type
+-- | Translate a language type to its corresponding LLVM type
 llvmType :: MonoType -> LLVM.Type
 llvmType =
   project
