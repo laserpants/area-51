@@ -51,22 +51,19 @@ type OpInfo = (MonoType, Operand)
 
 type CodeGenEnv = Environment OpInfo
 
----- TODO
--- newtype CodeGen a = CodeGen
---  { getCodeGen ::
---      StateT
---        (Int, Program MonoType Ast)
---        (ReaderT CodeGenEnv (IRBuilderT ModuleBuilder))
---        a
---  }
---
----- TODO
--- runCodeGen ::
---  CodeGenEnv ->
---  Program MonoType Ast ->
---  CodeGen a ->
---  IRBuilderT ModuleBuilder a
--- runCodeGen env prog (CodeGen code) = runReaderT (evalStateT code (1, prog)) env
+type CodeGen a =
+  IRBuilderT
+    ( StateT
+        (Int, Program MonoType Ast)
+        (ReaderT CodeGenEnv ModuleBuilder)
+    )
+    a
+
+runCodeGen ::
+  CodeGenEnv ->
+  StateT (Int, Program MonoType Ast) (ReaderT CodeGenEnv ModuleBuilder) a ->
+  ModuleBuilder a
+runCodeGen env c = runReaderT (evalStateT c (1, emptyProgram)) env
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< Text.unpack
@@ -74,7 +71,7 @@ llvmRep = fromString <<< Text.unpack
 charPtr :: LLVM.Type
 charPtr = ptr i8
 
--- revealOp :: Operand -> MonoType -> CodeGen Operand
+revealOp :: Operand -> MonoType -> CodeGen Operand
 revealOp op =
   project >>> \case
     TInt ->
@@ -92,7 +89,7 @@ revealOp op =
     _ ->
       pure op
 
--- concealOp :: Operand -> CodeGen Operand
+concealOp :: Operand -> CodeGen Operand
 concealOp op =
   case LLVM.typeOf op of
     IntegerType 1 ->
@@ -164,7 +161,7 @@ buildProgram pname p = do
               ]
           _ ->
             pure []
-    flip runReaderT env $ flip evalStateT (1, p) $ do
+    runCodeGen env $
       forEachIn p $ \defn _ ->
         \case
           Constant{}
@@ -183,7 +180,8 @@ buildProgram pname p = do
                             a <- bitcast s charPtr
                             ret a
                         )
-                  _ -> error "Implementation error"
+                  _ ->
+                    error "Implementation error"
           Function args _
             | isUpper (Text.head defn) ->
                 case lookup (normalizedCon defn) consIndices of
@@ -200,7 +198,8 @@ buildProgram pname p = do
                             a <- bitcast s charPtr
                             ret a
                         )
-                  _ -> error "Implementation error"
+                  _ ->
+                    error "Implementation error"
           Constant (t1, body) ->
             void $
               function
@@ -247,7 +246,7 @@ buildProgram pname p = do
         [c, _] -> c
         _ -> con
 
--- emitBody :: Ast -> CodeGen OpInfo
+emitBody :: Ast -> CodeGen OpInfo
 emitBody =
   cata $ \case
     ELet (_, var) expr1 expr2 -> do
@@ -331,7 +330,7 @@ emitBody =
     ECon{} ->
       error "Implementation error"
 
--- emitRes :: [Label MonoType] -> CodeGen OpInfo -> CodeGen OpInfo -> CodeGen OpInfo
+emitRes :: [Label MonoType] -> CodeGen OpInfo -> CodeGen OpInfo -> CodeGen OpInfo
 emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
   str <- uniqueName "$str"
   f <- globalStringPtr (Text.unpack field) (llvmRep str)
@@ -341,7 +340,7 @@ emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
   local (Env.inserts [(v, (t0, op)), (r, (t1, hmap))]) a2
 emitRes _ _ _ = error "Implementation error"
 
--- emitRow :: Row Ast (Label MonoType) -> CodeGen OpInfo
+emitRow :: Row Ast (Label MonoType) -> CodeGen OpInfo
 emitRow (Fix RNil) = do
   hmap <- call (functionRef "hashmap_init" charPtr []) []
   pure (tRec rNil, hmap)
@@ -368,7 +367,7 @@ emitRow row = do
   --  call (functionRef "hashmap_insert" LLVM.void []) (zip [hmap, ConstantOperand k, v] (repeat []))
   pure (typeOf row, hmap)
 
--- emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
+emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
 emitCall fun args = do
   as <- sequence args
   Env.askLookup fun
@@ -437,7 +436,7 @@ emitCall fun args = do
       _ ->
         error "Implementation error"
 
--- emitPat :: CodeGen OpInfo -> [Clause MonoType (CodeGen OpInfo)] -> CodeGen OpInfo
+emitPat :: CodeGen OpInfo -> [Clause MonoType (CodeGen OpInfo)] -> CodeGen OpInfo
 emitPat expr_ cs = mdo
   (_, e) <- expr_
   let sty = StructureType False [i8]
@@ -492,7 +491,7 @@ llvmType =
               }
       _ -> charPtr
 
--- llvmPrim :: Prim -> CodeGen Constant
+llvmPrim :: Prim -> CodeGen Constant
 llvmPrim =
   \case
     PString s -> do
@@ -518,10 +517,10 @@ llvmPrim =
               error "Implementation error"
         )
 
--- emitPrim :: Prim -> CodeGen Operand
+emitPrim :: Prim -> CodeGen Operand
 emitPrim = ConstantOperand <$$> llvmPrim
 
--- emitNegOp :: Operand -> MonoType -> CodeGen Operand
+emitNegOp :: Operand -> MonoType -> CodeGen Operand
 emitNegOp op =
   \case
     t | (tInt ~> tInt) == t -> sub (ConstantOperand (Int 64 0)) op
@@ -529,7 +528,7 @@ emitNegOp op =
     t | (tDouble ~> tDouble) == t -> sub (ConstantOperand (Float (Double 0))) op
     _ -> error "Not implemented"
 
--- emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
+emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =
   \case
     (t, OEq) | (tInt ~> tInt ~> tBool) == t -> icmp Int.EQ
@@ -612,7 +611,7 @@ malloc ty = do
   where
     allocate n = call (functionRef "gc_malloc" charPtr [i64]) [(n, [])]
 
-uniqueName :: Name -> IRBuilderT (StateT (Int, Program MonoType Ast) (ReaderT CodeGenEnv ModuleBuilder)) Name
+uniqueName :: Name -> CodeGen Name
 uniqueName prefix = do
   (n, _) <- getAndModify (first succ)
   pure (prefix <> showt n)
@@ -620,24 +619,3 @@ uniqueName prefix = do
 -- ppllModule ?
 runModule :: LLVM.Module -> IO ()
 runModule = Text.putStrLn . ppll
-
--------------------------------------------------------------------------------
--- Typeclass instances
--------------------------------------------------------------------------------
-
----- CodeGen
--- deriving instance Functor CodeGen
---
--- deriving instance Applicative CodeGen
---
--- deriving instance Monad CodeGen
---
--- deriving instance (MonadReader CodeGenEnv) CodeGen
---
--- deriving instance (MonadState (Int, Program MonoType Ast)) CodeGen
---
--- deriving instance MonadFix CodeGen
---
--- deriving instance MonadIRBuilder CodeGen
---
--- deriving instance MonadModuleBuilder CodeGen

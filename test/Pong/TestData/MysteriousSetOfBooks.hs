@@ -645,3 +645,75 @@ program36 =
   \       in\
   \         3\
   \"
+
+-- "
+
+program37 :: Text
+program37 =
+  "def main(_ : unit) : int =\
+  \  let f =\
+  \    lam(r) =>\
+  \      { x = 111 | r }\
+  \   in\
+  \     let\
+  \       q =\
+  \         f({ y = 2 })\
+  \       in\
+  \         letr\
+  \           { y = a | s } =\
+  \             q\
+  \           in\
+  \             a\
+  \"
+
+-- "
+
+program38 :: Text
+program38 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ y = 2 })\
+  \    in\
+  \      letr\
+  \        { x = a | s } =\
+  \          q\
+  \        in\
+  \          a\
+  \\r\n\
+  \def foo(r : a) : { x : int | a } =\
+  \  { x = 111 | r }\
+  \"
+
+-- "
+
+program382 :: Program MonoType TypedExpr
+program382 =
+  Program
+    ( Map.fromList
+        [
+          (
+            ( Scheme (Fix (TArr (Fix TUnit) (Fix TInt)))
+            , "main"
+            )
+          , Function
+              undefined
+              undefined
+          )
+        ]
+    )
+
+program39 :: Text
+program39 =
+  "def main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo(5)\
+  \    in\
+  \     123\
+  \\r\n\
+  \def foo(r : a) : { x : int | a } =\
+  \  { x = 111 | r }\
+  \"
+
+-- "
