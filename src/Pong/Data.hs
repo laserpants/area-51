@@ -179,15 +179,25 @@ newtype Program t a
 -------------------------------------------------------------------------------
 
 -- Row
-deriving instance (Show e, Show v, Show a) => Show (RowF e v a)
+deriving instance
+  (Show e, Show v, Show a) =>
+  Show (RowF e v a)
 
-deriving instance (Eq e, Eq v, Eq a) => Eq (RowF e v a)
+deriving instance
+  (Eq e, Eq v, Eq a) =>
+  Eq (RowF e v a)
 
-deriving instance (Ord e, Ord v, Ord a) => Ord (RowF e v a)
+deriving instance
+  (Ord e, Ord v, Ord a) =>
+  Ord (RowF e v a)
 
-deriving instance (Data e, Data v, Data a) => Data (RowF e v a)
+deriving instance
+  (Data e, Data v, Data a) =>
+  Data (RowF e v a)
 
-deriving instance (Typeable e, Typeable v, Typeable a) => Typeable (RowF e v a)
+deriving instance
+  (Typeable e, Typeable v, Typeable a) =>
+  Typeable (RowF e v a)
 
 deriveShow1 ''RowF
 
@@ -202,15 +212,25 @@ deriving instance Foldable (RowF e v)
 deriving instance Traversable (RowF e v)
 
 -- Type
-deriving instance (Show v, Show a) => Show (TypeF v a)
+deriving instance
+  (Show v, Show a) =>
+  Show (TypeF v a)
 
-deriving instance (Eq v, Eq a) => Eq (TypeF v a)
+deriving instance
+  (Eq v, Eq a) =>
+  Eq (TypeF v a)
 
-deriving instance (Ord v, Ord a) => Ord (TypeF v a)
+deriving instance
+  (Ord v, Ord a) =>
+  Ord (TypeF v a)
 
-deriving instance (Data v, Data a) => Data (TypeF v a)
+deriving instance
+  (Data v, Data a) =>
+  Data (TypeF v a)
 
-deriving instance (Typeable v, Typeable a) => Typeable (TypeF v a)
+deriving instance
+  (Typeable v, Typeable a) =>
+  Typeable (TypeF v a)
 
 deriveShow1 ''TypeF
 
@@ -327,9 +347,13 @@ deriving instance Eq Constructor
 deriving instance Ord Constructor
 
 -- Definition
-deriving instance (Show t, Show a) => Show (Definition t a)
+deriving instance
+  (Show t, Show a) =>
+  Show (Definition t a)
 
-deriving instance (Eq t, Eq a) => Eq (Definition t a)
+deriving instance
+  (Eq t, Eq a) =>
+  Eq (Definition t a)
 
 deriving instance Functor (Definition t)
 
@@ -338,11 +362,17 @@ deriving instance Foldable (Definition t)
 deriving instance Traversable (Definition t)
 
 -- Program
-deriving instance (Show t, Show a) => Show (Program t a)
+deriving instance
+  (Show t, Show a) =>
+  Show (Program t a)
 
-deriving instance (Eq t, Eq a) => Eq (Program t a)
+deriving instance
+  (Eq t, Eq a) =>
+  Eq (Program t a)
 
-deriving instance (Ord t) => Semigroup (Program t a)
+deriving instance
+  (Ord t) =>
+  Semigroup (Program t a)
 
 deriving instance Generic (Program t a)
 
