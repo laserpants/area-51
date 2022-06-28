@@ -291,20 +291,18 @@ program33 =
   "def main(_ : unit) : int =\
   \  let f =\
   \    lam(r) =>\
-  \      { x = 1 | r }\
+  \      { x = 111 | r }\
   \   in\
   \     let\
   \       q =\
   \         f({ y = 2 })\
   \       in\
-  \         3\
+  \         letr\
+  \           { x = a | s } =\
+  \             q\
+  \           in\
+  \             a\
   \"
-
---  \         letr\
---  \           { x = a | s } =\
---  \             q\
---  \           in\
---  \             a\
 
 -- "
 
@@ -328,7 +326,7 @@ program34 =
                       ( eRec
                           ( rExt
                               "x"
-                              (eLit (PInt 1))
+                              (eLit (PInt 111))
                               ( rVar ((), "r")
                               )
                           )
@@ -347,7 +345,11 @@ program34 =
                               )
                           ]
                       )
-                      (eLit (PInt 3))
+                      ( eRes
+                          [((), "x"), ((), "a"), ((), "s")]
+                          (eVar ((), "q"))
+                          (eVar ((), "a"))
+                      )
                   )
               )
           )
