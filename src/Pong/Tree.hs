@@ -39,9 +39,12 @@ isPolymorphic :: Type v -> Bool
 isPolymorphic =
   cata
     ( \case
-        TVar{} -> True
-        TArr t1 t2 -> t1 || t2
-        TCon _ ts -> or ts
+        TVar{} ->
+          True
+        TArr t1 t2 ->
+          t1 || t2
+        TCon _ ts ->
+          or ts
         TRec row ->
           ( (`cata` row) $
               \case

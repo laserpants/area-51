@@ -1,11 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Pong.LLVM.Emit where
@@ -467,29 +465,35 @@ emitPat expr_ cs = mdo
   op <- phi (first snd . fst <$> blocks)
   pure (fst (fst (fst (head blocks))), op)
 
+{- ORMOLU_DISABLE -}
+
 -- | Translate a language type to its equivalent LLVM type
 llvmType :: MonoType -> LLVM.Type
 llvmType =
   project
     >>> \case
-      TUnit -> i1
-      TBool{} -> i1
-      TInt{} -> i64
-      TFloat{} -> LLVM.float
+      TUnit     -> i1
+      TBool{}   -> i1
+      TInt{}    -> i64
+      TFloat{}  -> LLVM.float
       TDouble{} -> LLVM.double
-      TVar{} -> charPtr
+      TVar{}    -> charPtr
       TString{} -> charPtr
-      TChar{} -> i8
-      ty@TArr{} -> ptr funTy
-        where
-          types = llvmType <$> unwindType (embed ty)
-          funTy =
-            FunctionType
-              { argumentTypes = init types
-              , resultType = last types
-              , isVarArg = False
-              }
-      _ -> charPtr
+      TChar{}   -> i8
+      ty@TArr{} -> ptr (funTy (embed ty))
+      _         -> charPtr
+
+{- ORMOLU_ENABLE -}
+
+funTy :: MonoType -> LLVM.Type
+funTy t =
+  FunctionType
+    { argumentTypes = init types
+    , resultType = last types
+    , isVarArg = False
+    }
+  where
+    types = llvmType <$> unwindType t
 
 llvmPrim :: Prim -> CodeGen Constant
 llvmPrim =
@@ -523,40 +527,44 @@ emitPrim = ConstantOperand <$$> llvmPrim
 emitNegOp :: Operand -> MonoType -> CodeGen Operand
 emitNegOp op =
   \case
-    t | (tInt ~> tInt) == t -> sub (ConstantOperand (Int 64 0)) op
-    t | (tFloat ~> tFloat) == t -> sub (ConstantOperand (Float (Single 0))) op
-    t | (tDouble ~> tDouble) == t -> sub (ConstantOperand (Float (Double 0))) op
+    t | t == (tInt ~> tInt) -> sub (ConstantOperand (Int 64 0)) op
+    t | t == (tFloat ~> tFloat) -> sub (ConstantOperand (Float (Single 0))) op
+    t | t == (tDouble ~> tDouble) -> sub (ConstantOperand (Float (Double 0))) op
     _ -> error "Not implemented"
+
+{- ORMOLU_DISABLE -}
 
 emitOp2Instr :: (MonoType, Op2) -> Operand -> Operand -> CodeGen Operand
 emitOp2Instr =
   \case
-    (t, OEq) | (tInt ~> tInt ~> tBool) == t -> icmp Int.EQ
-    (t, ONEq) | (tInt ~> tInt ~> tBool) == t -> icmp Int.NE
-    (t, OAdd) | (tInt ~> tInt ~> tInt) == t -> add
-    (t, OSub) | (tInt ~> tInt ~> tInt) == t -> sub
-    (t, OMul) | (tInt ~> tInt ~> tInt) == t -> mul
-    (t, OAdd) | (tFloat ~> tFloat ~> tFloat) == t -> fadd
-    (t, OAdd) | (tDouble ~> tDouble ~> tDouble) == t -> fadd
-    (t, OMul) | (tFloat ~> tFloat ~> tFloat) == t -> fmul
-    (t, OMul) | (tDouble ~> tDouble ~> tDouble) == t -> fmul
-    (t, OSub) | (tFloat ~> tFloat ~> tFloat) == t -> fsub
-    (t, OSub) | (tDouble ~> tDouble ~> tDouble) == t -> fsub
-    (t, ODiv) | (tFloat ~> tFloat ~> tFloat) == t -> fdiv
-    (t, ODiv) | (tDouble ~> tDouble ~> tDouble) == t -> fdiv
-    (t, OGt) | (tInt ~> tInt ~> tBool) == t -> icmp Int.UGT
-    (t, OGtE) | (tInt ~> tInt ~> tBool) == t -> icmp Int.UGE
-    (t, OLt) | (tInt ~> tInt ~> tBool) == t -> icmp Int.ULT
-    (t, OLtE) | (tInt ~> tInt ~> tBool) == t -> icmp Int.ULE
-    (t, OGt) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.UGT
-    (t, OGtE) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.UGE
-    (t, OLt) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.ULT
-    (t, OLtE) | (tFloat ~> tFloat ~> tBool) == t -> fcmp Float.ULE
-    (t, OGt) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.UGT
-    (t, OGtE) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.UGE
-    (t, OLt) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.ULT
-    (t, OLtE) | (tDouble ~> tDouble ~> tBool) == t -> fcmp Float.ULE
+    (t, OEq)  | t == (tInt ~> tInt ~> tBool) -> icmp Int.EQ
+    (t, ONEq) | t == (tInt ~> tInt ~> tBool) -> icmp Int.NE
+    (t, OAdd) | t == (tInt ~> tInt ~> tInt) -> add
+    (t, OSub) | t == (tInt ~> tInt ~> tInt) -> sub
+    (t, OMul) | t == (tInt ~> tInt ~> tInt) -> mul
+    (t, OAdd) | t == (tFloat ~> tFloat ~> tFloat) -> fadd
+    (t, OAdd) | t == (tDouble ~> tDouble ~> tDouble) -> fadd
+    (t, OMul) | t == (tFloat ~> tFloat ~> tFloat) -> fmul
+    (t, OMul) | t == (tDouble ~> tDouble ~> tDouble) -> fmul
+    (t, OSub) | t == (tFloat ~> tFloat ~> tFloat) -> fsub
+    (t, OSub) | t == (tDouble ~> tDouble ~> tDouble) -> fsub
+    (t, ODiv) | t == (tFloat ~> tFloat ~> tFloat) -> fdiv
+    (t, ODiv) | t == (tDouble ~> tDouble ~> tDouble) -> fdiv
+    (t, OGt)  | t == (tInt ~> tInt ~> tBool) -> icmp Int.UGT
+    (t, OGtE) | t == (tInt ~> tInt ~> tBool) -> icmp Int.UGE
+    (t, OLt)  | t == (tInt ~> tInt ~> tBool) -> icmp Int.ULT
+    (t, OLtE) | t == (tInt ~> tInt ~> tBool) -> icmp Int.ULE
+    (t, OGt)  | t == (tFloat ~> tFloat ~> tBool) -> fcmp Float.UGT
+    (t, OGtE) | t == (tFloat ~> tFloat ~> tBool) -> fcmp Float.UGE
+    (t, OLt)  | t == (tFloat ~> tFloat ~> tBool) -> fcmp Float.ULT
+    (t, OLtE) | t == (tFloat ~> tFloat ~> tBool) -> fcmp Float.ULE
+    (t, OGt)  | t == (tDouble ~> tDouble ~> tBool) -> fcmp Float.UGT
+    (t, OGtE) | t == (tDouble ~> tDouble ~> tBool) -> fcmp Float.UGE
+    (t, OLt)  | t == (tDouble ~> tDouble ~> tBool) -> fcmp Float.ULT
+    (t, OLtE) | t == (tDouble ~> tDouble ~> tBool) -> fcmp Float.ULE
     o -> error ("Not implemented: " <> show o)
+
+{- ORMOLU_ENABLE -}
 
 globalRef :: LLVM.Name -> LLVM.Type -> Operand
 globalRef name_ ty = ConstantOperand (GlobalReference ty name_)
