@@ -43,25 +43,34 @@ mapRow :: (e -> f) -> Row e v -> Row f v
 mapRow f =
   cata $
     \case
-      RNil -> rNil
-      RVar v -> rVar v
-      RExt name el row -> rExt name (f el) row
+      RNil ->
+        rNil
+      RVar v ->
+        rVar v
+      RExt name el row ->
+        rExt name (f el) row
 
 mapRowM :: (Monad m) => (e -> m f) -> Row e v -> m (Row f v)
 mapRowM f =
   cata $
     \case
-      RNil -> pure rNil
-      RVar v -> pure (rVar v)
-      RExt name el row -> rExt name <$> f el <*> row
+      RNil ->
+        pure rNil
+      RVar v ->
+        pure (rVar v)
+      RExt name el row ->
+        rExt name <$> f el <*> row
 
 bimapRow :: (e -> f) -> (v -> w) -> Row e v -> Row f w
 bimapRow f g =
   cata $
     \case
-      RNil -> rNil
-      RVar v -> rVar (g v)
-      RExt name el row -> rExt name (f el) row
+      RNil ->
+        rNil
+      RVar v ->
+        rVar (g v)
+      RExt name el row ->
+        rExt name (f el) row
 
 normalizeRow :: Row e v -> Row e v
 normalizeRow = uncurry (flip foldRow) . unwindRow
