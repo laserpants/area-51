@@ -80,21 +80,26 @@ programEnv = Env.fromList . concatMap go . Map.toList . unpack
 
 -- Substitution
 
+{- ORMOLU_DISABLE -}
+
 substitute :: Map Int MonoType -> MonoType -> MonoType
 substitute sub =
-  cata $
-    \case
-      TVar n -> fromMaybe (tVar n) (sub !? n)
-      TCon c ts -> tCon c ts
-      TArr t1 t2 -> tArr t1 t2
-      TRec row -> tRec (rowSubstitute sub row)
-      TUnit -> tUnit
-      TBool -> tBool
-      TInt -> tInt
-      TFloat -> tFloat
-      TDouble -> tDouble
-      TChar -> tChar
-      TString -> tString
+  cata
+    ( \case
+        TVar n     -> fromMaybe (tVar n) (sub !? n)
+        TCon c ts  -> tCon c ts
+        TArr t1 t2 -> tArr t1 t2
+        TRec row   -> tRec (rowSubstitute sub row)
+        TUnit      -> tUnit
+        TBool      -> tBool
+        TInt       -> tInt
+        TFloat     -> tFloat
+        TDouble    -> tDouble
+        TChar      -> tChar
+        TString    -> tString
+    )
+
+{- ORMOLU_ENABLE -}
 
 rowSubstitute :: Map Int MonoType -> Row MonoType Int -> Row MonoType Int
 rowSubstitute sub =
