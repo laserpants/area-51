@@ -305,7 +305,7 @@ normalizeDef = \case
        in Function (fromList (xs <> ys)) (returnType t, applyArgs (eVar <$> ys) expr)
 
 normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast
-normalizeProgramDefs = over Program (Map.map normalizeDef)
+normalizeProgramDefs = over Program (normalizeDef <$>)
 
 runTransform :: State (Int, ()) a -> a
 runTransform = flip evalState (1, ())
