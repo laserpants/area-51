@@ -543,12 +543,12 @@ emitOp2Instr =
     (t, OSub) | t == (tInt ~> tInt ~> tInt) -> sub
     (t, OMul) | t == (tInt ~> tInt ~> tInt) -> mul
     (t, OAdd) | t == (tFloat ~> tFloat ~> tFloat) -> fadd
-    (t, OAdd) | t == (tDouble ~> tDouble ~> tDouble) -> fadd
-    (t, OMul) | t == (tFloat ~> tFloat ~> tFloat) -> fmul
-    (t, OMul) | t == (tDouble ~> tDouble ~> tDouble) -> fmul
     (t, OSub) | t == (tFloat ~> tFloat ~> tFloat) -> fsub
-    (t, OSub) | t == (tDouble ~> tDouble ~> tDouble) -> fsub
+    (t, OMul) | t == (tFloat ~> tFloat ~> tFloat) -> fmul
     (t, ODiv) | t == (tFloat ~> tFloat ~> tFloat) -> fdiv
+    (t, OAdd) | t == (tDouble ~> tDouble ~> tDouble) -> fadd
+    (t, OSub) | t == (tDouble ~> tDouble ~> tDouble) -> fsub
+    (t, OMul) | t == (tDouble ~> tDouble ~> tDouble) -> fmul
     (t, ODiv) | t == (tDouble ~> tDouble ~> tDouble) -> fdiv
     (t, OGt)  | t == (tInt ~> tInt ~> tBool) -> icmp Int.UGT
     (t, OGtE) | t == (tInt ~> tInt ~> tBool) -> icmp Int.UGE
