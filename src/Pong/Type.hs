@@ -161,10 +161,8 @@ instance
     cata $
       \case
         RNil -> rNil
-        RVar name -> rVar (applyFst name)
+        RVar name -> rVar (first (apply sub) name)
         RExt name expr row -> rExt name (apply sub expr) row
-    where
-      applyFst = first (apply sub)
 
 instance Substitutable Void where
   apply = const id
