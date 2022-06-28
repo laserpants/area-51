@@ -302,7 +302,9 @@ normalizeDef = \case
   where
     fun t xs expr =
       let ys = extra t
-       in Function (fromList (xs <> ys)) (returnType t, applyArgs (eVar <$> ys) expr)
+       in Function
+            (fromList (xs <> ys))
+            (returnType t, applyArgs (eVar <$> ys) expr)
 
 normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast
 normalizeProgramDefs = over Program (normalizeDef <$>)
