@@ -687,18 +687,47 @@ program38 =
 
 -- "
 
-program382 :: Program MonoType TypedExpr
+program382 :: Program () SourceExpr
 program382 =
   Program
     ( Map.fromList
         [
           (
-            ( Scheme (Fix (TArr (Fix TUnit) (Fix TInt)))
+            ( Scheme (tUnit ~> tInt)
             , "main"
             )
           , Function
-              undefined
-              undefined
+              (fromList [((), "_")])
+              ( ()
+              , eLet
+                  ((), "q")
+                  ( eApp
+                      ()
+                      (eVar ((), "foo"))
+                      [eRec (rExt "y" (eLit (PInt 2)) rNil)]
+                  )
+                  ( eRes
+                      [((), "x"), ((), "a"), ((), "s")]
+                      (eVar ((), "q"))
+                      (eVar ((), "a"))
+                  )
+              )
+          )
+        ,
+          (
+            ( Scheme (tVar "a" ~> tRec (rExt "x" tInt (rVar "a")))
+            , "foo"
+            )
+          , Function
+              (fromList [((), "r")])
+              ( ()
+              , eRec
+                  ( rExt
+                      "x"
+                      (eLit (PInt 111))
+                      (rVar ((), "r"))
+                  )
+              )
           )
         ]
     )

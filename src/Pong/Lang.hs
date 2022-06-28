@@ -238,6 +238,8 @@ instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
                 tRec (rExt name (typeOf el) row)
               TVar v ->
                 tRec (rExt name (typeOf el) (rVar v))
+              _ ->
+                error "Implementation error"
       )
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where

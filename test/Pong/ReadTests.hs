@@ -128,3 +128,5 @@ readTests =
       it "4" (parseProgram program208 == Right program209)
       -------------------------------------------------------------------------
       it "5" (parseProgram program33 == Right program34)
+      -------------------------------------------------------------------------
+      it "6" (parseProgram program38 == Right program382)
