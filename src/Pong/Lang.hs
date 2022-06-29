@@ -502,25 +502,29 @@ untag =
             RExt _ el row -> untag el <> row
         )
 
+{- ORMOLU_DISABLE -}
+
 boundVars :: Type Name -> Set Name
 boundVars =
   cata
     ( \case
-        TVar s -> Set.singleton s
-        TCon _ ts -> Set.unions ts
+        TVar s     -> Set.singleton s
+        TCon _ ts  -> Set.unions ts
         TArr t1 t2 -> Set.union t1 t2
-        TRec row -> boundRowVars row
-        _ -> mempty
+        TRec row   -> boundRowVars row
+        _          -> mempty
     )
 
 boundRowVars :: Row (Type Name) Name -> Set Name
 boundRowVars =
   cata
     ( \case
-        RVar v -> Set.singleton v
+        RVar v     -> Set.singleton v
         RExt _ r a -> Set.union (boundVars r) a
-        _ -> mempty
+        _          -> mempty
     )
+
+{- ORMOLU_ENABLE -}
 
 substituteVar :: Name -> Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 substituteVar from to =
