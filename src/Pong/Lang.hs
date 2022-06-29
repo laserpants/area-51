@@ -509,13 +509,16 @@ boundVars =
         TVar s -> Set.singleton s
         TCon _ ts -> Set.unions ts
         TArr t1 t2 -> Set.union t1 t2
-        TRec row ->
-          (`cata` row)
-            ( \case
-                RVar v -> Set.singleton v
-                RExt _ r a -> Set.union (boundVars r) a
-                _ -> mempty
-            )
+        TRec row -> boundRowVars row
+        _ -> mempty
+    )
+
+boundRowVars :: Row (Type Name) Name -> Set Name
+boundRowVars =
+  cata
+    ( \case
+        RVar v -> Set.singleton v
+        RExt _ r a -> Set.union (boundVars r) a
         _ -> mempty
     )
 
