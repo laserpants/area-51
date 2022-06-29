@@ -512,6 +512,7 @@ boundVars =
         TRec row ->
           (`cata` row)
             ( \case
+                RVar v -> Set.singleton v
                 RExt _ r a -> Set.union (boundVars r) a
                 _ -> mempty
             )

@@ -439,22 +439,26 @@ unopType =
       ONot -> tBool ~> tBool
       ONeg -> tVar "a" ~> tVar "a"
 
+{- ORMOLU_DISABLE -}
+
 binopType :: Op2 -> Scheme
 binopType =
   Scheme
     <<< \case
-      OEq -> tVar "a" ~> tVar "a" ~> tBool
+      OEq  -> tVar "a" ~> tVar "a" ~> tBool
       ONEq -> tVar "a" ~> tVar "a" ~> tBool
-      OLt -> tVar "a" ~> tVar "a" ~> tBool
-      OGt -> tVar "a" ~> tVar "a" ~> tBool
+      OLt  -> tVar "a" ~> tVar "a" ~> tBool
+      OGt  -> tVar "a" ~> tVar "a" ~> tBool
       OLtE -> tVar "a" ~> tVar "a" ~> tBool
       OGtE -> tVar "a" ~> tVar "a" ~> tBool
       OAdd -> tVar "a" ~> tVar "a" ~> tVar "a"
       OSub -> tVar "a" ~> tVar "a" ~> tVar "a"
       OMul -> tVar "a" ~> tVar "a" ~> tVar "a"
       ODiv -> tVar "a" ~> tVar "a" ~> tVar "a"
-      OLogicOr -> tBool ~> tBool ~> tBool
+      OLogicOr  -> tBool ~> tBool ~> tBool
       OLogicAnd -> tBool ~> tBool ~> tBool
+
+{- ORMOLU_ENABLE -}
 
 inferCases ::
   TypedExpr ->

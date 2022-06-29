@@ -732,6 +732,52 @@ program382 =
         ]
     )
 
+program383 :: Program () SourceExpr
+program383 =
+  Program
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [((), "_")])
+              ( ()
+              , eLet
+                  ((), "q")
+                  ( eApp
+                      ()
+                      (eVar ((), "foo"))
+                      [eRec (rExt "y" (eLit (PInt 2)) rNil)]
+                  )
+                  ( eRes
+                      [((), "x"), ((), "a"), ((), "s")]
+                      (eVar ((), "q"))
+                      (eVar ((), "a"))
+                  )
+              )
+          )
+        ,
+          (
+            ( Scheme (tRec (rVar "a") ~> tRec (rExt "x" tInt (rVar "a")))
+            , "foo"
+            )
+          , Function
+              (fromList [((), "r")])
+              ( ()
+              , eRec
+                  ( rExt
+                      "x"
+                      (eLit (PInt 111))
+                      (rVar ((), "r"))
+                  )
+              )
+          )
+        ]
+    )
+
+
 program39 :: Text
 program39 =
   "def main(_ : unit) : int =\
