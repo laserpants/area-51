@@ -516,7 +516,7 @@ boundVars =
     ( \case
         TVar s     -> Set.singleton s
         TCon _ ts  -> Set.unions ts
-        TArr t1 t2 -> Set.union t1 t2
+        TArr t1 t2 -> t1 <> t2
         TRec row   -> boundRowVars row
         _          -> mempty
     )
@@ -526,7 +526,7 @@ boundRowVars =
   cata
     ( \case
         RVar v     -> Set.singleton v
-        RExt _ r a -> Set.union (boundVars r) a
+        RExt _ r a -> boundVars r <> a
         _          -> mempty
     )
 
