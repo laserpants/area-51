@@ -432,6 +432,8 @@ toMonoType vs =
         TRec row -> tRec (bimapRow (toMonoType vs) (vs !) row)
     )
 
+{- ORMOLU_DISABLE -}
+
 toScheme :: Name -> [Int] -> MonoType -> Scheme
 toScheme prefix vars = Scheme <<< go
   where
@@ -440,18 +442,20 @@ toScheme prefix vars = Scheme <<< go
     go =
       cata
         ( \case
-            TVar n -> tVar (names ! n)
-            TUnit -> tUnit
-            TBool -> tBool
-            TInt -> tInt
-            TFloat -> tFloat
-            TDouble -> tDouble
-            TChar -> tChar
-            TString -> tString
+            TVar n      -> tVar (names ! n)
+            TUnit       -> tUnit
+            TBool       -> tBool
+            TInt        -> tInt
+            TFloat      -> tFloat
+            TDouble     -> tDouble
+            TChar       -> tChar
+            TString     -> tString
             TCon con ts -> tCon con ts
-            TArr t1 t2 -> tArr t1 t2
-            TRec row -> tRec (bimapRow go (names !) row)
+            TArr t1 t2  -> tArr t1 t2
+            TRec row    -> tRec (bimapRow go (names !) row)
         )
+
+{- ORMOLU_ENABLE -}
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =
