@@ -371,16 +371,22 @@ instance
           EPat e1 cs ->
             e1
               <> Set.unions (cs <&> \(_ : vs, expr) -> expr \\\ vs)
-          ERec row ->
-            (`cata` row)
-              ( \case
-                  RNil -> mempty
-                  RVar v -> Set.singleton v
-                  RExt _ el r -> Set.fromList (freeVars el) <> r
-              )
+          ERec row -> freeVarsIn row
           ERes (_ : vs) e1 e2 -> (e1 <> e2) \\\ vs
           _ ->
             error "Implementation error"
+      )
+
+instance
+  (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
+  (FreeVars (Row (Expr t a0 a1 a2) (Label t)) t)
+  where
+  freeVarsIn =
+    cata
+      ( \case
+          RNil -> mempty
+          RVar v -> Set.singleton v
+          RExt _ el r -> Set.fromList (freeVars el) <> r
       )
 
 instance
@@ -538,7 +544,9 @@ substituteVar from to =
           ePat
             e1
             ( cs <&> \(ps, (l, r)) ->
-                (ps, if from `elem` (snd <$> ps) then l else r)
+                ( ps
+                , if from `elem` (snd <$> ps) then l else r
+                )
             )
         EVar (t, v)
           | v == from -> eVar (t, to)
