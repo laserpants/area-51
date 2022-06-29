@@ -687,6 +687,9 @@ program38 =
 
 -- "
 
+--  def foo(r : </ | a />) : { x : int | a } =\
+
+
 program382 :: Program () SourceExpr
 program382 =
   Program
