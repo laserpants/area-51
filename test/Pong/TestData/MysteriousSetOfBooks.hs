@@ -687,7 +687,20 @@ program38 =
 
 -- "
 
---  def foo(r : </ | a />) : { x : int | a } =\
+-- 
+-- [ x : int | r ! y ]
+-- 
+
+--
+--
+-- fun foo(r : [ x : b | c ]) : [ x : int | c ] =
+--   letr [ x = _ | q ] = r 
+--     in [ x = 5 | q ]
+--
+--
+-- fun foo(r : [ | c ]) : [ x : int | c ] =
+--   [ x = 5 | r ]
+--
 
 program382 :: Program () SourceExpr
 program382 =
