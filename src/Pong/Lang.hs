@@ -29,7 +29,7 @@ import Pong.Util
   , embed3
   , para
   , project
-  --  , varSequence
+  , varSequence
   , withoutLabels
   , (!)
   , (<$$>)
@@ -404,34 +404,28 @@ toMonoType vs =
         RExt n t1 t2 -> rExt n t1 t2
     )
 
-{- ORMOLU_ENABLE -}
-
--- {- ORMOLU_DISABLE -}
---
--- toScheme :: Name -> [Int] -> MonoType -> Scheme
--- toScheme prefix vars = Scheme <<< go
---  where
---    names =
---      Map.fromList (varSequence prefix vars)
---    go =
---      cata
---        ( \case
---            TVar n      -> tVar (names ! n)
---            TUnit       -> tUnit
---            TBool       -> tBool
---            TInt        -> tInt
---            TFloat      -> tFloat
---            TDouble     -> tDouble
---            TChar       -> tChar
---            TString     -> tString
---            TCon con ts -> tCon con ts
---            TArr t1 t2  -> tArr t1 t2
---            TRec row    -> tRec (bimapRow go (names !) row)
---        )
---
--- {- ORMOLU_ENABLE -}
-
-{- ORMOLU_DISABLE -}
+toScheme :: Name -> [Int] -> MonoType -> Scheme
+toScheme prefix vars = Scheme <<< go
+ where
+   names =
+     Map.fromList (varSequence prefix vars)
+   go =
+     cata
+       ( \case
+           TVar n       -> tVar (names ! n)
+           TUnit        -> tUnit
+           TBool        -> tBool
+           TInt         -> tInt
+           TFloat       -> tFloat
+           TDouble      -> tDouble
+           TChar        -> tChar
+           TString      -> tString
+           TCon con ts  -> tCon con ts
+           TArr t1 t2   -> tArr t1 t2
+           TRec row     -> tRec row
+           RNil         -> rNil
+           RExt n t1 t2 -> rExt n t1 t2
+       )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =

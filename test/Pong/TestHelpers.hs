@@ -2,26 +2,26 @@
 
 module Pong.TestHelpers where
 
--- import Control.Monad ((>=>))
--- import Data.Either.Extra (mapLeft)
--- import qualified Data.Map.Strict as Map
--- import qualified Data.Text.Lazy as TextLazy
--- import GHC.IO.Handle
--- import LLVM.Pretty
--- import Pong.Data
--- import Pong.LLVM.Emit
--- import Pong.Lang
--- import Pong.Read
--- import Pong.Tree
--- import Pong.Type
--- import Pong.Util
--- import System.Directory
--- import System.Exit
--- import System.IO.Unsafe
--- import System.Process hiding (env)
--- import Test.Hspec
--- import Text.Megaparsec
---
+import Control.Monad ((>=>))
+import Data.Either.Extra (mapLeft)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text.Lazy as TextLazy
+import GHC.IO.Handle
+import LLVM.Pretty
+import Pong.Data
+import Pong.LLVM.Emit
+import Pong.Lang
+import Pong.Read
+import Pong.Tree
+import Pong.Type
+import Pong.Util
+import System.Directory
+import System.Exit
+import System.IO.Unsafe
+import System.Process hiding (env)
+import Test.Hspec
+import Text.Megaparsec
+
 -- typeCheck :: TypeChecker a -> Either TypeError a
 -- typeCheck = evalTypeChecker 1 mempty
 --
@@ -34,25 +34,25 @@ module Pong.TestHelpers where
 -- lookupDef :: (Scheme, Name) -> Program t a -> Maybe (Definition t a)
 -- lookupDef defn (Program p) = Map.lookup defn p
 --
--- runInferProgramWithEnv ::
---  TypeEnv ->
---  Program () SourceExpr ->
---  Either TypeError (Program MonoType TypedExpr)
--- runInferProgramWithEnv env = runTypeChecker 1 env . inferProgram <&> fst
---
--- parseAndAnnotateWithEnv ::
---  TypeEnv ->
---  Text ->
---  Either CompilerError (Program MonoType TypedExpr)
--- parseAndAnnotateWithEnv env =
---  mapLeft ParserError . parseProgram
---    >=> mapLeft TypeError . runInferProgramWithEnv env
+----runInferProgramWithEnv ::
+---- TypeEnv ->
+---- Program () SourceExpr ->
+---- Either TypeError (Program MonoType TypedExpr)
+----runInferProgramWithEnv env = runTypeChecker 1 env . inferProgram <&> fst
+----
+----parseAndAnnotateWithEnv ::
+---- TypeEnv ->
+---- Text ->
+---- Either CompilerError (Program MonoType TypedExpr)
+----parseAndAnnotateWithEnv env =
+---- mapLeft ParserError . parseProgram
+----   >=> mapLeft TypeError . runInferProgramWithEnv env
 --
 -- compileSourceWithEnv :: TypeEnv -> Text -> Program MonoType Ast
 -- compileSourceWithEnv env input =
---  case parseAndAnnotateWithEnv env input of
---    Left e -> error (show e)
---    Right p -> transformProgram p
+-- case parseAndAnnotateWithEnv env input of
+--   Left e -> error (show e)
+--   Right p -> transformProgram p
 --
 -- testHoistProgram :: Program MonoType TypedExpr -> Program MonoType TypedExpr
 -- testHoistProgram p = programFor p (const hoistTopLambdas)
@@ -76,37 +76,37 @@ module Pong.TestHelpers where
 --
 -- runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
 -- runTestParser parser input expect =
---  it (unpack input) (runParser parser "" input == Right expect)
---
--- {-# INLINE passIt #-}
--- passIt :: Example a => String -> a -> SpecWith (Arg a)
--- passIt = it . ("OK ✔ " <>)
---
--- {-# INLINE failIt #-}
--- failIt :: Example a => String -> a -> SpecWith (Arg a)
--- failIt = it . ("OK ✗ " <>)
---
+-- it (unpack input) (runParser parser "" input == Right expect)
+
+{-# INLINE passIt #-}
+passIt :: Example a => String -> a -> SpecWith (Arg a)
+passIt = it . ("OK ✔ " <>)
+
+{-# INLINE failIt #-}
+failIt :: Example a => String -> a -> SpecWith (Arg a)
+failIt = it . ("OK ✗ " <>)
+
 -- emitModule :: Program MonoType Ast -> IO (ExitCode, String)
 -- emitModule prog = compileBinary >> exec
---  where
---    compileBinary = do
---      let mdul = ppll (buildProgram "Main" prog)
---          echo = proc "echo" [TextLazy.unpack mdul]
---      (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
---      (_, _, _, procHandle) <-
---        createProcess
---          (proc "clang" ["runtime.c", "-O0", "-g", "-xir", "-lgc", "-Wno-override-module", "-o", "tmp/out", "-"])
---            { std_in = UseHandle stdoutHandle
---            , cwd = Just projectDir
---            }
---      waitForProcess procHandle
---    exec = do
---      (_, Just stdoutHandle, _, procHandle) <-
---        createProcess
---          (proc "tmp/out" [])
---            { cwd = Just projectDir
---            , std_out = CreatePipe
---            }
---      outp <- hGetContents stdoutHandle
---      exc <- waitForProcess procHandle
---      pure (exc, takeWhile (/= '\n') outp)
+-- where
+--   compileBinary = do
+--     let mdul = ppll (buildProgram "Main" prog)
+--         echo = proc "echo" [TextLazy.unpack mdul]
+--     (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
+--     (_, _, _, procHandle) <-
+--       createProcess
+--         (proc "clang" ["runtime.c", "-O0", "-g", "-xir", "-lgc", "-Wno-override-module", "-o", "tmp/out", "-"])
+--           { std_in = UseHandle stdoutHandle
+--           , cwd = Just projectDir
+--           }
+--     waitForProcess procHandle
+--   exec = do
+--     (_, Just stdoutHandle, _, procHandle) <-
+--       createProcess
+--         (proc "tmp/out" [])
+--           { cwd = Just projectDir
+--           , std_out = CreatePipe
+--           }
+--     outp <- hGetContents stdoutHandle
+--     exc <- waitForProcess procHandle
+--     pure (exc, takeWhile (/= '\n') outp)

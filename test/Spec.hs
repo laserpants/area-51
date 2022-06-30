@@ -13,12 +13,11 @@ import Test.Hspec
 
 main :: IO ()
 main =
-  pure ()
+  hspec $ do
+    --    evalTests
+    --    llvmEmitTests
+    langTests
 
---  hspec $ do
---    evalTests
---    llvmEmitTests
---    langTests
 --    readTests
 --    treeTests
 --    typeTests
