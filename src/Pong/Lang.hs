@@ -470,7 +470,7 @@ untag =
           EOp1 (t, _) e1 -> [t] <> e1
           EOp2 (t, _) e1 e2 -> [t] <> e1 <> e2
           EPat e1 cs -> e1 <> concat (fmap fst . fst <$> cs)
-          ERec r -> let z = r :: Int in undefined
+          ERec r -> let z = Map.elems r in undefined
           ERes fs e1 e2 -> (fst <$> fs) <> e1 <> e2
       )
 
