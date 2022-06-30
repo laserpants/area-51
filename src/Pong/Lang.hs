@@ -389,61 +389,61 @@ toMonoType :: Map Name Int -> Type Name -> MonoType
 toMonoType vs =
   cata
     ( \case
-        TVar s       -> tVar (vs ! s)
-        TUnit        -> tUnit
-        TBool        -> tBool
-        TInt         -> tInt
-        TFloat       -> tFloat
-        TDouble      -> tDouble
-        TChar        -> tChar
-        TString      -> tString
-        TCon con ts  -> tCon con ts
-        TArr t1 t2   -> tArr t1 t2
-        TRec r       -> tRec r
-        RNil         -> rNil
-        RExt n t1 t2 -> rExt n t1 t2
+        TVar s        -> tVar (vs ! s)
+        TUnit         -> tUnit
+        TBool         -> tBool
+        TInt          -> tInt
+        TFloat        -> tFloat
+        TDouble       -> tDouble
+        TChar         -> tChar
+        TString       -> tString
+        TCon con ts   -> tCon con ts
+        TArr t1 t2    -> tArr t1 t2
+        TRec r        -> tRec r
+        RNil          -> rNil
+        RExt n t1 t2  -> rExt n t1 t2
     )
 
 toScheme :: Name -> [Int] -> MonoType -> Scheme
-toScheme prefix vars = Scheme <<< go
+toScheme prefix vars =
+  Scheme 
+    <<< cata
+      ( \case
+         TVar n       -> tVar (names ! n)
+         TUnit        -> tUnit
+         TBool        -> tBool
+         TInt         -> tInt
+         TFloat       -> tFloat
+         TDouble      -> tDouble
+         TChar        -> tChar
+         TString      -> tString
+         TCon con ts  -> tCon con ts
+         TArr t1 t2   -> tArr t1 t2
+         TRec row     -> tRec row
+         RNil         -> rNil
+         RExt n t1 t2 -> rExt n t1 t2
+      )
  where
    names =
      Map.fromList (varSequence prefix vars)
-   go =
-     cata
-       ( \case
-           TVar n       -> tVar (names ! n)
-           TUnit        -> tUnit
-           TBool        -> tBool
-           TInt         -> tInt
-           TFloat       -> tFloat
-           TDouble      -> tDouble
-           TChar        -> tChar
-           TString      -> tString
-           TCon con ts  -> tCon con ts
-           TArr t1 t2   -> tArr t1 t2
-           TRec row     -> tRec row
-           RNil         -> rNil
-           RExt n t1 t2 -> rExt n t1 t2
-       )
 
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =
  cata
    ( \case
-       EVar (t, v)         -> eVar (f t, v)
-       ECon (t, c)         -> eCon (f t, c)
-       ELit lit            -> eLit lit
-       EIf e1 e2 e3        -> eIf e1 e2 e3
-       ELet (t, a) e1 e2   -> eLet (f t, a) e1 e2
-       EApp t fun as       -> eApp (f t) fun as
-       ELam a args e1      -> eLam a (fmap (first f) args) e1
-       ECall a (t, fun) as -> eCall a (f t, fun) as
-       EOp1 (t, op1) e1    -> eOp1 (f t, op1) e1
-       EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
-       EPat e1 cs          -> ePat e1 ((first . fmap . first) f <$> cs)
-       ERec r              -> eRec r
-       ERes fs e1 e2       -> eRes (first f <$> fs) e1 e2
+       EVar (t, v)          -> eVar (f t, v)
+       ECon (t, c)          -> eCon (f t, c)
+       ELit lit             -> eLit lit
+       EIf e1 e2 e3         -> eIf e1 e2 e3
+       ELet (t, a) e1 e2    -> eLet (f t, a) e1 e2
+       EApp t fun as        -> eApp (f t) fun as
+       ELam a args e1       -> eLam a (fmap (first f) args) e1
+       ECall a (t, fun) as  -> eCall a (f t, fun) as
+       EOp1 (t, op1) e1     -> eOp1 (f t, op1) e1
+       EOp2 (t, op2) e1 e2  -> eOp2 (f t, op2) e1 e2
+       EPat e1 cs           -> ePat e1 ((first . fmap . first) f <$> cs)
+       ERec r               -> eRec r
+       ERes fs e1 e2        -> eRes (first f <$> fs) e1 e2
    )
 
 untag :: (Eq t) => Expr t t a1 a2 -> [t]
