@@ -33,7 +33,7 @@ data TypeF v a
   | TFloat                         -- ^ Single precision floating point number
   | TDouble                        -- ^ Double precision floating point number
   | TChar                          -- ^ Char type
-  | TString                        -- ^ Unicode strings
+  | TString                        -- ^ Strings
   | TCon Name [a]                  -- ^ Algebraic data-types
   | TArr a a                       -- ^ Function types
   | TVar v                         -- ^ Type variable
