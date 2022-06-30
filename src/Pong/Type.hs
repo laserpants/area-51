@@ -10,50 +10,51 @@
 
 module Pong.Type where
 
--- import Control.Monad.Except
--- import Control.Monad.Reader
--- import Control.Monad.State
--- import Control.Newtype.Generics (Newtype, over2, pack, unpack)
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Newtype.Generics (Newtype, over2, pack, unpack)
 -- import Data.Foldable (foldrM)
 -- import Data.List.NonEmpty (fromList, toList)
--- import Data.Map.Strict (Map)
--- import qualified Data.Map.Strict as Map
--- import Data.Maybe (fromMaybe)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 -- import qualified Data.Set as Set
--- import Data.Tuple.Extra (first, firstM, second, secondM)
--- import GHC.Generics (Generic)
--- import Pong.Data
--- import Pong.Lang
--- import Pong.Util
---  ( Fix (..)
---  , Name
---  , Void
---  , cata
---  , embed
---  , project
---  , (!?)
---  , (<$$>)
---  , (<&>)
---  , (<<<)
---  )
--- import Pong.Util.Env (Environment)
+import Data.Tuple.Extra (first, firstM, second, secondM)
+import GHC.Generics (Generic)
+import Pong.Data
+import Pong.Lang
+import Pong.Util
+  ( Fix (..)
+  , Name
+  , Void
+  , cata
+  , embed
+  , project
+  , (!?)
+  , (<$$>)
+  , (<&>)
+  , (<<<)
+  )
+import Pong.Util.Env (Environment)
+
 -- import qualified Pong.Util.Env as Env
---
--- newtype Substitution
---  = Substitution (Map Int MonoType)
---
--- type TypeEnv = Environment (Either MonoType Scheme)
---
--- newtype TypeChecker a
---  = TypeChecker
---      (ExceptT TypeError (ReaderT TypeEnv (State (Int, Substitution))) a)
---
--- data TypeError
---  = UnificationError
---  | NotInScope Name
---  | ConstructorNotInScope Name
---  | IllFormedExpression
---
+
+newtype Substitution
+  = Substitution (Map Int MonoType)
+
+type TypeEnv = Environment (Either MonoType Scheme)
+
+newtype TypeChecker a
+  = TypeChecker
+      (ExceptT TypeError (ReaderT TypeEnv (State (Int, Substitution))) a)
+
+data TypeError
+  = UnificationError
+  | NotInScope Name
+  | ConstructorNotInScope Name
+  | IllFormedExpression
+
 -- evalTypeChecker :: Int -> TypeEnv -> TypeChecker a -> Either TypeError a
 -- evalTypeChecker n env (TypeChecker c) =
 --  evalState (runReaderT (runExceptT c) env) (n, mempty)
@@ -77,126 +78,99 @@ module Pong.Type where
 --              )
 --      ((scheme, defn), _) ->
 --        [(defn, Right scheme)]
---
----- Substitution
---
--- {- ORMOLU_DISABLE -}
---
--- substitute :: Map Int MonoType -> MonoType -> MonoType
--- substitute sub =
---  cata
---    ( \case
---        TVar n     -> fromMaybe (tVar n) (sub !? n)
---        TCon c ts  -> tCon c ts
---        TArr t1 t2 -> tArr t1 t2
---        TRec row   -> tRec (rowSubstitute sub row)
---        TUnit      -> tUnit
---        TBool      -> tBool
---        TInt       -> tInt
---        TFloat     -> tFloat
---        TDouble    -> tDouble
---        TChar      -> tChar
---        TString    -> tString
---    )
---
--- {- ORMOLU_ENABLE -}
---
--- rowSubstitute :: Map Int MonoType -> Row MonoType Int -> Row MonoType Int
--- rowSubstitute sub =
---  cata $
---    \case
---      RNil ->
---        rNil
---      RExt name t row ->
---        rExt name (substitute sub t) row
---      RVar n ->
---        case project <$> (sub !? n) of
---          Just (TRec r) ->
---            r
---          Just (TVar v) ->
---            rVar v
---          _ ->
---            rVar n
---
--- class Substitutable a where
---  apply :: Substitution -> a -> a
---
--- instance Substitutable () where
---  apply _ = const ()
---
--- instance Substitutable MonoType where
---  apply = substitute . unpack
---
--- instance (Substitutable a) => Substitutable [a] where
---  apply = fmap . apply
---
--- instance (Substitutable a) => Substitutable (Map k a) where
---  apply = fmap . apply
---
--- instance
---  (Substitutable a0, Substitutable a2, Substitutable t) =>
---  Substitutable (Expr t a0 a1 a2)
---  where
---  apply sub =
---    cata $
---      \case
---        EVar name -> eVar (applyFst name)
---        ECon con -> eCon (first (apply sub) con)
---        ELet bind expr1 expr2 -> eLet (applyFst bind) expr1 expr2
---        ELam t args expr -> eLam t (applyFst <$> args) expr
---        EApp t fun args -> eApp (apply sub t) fun args
---        EPat expr cs -> ePat expr (first (fmap applyFst) <$> cs)
---        EOp1 (t, op) expr1 -> eOp1 (apply sub t, op) expr1
---        EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
---        ERes field expr1 expr2 -> eRes (applyFst <$> field) expr1 expr2
---        ERec row -> eRec (mapRow (apply sub) (apply sub row))
---        ECall t fun args -> eCall_ (apply sub t) (applyFst fun) args
---        e -> embed e
---    where
---      applyFst = first (apply sub)
---
--- instance Substitutable (Row MonoType Int) where
---  apply = rowSubstitute . unpack
---
--- instance
---  (Substitutable a0, Substitutable a2, Substitutable t) =>
---  Substitutable (Row (Expr t a0 a1 a2) (Label t))
---  where
---  apply sub =
---    cata $
---      \case
---        RNil -> rNil
---        RVar name -> rVar (first (apply sub) name)
---        RExt name expr row -> rExt name (apply sub expr) row
---
--- instance Substitutable Void where
---  apply = const id
---
--- instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) where
---  apply sub =
---    \case
---      Function as (t, a) ->
---        Function (first (apply sub) <$> as) (apply sub t, apply sub a)
---      Constant (t, a) ->
---        Constant (apply sub t, apply sub a)
---      Extern ts t ->
---        Extern (apply sub ts) (apply sub t)
---      def ->
---        def
---
--- instance (Substitutable t, Substitutable a) => Substitutable (Program t a) where
---  apply sub (Program p) = Program (apply sub p)
---
--- compose :: Substitution -> Substitution -> Substitution
--- compose = over2 Substitution fun
---  where
---    fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
---
--- mapsTo :: Int -> MonoType -> Substitution
--- mapsTo n = pack <<< Map.singleton n
---
----- Tagging
---
+
+-- Substitution
+
+{- ORMOLU_DISABLE -}
+
+substitute :: Map Int MonoType -> MonoType -> MonoType
+substitute sub =
+ cata
+   ( \case
+       TVar n       -> fromMaybe (tVar n) (sub !? n)
+       TCon c ts    -> tCon c ts
+       TArr t1 t2   -> tArr t1 t2
+       TRec row     -> tRec row
+       TUnit        -> tUnit
+       TBool        -> tBool
+       TInt         -> tInt
+       TFloat       -> tFloat
+       TDouble      -> tDouble
+       TChar        -> tChar
+       TString      -> tString
+       RNil         -> rNil
+       RExt n t1 t2 -> rExt n t1 t2
+   )
+
+class Substitutable a where
+  apply :: Substitution -> a -> a
+
+instance Substitutable () where
+  apply _ = const ()
+
+instance Substitutable MonoType where
+  apply = substitute . unpack
+
+instance (Substitutable a) => Substitutable [a] where
+  apply = fmap . apply
+
+instance (Substitutable a) => Substitutable (Map k a) where
+  apply = fmap . apply
+
+{- ORMOLU_DISABLE -}
+
+instance
+  (Substitutable a0, Substitutable a2, Substitutable t) =>
+  Substitutable (Expr t a0 a1 a2)
+  where
+  apply sub =
+    cata
+    ( \case
+        EVar name                -> eVar (applyFst name)
+        ECon con                 -> eCon (first (apply sub) con)
+        ELet bind expr1 expr2    -> eLet (applyFst bind) expr1 expr2
+        EApp t fun args          -> eApp (apply sub t) fun args
+        ELam t args expr         -> eLam t (applyFst <$> args) expr
+        ECall t fun args         -> eCall (apply sub t) (applyFst fun) args
+        EOp1 (t, op) expr1       -> eOp1 (apply sub t, op) expr1
+        EOp2 (t, op) expr1 expr2 -> eOp2 (apply sub t, op) expr1 expr2
+        EPat expr cs             -> ePat expr (first (fmap applyFst) <$> cs)
+        ERes field expr1 expr2   -> eRes (applyFst <$> field) expr1 expr2
+        e                        -> embed e
+      )
+    where
+      applyFst = first (apply sub)
+
+{- ORMOLU_ENABLE -}
+
+instance Substitutable Void where
+  apply = const id
+
+instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) where
+  apply sub =
+    \case
+      Function as (t, a) ->
+        Function (first (apply sub) <$> as) (apply sub t, apply sub a)
+      Constant (t, a) ->
+        Constant (apply sub t, apply sub a)
+      Extern ts t ->
+        Extern (apply sub ts) (apply sub t)
+      def ->
+        def
+
+instance (Substitutable t, Substitutable a) => Substitutable (Module t a) where
+  apply sub (Module p) = Module (apply sub p)
+
+compose :: Substitution -> Substitution -> Substitution
+compose = over2 Substitution fun
+  where
+    fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
+
+mapsTo :: Int -> MonoType -> Substitution
+mapsTo n = pack <<< Map.singleton n
+
+-- Tagging
+
 -- tagFst :: a -> TypeChecker (Int, a)
 -- tagFst a = do
 --  t <- tag
@@ -249,9 +223,9 @@ module Pong.Type where
 --  (s, a) <- get
 --  put (succ s, a)
 --  pure s
---
----- Unification
---
+
+-- Unification
+
 -- unifyAndCombine ::
 --  MonoType -> MonoType -> Substitution -> TypeChecker Substitution
 -- unifyAndCombine t1 t2 sub1 = do
@@ -335,9 +309,9 @@ module Pong.Type where
 --  t1 <- applySubstitution t
 --  let vars = filter (`notElem` free env) (free t1)
 --  pure (toScheme "a" vars t1)
---
----- Type inference
---
+
+-- Type inference
+
 -- lookupName :: Label Int -> (Name -> TypeError) -> TypeChecker (MonoType, Name)
 -- lookupName (t, var) toErr = do
 --  ty <- getTy
@@ -533,27 +507,27 @@ module Pong.Type where
 --  Program () SourceExpr ->
 --  Either TypeError (Program MonoType TypedExpr)
 -- runInferProgram = runTypeChecker 1 mempty . inferProgram <&> fst
---
----------------------------------------------------------------------------------
----- Typeclass instances
----------------------------------------------------------------------------------
---
----- Substitution
--- instance Semigroup Substitution where
---  (<>) = compose
---
--- deriving instance Monoid Substitution
---
--- deriving instance Show Substitution
---
--- deriving instance Eq Substitution
---
--- deriving instance Ord Substitution
---
--- deriving instance Generic Substitution
---
--- instance Newtype Substitution
---
+
+-------------------------------------------------------------------------------
+-- Typeclass instances
+-------------------------------------------------------------------------------
+
+-- Substitution
+instance Semigroup Substitution where
+  (<>) = compose
+
+deriving instance Monoid Substitution
+
+deriving instance Show Substitution
+
+deriving instance Eq Substitution
+
+deriving instance Ord Substitution
+
+deriving instance Generic Substitution
+
+instance Newtype Substitution
+
 ---- TypeChecker
 -- deriving instance Functor TypeChecker
 --
