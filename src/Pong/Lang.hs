@@ -6,15 +6,16 @@
 
 module Pong.Lang where
 
-import Control.Monad.State
-import Control.Newtype.Generics (over, unpack)
-import Data.Foldable (foldrM)
+import Control.Monad (join)
+-- import Control.Monad.State
+-- import Control.Newtype.Generics (over, unpack)
+-- import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Tuple (swap)
+-- import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Util
@@ -28,7 +29,7 @@ import Pong.Util
   , embed3
   , para
   , project
-  , varSequence
+  --  , varSequence
   , withoutLabels
   , (!)
   , (<$$>)
@@ -39,93 +40,93 @@ import Pong.Util
 import Pong.Util.Env (Environment (..))
 import qualified Pong.Util.Env as Env
 
-mapRow :: (e -> f) -> Row e v -> Row f v
-mapRow f =
-  cata $
-    \case
-      RNil ->
-        rNil
-      RVar v ->
-        rVar v
-      RExt name el row ->
-        rExt name (f el) row
+-- mapRow :: (e -> f) -> Row e v -> Row f v
+-- mapRow f =
+--  cata $
+--    \case
+--      RNil ->
+--        rNil
+--      RVar v ->
+--        rVar v
+--      RExt name el row ->
+--        rExt name (f el) row
+--
+-- mapRowM :: (Monad m) => (e -> m f) -> Row e v -> m (Row f v)
+-- mapRowM f =
+--  cata $
+--    \case
+--      RNil ->
+--        pure rNil
+--      RVar v ->
+--        pure (rVar v)
+--      RExt name el row ->
+--        rExt name <$> f el <*> row
+--
+-- bimapRow :: (e -> f) -> (v -> w) -> Row e v -> Row f w
+-- bimapRow f g =
+--  cata $
+--    \case
+--      RNil ->
+--        rNil
+--      RVar v ->
+--        rVar (g v)
+--      RExt name el row ->
+--        rExt name (f el) row
+--
+-- normalizeRow :: Row e v -> Row e v
+-- normalizeRow = uncurry (flip foldRow) . unwindRow
 
-mapRowM :: (Monad m) => (e -> m f) -> Row e v -> m (Row f v)
-mapRowM f =
-  cata $
-    \case
-      RNil ->
-        pure rNil
-      RVar v ->
-        pure (rVar v)
-      RExt name el row ->
-        rExt name <$> f el <*> row
-
-bimapRow :: (e -> f) -> (v -> w) -> Row e v -> Row f w
-bimapRow f g =
-  cata $
-    \case
-      RNil ->
-        rNil
-      RVar v ->
-        rVar (g v)
-      RExt name el row ->
-        rExt name (f el) row
-
-normalizeRow :: Row e v -> Row e v
-normalizeRow = uncurry (flip foldRow) . unwindRow
-
-noramlizeTypeRows :: Type v -> Type v
-noramlizeTypeRows =
-  cata $
-    \case
-      TRec r -> tRec (normalizeRow r)
-      t -> embed t
+-- noramlizeTypeRows :: Type v -> Type v
+-- noramlizeTypeRows =
+--  cata $
+--    \case
+--      TRec r -> tRec (normalizeRow r)
+--      t -> embed t
 
 {-# INLINE foldRow #-}
-foldRow :: Row e v -> Map Name [e] -> Row e v
+foldRow :: Type v -> FieldSet (Type v) -> Type v
 foldRow = Map.foldrWithKey (flip . foldr . rExt)
 
 {-# INLINE foldRow1 #-}
-foldRow1 :: Map Name [e] -> Row e v
+foldRow1 :: FieldSet (Type v) -> Type v
 foldRow1 = foldRow rNil
 
-unwindRow :: Row e v -> (Map Name [e], Row e v)
-unwindRow row = (toMap fields, leaf)
-  where
-    toMap = foldr (uncurry (Map.insertWith (<>))) mempty
-    fields =
-      (`para` row)
-        ( \case
-            RExt label ty (_, rest) -> (label, [ty]) : rest
-            _ -> []
-        )
-    leaf =
-      (`cata` row)
-        ( \case
-            RExt _ _ r -> r
-            r -> embed r
-        )
-
-restrictRow :: Name -> Row e v -> (e, Row e v)
-restrictRow name row =
-  ( e
-  , normalizeRow
-      ( foldRow k $
-          case es of
-            [] -> Map.delete name m
-            _ -> Map.insert name es m
-      )
-  )
-  where
-    Just (e : es) = Map.lookup name m
-    (m, k) = unwindRow row
-
-rowEq :: (Eq e, Eq v) => Row e v -> Row e v -> Bool
-rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
-
-typeEq :: (Eq v) => Type v -> Type v -> Bool
-typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
+-- unwindRow :: Row e v -> (Map Name [e], Row e v)
+-- unwindRow row = (toMap fields, leaf)
+--  where
+--    toMap = foldr (uncurry (Map.insertWith (<>))) mempty
+--    fields =
+--      (`para` row)
+--        ( \case
+--            RExt label ty (_, rest) -> (label, [ty]) : rest
+--            _ -> []
+--        )
+--    leaf =
+--      (`cata` row)
+--        ( \case
+--            RExt _ _ r -> r
+--            r -> embed r
+--        )
+--
+-- restrictRow :: Name -> Row e v -> (e, Row e v)
+-- restrictRow name row =
+--  ( e
+--  , normalizeRow
+--      ( foldRow k $
+--          case es of
+--            [] -> Map.delete name m
+--            _ -> Map.insert name es m
+--      )
+--  )
+--  where
+--    Just (e : es) = Map.lookup name m
+--    (m, k) = unwindRow row
+--
+-- rowEq :: (Eq e, Eq v) => Row e v -> Row e v -> Bool
+-- rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
+--
+-- typeEq :: (Eq v) => Type v -> Type v -> Bool
+-- typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
 
 class Free f where
   freeIn :: f -> [Int]
@@ -139,31 +140,27 @@ instance Free Void where
 instance Free () where
   freeIn _ = []
 
-instance Free MonoType where
-  freeIn =
-    cata
-      ( \case
-          TVar n -> [n]
-          TCon _ ts -> join ts
-          TArr t1 t2 -> t1 <> t2
-          TRec row -> freeIn row
-          _ -> []
-      )
-
-instance Free (Row MonoType Int) where
-  freeIn =
-    cata
-      ( \case
-          RVar v -> [v]
-          RExt _ t r -> freeIn t <> r
-          _ -> []
-      )
-
 instance (Free a) => Free [a] where
   freeIn = concatMap freeIn
 
 instance (Free a) => Free (Either e a) where
   freeIn = concatMap freeIn
+
+{- ORMOLU_DISABLE -}
+
+instance Free MonoType where
+  freeIn =
+    cata
+      ( \case
+          TCon _ ts    -> join ts
+          TArr t1 t2   -> t1 <> t2
+          TVar n       -> [n]
+          TRec row     -> row
+          RExt _ t1 t2 -> t1 <> t2
+          _            -> []
+      )
+
+{- ORMOLU_ENABLE -}
 
 instance (Free t, Free a) => Free (Definition t a) where
   freeIn =
@@ -177,45 +174,34 @@ instance (Free t, Free a) => Free (Definition t a) where
       _ ->
         []
 
-instance (Free t, Free a) => Free (Program t a) where
-  freeIn (Program p) = freeIn (Map.elems p)
+instance (Free t, Free a) => Free (Module t a) where
+  freeIn (Module p) = freeIn (Map.elems p)
 
 instance (Free a) => Free (Environment a) where
   freeIn env = freeIn =<< Env.elems env
+
+{- ORMOLU_DISABLE -}
 
 instance (Free t, Free a0, Free a2) => Free (Expr t a0 a1 a2) where
   freeIn =
     cata
       ( \case
-          EVar (t, _) -> freeIn t
-          ECon (t, _) -> freeIn t
-          ELit{} -> []
-          EIf e1 e2 e3 -> e1 <> e2 <> e3
+          EVar (t, _)       -> freeIn t
+          ECon (t, _)       -> freeIn t
+          ELit{}            -> []
+          EIf e1 e2 e3      -> e1 <> e2 <> e3
           ELet (t, _) e1 e2 -> freeIn t <> e1 <> e2
-          ELam _ args e1 -> freeIn (fst <$> args) <> e1
-          EApp t fun as -> freeIn t <> fun <> concat as
+          EApp t fun as     -> freeIn t <> fun <> concat as
+          ELam _ args e1    -> freeIn (fst <$> args) <> e1
           ECall a (t, _) as -> freeIn a <> freeIn t <> concat as
-          EOp1 (t, _) e1 -> freeIn t <> e1
+          EOp1 (t, _) e1    -> freeIn t <> e1
           EOp2 (t, _) e1 e2 -> freeIn t <> e1 <> e2
-          EPat e1 cs -> e1 <> (freeIn =<< cs)
-          ERec row -> freeIn row
-          ERes fs e1 e2 -> freeIn (fst <$> fs) <> e1 <> e2
+          EPat e1 cs        -> e1 <> (freeIn . fst =<< fst =<< cs) <> (snd =<< cs)
+          ERec r            -> concat (concat (Map.elems r))
+          ERes fs e1 e2     -> freeIn (fst <$> fs) <> e1 <> e2
       )
 
-instance
-  (Free t, Free a0, Free a2) =>
-  Free (Row (Expr t a0 a1 a2) (Label t))
-  where
-  freeIn =
-    cata
-      ( \case
-          RNil -> []
-          RVar (t, _) -> freeIn t
-          RExt _ el row -> freeIn el <> row
-      )
-
-instance (Free t) => Free (Clause t [Int]) where
-  freeIn (ls, e) = (freeIn . fst =<< ls) <> e
+{- ORMOLU_ENABLE -}
 
 free :: (Free a) => a -> [Int]
 free = nub . freeIn
@@ -229,52 +215,42 @@ instance Typed MonoType where
 instance Typed Void where
   typeOf _ = tCon "Void" []
 
+{- ORMOLU_DISABLE -}
+
 instance Typed Prim where
   typeOf =
     \case
-      PBool{} -> tBool
-      PInt{} -> tInt
-      PFloat{} -> tFloat
+      PBool{}   -> tBool
+      PInt{}    -> tInt
+      PFloat{}  -> tFloat
       PDouble{} -> tDouble
-      PChar{} -> tChar
+      PChar{}   -> tChar
       PString{} -> tString
-      PUnit -> tUnit
+      PUnit     -> tUnit
 
-instance (Typed t, Typed a0) => Typed (Row (Expr t a0 a1 a2) (Label t)) where
-  typeOf =
-    cata
-      ( \case
-          RNil -> tRec rNil
-          RVar (t, _) -> typeOf t
-          RExt name el r ->
-            case project r of
-              TRec row ->
-                tRec (rExt name (typeOf el) row)
-              TVar v ->
-                tRec (rExt name (typeOf el) (rVar v))
-              _ ->
-                error "Implementation error"
-      )
+{- ORMOLU_DISABLE -}
 
 instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
   typeOf =
     cata
       ( \case
-          EVar (t, _) -> typeOf t
-          ECon (t, _) -> typeOf t
-          ELit lit -> typeOf lit
-          EIf _ _ e3 -> e3
-          ELet _ _ e3 -> e3
-          ELam _ args expr -> foldType expr (typeOf . fst <$> args)
-          EApp t _ _ -> typeOf t
+          EVar (t, _)       -> typeOf t
+          ECon (t, _)       -> typeOf t
+          ELit lit          -> typeOf lit
+          EIf  _ _ e3       -> e3
+          ELet _ _ e3       -> e3
+          EApp t _ _        -> typeOf t
+          ELam _ args expr  -> foldType expr (typeOf . fst <$> args)
           ECall _ (t, _) as -> foldType1 (drop (length as) (unwindType t))
-          EOp1 (t, _) _ -> returnType t
-          EOp2 (t, _) _ _ -> returnType t
-          EPat _ [] -> error "Empty case statement"
-          EPat _ cs -> head (snd <$> cs)
-          ERec r -> typeOf r
-          ERes _ _ e -> e
+          EOp1 (t, _) _     -> returnType t
+          EOp2 (t, _) _ _   -> returnType t
+          EPat _ []         -> error "Empty case statement"
+          EPat _ cs         -> head (snd <$> cs)
+          ERec r            -> tRec (foldRow1 r)
+          ERes _ _ e        -> e
       )
+
+{- ORMOLU_ENABLE -}
 
 instance (Typed t) => Typed (Definition t a) where
   typeOf =
@@ -351,6 +327,8 @@ instance FreeVars (Label ()) () where
 instance FreeVars (Label MonoType) MonoType where
   freeVarsIn = Set.singleton
 
+{- ORMOLU_DISABLE -}
+
 instance
   (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
   FreeVars (Expr t a0 a1 a2) t
@@ -358,42 +336,32 @@ instance
   freeVarsIn =
     cata
       ( \case
-          EVar var -> freeVarsIn var
-          ECon con -> freeVarsIn con
-          ELit _ -> mempty
-          EIf e1 e2 e3 -> e1 <> e2 <> e3
-          ELet var e1 e2 -> (e1 <> e2) \\\ [var]
-          ELam _ args expr -> expr \\\ args
-          EApp _ fun args -> fun <> Set.unions args
-          ECall _ fun args -> Set.insert fun (Set.unions args)
-          EOp1 _ e1 -> e1
-          EOp2 _ e1 e2 -> e1 <> e2
-          EPat e1 cs ->
-            e1
-              <> Set.unions (cs <&> \(_ : vs, expr) -> expr \\\ vs)
-          ERec row -> freeVarsIn row
+          EVar var            -> freeVarsIn var
+          ECon con            -> freeVarsIn con
+          ELit _              -> mempty
+          EIf e1 e2 e3        -> e1 <> e2 <> e3
+          ELet var e1 e2      -> (e1 <> e2) \\\ [var]
+          EApp _ fun args     -> fun <> Set.unions args
+          ELam _ args expr    -> expr \\\ args
+          ECall _ fun args    -> Set.insert fun (Set.unions args)
+          EOp1 _ e1           -> e1
+          EOp2 _ e1 e2        -> e1 <> e2
+          ERec r              -> Set.unions (concat (Map.elems r))
           ERes (_ : vs) e1 e2 -> (e1 <> e2) \\\ vs
+          EPat e1 cs ->
+            e1 <>
+              Set.unions (cs <&> \(_ : vs, expr) -> expr \\\ vs)
           _ ->
             error "Implementation error"
       )
 
-instance
-  (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
-  (FreeVars (Row (Expr t a0 a1 a2) (Label t)) t)
-  where
-  freeVarsIn =
-    cata
-      ( \case
-          RNil -> mempty
-          RVar v -> Set.singleton v
-          RExt _ el r -> Set.fromList (freeVars el) <> r
-      )
+{- ORMOLU_ENABLE -}
 
 instance
   (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
-  FreeVars (Program t (Expr t a0 a1 a2)) t
+  FreeVars (Module t (Expr t a0 a1 a2)) t
   where
-  freeVarsIn (Program p) = Set.unions (go . snd <$> Map.toList p)
+  freeVarsIn (Module p) = Set.unions (go . snd <$> Map.toList p)
     where
       go =
         \case
@@ -415,74 +383,76 @@ infix 5 \\\
 freeVars :: (FreeVars f t) => f -> [Label t]
 freeVars = Set.toList . Set.filter ((/= "{{data}}") . snd) . freeVarsIn
 
+{- ORMOLU_DISABLE -}
+
 toMonoType :: Map Name Int -> Type Name -> MonoType
 toMonoType vs =
   cata
     ( \case
-        TVar s -> tVar (vs ! s)
-        TUnit -> tUnit
-        TBool -> tBool
-        TInt -> tInt
-        TFloat -> tFloat
-        TDouble -> tDouble
-        TChar -> tChar
-        TString -> tString
-        TCon con ts -> tCon con ts
-        TArr t1 t2 -> tArr t1 t2
-        TRec row -> tRec (bimapRow (toMonoType vs) (vs !) row)
+        TVar s       -> tVar (vs ! s)
+        TUnit        -> tUnit
+        TBool        -> tBool
+        TInt         -> tInt
+        TFloat       -> tFloat
+        TDouble      -> tDouble
+        TChar        -> tChar
+        TString      -> tString
+        TCon con ts  -> tCon con ts
+        TArr t1 t2   -> tArr t1 t2
+        TRec r       -> tRec r
+        RNil         -> rNil
+        RExt n t1 t2 -> rExt n t1 t2
     )
-
-{- ORMOLU_DISABLE -}
-
-toScheme :: Name -> [Int] -> MonoType -> Scheme
-toScheme prefix vars = Scheme <<< go
-  where
-    names =
-      Map.fromList (varSequence prefix vars)
-    go =
-      cata
-        ( \case
-            TVar n      -> tVar (names ! n)
-            TUnit       -> tUnit
-            TBool       -> tBool
-            TInt        -> tInt
-            TFloat      -> tFloat
-            TDouble     -> tDouble
-            TChar       -> tChar
-            TString     -> tString
-            TCon con ts -> tCon con ts
-            TArr t1 t2  -> tArr t1 t2
-            TRec row    -> tRec (bimapRow go (names !) row)
-        )
 
 {- ORMOLU_ENABLE -}
 
+-- {- ORMOLU_DISABLE -}
+--
+-- toScheme :: Name -> [Int] -> MonoType -> Scheme
+-- toScheme prefix vars = Scheme <<< go
+--  where
+--    names =
+--      Map.fromList (varSequence prefix vars)
+--    go =
+--      cata
+--        ( \case
+--            TVar n      -> tVar (names ! n)
+--            TUnit       -> tUnit
+--            TBool       -> tBool
+--            TInt        -> tInt
+--            TFloat      -> tFloat
+--            TDouble     -> tDouble
+--            TChar       -> tChar
+--            TString     -> tString
+--            TCon con ts -> tCon con ts
+--            TArr t1 t2  -> tArr t1 t2
+--            TRec row    -> tRec (bimapRow go (names !) row)
+--        )
+--
+-- {- ORMOLU_ENABLE -}
+
+{- ORMOLU_DISABLE -}
+
 mapTypes :: (s -> t) -> Expr s s a1 a2 -> Expr t t a1 a2
 mapTypes f =
-  cata
-    ( \case
-        EVar (t, v) -> eVar (f t, v)
-        ECon (t, c) -> eCon (f t, c)
-        ELit lit -> eLit lit
-        EIf e1 e2 e3 -> eIf e1 e2 e3
-        ELet (t, a) e1 e2 -> eLet (f t, a) e1 e2
-        ELam a args e1 -> eLam a (fmap (first f) args) e1
-        EApp t fun as -> eApp (f t) fun as
-        ECall a (t, fun) as -> eCall_ a (f t, fun) as
-        EOp1 (t, op1) e1 -> eOp1 (f t, op1) e1
-        EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
-        EPat e1 cs -> ePat e1 ((first . fmap . first) f <$> cs)
-        ERec r -> eRec (mapTypesRow r)
-        ERes fs e1 e2 -> eRes (first f <$> fs) e1 e2
-    )
-  where
-    mapTypesRow =
-      cata
-        ( \case
-            RNil -> rNil
-            RVar (t, v) -> rVar (f t, v)
-            RExt name el row -> rExt name (mapTypes f el) row
-        )
+ cata
+   ( \case
+       EVar (t, v)         -> eVar (f t, v)
+       ECon (t, c)         -> eCon (f t, c)
+       ELit lit            -> eLit lit
+       EIf e1 e2 e3        -> eIf e1 e2 e3
+       ELet (t, a) e1 e2   -> eLet (f t, a) e1 e2
+       EApp t fun as       -> eApp (f t) fun as
+       ELam a args e1      -> eLam a (fmap (first f) args) e1
+       ECall a (t, fun) as -> eCall a (f t, fun) as
+       EOp1 (t, op1) e1    -> eOp1 (f t, op1) e1
+       EOp2 (t, op2) e1 e2 -> eOp2 (f t, op2) e1 e2
+       EPat e1 cs          -> ePat e1 ((first . fmap . first) f <$> cs)
+       ERec r              -> eRec r
+       ERes fs e1 e2       -> eRes (first f <$> fs) e1 e2
+   )
+
+{- ORMOLU_ENABLE -}
 
 untag :: (Eq t) => Expr t t a1 a2 -> [t]
 untag =
@@ -500,67 +470,59 @@ untag =
           EOp1 (t, _) e1 -> [t] <> e1
           EOp2 (t, _) e1 e2 -> [t] <> e1 <> e2
           EPat e1 cs -> e1 <> concat (fmap fst . fst <$> cs)
-          ERec r -> untagRow r
+          ERec r -> let z = r :: Int in undefined
           ERes fs e1 e2 -> (fst <$> fs) <> e1 <> e2
       )
-  where
-    untagRow =
-      cata
-        ( \case
-            RNil -> []
-            RVar (t, _) -> [t]
-            RExt _ el row -> untag el <> row
-        )
 
-{- ORMOLU_DISABLE -}
-
-boundVars :: Type Name -> Set Name
-boundVars =
-  cata
-    ( \case
-        TVar s     -> Set.singleton s
-        TCon _ ts  -> Set.unions ts
-        TArr t1 t2 -> t1 <> t2
-        TRec row   -> boundRowVars row
-        _          -> mempty
-    )
-
-boundRowVars :: Row (Type Name) Name -> Set Name
-boundRowVars =
-  cata
-    ( \case
-        RVar v     -> Set.singleton v
-        RExt _ r a -> boundVars r <> a
-        _          -> mempty
-    )
-
-{- ORMOLU_ENABLE -}
-
-substituteVar :: Name -> Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-substituteVar from to =
-  para
-    ( \case
-        ELet (t, var) (e1, _) (e2, _)
-          | var == from -> eLet (t, var) e1 e2
-        ERes r@[_, (_, var), _] (e1, _) (e2, _)
-          | var == from -> eRes r e1 e2
-        EPat (_, e1) cs ->
-          ePat
-            e1
-            ( cs <&> \(ps, (l, r)) ->
-                ( ps
-                , if from `elem` (snd <$> ps) then l else r
-                )
-            )
-        EVar (t, v)
-          | v == from -> eVar (t, to)
-        ECon (t, c)
-          | c == from -> eCon (t, to)
-        ECall a (t, fun) args
-          | fun == from -> eCall_ a (t, to) (snd <$> args)
-        e ->
-          embed (snd <$> e)
-    )
+-- {- ORMOLU_DISABLE -}
+--
+-- boundVars :: Type Name -> Set Name
+-- boundVars =
+--  cata
+--    ( \case
+--        TVar s     -> Set.singleton s
+--        TCon _ ts  -> Set.unions ts
+--        TArr t1 t2 -> t1 <> t2
+--        TRec row   -> boundRowVars row
+--        _          -> mempty
+--    )
+--
+-- boundRowVars :: Row (Type Name) Name -> Set Name
+-- boundRowVars =
+--  cata
+--    ( \case
+--        RVar v     -> Set.singleton v
+--        RExt _ r a -> boundVars r <> a
+--        _          -> mempty
+--    )
+--
+-- {- ORMOLU_ENABLE -}
+--
+-- substituteVar :: Name -> Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+-- substituteVar from to =
+--  para
+--    ( \case
+--        ELet (t, var) (e1, _) (e2, _)
+--          | var == from -> eLet (t, var) e1 e2
+--        ERes r@[_, (_, var), _] (e1, _) (e2, _)
+--          | var == from -> eRes r e1 e2
+--        EPat (_, e1) cs ->
+--          ePat
+--            e1
+--            ( cs <&> \(ps, (l, r)) ->
+--                ( ps
+--                , if from `elem` (snd <$> ps) then l else r
+--                )
+--            )
+--        EVar (t, v)
+--          | v == from -> eVar (t, to)
+--        ECon (t, c)
+--          | c == from -> eCon (t, to)
+--        ECall a (t, fun) args
+--          | fun == from -> eCall_ a (t, to) (snd <$> args)
+--        e ->
+--          embed (snd <$> e)
+--    )
 
 {-# INLINE foldType #-}
 foldType :: Type v -> [Type v] -> Type v
@@ -570,79 +532,79 @@ foldType = foldr tArr
 foldType1 :: [Type v] -> Type v
 foldType1 = foldr1 tArr
 
-{-# INLINE insertArgs #-}
-insertArgs :: [(t, Name)] -> Environment t -> Environment t
-insertArgs = Env.inserts . (swap <$>)
+-- {-# INLINE insertArgs #-}
+-- insertArgs :: [(t, Name)] -> Environment t -> Environment t
+-- insertArgs = Env.inserts . (swap <$>)
 
-{-# INLINE emptyProgram #-}
-emptyProgram :: (Ord t) => Program t a
-emptyProgram = Program mempty
+{-# INLINE emptyModule #-}
+emptyModule :: (Ord t) => Module t a
+emptyModule = Module mempty
 
-{-# INLINE modifyProgram #-}
-modifyProgram ::
-  (MonadState (r, Program t a) m) =>
-  (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
-  m ()
-modifyProgram = modify . second . over Program
-
-{-# INLINE insertDef #-}
-insertDef ::
-  (MonadState (r, Program t a) m) =>
-  Label Scheme ->
-  Definition t a ->
-  m ()
-insertDef = modifyProgram <$$> Map.insert
-
-renameDef :: Name -> Name -> Program t a -> Program t a
-renameDef from to = over Program (Map.mapKeys rename)
-  where
-    rename (t, defn) = (t, if defn == from then to else defn)
-
-{-# INLINE forEachDef #-}
-forEachDef ::
-  (Monad m) =>
-  Program t a ->
-  (Label Scheme -> Definition t a -> m b) ->
-  m [b]
-forEachDef (Program p) = forM (Map.toList p) . uncurry
-
-{-# INLINE foldDefsM #-}
-foldDefsM ::
-  (Monad m) =>
-  ((Label Scheme, Definition t a) -> r -> m r) ->
-  r ->
-  Program t a ->
-  m r
-foldDefsM f a = foldrM f a . Map.toList . unpack
-
-{-# INLINE programMap #-}
-programMap ::
-  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
-  Program t1 a1 ->
-  Program t2 a2
-programMap = over Program . Map.mapWithKey
-
-{-# INLINE programFor #-}
-programFor ::
-  Program t1 a1 ->
-  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
-  Program t2 a2
-programFor = flip programMap
-
-programMapM ::
-  (Monad m) =>
-  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
-  Program t1 a1 ->
-  m (Program t2 a2)
-programMapM f = Program <$$> Map.traverseWithKey f . unpack
-
-{-# INLINE programForM #-}
-programForM ::
-  (Monad m) =>
-  Program t1 a1 ->
-  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
-  m (Program t2 a2)
-programForM = flip programMapM
+-- {-# INLINE modifyModule #-}
+-- modifyModule ::
+--  (MonadState (r, Module t a) m) =>
+--  (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
+--  m ()
+-- modifyModule = modify . second . over Module
+--
+-- {-# INLINE insertDef #-}
+-- insertDef ::
+--  (MonadState (r, Module t a) m) =>
+--  Label Scheme ->
+--  Definition t a ->
+--  m ()
+-- insertDef = modifyModule <$$> Map.insert
+--
+-- renameDef :: Name -> Name -> Module t a -> Module t a
+-- renameDef from to = over Module (Map.mapKeys rename)
+--  where
+--    rename (t, defn) = (t, if defn == from then to else defn)
+--
+-- {-# INLINE forEachDef #-}
+-- forEachDef ::
+--  (Monad m) =>
+--  Module t a ->
+--  (Label Scheme -> Definition t a -> m b) ->
+--  m [b]
+-- forEachDef (Module p) = forM (Map.toList p) . uncurry
+--
+-- {-# INLINE foldDefsM #-}
+-- foldDefsM ::
+--  (Monad m) =>
+--  ((Label Scheme, Definition t a) -> r -> m r) ->
+--  r ->
+--  Module t a ->
+--  m r
+-- foldDefsM f a = foldrM f a . Map.toList . unpack
+--
+-- {-# INLINE programMap #-}
+-- programMap ::
+--  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
+--  Module t1 a1 ->
+--  Module t2 a2
+-- programMap = over Module . Map.mapWithKey
+--
+-- {-# INLINE programFor #-}
+-- programFor ::
+--  Module t1 a1 ->
+--  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
+--  Module t2 a2
+-- programFor = flip programMap
+--
+-- programMapM ::
+--  (Monad m) =>
+--  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
+--  Module t1 a1 ->
+--  m (Module t2 a2)
+-- programMapM f = Module <$$> Map.traverseWithKey f . unpack
+--
+-- {-# INLINE programForM #-}
+-- programForM ::
+--  (Monad m) =>
+--  Module t1 a1 ->
+--  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
+--  m (Module t2 a2)
+-- programForM = flip programMapM
 
 {-# INLINE tUnit #-}
 tUnit :: Type v
@@ -664,6 +626,18 @@ tFloat = embed TFloat
 tDouble :: Type v
 tDouble = embed TDouble
 
+{-# INLINE tChar #-}
+tChar :: Type v
+tChar = embed TChar
+
+{-# INLINE tString #-}
+tString :: Type v
+tString = embed TString
+
+{-# INLINE tCon #-}
+tCon :: Name -> [Type v] -> Type v
+tCon = embed2 TCon
+
 {-# INLINE tArr #-}
 tArr :: Type v -> Type v -> Type v
 tArr = embed2 TArr
@@ -676,45 +650,21 @@ infixr 1 `tArr`
 
 infixr 1 ~>
 
-{-# INLINE tCon #-}
-tCon :: Name -> [Type v] -> Type v
-tCon = embed2 TCon
-
 {-# INLINE tVar #-}
 tVar :: v -> Type v
 tVar = embed1 TVar
 
 {-# INLINE tRec #-}
-tRec :: Row (Type v) v -> Type v
+tRec :: Type v -> Type v
 tRec = embed1 TRec
 
-{-# INLINE tChar #-}
-tChar :: Type v
-tChar = embed TChar
-
-{-# INLINE tString #-}
-tString :: Type v
-tString = embed TString
-
 {-# INLINE rNil #-}
-rNil :: Row e v
+rNil :: Type v
 rNil = embed RNil
 
-{-# INLINE rVar #-}
-rVar :: v -> Row e v
-rVar = embed1 RVar
-
 {-# INLINE rExt #-}
-rExt :: Name -> e -> Row e v -> Row e v
+rExt :: Name -> Type v -> Type v -> Type v
 rExt = embed3 RExt
-
-{-# INLINE eOp1 #-}
-eOp1 :: (t, Op1) -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-eOp1 = embed2 EOp1
-
-{-# INLINE eOp2 #-}
-eOp2 :: (t, Op2) -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-eOp2 = embed3 EOp2
 
 {-# INLINE eVar #-}
 eVar :: Label t -> Expr t a0 a1 a2
@@ -745,19 +695,23 @@ eApp :: t1 -> Expr t0 t1 a1 a2 -> [Expr t0 t1 a1 a2] -> Expr t0 t1 a1 a2
 eApp = embed3 EApp
 
 {-# INLINE eCall #-}
-eCall :: Label t -> [Expr t a0 a1 ()] -> Expr t a0 a1 ()
-eCall = embed3 ECall ()
+eCall :: a2 -> Label t -> [Expr t a0 a1 a2] -> Expr t a0 a1 a2
+eCall = embed3 ECall
 
-{-# INLINE eCall_ #-}
-eCall_ :: a2 -> Label t -> [Expr t a0 a1 a2] -> Expr t a0 a1 a2
-eCall_ = embed3 ECall
+{-# INLINE eOp1 #-}
+eOp1 :: (t, Op1) -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eOp1 = embed2 EOp1
+
+{-# INLINE eOp2 #-}
+eOp2 :: (t, Op2) -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eOp2 = embed3 EOp2
 
 {-# INLINE ePat #-}
 ePat :: Expr t a0 a1 a2 -> [Clause t (Expr t a0 a1 a2)] -> Expr t a0 a1 a2
 ePat = embed2 EPat
 
 {-# INLINE eRec #-}
-eRec :: Row (Expr t a0 a1 a2) (Label t) -> Expr t a0 a1 a2
+eRec :: FieldSet (Expr t a0 a1 a2) -> Expr t a0 a1 a2
 eRec = embed1 ERec
 
 {-# INLINE eRes #-}

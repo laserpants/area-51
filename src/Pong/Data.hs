@@ -26,21 +26,6 @@ import Pong.Util
 
 {- ORMOLU_DISABLE -}
 
-data RowF e v a
-  = RNil                           -- ^ Empty row
-  | RVar v                         -- ^ Row variable
-  | RExt Name e a                  -- ^ Row extension
-
-{- ORMOLU_ENABLE -}
-
--- | A row is a sequence of labeled fields. Rows encode the internal structure
--- of records, both at the type and expression level. A row can be either
--- /open/ or /closed/. An open row has a variable in the tail of the sequence,
--- whereas a closed row is one that ends with the empty row.
-type Row e v = Fix (RowF e v)
-
-{- ORMOLU_DISABLE -}
-
 data TypeF v a
   = TUnit                          -- ^ Unit type
   | TBool                          -- ^ Boolean type
@@ -52,7 +37,9 @@ data TypeF v a
   | TCon Name [a]                  -- ^ Algebraic data-types
   | TArr a a                       -- ^ Function types
   | TVar v                         -- ^ Type variable
-  | TRec (Row (Type v) v)          -- ^ Record type
+  | TRec a                         -- ^ Record constructor
+  | RNil                           -- ^ Empty row
+  | RExt Name a a                  -- ^ Row extension
 
 {- ORMOLU_ENABLE -}
 
@@ -111,6 +98,9 @@ type Label t = (t, Name)
 -- | Match expression clause
 type Clause t a = ([Label t], a)
 
+-- | Record fields
+type FieldSet a = Map Name [a]
+
 {- ORMOLU_DISABLE -}
 
 data ExprF t a0 a1 a2 a
@@ -124,9 +114,9 @@ data ExprF t a0 a1 a2 a
   | ECall a2 (Label t) [a]                   -- ^ Function call
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
-  | EPat a [Clause t a]                      -- ^ Pattern match statement
-  | ERec (Row (Expr t a0 a1 a2) (Label t))   -- ^ Record
-  | ERes [Label t] a a                       -- ^ Field restriction operator
+  | EPat a [Clause t a]                      -- ^ Pattern matching statement
+  | ERec (FieldSet a)                        -- ^ Record
+  | ERes [Label t] a a                       -- ^ Record restriction 
 
 {- ORMOLU_ENABLE -}
 
@@ -171,45 +161,13 @@ data Definition t a
 
 {- ORMOLU_ENABLE -}
 
-newtype Program t a
-  = Program (Map (Label Scheme) (Definition t a))
+-- Program module
+newtype Module t a
+  = Module (Map (Label Scheme) (Definition t a))
 
 -------------------------------------------------------------------------------
 -- Typeclass instances
 -------------------------------------------------------------------------------
-
--- Row
-deriving instance
-  (Show e, Show v, Show a) =>
-  Show (RowF e v a)
-
-deriving instance
-  (Eq e, Eq v, Eq a) =>
-  Eq (RowF e v a)
-
-deriving instance
-  (Ord e, Ord v, Ord a) =>
-  Ord (RowF e v a)
-
-deriving instance
-  (Data e, Data v, Data a) =>
-  Data (RowF e v a)
-
-deriving instance
-  (Typeable e, Typeable v, Typeable a) =>
-  Typeable (RowF e v a)
-
-deriveShow1 ''RowF
-
-deriveEq1 ''RowF
-
-deriveOrd1 ''RowF
-
-deriving instance Functor (RowF e v)
-
-deriving instance Foldable (RowF e v)
-
-deriving instance Traversable (RowF e v)
 
 -- Type
 deriving instance
@@ -361,25 +319,25 @@ deriving instance Foldable (Definition t)
 
 deriving instance Traversable (Definition t)
 
--- Program
+-- Module
 deriving instance
   (Show t, Show a) =>
-  Show (Program t a)
+  Show (Module t a)
 
 deriving instance
   (Eq t, Eq a) =>
-  Eq (Program t a)
+  Eq (Module t a)
 
 deriving instance
   (Ord t) =>
-  Semigroup (Program t a)
+  Semigroup (Module t a)
 
-deriving instance Generic (Program t a)
+deriving instance Generic (Module t a)
 
-instance Newtype (Program t a)
+instance Newtype (Module t a)
 
-deriving instance Functor (Program t)
+deriving instance Functor (Module t)
 
-deriving instance Foldable (Program t)
+deriving instance Foldable (Module t)
 
-deriving instance Traversable (Program t)
+deriving instance Traversable (Module t)
