@@ -687,14 +687,14 @@ program38 =
 
 -- "
 
--- 
+--
 -- [ x : int | r ! y ]
--- 
+--
 
 --
 --
 -- fun foo(r : [ x : b | c ]) : [ x : int | c ] =
---   letr [ x = _ | q ] = r 
+--   letr [ x = _ | q ] = r
 --     in [ x = 5 | q ]
 --
 --
