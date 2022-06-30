@@ -452,77 +452,65 @@ mapTypes f =
        ERes fs e1 e2       -> eRes (first f <$> fs) e1 e2
    )
 
-{- ORMOLU_ENABLE -}
-
 untag :: (Eq t) => Expr t t a1 a2 -> [t]
 untag =
   nub
     <<< cata
       ( \case
-          EVar (t, _) -> [t]
-          ECon (t, _) -> [t]
-          ELit _ -> []
-          EIf e1 e2 e3 -> e1 <> e2 <> e3
+          EVar (t, _)       -> [t]
+          ECon (t, _)       -> [t]
+          ELit _            -> []
+          EIf e1 e2 e3      -> e1 <> e2 <> e3
           ELet (t, _) e1 e2 -> [t] <> e1 <> e2
-          ELam _ args e1 -> (fst <$> args) <> e1
-          EApp t fun as -> [t] <> fun <> concat as
+          ELam _ args e1    -> (fst <$> args) <> e1
+          EApp t fun as     -> [t] <> fun <> concat as
           ECall _ (t, _) as -> [t] <> concat as
-          EOp1 (t, _) e1 -> [t] <> e1
+          EOp1 (t, _) e1    -> [t] <> e1
           EOp2 (t, _) e1 e2 -> [t] <> e1 <> e2
-          EPat e1 cs -> e1 <> concat (fmap fst . fst <$> cs)
-          ERec r -> let z = Map.elems r in undefined
-          ERes fs e1 e2 -> (fst <$> fs) <> e1 <> e2
+          EPat e1 cs        -> e1 <> concat (fmap fst . fst <$> cs)
+          ERec r            -> concat (concat (Map.elems r))
+          ERes fs e1 e2     -> (fst <$> fs) <> e1 <> e2
       )
 
--- {- ORMOLU_DISABLE -}
---
--- boundVars :: Type Name -> Set Name
--- boundVars =
---  cata
---    ( \case
---        TVar s     -> Set.singleton s
---        TCon _ ts  -> Set.unions ts
---        TArr t1 t2 -> t1 <> t2
---        TRec row   -> boundRowVars row
---        _          -> mempty
---    )
---
--- boundRowVars :: Row (Type Name) Name -> Set Name
--- boundRowVars =
---  cata
---    ( \case
---        RVar v     -> Set.singleton v
---        RExt _ r a -> boundVars r <> a
---        _          -> mempty
---    )
---
--- {- ORMOLU_ENABLE -}
---
--- substituteVar :: Name -> Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
--- substituteVar from to =
---  para
---    ( \case
---        ELet (t, var) (e1, _) (e2, _)
---          | var == from -> eLet (t, var) e1 e2
---        ERes r@[_, (_, var), _] (e1, _) (e2, _)
---          | var == from -> eRes r e1 e2
---        EPat (_, e1) cs ->
---          ePat
---            e1
---            ( cs <&> \(ps, (l, r)) ->
---                ( ps
---                , if from `elem` (snd <$> ps) then l else r
---                )
---            )
---        EVar (t, v)
---          | v == from -> eVar (t, to)
---        ECon (t, c)
---          | c == from -> eCon (t, to)
---        ECall a (t, fun) args
---          | fun == from -> eCall_ a (t, to) (snd <$> args)
---        e ->
---          embed (snd <$> e)
---    )
+boundVars :: Type Name -> Set Name
+boundVars =
+ cata
+   ( \case
+       TCon _ ts    -> Set.unions ts
+       TArr t1 t2   -> t1 <> t2
+       TVar s       -> Set.singleton s
+       TRec row     -> row
+       RExt _ t1 t2 -> t1 <> t2
+       _            -> mempty
+   )
+
+{- ORMOLU_ENABLE -}
+
+substituteVar :: Name -> Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+substituteVar from to =
+ para
+   ( \case
+       ELet (t, var) (e1, _) (e2, _)
+         | var == from -> eLet (t, var) e1 e2
+       ERes r@[_, (_, var), _] (e1, _) (e2, _)
+         | var == from -> eRes r e1 e2
+       EPat (_, e1) cs ->
+         ePat
+           e1
+           ( cs <&> \(ps, (l, r)) ->
+               ( ps
+               , if from `elem` (snd <$> ps) then l else r
+               )
+           )
+       EVar (t, v)
+         | v == from -> eVar (t, to)
+       ECon (t, c)
+         | c == from -> eCon (t, to)
+       ECall a (t, fun) args
+         | fun == from -> eCall a (t, to) (snd <$> args)
+       e ->
+         embed (snd <$> e)
+   )
 
 {-# INLINE foldType #-}
 foldType :: Type v -> [Type v] -> Type v
