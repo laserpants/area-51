@@ -18,9 +18,10 @@ main =
     --    llvmEmitTests
     langTests
 
---    readTests
---    treeTests
---    typeTests
+    --    readTests
+    --    treeTests
+    typeTests
+
 --    utilTests
 --    utilEnvTests
 --    utilPrettyTests

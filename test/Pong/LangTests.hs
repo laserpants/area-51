@@ -7,7 +7,7 @@ import Data.Function ((&))
 import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
-import qualified Pong.Read as Pong
+--import qualified Pong.Read as Pong
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.JackOfClubs
 -- import Pong.TestData.ThePanamaHat
@@ -56,7 +56,9 @@ langTests =
       it "TODO" True
 
     describe "- restrictRow" $ do
-      it "TODO" True
+      it "1" (restrictRow "id" (rExt "id" tInt rNil :: MonoType) == (tInt, rNil))
+      it "2" (restrictRow "id" (rExt "id" tInt (tVar 0) :: MonoType) == (tInt, tVar 0))
+      it "3" (restrictRow "id" (rExt "id" tInt (rExt "id" tString (tVar 0)) :: MonoType) == (tInt, rExt "id" tString (tVar 0)))
 
     describe "- freeVars" $ do
       -------------------------------------------------------------------------

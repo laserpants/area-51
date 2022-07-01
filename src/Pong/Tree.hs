@@ -14,26 +14,26 @@ module Pong.Tree where
 -- import Data.Char (isUpper)
 -- import Data.Either.Extra (mapLeft)
 -- import Data.List.NonEmpty (fromList, toList)
--- import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map
 -- import qualified Data.Set as Set
 -- import qualified Data.Text as Text
 -- import Data.Tuple.Extra (first, second)
--- import Pong.Data
--- import Pong.Lang
+--import Pong.Data
+import Pong.Lang
 -- import Pong.Read (ParserError, parseProgram)
--- import Pong.Type
+import Pong.Type
 -- import Pong.Util hiding (unpack)
 -- import qualified Pong.Util.Env as Env
 -- import TextShow (showt)
---
--- canonical :: (Substitutable a, Free a) => a -> a
--- canonical t = apply (Substitution map_) t
---  where
---    map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
---
--- isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
--- isIsomorphicTo t0 t1 = canonical t0 == canonical t1
---
+
+canonical :: (Substitutable a, Free a) => a -> a
+canonical t = apply (Substitution map_) t
+ where
+   map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
+
+isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
+isIsomorphicTo t0 t1 = canonical t0 == canonical t1
+
 ---- | Predicate to test if the type contains at least one type variable
 -- isPolymorphic :: Type v -> Bool
 -- isPolymorphic =

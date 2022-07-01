@@ -6,16 +6,16 @@
 
 module Pong.Lang where
 
-import Control.Monad (join)
--- import Control.Monad.State
--- import Control.Newtype.Generics (over, unpack)
--- import Data.Foldable (foldrM)
+--import Control.Monad (join)
+import Control.Monad.State
+import Control.Newtype.Generics (over, unpack)
+import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
--- import Data.Tuple (swap)
+import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Util
@@ -76,12 +76,13 @@ import qualified Pong.Util.Env as Env
 -- normalizeRow :: Row e v -> Row e v
 -- normalizeRow = uncurry (flip foldRow) . unwindRow
 
--- noramlizeTypeRows :: Type v -> Type v
--- noramlizeTypeRows =
---  cata $
---    \case
---      TRec r -> tRec (normalizeRow r)
---      t -> embed t
+normalizeRows :: Type v -> Type v
+normalizeRows =
+  cata
+    ( \case
+        t@RExt{} -> uncurry (flip foldRow) (unwindRow (embed t))
+        t -> embed t
+    )
 
 {-# INLINE foldRow #-}
 foldRow :: Type v -> FieldSet (Type v) -> Type v
@@ -90,6 +91,25 @@ foldRow = Map.foldrWithKey (flip . foldr . rExt)
 {-# INLINE foldRow1 #-}
 foldRow1 :: FieldSet (Type v) -> Type v
 foldRow1 = foldRow rNil
+
+unwindRow :: Type v -> (FieldSet (Type v), Type v)
+unwindRow ty = (toMap fields, leaf)
+  where
+    toMap = foldr (uncurry (Map.insertWith (<>))) mempty
+    fields =
+      (`para` ty)
+        ( \case
+            RExt label (t, _) (_, rest) ->
+              (label, [t]) : rest
+            _ ->
+              []
+        )
+    leaf =
+      (`cata` ty)
+        ( \case
+            RExt _ _ r -> r
+            t -> embed t
+        )
 
 -- unwindRow :: Row e v -> (Map Name [e], Row e v)
 -- unwindRow row = (toMap fields, leaf)
@@ -107,7 +127,21 @@ foldRow1 = foldRow rNil
 --            RExt _ _ r -> r
 --            r -> embed r
 --        )
---
+
+restrictRow :: Name -> Type v -> (Type v, Type v)
+restrictRow field row =
+  ( e
+  , normalizeRows
+      ( foldRow k $
+          case es of
+            [] -> Map.delete field m
+            _ -> Map.insert field es m
+      )
+  )
+  where
+    Just (e : es) = Map.lookup field m
+    (m, k) = unwindRow row
+
 -- restrictRow :: Name -> Row e v -> (e, Row e v)
 -- restrictRow name row =
 --  ( e
@@ -126,7 +160,10 @@ foldRow1 = foldRow rNil
 -- rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
 --
 -- typeEq :: (Eq v) => Type v -> Type v -> Bool
--- typeEq t1 t2 = noramlizeTypeRows t1 == noramlizeTypeRows t2
+-- typeEq t1 t2 = normalizeTypeRows t1 == normalizeTypeRows t2
+
+rowEq :: (Eq v) => Type v -> Type v -> Bool
+rowEq t1 t2 = normalizeRows t1 == normalizeRows t2
 
 class Free f where
   freeIn :: f -> [Int]
@@ -199,6 +236,7 @@ instance (Free t, Free a0, Free a2) => Free (Expr t a0 a1 a2) where
           EPat e1 cs        -> e1 <> (freeIn . fst =<< fst =<< cs) <> (snd =<< cs)
           ERec r            -> concat (concat (Map.elems r))
           ERes fs e1 e2     -> freeIn (fst <$> fs) <> e1 <> e2
+          EExt _ e1 e2      -> e1 <> e2
       )
 
 {- ORMOLU_ENABLE -}
@@ -248,6 +286,10 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EPat _ cs         -> head (snd <$> cs)
           ERec r            -> tRec (foldRow1 r)
           ERes _ _ e        -> e
+          EExt n e1 e2 -> 
+            case project e2 of
+              TRec r -> tRec (rExt n e1 r)
+              _ -> tRec (rExt n e1 e2)
       )
 
 {- ORMOLU_ENABLE -}
@@ -444,6 +486,7 @@ mapTypes f =
        EPat e1 cs           -> ePat e1 ((first . fmap . first) f <$> cs)
        ERec r               -> eRec r
        ERes fs e1 e2        -> eRes (first f <$> fs) e1 e2
+       EExt _ _ _           -> error "TODO"
    )
 
 untag :: (Eq t) => Expr t t a1 a2 -> [t]
@@ -464,6 +507,7 @@ untag =
           EPat e1 cs        -> e1 <> concat (fmap fst . fst <$> cs)
           ERec r            -> concat (concat (Map.elems r))
           ERes fs e1 e2     -> (fst <$> fs) <> e1 <> e2
+          EExt _ _ _        -> error "TODO"
       )
 
 boundVars :: Type Name -> Set Name
@@ -514,79 +558,79 @@ foldType = foldr tArr
 foldType1 :: [Type v] -> Type v
 foldType1 = foldr1 tArr
 
--- {-# INLINE insertArgs #-}
--- insertArgs :: [(t, Name)] -> Environment t -> Environment t
--- insertArgs = Env.inserts . (swap <$>)
+{-# INLINE insertArgs #-}
+insertArgs :: [Label t] -> Environment t -> Environment t
+insertArgs = Env.inserts . (swap <$>)
 
 {-# INLINE emptyModule #-}
 emptyModule :: (Ord t) => Module t a
 emptyModule = Module mempty
 
--- {-# INLINE modifyModule #-}
--- modifyModule ::
---  (MonadState (r, Module t a) m) =>
---  (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
---  m ()
--- modifyModule = modify . second . over Module
---
--- {-# INLINE insertDef #-}
--- insertDef ::
---  (MonadState (r, Module t a) m) =>
---  Label Scheme ->
---  Definition t a ->
---  m ()
--- insertDef = modifyModule <$$> Map.insert
---
+{-# INLINE modifyModule #-}
+modifyModule ::
+  (MonadState (r, Module t a) m) =>
+  (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
+  m ()
+modifyModule = modify . second . over Module
+
+{-# INLINE insertIntoModule #-}
+insertIntoModule ::
+  (MonadState (r, Module t a) m) =>
+  Label Scheme ->
+  Definition t a ->
+  m ()
+insertIntoModule = modifyModule <$$> Map.insert
+
 -- renameDef :: Name -> Name -> Module t a -> Module t a
 -- renameDef from to = over Module (Map.mapKeys rename)
 --  where
 --    rename (t, defn) = (t, if defn == from then to else defn)
---
--- {-# INLINE forEachDef #-}
--- forEachDef ::
---  (Monad m) =>
---  Module t a ->
---  (Label Scheme -> Definition t a -> m b) ->
---  m [b]
--- forEachDef (Module p) = forM (Map.toList p) . uncurry
---
--- {-# INLINE foldDefsM #-}
--- foldDefsM ::
---  (Monad m) =>
---  ((Label Scheme, Definition t a) -> r -> m r) ->
---  r ->
---  Module t a ->
---  m r
--- foldDefsM f a = foldrM f a . Map.toList . unpack
---
--- {-# INLINE programMap #-}
--- programMap ::
---  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
---  Module t1 a1 ->
---  Module t2 a2
--- programMap = over Module . Map.mapWithKey
---
--- {-# INLINE programFor #-}
--- programFor ::
---  Module t1 a1 ->
---  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
---  Module t2 a2
--- programFor = flip programMap
---
--- programMapM ::
---  (Monad m) =>
---  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
---  Module t1 a1 ->
---  m (Module t2 a2)
--- programMapM f = Module <$$> Map.traverseWithKey f . unpack
---
--- {-# INLINE programForM #-}
--- programForM ::
---  (Monad m) =>
---  Module t1 a1 ->
---  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
---  m (Module t2 a2)
--- programForM = flip programMapM
+
+{-# INLINE moduleForEach #-}
+moduleForEach ::
+  (Monad m) =>
+  Module t a ->
+  (Label Scheme -> Definition t a -> m b) ->
+  m [b]
+moduleForEach (Module p) = forM (Map.toList p) . uncurry
+
+{-# INLINE moduleFoldM #-}
+moduleFoldM ::
+  (Monad m) =>
+  ((Label Scheme, Definition t a) -> r -> m r) ->
+  r ->
+  Module t a ->
+  m r
+moduleFoldM f a = foldrM f a . Map.toList . unpack
+
+{-# INLINE moduleMap #-}
+moduleMap ::
+  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
+  Module t1 a1 ->
+  Module t2 a2
+moduleMap = over Module . Map.mapWithKey
+
+{-# INLINE moduleFor #-}
+moduleFor ::
+  Module t1 a1 ->
+  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
+  Module t2 a2
+moduleFor = flip moduleMap
+
+moduleMapM ::
+  (Monad m) =>
+  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
+  Module t1 a1 ->
+  m (Module t2 a2)
+moduleMapM f = Module <$$> Map.traverseWithKey f . unpack
+
+{-# INLINE moduleForM #-}
+moduleForM ::
+  (Monad m) =>
+  Module t1 a1 ->
+  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
+  m (Module t2 a2)
+moduleForM = flip moduleMapM
 
 {-# INLINE tUnit #-}
 tUnit :: Type v
@@ -699,6 +743,10 @@ eRec = embed1 ERec
 {-# INLINE eRes #-}
 eRes :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eRes = embed3 ERes
+
+{-# INLINE eExt #-}
+eExt :: Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eExt = embed3 EExt
 
 {-# INLINE oAddInt #-}
 oAddInt :: (Type v, Op2)

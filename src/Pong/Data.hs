@@ -41,8 +41,6 @@ data TypeF v a
   | RNil                           -- ^ Empty row
   | RExt Name a a                  -- ^ Row extension
 
-{- ORMOLU_ENABLE -}
-
 -- | Parameterized type representation
 type Type v = Fix (TypeF v)
 
@@ -51,8 +49,6 @@ type MonoType = Type Int
 
 -- | Polymorphic type scheme
 newtype Scheme = Scheme (Type Name)
-
-{- ORMOLU_DISABLE -}
 
 -- | Type variety (head construtor of a Type value)
 data ConT
@@ -90,8 +86,6 @@ data Op2
   | OLogicOr                       -- ^ Logical OR
   | OLogicAnd                      -- ^ Logical AND
 
-{- ORMOLU_ENABLE -}
-
 -- | A label is a typed identifier
 type Label t = (t, Name)
 
@@ -100,8 +94,6 @@ type Clause t a = ([Label t], a)
 
 -- | Record fields
 type FieldSet a = Map Name [a]
-
-{- ORMOLU_DISABLE -}
 
 data ExprF t a0 a1 a2 a
   = EVar (Label t)                           -- ^ Variable
@@ -117,8 +109,7 @@ data ExprF t a0 a1 a2 a
   | EPat a [Clause t a]                      -- ^ Pattern matching statement
   | ERec (FieldSet a)                        -- ^ Record
   | ERes [Label t] a a                       -- ^ Record restriction 
-
-{- ORMOLU_ENABLE -}
+  | EExt Name a a                            -- ^ Record extension
 
 -- | Parameterized expression grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
@@ -137,8 +128,6 @@ type PreAst = Expr MonoType MonoType Void Void
 
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
-
-{- ORMOLU_DISABLE -}
 
 -- | Expression variety (head construtor of an Expr value)
 data ConE
@@ -159,8 +148,6 @@ data Definition t a
   | Extern [MonoType] MonoType               -- ^ External function 
   | Data Name [Constructor]                  -- ^ Data type declaration
 
-{- ORMOLU_ENABLE -}
-
 -- Program module
 newtype Module t a
   = Module (Map (Label Scheme) (Definition t a))
@@ -170,24 +157,19 @@ newtype Module t a
 -------------------------------------------------------------------------------
 
 -- Type
-deriving instance
-  (Show v, Show a) =>
+deriving instance (Show v, Show a) =>
   Show (TypeF v a)
 
-deriving instance
-  (Eq v, Eq a) =>
+deriving instance (Eq v, Eq a) =>
   Eq (TypeF v a)
 
-deriving instance
-  (Ord v, Ord a) =>
+deriving instance (Ord v, Ord a) =>
   Ord (TypeF v a)
 
-deriving instance
-  (Data v, Data a) =>
+deriving instance (Data v, Data a) =>
   Data (TypeF v a)
 
-deriving instance
-  (Typeable v, Typeable a) =>
+deriving instance (Typeable v, Typeable a) =>
   Typeable (TypeF v a)
 
 deriveShow1 ''TypeF
@@ -261,28 +243,22 @@ deriving instance Data Op2
 deriving instance Typeable Op2
 
 -- Expr
-deriving instance
-  (Show t, Show a0, Show a1, Show a2, Show a) =>
+deriving instance (Show t, Show a0, Show a1, Show a2, Show a) =>
   Show (ExprF t a0 a1 a2 a)
 
-deriving instance
-  (Eq t, Eq a0, Eq a1, Eq a2, Eq a) =>
+deriving instance (Eq t, Eq a0, Eq a1, Eq a2, Eq a) =>
   Eq (ExprF t a0 a1 a2 a)
 
-deriving instance
-  (Ord t, Ord a0, Ord a1, Ord a2, Ord a) =>
+deriving instance (Ord t, Ord a0, Ord a1, Ord a2, Ord a) =>
   Ord (ExprF t a0 a1 a2 a)
 
-deriving instance
-  (Data t, Data a0, Data a1, Data a2, Data a) =>
+deriving instance (Data t, Data a0, Data a1, Data a2, Data a) =>
   Data (ExprF t a0 a1 a2 a)
 
-deriving instance
-  (Typeable t, Typeable a0, Typeable a1, Typeable a2, Typeable a) =>
+deriving instance (Typeable t, Typeable a0, Typeable a1, Typeable a2, Typeable a) =>
   Typeable (ExprF t a0 a1 a2 a)
 
-deriving instance
-  (Typeable t) =>
+deriving instance (Typeable t) =>
   Typeable (ExprF t a0 a1 a2 a)
 
 deriveShow1 ''ExprF
@@ -305,12 +281,10 @@ deriving instance Eq Constructor
 deriving instance Ord Constructor
 
 -- Definition
-deriving instance
-  (Show t, Show a) =>
+deriving instance (Show t, Show a) =>
   Show (Definition t a)
 
-deriving instance
-  (Eq t, Eq a) =>
+deriving instance (Eq t, Eq a) =>
   Eq (Definition t a)
 
 deriving instance Functor (Definition t)
@@ -320,16 +294,13 @@ deriving instance Foldable (Definition t)
 deriving instance Traversable (Definition t)
 
 -- Module
-deriving instance
-  (Show t, Show a) =>
+deriving instance (Show t, Show a) =>
   Show (Module t a)
 
-deriving instance
-  (Eq t, Eq a) =>
+deriving instance (Eq t, Eq a) =>
   Eq (Module t a)
 
-deriving instance
-  (Ord t) =>
+deriving instance (Ord t) =>
   Semigroup (Module t a)
 
 deriving instance Generic (Module t a)
