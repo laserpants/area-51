@@ -207,12 +207,12 @@ tagExpr =
           ePat
             <$> e1
             <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
-        ERec row ->
-          eRec <$> traverse sequence row
+        ENil ->
+          pure eNil
+        EExt name e1 e2 ->
+          eExt name <$> e1 <*> e2
         ERes f e1 e2 ->
           eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
-        EExt _ _ _ ->
-          error "TODO"
     )
 
 tag :: MonadState (Int, a) m => m Int
@@ -375,25 +375,26 @@ inferExpr =
     EPat expr clauses -> do
       e <- expr
       ePat e <$> inferPat e clauses
-    ERec row -> eRec <$> traverse sequence row
+    ENil ->
+      pure eNil
+    EExt name expr1 expr2 ->
+      eExt name <$> expr1 <*> expr2
     ERes field expr1 expr2 -> do
       e1 <- expr1
       (f, e2) <- inferRestriction (typeOf e1) field expr2
       pure (eRes f e1 e2)
-    EExt{} ->
-      error "TODO"
 
 inferRestriction ::
   MonoType ->
   [Label Int] ->
   TypeChecker TypedExpr ->
   TypeChecker (Clause MonoType TypedExpr)
-inferRestriction (Fix (TRec row)) [(u0, label), (u1, v1), (u2, v2)] expr = do
+inferRestriction row [(u0, label), (u1, v1), (u2, v2)] expr = do
   let (r1, q) = restrictRow label row
   let [t0, t1, t2] = tVar <$> [u0, u1, u2]
   t1 `unify` r1
-  t2 `unify` tRec q
-  traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRec row]
+  t2 `unify` q
+  traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> row]
     >>= \case
       [ty0, ty1, ty2, ty3] -> do
         ty0 `unify` ty3

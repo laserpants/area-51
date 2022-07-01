@@ -234,9 +234,9 @@ instance (Free t, Free a0, Free a2) => Free (Expr t a0 a1 a2) where
           EOp1 (t, _) e1    -> freeIn t <> e1
           EOp2 (t, _) e1 e2 -> freeIn t <> e1 <> e2
           EPat e1 cs        -> e1 <> (freeIn . fst =<< fst =<< cs) <> (snd =<< cs)
-          ERec r            -> concat (concat (Map.elems r))
-          ERes fs e1 e2     -> freeIn (fst <$> fs) <> e1 <> e2
+          ENil              -> []
           EExt _ e1 e2      -> e1 <> e2
+          ERes fs e1 e2     -> freeIn (fst <$> fs) <> e1 <> e2
       )
 
 {- ORMOLU_ENABLE -}
@@ -284,12 +284,9 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EOp2 (t, _) _ _   -> returnType t
           EPat _ []         -> error "Empty case statement"
           EPat _ cs         -> head (snd <$> cs)
-          ERec r            -> tRec (foldRow1 r)
+          ENil              -> rNil
+          EExt n e1 e2      -> rExt n e1 e2
           ERes _ _ e        -> e
-          EExt n e1 e2 -> 
-            case project e2 of
-              TRec r -> tRec (rExt n e1 r)
-              _ -> tRec (rExt n e1 e2)
       )
 
 {- ORMOLU_ENABLE -}
@@ -336,8 +333,6 @@ isConE con =
       | LitE == con -> True
     ELam{}
       | LamE == con -> True
-    ERec{}
-      | RecE == con -> True
     _ -> False
 
 unwindType :: (Typed t) => t -> [MonoType]
@@ -388,7 +383,8 @@ instance
           ECall _ fun args    -> Set.insert fun (Set.unions args)
           EOp1 _ e1           -> e1
           EOp2 _ e1 e2        -> e1 <> e2
-          ERec r              -> Set.unions (concat (Map.elems r))
+          ENil                -> mempty
+          EExt _ e1 e2        -> e1 <> e2
           ERes (_ : vs) e1 e2 -> (e1 <> e2) \\\ vs
           EPat e1 cs ->
             e1 <>
@@ -441,7 +437,7 @@ toMonoType vs =
         TString       -> tString
         TCon con ts   -> tCon con ts
         TArr t1 t2    -> tArr t1 t2
-        TRec r        -> tRec r
+        TRec row      -> tRec row
         RNil          -> rNil
         RExt n t1 t2  -> rExt n t1 t2
     )
@@ -484,9 +480,9 @@ mapTypes f =
        EOp1 (t, op1) e1     -> eOp1 (f t, op1) e1
        EOp2 (t, op2) e1 e2  -> eOp2 (f t, op2) e1 e2
        EPat e1 cs           -> ePat e1 ((first . fmap . first) f <$> cs)
-       ERec r               -> eRec r
+       ENil                 -> eNil
+       EExt n e1 e2         -> eExt n e1 e2
        ERes fs e1 e2        -> eRes (first f <$> fs) e1 e2
-       EExt _ _ _           -> error "TODO"
    )
 
 untag :: (Eq t) => Expr t t a1 a2 -> [t]
@@ -505,9 +501,9 @@ untag =
           EOp1 (t, _) e1    -> [t] <> e1
           EOp2 (t, _) e1 e2 -> [t] <> e1 <> e2
           EPat e1 cs        -> e1 <> concat (fmap fst . fst <$> cs)
-          ERec r            -> concat (concat (Map.elems r))
+          ENil              -> []
+          EExt _ e1 e2      -> e1 <> e2
           ERes fs e1 e2     -> (fst <$> fs) <> e1 <> e2
-          EExt _ _ _        -> error "TODO"
       )
 
 boundVars :: Type Name -> Set Name
@@ -736,17 +732,17 @@ eOp2 = embed3 EOp2
 ePat :: Expr t a0 a1 a2 -> [Clause t (Expr t a0 a1 a2)] -> Expr t a0 a1 a2
 ePat = embed2 EPat
 
-{-# INLINE eRec #-}
-eRec :: FieldSet (Expr t a0 a1 a2) -> Expr t a0 a1 a2
-eRec = embed1 ERec
-
-{-# INLINE eRes #-}
-eRes :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
-eRes = embed3 ERes
+{-# INLINE eNil #-}
+eNil :: Expr t a0 a1 a2
+eNil = embed ENil
 
 {-# INLINE eExt #-}
 eExt :: Name -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
 eExt = embed3 EExt
+
+{-# INLINE eRes #-}
+eRes :: [Label t] -> Expr t a0 a1 a2 -> Expr t a0 a1 a2 -> Expr t a0 a1 a2
+eRes = embed3 ERes
 
 {-# INLINE oAddInt #-}
 oAddInt :: (Type v, Op2)

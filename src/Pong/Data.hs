@@ -107,9 +107,9 @@ data ExprF t a0 a1 a2 a
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
   | EPat a [Clause t a]                      -- ^ Pattern matching statement
-  | ERec (FieldSet a)                        -- ^ Record
-  | ERes [Label t] a a                       -- ^ Record restriction 
-  | EExt Name a a                            -- ^ Record extension
+  | ENil                                     -- ^ Empty row
+  | EExt Name a a                            -- ^ Row extension
+  | ERes [Label t] a a                       -- ^ Row restriction
 
 -- | Parameterized expression grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
@@ -134,7 +134,6 @@ data ConE
   = VarE                           -- ^ Expression is an EVar
   | LitE                           -- ^ Expression is an ELit
   | LamE                           -- ^ Expression is an ELam
-  | RecE                           -- ^ Expression is an ERec
 
 -- | Data (value) constructor
 data Constructor = Constructor
