@@ -2,25 +2,26 @@
 
 module Pong.TestHelpers where
 
---import Control.Monad ((>=>))
---import Data.Either.Extra (mapLeft)
---import qualified Data.Map.Strict as Map
---import qualified Data.Text.Lazy as TextLazy
---import GHC.IO.Handle
---import LLVM.Pretty
+-- import Control.Monad ((>=>))
+-- import Data.Either.Extra (mapLeft)
+-- import qualified Data.Map.Strict as Map
+-- import qualified Data.Text.Lazy as TextLazy
+-- import GHC.IO.Handle
+-- import LLVM.Pretty
 import Pong.Data
---import Pong.LLVM.Emit
+-- import Pong.LLVM.Emit
 import Pong.Lang
---import Pong.Read
---import Pong.Tree
+-- import Pong.Read
+-- import Pong.Tree
 import Pong.Type
---import Pong.Util
---import System.Directory
---import System.Exit
---import System.IO.Unsafe
---import System.Process hiding (env)
+-- import Pong.Util
+-- import System.Directory
+-- import System.Exit
+-- import System.IO.Unsafe
+-- import System.Process hiding (env)
 import Test.Hspec
---import Text.Megaparsec
+
+-- import Text.Megaparsec
 
 typeCheck :: TypeChecker a -> Either TypeError a
 typeCheck = evalTypeChecker 1 mempty

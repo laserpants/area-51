@@ -7,7 +7,7 @@ import Data.Function ((&))
 import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
---import qualified Pong.Read as Pong
+-- import qualified Pong.Read as Pong
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.JackOfClubs
 -- import Pong.TestData.ThePanamaHat

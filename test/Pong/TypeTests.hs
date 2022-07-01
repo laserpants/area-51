@@ -2,17 +2,18 @@
 
 module Pong.TypeTests where
 
-import Pong.Data
-import Pong.Lang
-import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.JackOfClubs
 -- import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.ThePanamaHat
-import Pong.TestHelpers
+
 import qualified Data.Map.Strict as Map
+import Pong.Data
+import Pong.Lang
+import Pong.TestData.AnEnvelopeForJohnStJohn
+import Pong.TestHelpers
 import Pong.Tree
 import Pong.Type
---import Pong.Util
+-- import Pong.Util
 -- import qualified Pong.Util.Env as Env
 -- import Pong.Util.Pretty ()
 -- import Prettyprinter
@@ -92,7 +93,7 @@ typeTests =
               (1, "id")
               (eLam () [(2, "x")] (eVar (3, "x")))
               (eApp 4 (eApp 5 (eVar (6, "id")) [eVar (7, "id")]) [eLit (PInt 1)])
-    
+
           typed :: TypedExpr
           typed =
             eLet
@@ -109,280 +110,280 @@ typeTests =
               )
           i = succ (maximum (untag tagged))
        in it "1" (Right typed == evalTypeChecker i mempty (applySubstitution =<< inferExpr tagged))
-         -------------------------------------------------------------------------
+      -------------------------------------------------------------------------
       let source :: SourceExpr
           source =
-                eLet
-                  ((), "id")
-                  (eLam () [((), "x")] (eVar ((), "x")))
-                  ( eLet
-                      ((), "f")
-                      ( eLam
-                          ()
-                          [((), "x")]
-                          (eLam () [((), "y")] (eOp2 ((), OAdd) (eVar ((), "x")) (eVar ((), "y"))))
-                      )
-                      ( eLet
-                          ((), "g")
-                          (eApp () (eVar ((), "f")) [eLit (PInt 2)])
-                          ( eOp2
-                              ((), OAdd)
-                              ( eApp
-                                  ()
-                                  (eApp () (eVar ((), "id")) [eVar ((), "g")])
-                                  [eApp () (eVar ((), "id")) [eLit (PInt 3)]]
-                              )
-                              (eApp () (eVar ((), "f")) [eLit (PInt 4), eLit (PInt 5)])
-                          )
-                      )
-                  )
-    
-          typed :: TypedExpr
-          typed =
-                eLet
-                  (tVar 2 ~> tVar 2, "id")
-                  (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
-                  ( eLet
-                      (tVar 6 ~> tVar 6 ~> tVar 6, "f")
-                      ( eLam
-                          ()
-                          [(tVar 6, "x")]
-                          ( eLam
-                              ()
-                              [(tVar 6, "y")]
-                              (eOp2 (tVar 6 ~> tVar 6 ~> tVar 6, OAdd) (eVar (tVar 6, "x")) (eVar (tVar 6, "y")))
-                          )
-                      )
-                      ( eLet
-                          (tInt ~> tInt, "g")
-                          ( eApp
-                              (tInt ~> tInt)
-                              (eVar (tInt ~> tInt ~> tInt, "f"))
-                              [eLit (PInt 2)]
-                          )
-                          ( eOp2
-                              oAddInt
-                              ( eApp
-                                  tInt
-                                  ( eApp
-                                      (tInt ~> tInt)
-                                      (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
-                                      [eVar (tInt ~> tInt, "g")]
-                                  )
-                                  [eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]]
-                              )
-                              ( eApp
-                                  tInt
-                                  (eVar (tInt ~> tInt ~> tInt, "f"))
-                                  [eLit (PInt 4), eLit (PInt 5)]
-                              )
-                          )
-                      )
-                  )
-           in it "2" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
-          -------------------------------------------------------------------------
-      let source :: SourceExpr
-          source =
-                eLet
+            eLet
+              ((), "id")
+              (eLam () [((), "x")] (eVar ((), "x")))
+              ( eLet
                   ((), "f")
                   ( eLam
                       ()
-                      [((), "n")]
-                      ( eIf
-                          (eOp2 ((), OEq) (eLit (PInt 0)) (eVar ((), "n")))
-                          (eLit (PInt 1))
-                          ( eOp2
-                              ((), OMul)
-                              (eVar ((), "n"))
-                              ( eApp
-                                  ()
-                                  (eVar ((), "f"))
-                                  [eOp2 ((), OSub) (eVar ((), "n")) (eLit (PInt 1))]
-                              )
+                      [((), "x")]
+                      (eLam () [((), "y")] (eOp2 ((), OAdd) (eVar ((), "x")) (eVar ((), "y"))))
+                  )
+                  ( eLet
+                      ((), "g")
+                      (eApp () (eVar ((), "f")) [eLit (PInt 2)])
+                      ( eOp2
+                          ((), OAdd)
+                          ( eApp
+                              ()
+                              (eApp () (eVar ((), "id")) [eVar ((), "g")])
+                              [eApp () (eVar ((), "id")) [eLit (PInt 3)]]
                           )
+                          (eApp () (eVar ((), "f")) [eLit (PInt 4), eLit (PInt 5)])
                       )
                   )
-                  (eApp () (eVar ((), "f")) [eLit (PInt 5)])
-    
+              )
+
           typed :: TypedExpr
           typed =
-                eLet
-                  (tInt ~> tInt, "f")
+            eLet
+              (tVar 2 ~> tVar 2, "id")
+              (eLam () [(tVar 2, "x")] (eVar (tVar 2, "x")))
+              ( eLet
+                  (tVar 6 ~> tVar 6 ~> tVar 6, "f")
                   ( eLam
                       ()
-                      [(tInt, "n")]
-                      ( eIf
-                          (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
-                          (eLit (PInt 1))
-                          ( eOp2
-                              oMulInt
-                              (eVar (tInt, "n"))
+                      [(tVar 6, "x")]
+                      ( eLam
+                          ()
+                          [(tVar 6, "y")]
+                          (eOp2 (tVar 6 ~> tVar 6 ~> tVar 6, OAdd) (eVar (tVar 6, "x")) (eVar (tVar 6, "y")))
+                      )
+                  )
+                  ( eLet
+                      (tInt ~> tInt, "g")
+                      ( eApp
+                          (tInt ~> tInt)
+                          (eVar (tInt ~> tInt ~> tInt, "f"))
+                          [eLit (PInt 2)]
+                      )
+                      ( eOp2
+                          oAddInt
+                          ( eApp
+                              tInt
                               ( eApp
-                                  tInt
-                                  (eVar (tInt ~> tInt, "f"))
-                                  [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]
+                                  (tInt ~> tInt)
+                                  (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id"))
+                                  [eVar (tInt ~> tInt, "g")]
                               )
+                              [eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]]
+                          )
+                          ( eApp
+                              tInt
+                              (eVar (tInt ~> tInt ~> tInt, "f"))
+                              [eLit (PInt 4), eLit (PInt 5)]
                           )
                       )
                   )
-                  (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
-           in it "3" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
-          -------------------------------------------------------------------------
+              )
+       in it "2" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
       let source :: SourceExpr
           source =
-                eRes
-                  [((), "b"), ((), "x"), ((), "r")]
-                  (eRec (Map.fromList [("a", [eLit PUnit]), ("b", [eLit (PInt 2)]), ("c", [eLit (PBool True)])]))
-                  (eVar ((), "x"))
-    
+            eLet
+              ((), "f")
+              ( eLam
+                  ()
+                  [((), "n")]
+                  ( eIf
+                      (eOp2 ((), OEq) (eLit (PInt 0)) (eVar ((), "n")))
+                      (eLit (PInt 1))
+                      ( eOp2
+                          ((), OMul)
+                          (eVar ((), "n"))
+                          ( eApp
+                              ()
+                              (eVar ((), "f"))
+                              [eOp2 ((), OSub) (eVar ((), "n")) (eLit (PInt 1))]
+                          )
+                      )
+                  )
+              )
+              (eApp () (eVar ((), "f")) [eLit (PInt 5)])
+
           typed :: TypedExpr
           typed =
-                eRes
-                  [(tInt ~> tRec (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRec (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRec (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
-                  (eRec (Map.fromList [("a", [eLit PUnit]), ("b", [eLit (PInt 2)]), ("c", [eLit (PBool True)])]))
-                  (eVar (tInt, "x"))
-           in it "4" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
-          -------------------------------------------------------------------------
---      let source :: SourceExpr
---          source =
---                -- let
---                --   r =
---                --     { a = 1
---                --     , b = true
---                --     , c = 3
---                --     }
---                --   in
---                --     letr
---                --       { a = x | q } =
---                --         r
---                --       in
---                --         q
---                --
---                eLet
---                  ((), "r")
---                  ( eRec
---                      ( rExt
---                          "a"
---                          (eLit (PInt 1))
---                          ( rExt
---                              "b"
---                              (eLit (PBool True))
---                              ( rExt
---                                  "c"
---                                  (eLit (PInt 3))
---                                  rNil
---                              )
---                          )
---                      )
---                  )
---                  ( eRes
---                      [((), "a"), ((), "x"), ((), "q")]
---                      (eVar ((), "r"))
---                      (eVar ((), "q"))
---                  )
---    
---          typed :: TypedExpr
---          typed =
---                eLet
---                  ( tRec
---                      ( rExt
---                          "a"
---                          tInt
---                          ( rExt
---                              "b"
---                              tBool
---                              ( rExt
---                                  "c"
---                                  tInt
---                                  rNil
---                              )
---                          )
---                      )
---                  , "r"
---                  )
---                  ( eRec
---                      ( rExt
---                          "a"
---                          (eLit (PInt 1))
---                          ( rExt
---                              "b"
---                              (eLit (PBool True))
---                              ( rExt
---                                  "c"
---                                  (eLit (PInt 3))
---                                  rNil
---                              )
---                          )
---                      )
---                  )
---                  ( eRes
---                      [
---                        ( tInt
---                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
---                            ~> tRec
---                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
---                              )
---                        , "a"
---                        )
---                      , (tInt, "x")
---                      ,
---                        ( tRec
---                            ( rExt
---                                "b"
---                                tBool
---                                ( rExt
---                                    "c"
---                                    tInt
---                                    rNil
---                                )
---                            )
---                        , "q"
---                        )
---                      ]
---                      ( eVar
---                          ( tRec
---                              ( rExt
---                                  "a"
---                                  tInt
---                                  ( rExt
---                                      "b"
---                                      tBool
---                                      ( rExt
---                                          "c"
---                                          tInt
---                                          rNil
---                                      )
---                                  )
---                              )
---                          , "r"
---                          )
---                      )
---                      ( eVar
---                          ( tRec
---                              ( rExt
---                                  "b"
---                                  tBool
---                                  ( rExt
---                                      "c"
---                                      tInt
---                                      rNil
---                                  )
---                              )
---                          , "q"
---                          )
---                      )
---                  )
---           in it "5" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
-          -------------------------------------------------------------------------
+            eLet
+              (tInt ~> tInt, "f")
+              ( eLam
+                  ()
+                  [(tInt, "n")]
+                  ( eIf
+                      (eOp2 oEqInt (eLit (PInt 0)) (eVar (tInt, "n")))
+                      (eLit (PInt 1))
+                      ( eOp2
+                          oMulInt
+                          (eVar (tInt, "n"))
+                          ( eApp
+                              tInt
+                              (eVar (tInt ~> tInt, "f"))
+                              [eOp2 oSubInt (eVar (tInt, "n")) (eLit (PInt 1))]
+                          )
+                      )
+                  )
+              )
+              (eApp tInt (eVar (tInt ~> tInt, "f")) [eLit (PInt 5)])
+       in it "3" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source =
+            eRes
+              [((), "b"), ((), "x"), ((), "r")]
+              (eRec (Map.fromList [("a", [eLit PUnit]), ("b", [eLit (PInt 2)]), ("c", [eLit (PBool True)])]))
+              (eVar ((), "x"))
+
+          typed :: TypedExpr
+          typed =
+            eRes
+              [(tInt ~> tRec (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRec (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRec (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
+              (eRec (Map.fromList [("a", [eLit PUnit]), ("b", [eLit (PInt 2)]), ("c", [eLit (PBool True)])]))
+              (eVar (tInt, "x"))
+       in it "4" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      --      let source :: SourceExpr
+      --          source =
+      --                -- let
+      --                --   r =
+      --                --     { a = 1
+      --                --     , b = true
+      --                --     , c = 3
+      --                --     }
+      --                --   in
+      --                --     letr
+      --                --       { a = x | q } =
+      --                --         r
+      --                --       in
+      --                --         q
+      --                --
+      --                eLet
+      --                  ((), "r")
+      --                  ( eRec
+      --                      ( rExt
+      --                          "a"
+      --                          (eLit (PInt 1))
+      --                          ( rExt
+      --                              "b"
+      --                              (eLit (PBool True))
+      --                              ( rExt
+      --                                  "c"
+      --                                  (eLit (PInt 3))
+      --                                  rNil
+      --                              )
+      --                          )
+      --                      )
+      --                  )
+      --                  ( eRes
+      --                      [((), "a"), ((), "x"), ((), "q")]
+      --                      (eVar ((), "r"))
+      --                      (eVar ((), "q"))
+      --                  )
+      --
+      --          typed :: TypedExpr
+      --          typed =
+      --                eLet
+      --                  ( tRec
+      --                      ( rExt
+      --                          "a"
+      --                          tInt
+      --                          ( rExt
+      --                              "b"
+      --                              tBool
+      --                              ( rExt
+      --                                  "c"
+      --                                  tInt
+      --                                  rNil
+      --                              )
+      --                          )
+      --                      )
+      --                  , "r"
+      --                  )
+      --                  ( eRec
+      --                      ( rExt
+      --                          "a"
+      --                          (eLit (PInt 1))
+      --                          ( rExt
+      --                              "b"
+      --                              (eLit (PBool True))
+      --                              ( rExt
+      --                                  "c"
+      --                                  (eLit (PInt 3))
+      --                                  rNil
+      --                              )
+      --                          )
+      --                      )
+      --                  )
+      --                  ( eRes
+      --                      [
+      --                        ( tInt
+      --                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+      --                            ~> tRec
+      --                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+      --                              )
+      --                        , "a"
+      --                        )
+      --                      , (tInt, "x")
+      --                      ,
+      --                        ( tRec
+      --                            ( rExt
+      --                                "b"
+      --                                tBool
+      --                                ( rExt
+      --                                    "c"
+      --                                    tInt
+      --                                    rNil
+      --                                )
+      --                            )
+      --                        , "q"
+      --                        )
+      --                      ]
+      --                      ( eVar
+      --                          ( tRec
+      --                              ( rExt
+      --                                  "a"
+      --                                  tInt
+      --                                  ( rExt
+      --                                      "b"
+      --                                      tBool
+      --                                      ( rExt
+      --                                          "c"
+      --                                          tInt
+      --                                          rNil
+      --                                      )
+      --                                  )
+      --                              )
+      --                          , "r"
+      --                          )
+      --                      )
+      --                      ( eVar
+      --                          ( tRec
+      --                              ( rExt
+      --                                  "b"
+      --                                  tBool
+      --                                  ( rExt
+      --                                      "c"
+      --                                      tInt
+      --                                      rNil
+      --                                  )
+      --                              )
+      --                          , "q"
+      --                          )
+      --                      )
+      --                  )
+      --           in it "5" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
       let source :: SourceExpr
           source = expr0
-    
+
           typed :: TypedExpr
           typed = expr1
-    
+
           eq a b = Right True == (isIsomorphicTo <$> a <*> b)
-           in it "6" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
-    
+       in it "6" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+
     --    describe "- inferProgram" $ do
     --      -------------------------------------------------------------------------
     --      it "1" ((runInferProgram program5 <&> canonical) == Right program6)

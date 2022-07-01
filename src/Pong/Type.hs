@@ -211,7 +211,7 @@ tagExpr =
           eRec <$> traverse sequence row
         ERes f e1 e2 ->
           eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
-        EExt _ _ _ -> 
+        EExt _ _ _ ->
           error "TODO"
     )
 

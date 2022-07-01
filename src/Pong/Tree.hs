@@ -18,18 +18,19 @@ import qualified Data.Map.Strict as Map
 -- import qualified Data.Set as Set
 -- import qualified Data.Text as Text
 -- import Data.Tuple.Extra (first, second)
---import Pong.Data
+-- import Pong.Data
 import Pong.Lang
 -- import Pong.Read (ParserError, parseProgram)
 import Pong.Type
+
 -- import Pong.Util hiding (unpack)
 -- import qualified Pong.Util.Env as Env
 -- import TextShow (showt)
 
 canonical :: (Substitutable a, Free a) => a -> a
 canonical t = apply (Substitution map_) t
- where
-   map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
+  where
+    map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
 isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
