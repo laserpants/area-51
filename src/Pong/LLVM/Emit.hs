@@ -323,13 +323,29 @@ emitBody =
     EPat expr_ cs ->
       emitPat expr_ cs
     ENil ->
-      undefined
-    EExt{} ->
-      undefined
+      emitNil
+    EExt field e1 e2 ->
+      emitExt field e1 e2
     ERes fs e1 e2 ->
       emitRes fs e1 e2
     ECon{} ->
       error "Implementation error"
+
+emitNil :: CodeGen OpInfo
+emitNil = do
+  hmap <- call (functionRef "hashmap_init" charPtr []) []
+  pure (tRec rNil, hmap)
+
+emitExt :: Name -> CodeGen OpInfo -> CodeGen OpInfo -> CodeGen OpInfo
+emitExt field e1 e2 = do
+  (t1, e) <- e1
+  (t2, m) <- e2
+  str <- uniqueName "$str"
+  f <- globalStringPtr (Text.unpack field) (llvmRep str)
+  v <- concealOp e
+  _ <- call (functionRef "hashmap_insert" LLVM.void []) (zip [m, ConstantOperand f, v] (repeat []))
+  let Fix (TRec t) = t2
+  pure (tRec (rExt field t1 t), m)
 
 emitRes :: [Label MonoType] -> CodeGen OpInfo -> CodeGen OpInfo -> CodeGen OpInfo
 emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
@@ -340,33 +356,6 @@ emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
   op <- revealOp p t0
   local (Env.inserts [(v, (t0, op)), (r, (t1, hmap))]) a2
 emitRes _ _ _ = error "Implementation error"
-
--- emitRow :: Row Ast (Label MonoType) -> CodeGen OpInfo
--- emitRow (Fix RNil) = do
---  hmap <- call (functionRef "hashmap_init" charPtr []) []
---  pure (tRec rNil, hmap)
--- emitRow (Fix (RVar (_, var))) = do
---  Env.askLookup var
---    >>= \case
---      Just op ->
---        pure op
---      Nothing -> error ("Not in scope: " <> show var)
--- emitRow row = do
---  let (fvs, r) = unwindRow row
---  (_, hmap) <- emitRow r
---  forM_ (Map.toList fvs) $ \(field, exprs) -> do
---    es <- traverse emitBody exprs
---    str <- uniqueName "$str"
---    f <- globalStringPtr (Text.unpack field) (llvmRep str)
---    -- TODO
---    let (_, e) = head es
---    v <- concealOp e
---    call (functionRef "hashmap_insert" LLVM.void []) (zip [hmap, ConstantOperand f, v] (repeat []))
---  -- TODO
---  -- forM_ es $ \(_, e) -> do
---  --  v <- concealOp e
---  --  call (functionRef "hashmap_insert" LLVM.void []) (zip [hmap, ConstantOperand k, v] (repeat []))
---  pure (typeOf row, hmap)
 
 emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
 emitCall fun args = do

@@ -8,8 +8,8 @@ import Pong.Data
 import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
-import Pong.TestData.MysteriousSetOfBooks
-import Pong.TestData.ThePanamaHat
+-- import Pong.TestData.MysteriousSetOfBooks
+-- import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Test.Hspec
 import Text.Megaparsec

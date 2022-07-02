@@ -89,6 +89,7 @@ restrictRow field row =
     Just (e : es) = Map.lookup field m
     (m, k) = unwindRow row
 
+{-# INLINE rowEq #-}
 rowEq :: (Eq v) => Type v -> Type v -> Bool
 rowEq t1 t2 = normalizeRows t1 == normalizeRows t2
 
@@ -168,6 +169,7 @@ instance (Free t, Free a0, Free a2) => Free (Expr t a0 a1 a2) where
 
 {- ORMOLU_ENABLE -}
 
+{-# INLINE free #-}
 free :: (Free a) => a -> [Int]
 free = nub . freeIn
 
