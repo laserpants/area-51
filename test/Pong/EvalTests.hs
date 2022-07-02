@@ -19,7 +19,7 @@ import Test.Hspec
 
 evalTests :: SpecWith ()
 evalTests =
-  undefined
+  pure ()
 
 -- describe "Pong.Eval" $ do
 --   describe "- evalModule" $ do
