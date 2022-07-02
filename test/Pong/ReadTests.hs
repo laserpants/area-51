@@ -105,11 +105,11 @@ readTests =
           -------------------------------------------------------------------------
           runTestParser expr "(lam(x) => x)" (eLam () [((), "x")] (eVar ((), "x")))
 
-    describe "- def" $ do
+    describe "- func" $ do
       -------------------------------------------------------------------------
       runTestParser
         definition
-        "def foo(x : int, y : int) : int = 5"
+        "func foo(x : int, y : int) : int = 5"
         (
           ( Scheme (tInt ~> tInt ~> tInt)
           , "foo"

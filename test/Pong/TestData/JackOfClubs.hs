@@ -10,7 +10,7 @@ import Pong.Util
 
 program4 :: Text
 program4 =
-  "def main(a : unit) : int =\
+  "func main(a : unit) : int =\
   \  let\
   \    id =\
   \      lam(x) =>\

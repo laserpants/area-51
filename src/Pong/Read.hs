@@ -244,10 +244,11 @@ matchClause = do
   pure (ls, e)
 
 recExpr :: Parser SourceExpr
-recExpr = do
-  fs <- commaSep (field "=" expr)
-  tl <- optional (symbol "|" *> identifier)
-  pure (foldr (uncurry eExt) (maybe eNil (eVar <$> toLabel) tl) fs)
+recExpr =
+  braces $ do
+    fs <- commaSep (field "=" expr)
+    tl <- optional (symbol "|" *> identifier)
+    pure (foldr (uncurry eExt) (maybe eNil (eVar <$> toLabel) tl) fs)
 
 prim :: Parser Prim
 prim =
