@@ -8,29 +8,30 @@
 
 module Pong.Eval where
 
--- import Control.Monad.Reader
+import Control.Monad.Reader
 -- import Data.Char (isUpper)
 -- import Data.List.NonEmpty (toList)
 -- import qualified Data.Map.Strict as Map
 -- import qualified Data.Text as Text
 -- import Data.Tuple.Extra (first)
--- import Pong.Data
+import Pong.Data
 -- import Pong.Lang
--- import Pong.Util
--- import Pong.Util.Env (Environment)
+import Pong.Util
+import Pong.Util.Env (Environment)
+
 -- import qualified Pong.Util.Env as Env
---
--- {- ORMOLU_DISABLE -}
---
----- | A fully evaluated expression
--- data Value
---  = PrimValue Prim                           -- ^ Primitive value
---  | ConValue Name [Value]                    -- ^ Applied data constructor
---  | RecValue (Row Value Void)                -- ^ Record value
---  | Closure (Label MonoType) [Eval Value]    -- ^ Partially applied function
---
--- {- ORMOLU_ENABLE -}
---
+
+{- ORMOLU_DISABLE -}
+
+-- | A fully evaluated expression
+data Value
+  = PrimValue Prim                           -- ^ Primitive value
+  | ConValue Name [Value]                    -- ^ Applied data constructor
+  | RecValue (FieldSet Value)                -- ^ Record value
+  | Closure (Label MonoType) [Eval Value]    -- ^ Partially applied function
+
+{- ORMOLU_ENABLE -}
+
 -- instance Eq Value where
 --  a == b =
 --    case (a, b) of
@@ -59,21 +60,21 @@ module Pong.Eval where
 --        (showString "RecValue " . showsPrec 11 row)
 --    Closure{} ->
 --      showString "<<function>>"
---
--- type ValueEnv =
---  ( Environment (Definition MonoType Ast)
---  , Environment Value
---  )
---
--- newtype Eval a = Eval {unEval :: ReaderT ValueEnv IO a}
---  deriving
---    ( Functor
---    , Applicative
---    , Monad
---    , MonadIO
---    , MonadReader ValueEnv
---    )
---
+
+type ValueEnv =
+  ( Environment (Definition MonoType Ast)
+  , Environment Value
+  )
+
+newtype Eval a = Eval {unEval :: ReaderT ValueEnv IO a}
+  deriving
+    ( Functor
+    , Applicative
+    , Monad
+    , MonadIO
+    , MonadReader ValueEnv
+    )
+
 -- eval :: Ast -> Eval Value
 -- eval =
 --  cata $ \case

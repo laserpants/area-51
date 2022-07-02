@@ -18,12 +18,12 @@ import qualified Data.Map.Strict as Map
 -- import qualified Data.Set as Set
 -- import qualified Data.Text as Text
 -- import Data.Tuple.Extra (first, second)
--- import Pong.Data
+import Pong.Data
 import Pong.Lang
--- import Pong.Read (ParserError, parseProgram)
+import Pong.Read (ParserError, parseModule)
 import Pong.Type
+import Pong.Util hiding (unpack)
 
--- import Pong.Util hiding (unpack)
 -- import qualified Pong.Util.Env as Env
 -- import TextShow (showt)
 
@@ -35,27 +35,25 @@ canonical t = apply (Substitution map_) t
 isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 
----- | Predicate to test if the type contains at least one type variable
--- isPolymorphic :: Type v -> Bool
--- isPolymorphic =
---  cata
---    ( \case
---        TVar{} ->
---          True
---        TArr t1 t2 ->
---          t1 || t2
---        TCon _ ts ->
---          or ts
---        TRec row ->
---          ( (`cata` row) $
---              \case
---                RExt _ t r -> isPolymorphic t || r
---                _ -> False
---          )
---        _ ->
---          False
---    )
---
+-- | Predicate to test if the type contains at least one type variable
+isPolymorphic :: Type v -> Bool
+isPolymorphic =
+  cata
+    ( \case
+        TVar{} ->
+          True
+        TArr t1 t2 ->
+          t1 || t2
+        TCon _ ts ->
+          or ts
+        TRec row ->
+          row
+        RExt _ t1 t2 ->
+          t1 || t2
+        _ ->
+          False
+    )
+
 -- monomorphize ::
 --  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
 --  MonoType ->
@@ -140,17 +138,17 @@ isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 --        _ ->
 --          error "Implementation error"
 --    )
---
--- exclude :: [Label t] -> [Name] -> [Label t]
--- exclude = flip withoutLabels
---
--- extra :: MonoType -> [Label MonoType]
--- extra t
---  | null ts = []
---  | otherwise = varSequence "$v" ts
---  where
---    ts = argTypes t
---
+
+exclude :: [Label t] -> [Name] -> [Label t]
+exclude = flip withoutLabels
+
+extra :: MonoType -> [Label MonoType]
+extra t
+  | null ts = []
+  | otherwise = varSequence "$v" ts
+  where
+    ts = argTypes t
+
 -- programDefs :: (MonadReader TypeEnv m, MonadState (Int, Program t a) m) => m [Name]
 -- programDefs = do
 --  ns <- gets (Map.keys . Map.mapKeys snd . unpack . snd)
@@ -353,11 +351,11 @@ isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 --                    )
 --            _ ->
 --              []
---
--- data CompilerError
---  = ParserError ParserError
---  | TypeError TypeError
---
+
+data CompilerError
+  = ParserError ParserError
+  | TypeError TypeError
+
 -- postProcess :: Program MonoType Ast -> Program MonoType Ast
 -- postProcess p = over Program (Map.filterWithKey go) p
 --  where
@@ -385,11 +383,11 @@ isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 --  case parseAndAnnotate input of
 --    Left e -> error (show e)
 --    Right p -> transformProgram p
---
----------------------------------------------------------------------------------
----- Typeclass instances
----------------------------------------------------------------------------------
---
--- deriving instance Show CompilerError
---
--- deriving instance Eq CompilerError
+
+-------------------------------------------------------------------------------
+-- Typeclass instances
+-------------------------------------------------------------------------------
+
+deriving instance Show CompilerError
+
+deriving instance Eq CompilerError
