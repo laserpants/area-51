@@ -231,6 +231,7 @@ typeTests =
       -------------------------------------------------------------------------
       let source :: SourceExpr
           source =
+            -- letr { b = x | r } = { a = (), b = 2, c = = true } in x
             eRes
               [((), "b"), ((), "x"), ((), "r")]
               (eExt "a" (eLit PUnit) (eExt "b" (eLit (PInt 2)) (eExt "c" (eLit (PBool True)) eNil)))
@@ -239,31 +240,13 @@ typeTests =
           typed :: TypedExpr
           typed =
             eRes
-              [(tInt ~> rExt "a" tUnit (rExt "c" tBool rNil) ~> rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil)), "b"), (tInt, "x"), (rExt "a" tUnit (rExt "c" tBool rNil), "r")]
+              [(tInt ~> tRec (rExt "a" tUnit (rExt "c" tBool rNil)) ~> tRec (rExt "a" tUnit (rExt "b" tInt (rExt "c" tBool rNil))), "b"), (tInt, "x"), (tRec (rExt "a" tUnit (rExt "c" tBool rNil)), "r")]
               (eExt "a" (eLit PUnit) (eExt "b" (eLit (PInt 2)) (eExt "c" (eLit (PBool True)) eNil)))
               (eVar (tInt, "x"))
        in it "4" (Right typed == typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
       -------------------------------------------------------------------------
       let source :: SourceExpr
           source =
-            -- let
-            --   r =
-            --     Rec [ a = 1
-            --         , b = true
-            --         , c = 3
-            --         ]
-            --   in
-            --     letr
-            --       { a = x | q } =
-            --         open r
-            --       in
-            --         q
-            --
-            --    { x = z | r }
-            --
-            --    Rec [ x = z | r ]
-            --
-
             -- let
             --   r =
             --     { a = 1
@@ -301,16 +284,18 @@ typeTests =
           typed :: TypedExpr
           typed =
             eLet
-              ( rExt
-                  "a"
-                  tInt
+              ( tRec
                   ( rExt
-                      "b"
-                      tBool
+                      "a"
+                      tInt
                       ( rExt
-                          "c"
-                          tInt
-                          rNil
+                          "b"
+                          tBool
+                          ( rExt
+                              "c"
+                              tInt
+                              rNil
+                          )
                       )
                   )
               , "r"
@@ -331,27 +316,45 @@ typeTests =
               ( eRes
                   [
                     ( tInt
-                        ~> rExt "b" tBool (rExt "c" tInt rNil)
-                        ~> rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+                        ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+                        ~> tRec (rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil)))
                     , "a"
                     )
                   , (tInt, "x")
                   ,
-                    ( rExt
-                        "b"
-                        tBool
+                    ( tRec
                         ( rExt
-                            "c"
-                            tInt
-                            rNil
+                            "b"
+                            tBool
+                            ( rExt
+                                "c"
+                                tInt
+                                rNil
+                            )
                         )
                     , "q"
                     )
                   ]
                   ( eVar
-                      ( rExt
-                          "a"
-                          tInt
+                      ( tRec
+                          ( rExt
+                              "a"
+                              tInt
+                              ( rExt
+                                  "b"
+                                  tBool
+                                  ( rExt
+                                      "c"
+                                      tInt
+                                      rNil
+                                  )
+                              )
+                          )
+                      , "r"
+                      )
+                  )
+                  ( eVar
+                      ( tRec
                           ( rExt
                               "b"
                               tBool
@@ -360,18 +363,6 @@ typeTests =
                                   tInt
                                   rNil
                               )
-                          )
-                      , "r"
-                      )
-                  )
-                  ( eVar
-                      ( rExt
-                          "b"
-                          tBool
-                          ( rExt
-                              "c"
-                              tInt
-                              rNil
                           )
                       , "q"
                       )

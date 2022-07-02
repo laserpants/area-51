@@ -111,23 +111,6 @@ unwindRow ty = (toMap fields, leaf)
             t -> embed t
         )
 
--- unwindRow :: Row e v -> (Map Name [e], Row e v)
--- unwindRow row = (toMap fields, leaf)
---  where
---    toMap = foldr (uncurry (Map.insertWith (<>))) mempty
---    fields =
---      (`para` row)
---        ( \case
---            RExt label ty (_, rest) -> (label, [ty]) : rest
---            _ -> []
---        )
---    leaf =
---      (`cata` row)
---        ( \case
---            RExt _ _ r -> r
---            r -> embed r
---        )
-
 restrictRow :: Name -> Type v -> (Type v, Type v)
 restrictRow field row =
   ( e
@@ -142,23 +125,6 @@ restrictRow field row =
     Just (e : es) = Map.lookup field m
     (m, k) = unwindRow row
 
--- restrictRow :: Name -> Row e v -> (e, Row e v)
--- restrictRow name row =
---  ( e
---  , normalizeRow
---      ( foldRow k $
---          case es of
---            [] -> Map.delete name m
---            _ -> Map.insert name es m
---      )
---  )
---  where
---    Just (e : es) = Map.lookup name m
---    (m, k) = unwindRow row
---
--- rowEq :: (Eq e, Eq v) => Row e v -> Row e v -> Bool
--- rowEq r1 r2 = normalizeRow r1 == normalizeRow r2
---
 -- typeEq :: (Eq v) => Type v -> Type v -> Bool
 -- typeEq t1 t2 = normalizeTypeRows t1 == normalizeTypeRows t2
 
@@ -284,9 +250,12 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EOp2 (t, _) _ _   -> returnType t
           EPat _ []         -> error "Empty case statement"
           EPat _ cs         -> head (snd <$> cs)
-          ENil              -> rNil
-          EExt n e1 e2      -> rExt n e1 e2
+          ENil              -> tRec rNil
           ERes _ _ e        -> e
+          EExt n e1 e2 ->
+            case project e2 of
+              TRec r -> tRec (rExt n e1 r)
+              _ -> error "Implementation error"
       )
 
 {- ORMOLU_ENABLE -}

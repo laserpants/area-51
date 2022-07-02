@@ -107,9 +107,9 @@ data ExprF t a0 a1 a2 a
   | EOp1 (t, Op1) a                          -- ^ Unary operator
   | EOp2 (t, Op2) a a                        -- ^ Binary operator
   | EPat a [Clause t a]                      -- ^ Pattern matching statement
-  | ENil                                     -- ^ Empty row
-  | EExt Name a a                            -- ^ Row extension
-  | ERes [Label t] a a                       -- ^ Row restriction
+  | ENil                                     -- ^ Empty record
+  | EExt Name a a                            -- ^ Record extension
+  | ERes [Label t] a a                       -- ^ Record restriction operator
 
 -- | Parameterized expression grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)

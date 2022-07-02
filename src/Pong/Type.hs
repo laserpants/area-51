@@ -389,12 +389,12 @@ inferRestriction ::
   [Label Int] ->
   TypeChecker TypedExpr ->
   TypeChecker (Clause MonoType TypedExpr)
-inferRestriction row [(u0, label), (u1, v1), (u2, v2)] expr = do
+inferRestriction (Fix (TRec row)) [(u0, label), (u1, v1), (u2, v2)] expr = do
   let (r1, q) = restrictRow label row
   let [t0, t1, t2] = tVar <$> [u0, u1, u2]
   t1 `unify` r1
-  t2 `unify` q
-  traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> row]
+  t2 `unify` tRec q
+  traverse applySubstitution [t0, t1, t2, t1 ~> t2 ~> tRec row]
     >>= \case
       [ty0, ty1, ty2, ty3] -> do
         ty0 `unify` ty3
