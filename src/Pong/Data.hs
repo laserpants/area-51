@@ -96,20 +96,20 @@ type Clause t a = ([Label t], a)
 type FieldSet a = Map Name [a]
 
 data ExprF t a0 a1 a2 a
-  = EVar (Label t)                           -- ^ Variable
-  | ECon (Label a0)                          -- ^ Data constructor
-  | ELit Prim                                -- ^ Literal
-  | EIf a a a                                -- ^ If statement
-  | ELet (Label t) a a                       -- ^ Let binding
-  | EApp a0 a [a]                            -- ^ Application
-  | ELam a1 [Label t] a                      -- ^ Lambda abstraction
-  | ECall a2 (Label t) [a]                   -- ^ Function call
-  | EOp1 (t, Op1) a                          -- ^ Unary operator
-  | EOp2 (t, Op2) a a                        -- ^ Binary operator
-  | EPat a [Clause t a]                      -- ^ Pattern matching statement
-  | ENil                                     -- ^ Empty record
-  | EExt Name a a                            -- ^ Record extension
-  | ERes [Label t] a a                       -- ^ Record restriction operator
+  = EVar (Label t)                 -- ^ Variable
+  | ECon (Label a0)                -- ^ Data constructor
+  | ELit Prim                      -- ^ Literal
+  | EIf a a a                      -- ^ If statement
+  | ELet (Label t) a a             -- ^ Let binding
+  | EApp a0 a [a]                  -- ^ Application
+  | ELam a1 [Label t] a            -- ^ Lambda abstraction
+  | ECall a2 (Label t) [a]         -- ^ Function call
+  | EOp1 (t, Op1) a                -- ^ Unary operator
+  | EOp2 (t, Op2) a a              -- ^ Binary operator
+  | EPat a [Clause t a]            -- ^ Pattern matching statement
+  | ENil                           -- ^ Empty record
+  | EExt Name a a                  -- ^ Record extension
+  | ERes [Label t] a a             -- ^ Record restriction operator
 
 -- | Parameterized expression grammar
 type Expr t a0 a1 a2 = Fix (ExprF t a0 a1 a2)
@@ -137,8 +137,8 @@ data ConE
 
 -- | Data (value) constructor
 data Constructor = Constructor
-  { conName   :: Name                        -- ^ Constructor name
-  , conFields :: [Type Name]                 -- ^ Field types
+  { conName   :: Name              -- ^ Constructor name
+  , conFields :: [Type Name]       -- ^ Field types
   }
 
 data Definition t a
@@ -194,7 +194,7 @@ deriving instance Generic Scheme
 
 instance Newtype Scheme
 
--- TCon
+-- ConT
 deriving instance Show ConT
 
 deriving instance Eq ConT
