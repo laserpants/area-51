@@ -10,24 +10,24 @@ import Pong.Util
 
 program4 :: Text
 program4 =
- "def main(a : unit) : int =\
- \  let\
- \    id =\
- \      lam(x) =>\
- \        x\
- \    in\
- \      let\
- \        add =\
- \          lam(x) =>\
- \            lam(y) =>\
- \              x + y\
- \        in\
- \          let\
- \            add2 =\
- \              add(2)\
- \            in\
- \              (id(add2))(id(3)) + add(4, 5)\
- \"
+  "def main(a : unit) : int =\
+  \  let\
+  \    id =\
+  \      lam(x) =>\
+  \        x\
+  \    in\
+  \      let\
+  \        add =\
+  \          lam(x) =>\
+  \            lam(y) =>\
+  \              x + y\
+  \        in\
+  \          let\
+  \            add2 =\
+  \              add(2)\
+  \            in\
+  \              (id(add2))(id(3)) + add(4, 5)\
+  \"
 
 -- "
 
