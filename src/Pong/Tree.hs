@@ -106,37 +106,37 @@ monomorphizeDef (t, name) args (_, body) expr = do
 
 monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
 monomorphizeLets =
- cata
-   ( \case
-       ELet (t, var) expr1 expr2 | isPolymorphic t -> do
-         e1 <- expr1
-         e2 <- expr2
-         (e, binds) <- runWriterT (monomorphize t var e1 e2)
-         pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
-       expr ->
-         embed <$> sequence expr
-   )
+  cata
+    ( \case
+        ELet (t, var) expr1 expr2 | isPolymorphic t -> do
+          e1 <- expr1
+          e2 <- expr2
+          (e, binds) <- runWriterT (monomorphize t var e1 e2)
+          pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
+        expr ->
+          embed <$> sequence expr
+    )
 
 applyArgs :: [Ast] -> Ast -> Ast
 applyArgs [] = id
 applyArgs xs =
   para
-   ( \case
-       EVar f ->
-         eCall () f xs
-       EIf (e1, _) (_, e2) (_, e3) ->
-         eIf e1 e2 e3
-       ELet var (e1, _) (_, e2) ->
-         eLet var e1 e2
-       ECall _ f ys ->
-         eCall () f ((fst <$> ys) <> xs)
-       EPat (e1, _) cs ->
-         ePat e1 (snd <$$> cs)
-       ERes fs (e1, _) (_, e2) ->
-         eRes fs e1 e2
-       _ ->
-         error "Implementation error"
-   )
+    ( \case
+        EVar f ->
+          eCall () f xs
+        EIf (e1, _) (_, e2) (_, e3) ->
+          eIf e1 e2 e3
+        ELet var (e1, _) (_, e2) ->
+          eLet var e1 e2
+        ECall _ f ys ->
+          eCall () f ((fst <$> ys) <> xs)
+        EPat (e1, _) cs ->
+          ePat e1 (snd <$$> cs)
+        ERes fs (e1, _) (_, e2) ->
+          eRes fs e1 e2
+        _ ->
+          error "Implementation error"
+    )
 
 exclude :: [Label t] -> [Name] -> [Label t]
 exclude = flip withoutLabels
@@ -162,12 +162,12 @@ uniqueName prefix = do
   pure (prefix <> showt n)
 
 liftDef ::
- (MonadState (Int, Module MonoType Ast) m) =>
- Name ->
- [Label MonoType] ->
- [Label MonoType] ->
- Ast ->
- m Ast
+  (MonadState (Int, Module MonoType Ast) m) =>
+  Name ->
+  [Label MonoType] ->
+  [Label MonoType] ->
+  Ast ->
+  m Ast
 liftDef name vs args expr = do
   let ty = foldType t ts
   insertDef (toScheme "a" (free ty) ty, name) def
