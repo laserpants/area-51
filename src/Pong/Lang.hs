@@ -543,10 +543,10 @@ insertIntoModule ::
   m ()
 insertIntoModule = modifyModule <$$> Map.insert
 
--- renameDef :: Name -> Name -> Module t a -> Module t a
--- renameDef from to = over Module (Map.mapKeys rename)
---  where
---    rename (t, defn) = (t, if defn == from then to else defn)
+renameDef :: Name -> Name -> Module t a -> Module t a
+renameDef from to = over Module (Map.mapKeys rename)
+  where
+    rename (t, defn) = (t, if defn == from then to else defn)
 
 {-# INLINE moduleForEach #-}
 moduleForEach ::
