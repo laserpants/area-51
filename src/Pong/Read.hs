@@ -127,28 +127,26 @@ toLabel :: t -> ((), t)
 toLabel = ((),)
 
 expr :: Parser SourceExpr
-expr = undefined
-
--- expr = makeExprParser apps operator
---  where
---    apps = do
---      f <- parens (expr <|> spaces $> eLit PUnit) <|> item
---      optional (args expr)
---        <&> ( \case
---                Nothing -> f
---                Just [] -> eApp () f [eLit PUnit]
---                Just as -> eApp () f as
---            )
---    item =
---      litExpr
---        <|> ifExpr
---        <|> resExpr
---        <|> letExpr
---        <|> lamExpr
---        <|> matchExpr
---        <|> recExpr
---        <|> varExpr
---        <|> conExpr
+expr = makeExprParser apps operator
+  where
+    apps = do
+      f <- parens (expr <|> spaces $> eLit PUnit) <|> item
+      optional (args expr)
+        <&> ( \case
+                Nothing -> f
+                Just [] -> eApp () f [eLit PUnit]
+                Just as -> eApp () f as
+            )
+    item =
+      litExpr
+        <|> ifExpr
+        <|> resExpr
+        <|> letExpr
+        <|> lamExpr
+        <|> matchExpr
+        <|> recExpr
+        <|> varExpr
+        <|> conExpr
 
 fix8, fix7, fix6, fix4, fix3, fix2 :: [Operator Parser SourceExpr]
 fix8 =
@@ -221,19 +219,19 @@ matchExpr = do
   cs <- braces (optional (symbol "|") >> matchClause `sepBy1` symbol "|")
   pure (ePat e cs)
 
--- resExpr :: Parser SourceExpr
--- resExpr = do
---  keyword "field"
---  f <- braces $ do
---    lhs <- identifier
---    symbol_ "="
---    rhs <- identifier
---    symbol_ "|"
---    row <- identifier
---    pure [toLabel lhs, toLabel rhs, toLabel row]
---  e1 <- symbol "=" *> expr
---  e2 <- symbol "in" *> expr
---  pure (eRes f e1 e2)
+resExpr :: Parser SourceExpr
+resExpr = do
+  keyword "field"
+  f <- braces $ do
+    lhs <- identifier
+    symbol_ "="
+    rhs <- identifier
+    symbol_ "|"
+    row <- identifier
+    pure [toLabel lhs, toLabel rhs, toLabel row]
+  e1 <- symbol "=" *> expr
+  e2 <- symbol "in" *> expr
+  pure (eRes f e1 e2)
 
 matchClause :: Parser ([Label ()], SourceExpr)
 matchClause = do
@@ -245,8 +243,8 @@ matchClause = do
   e <- expr
   pure (ls, e)
 
--- recExpr :: Parser SourceExpr
--- recExpr = eRec <$> braces (rowFields expr toLabel "=")
+recExpr :: Parser SourceExpr
+recExpr = undefined -- TODO eRec <$> braces (rowFields expr toLabel "=")
 
 prim :: Parser Prim
 prim =

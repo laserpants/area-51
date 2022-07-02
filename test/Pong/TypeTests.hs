@@ -407,30 +407,30 @@ typeTests =
     --    --      -------------------------------------------------------------------------
     --    --      it "7" ((runInferProgram program343 <&> canonical) == Right program3432)
     --
-    --    describe "- unifyTypes" $ do
-    --      -------------------------------------------------------------------------
-    --      let t1 :: MonoType
-    --          -- T '0 '1
-    --          t1 = tCon "T" [tVar 0, tVar 1]
-    --
-    --          t2 :: MonoType
-    --          -- T int (T int Y)
-    --          t2 = tCon "T" [tInt, tCon "T" [tInt, tCon "Y" []]]
-    --       in it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
-    --      -------------------------------------------------------------------------
-    --      let t1 :: MonoType
-    --          t1 = tRec (rExt "name" (tVar 0) (rVar 1))
-    --
-    --          t2 :: MonoType
-    --          t2 = tRec (rExt "id" tInt (rExt "name" tString rNil))
-    --       in it "2" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
-    --      -------------------------------------------------------------------------
-    --      let t1 :: MonoType
-    --          t1 = tRec (rExt "name" (tVar 0) (rVar 1)) ~> tVar 2
-    --
-    --          t2 :: MonoType
-    --          t2 = tRec (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
-    --       in it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `typeEq` apply sub t2)
+    describe "- unifyTypes" $ do
+      -------------------------------------------------------------------------
+      let t1 :: MonoType
+          -- T '0 '1
+          t1 = tCon "T" [tVar 0, tVar 1]
+
+          t2 :: MonoType
+          -- T int (T int Y)
+          t2 = tCon "T" [tInt, tCon "T" [tInt, tCon "Y" []]]
+       in it "1" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
+      -------------------------------------------------------------------------
+      let t1 :: MonoType
+          t1 = tRec (rExt "name" (tVar 0) (tVar 1))
+
+          t2 :: MonoType
+          t2 = tRec (rExt "id" tInt (rExt "name" tString rNil))
+       in it "2" (let Right sub = runUnify t1 t2 in apply sub t1 `rowEq` apply sub t2)
+      ---------------------------------------------------------------------------
+      let t1 :: MonoType
+          t1 = tRec (rExt "name" (tVar 0) (tVar 1)) ~> tVar 2
+
+          t2 :: MonoType
+          t2 = tRec (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
+       in it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `rowEq` apply sub t2)
 
     describe "- unifyRows" $ do
       let passUnifyRows row1 row2 =

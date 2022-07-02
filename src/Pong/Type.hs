@@ -280,8 +280,8 @@ unifyTypes ty1 ty2 =
           unifyMany ts1 ts2
     (TArr t1 t2, TArr u1 u2) ->
       unifyMany [t1, t2] [u1, u2]
-    (TRec _, TRec _) ->
-      unifyTypes ty1 ty2
+    (TRec r1, TRec r2) ->
+      unifyTypes r1 r2
     _
       | ty1 == ty2 -> pure mempty
       | otherwise -> throwError UnificationError
