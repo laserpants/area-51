@@ -277,24 +277,26 @@ prim =
 scheme :: Parser Scheme
 scheme = Scheme <$> polyType
 
+{- ORMOLU_DISABLE -}
+
 polyType :: Parser (Type Name)
 polyType =
   makeExprParser (parens item <|> item) [[InfixR (tArr <$ symbol "->")]]
   where
     item =
-      keyword "unit" $> tUnit
-        <|> keyword "bool" $> tBool
-        <|> keyword "int" $> tInt
-        <|> keyword "float" $> tFloat
+      keyword "unit"         $> tUnit
+        <|> keyword "bool"   $> tBool
+        <|> keyword "int"    $> tInt
+        <|> keyword "float"  $> tFloat
         <|> keyword "double" $> tDouble
-        <|> keyword "char" $> tChar
+        <|> keyword "char"   $> tChar
         <|> keyword "string" $> tString
         <|> recType
         <|> genType
         <|> conType
     conType = do
       con <- constructor
-      ts <- many polyType
+      ts  <- many polyType
       pure (tCon con ts)
     genType =
       tVar <$> identifier
@@ -306,6 +308,8 @@ polyType =
               tl <- optional (symbol "|" *> identifier)
               pure (foldr (uncurry rExt) (maybe rNil tVar tl) fs)
           )
+
+{- ORMOLU_ENABLE -}
 
 field :: Text -> Parser a -> Parser (Name, a)
 field sep parser = do
