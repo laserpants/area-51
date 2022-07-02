@@ -256,8 +256,6 @@ compile =
     ENil -> pure eNil
     EExt name expr1 expr2 ->
       eExt name <$> expr1 <*> expr2
-    ERes fs expr1 expr2 ->
-      eRes fs <$> expr1 <*> expr2
 
 compileModule :: Module MonoType TypedExpr -> Module MonoType Ast
 compileModule p = evalState run (1, emptyModule)

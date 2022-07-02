@@ -6,7 +6,8 @@ import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
-import Pong.Util
+
+-- import Pong.Util
 
 -- program4 :: Text
 -- program4 =

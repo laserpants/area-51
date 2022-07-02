@@ -7,17 +7,16 @@ module Pong.Read where
 import Control.Monad (void)
 import Control.Monad.Combinators.Expr
 import Data.Functor (($>))
--- import Data.List.NonEmpty (fromList)
--- import qualified Data.Map.Strict as Map
+import Data.List.NonEmpty (fromList)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
--- import qualified Data.Set as Set
-import Data.Text (Text, pack, unpack)
--- import Data.Tuple.Extra (first)
+import qualified Data.Set as Set
+import Data.Text (pack, unpack)
+import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Name, (<&>))
--- import Pong.Util (Name, Text, project, (<&>), (>>>))
+import Pong.Util (Name, Text, project, (<&>), (>>>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
@@ -245,7 +244,10 @@ matchClause = do
   pure (ls, e)
 
 recExpr :: Parser SourceExpr
-recExpr = undefined -- TODO eRec <$> braces (rowFields expr toLabel "=")
+recExpr = do
+  fs <- commaSep (field "=" expr)
+  tl <- optional (symbol "|" *> identifier)
+  pure (foldr (uncurry eExt) (maybe eNil (eVar <$> toLabel) tl) fs)
 
 prim :: Parser Prim
 prim =
@@ -297,90 +299,81 @@ polyType =
     genType =
       tVar <$> identifier
     recType =
-      undefined -- TODO
-      --     tRec <$> braces (rowFields polyType id ":")
+      tRec
+        <$> braces
+          ( do
+              fs <- commaSep (field ":" polyType)
+              tl <- optional (symbol "|" *> identifier)
+              pure (foldr (uncurry rExt) (maybe rNil tVar tl) fs)
+          )
 
--- rowFields :: Parser e -> (Name -> v) -> Text -> Parser (Row e v)
--- rowFields parser f sep = do
---  fields <- commaSep field
---  tail_ <- optional (symbol "|" *> identifier)
---  pure $
---    case fields of
---      [] -> rNil
---      _ -> foldr (uncurry rExt) (maybe rNil (rVar . f) tail_) fields
---  where
---    field = do
---      lhs <- identifier
---      symbol_ sep
---      rhs <- parser
---      pure (lhs, rhs)
---
--- arg :: Parser (Label (Type Name))
--- arg = do
---  name <- identifier
---  symbol_ ":"
---  t <- polyType
---  pure (t, name)
---
--- func :: Parser (Label Scheme, Definition () SourceExpr)
--- func = functionDef <|> constantDef <|> externalDef <|> typeDef
---  where
---    functionDef = do
---      keyword "func"
---      name <- identifier
---      as <- parens (commaSep1 arg)
---      symbol_ ":"
---      t <- polyType
---      symbol_ "="
---      e <- expr
---      let ts = fst <$> as
---          fun = Function (fromList (first (const ()) <$> as)) ((), e)
---      pure ((Scheme (foldType t ts), name), fun)
---
---    constantDef = do
---      keyword "const"
---      name <- identifier
---      symbol_ ":"
---      t <- polyType
---      symbol_ "="
---      e <- expr
---      pure ((Scheme t, name), Constant ((), e))
---
---    externalDef = do
---      keyword "extern"
---      name <- identifier
---      symbol_ ":"
---      t <- polyType
---      let names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
---          t0 = toMonoType names t
---      pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
---
---    typeDef = do
---      keyword "type"
---      name <- constructor
---      tvs <- many identifier <* symbol "="
---      let t = tCon name (tVar <$> tvs)
---      cons <- dataCon `sepBy` symbol "|"
---      pure ((Scheme t, name), Data name cons)
---
---    dataCon = do
---      polyType
---        >>= ( project
---                >>> \case
---                  TCon con ts -> pure (Constructor con ts)
---                  _ -> fail "Not a constructor"
---            )
---
--- program :: Parser (Program () SourceExpr)
--- program = do
---  defs <- many def
---  pure (Program (Map.fromList defs))
---
--- parseProgram :: Text -> Either ParserError (Program () SourceExpr)
--- parseProgram = runParser program ""
+field :: Text -> Parser a -> Parser (Name, a)
+field sep parser = do
+  lhs <- identifier
+  symbol_ sep
+  rhs <- parser
+  pure (lhs, rhs)
+
+arg :: Parser (Label (Type Name))
+arg = do
+  name <- identifier
+  symbol_ ":"
+  t <- polyType
+  pure (t, name)
+
+definition :: Parser (Label Scheme, Definition () SourceExpr)
+definition = functionDef <|> constantDef <|> externalDef <|> typeDef
+  where
+    functionDef = do
+      keyword "func"
+      name <- identifier
+      as <- parens (commaSep1 arg)
+      symbol_ ":"
+      t <- polyType
+      symbol_ "="
+      e <- expr
+      let ts = fst <$> as
+          fun = Function (fromList (first (const ()) <$> as)) ((), e)
+      pure ((Scheme (foldType t ts), name), fun)
+
+    constantDef = do
+      keyword "const"
+      name <- identifier
+      symbol_ ":"
+      t <- polyType
+      symbol_ "="
+      e <- expr
+      pure ((Scheme t, name), Constant ((), e))
+
+    externalDef = do
+      keyword "extern"
+      name <- identifier
+      symbol_ ":"
+      t <- polyType
+      let names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
+          t0 = toMonoType names t
+      pure ((Scheme t, name), Extern (argTypes t0) (returnType t0))
+
+    typeDef = do
+      keyword "type"
+      name <- constructor
+      tvs <- many identifier <* symbol "="
+      let t = tCon name (tVar <$> tvs)
+      cons <- dataCon `sepBy` symbol "|"
+      pure ((Scheme t, name), Data name cons)
+
+    dataCon = do
+      polyType
+        >>= ( project
+                >>> \case
+                  TCon con ts -> pure (Constructor con ts)
+                  _ -> fail "Not a constructor"
+            )
 
 module_ :: Parser (Module () SourceExpr)
-module_ = undefined
+module_ = do
+  defs <- many definition
+  pure (Module (Map.fromList defs))
 
 parseModule :: Text -> Either ParserError (Module () SourceExpr)
 parseModule = runParser module_ ""

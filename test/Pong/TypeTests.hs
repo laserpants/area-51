@@ -13,7 +13,7 @@ import Pong.TestHelpers
 import Pong.Tree
 import Pong.Type
 import Pong.Util
-import qualified Pong.Util.Env as Env
+-- import qualified Pong.Util.Env as Env
 -- import Pong.Util.Pretty ()
 -- import Prettyprinter
 import Test.Hspec
