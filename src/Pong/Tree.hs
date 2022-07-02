@@ -20,7 +20,7 @@ import qualified Data.Map.Strict as Map
 -- import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Lang
-import Pong.Read (ParserError, parseModule)
+import Pong.Read (ParserError)
 import Pong.Type
 import Pong.Util hiding (unpack)
 

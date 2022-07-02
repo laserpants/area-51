@@ -2,19 +2,18 @@
 
 module Pong.TypeTests where
 
--- import Pong.TestData.JackOfClubs
 -- import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.ThePanamaHat
-
 -- import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
+import Pong.TestData.JackOfClubs
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Type
--- import Pong.Util
--- import qualified Pong.Util.Env as Env
+import Pong.Util
+import qualified Pong.Util.Env as Env
 -- import Pong.Util.Pretty ()
 -- import Prettyprinter
 import Test.Hspec
@@ -379,10 +378,10 @@ typeTests =
           eq a b = Right True == (isIsomorphicTo <$> a <*> b)
        in it "6" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
 
-    --    describe "- inferProgram" $ do
-    --      -------------------------------------------------------------------------
-    --      it "1" ((runInferProgram program5 <&> canonical) == Right program6)
-    --      -------------------------------------------------------------------------
+    describe "- inferModule" $ do
+      -------------------------------------------------------------------------
+      it "1" ((runInferModule program5 <&> canonical) == Right program6)
+    -------------------------------------------------------------------------
     --      let env =
     --            Env.fromList
     --              [
@@ -395,17 +394,17 @@ typeTests =
     --                )
     --              ]
     --      -------------------------------------------------------------------------
-    --      it "2" ((runInferProgramWithEnv env program201 <&> canonical) == Right program202)
+    --      it "2" ((runInferModuleWithEnv env program201 <&> canonical) == Right program202)
     --      -------------------------------------------------------------------------
-    --      it "3" ((runInferProgramWithEnv env program204 <&> canonical) == Right program205)
+    --      it "3" ((runInferModuleWithEnv env program204 <&> canonical) == Right program205)
     --      -------------------------------------------------------------------------
-    --      it "4" ((runInferProgramWithEnv env program209 <&> canonical) == Right program210)
+    --      it "4" ((runInferModuleWithEnv env program209 <&> canonical) == Right program210)
     --      -------------------------------------------------------------------------
-    --      it "5" ((runInferProgram program341 <&> canonical) == Right program3412)
+    --      it "5" ((runInferModule program341 <&> canonical) == Right program3412)
     --      -------------------------------------------------------------------------
-    --      it "6" ((runInferProgram program342 <&> canonical) == Right program3422)
+    --      it "6" ((runInferModule program342 <&> canonical) == Right program3422)
     --    --      -------------------------------------------------------------------------
-    --    --      it "7" ((runInferProgram program343 <&> canonical) == Right program3432)
+    --    --      it "7" ((runInferModule program343 <&> canonical) == Right program3432)
     --
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------

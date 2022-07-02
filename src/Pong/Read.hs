@@ -16,7 +16,8 @@ import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
 import Pong.Data
 import Pong.Lang
-import Pong.Util (Name, Text, project, (<&>), (>>>))
+import Pong.Util (Name, (<&>))
+-- import Pong.Util (Name, Text, project, (<&>), (>>>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
@@ -378,6 +379,7 @@ polyType =
 -- parseProgram :: Text -> Either ParserError (Program () SourceExpr)
 -- parseProgram = runParser program ""
 
+module_ :: Parser (Module () SourceExpr)
 module_ = undefined
 
 parseModule :: Text -> Either ParserError (Module () SourceExpr)

@@ -14,7 +14,7 @@ import Pong.Lang
 -- import Pong.Read
 -- import Pong.Tree
 import Pong.Type
--- import Pong.Util
+import Pong.Util
 -- import System.Directory
 -- import System.Exit
 -- import System.IO.Unsafe
@@ -32,34 +32,34 @@ runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 runUnifyRows :: MonoType -> MonoType -> Either TypeError Substitution
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)
 
--- lookupDef :: (Scheme, Name) -> Program t a -> Maybe (Definition t a)
--- lookupDef defn (Program p) = Map.lookup defn p
---
-----runInferProgramWithEnv ::
----- TypeEnv ->
----- Program () SourceExpr ->
----- Either TypeError (Program MonoType TypedExpr)
-----runInferProgramWithEnv env = runTypeChecker 1 env . inferProgram <&> fst
-----
+-- lookupDef :: (Scheme, Name) -> Module t a -> Maybe (Definition t a)
+-- lookupDef defn (Module p) = Map.lookup defn p
+
+runInferModuleWithEnv ::
+  TypeEnv ->
+  Module () SourceExpr ->
+  Either TypeError (Module MonoType TypedExpr)
+runInferModuleWithEnv env = runTypeChecker 1 env . inferModule <&> fst
+
 ----parseAndAnnotateWithEnv ::
 ---- TypeEnv ->
 ---- Text ->
----- Either CompilerError (Program MonoType TypedExpr)
+---- Either CompilerError (Module MonoType TypedExpr)
 ----parseAndAnnotateWithEnv env =
----- mapLeft ParserError . parseProgram
-----   >=> mapLeft TypeError . runInferProgramWithEnv env
+---- mapLeft ParserError . parseModule
+----   >=> mapLeft TypeError . runInferModuleWithEnv env
 --
--- compileSourceWithEnv :: TypeEnv -> Text -> Program MonoType Ast
+-- compileSourceWithEnv :: TypeEnv -> Text -> Module MonoType Ast
 -- compileSourceWithEnv env input =
 -- case parseAndAnnotateWithEnv env input of
 --   Left e -> error (show e)
---   Right p -> transformProgram p
+--   Right p -> transformModule p
 --
--- testHoistProgram :: Program MonoType TypedExpr -> Program MonoType TypedExpr
--- testHoistProgram p = programFor p (const hoistTopLambdas)
+-- testHoistModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
+-- testHoistModule p = programFor p (const hoistTopLambdas)
 --
--- testMonomorphizeProgram :: Program MonoType TypedExpr -> Program MonoType TypedExpr
--- testMonomorphizeProgram p = runTransform (programForM p (const (traverse monomorphizeLets)))
+-- testMonomorphizeModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
+-- testMonomorphizeModule p = runTransform (programForM p (const (traverse monomorphizeLets)))
 --
 -- {-# NOINLINE projectDir #-}
 -- projectDir :: String
@@ -70,11 +70,11 @@ runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unif
 --
 -- readProjectFile :: String -> Text
 -- readProjectFile path = unsafeReadFile (projectDir <> "/" <> path)
---
--- {-# INLINE mainSig #-}
--- mainSig :: Label Scheme
--- mainSig = (Scheme (tUnit ~> tInt), "main")
---
+
+{-# INLINE mainSig #-}
+mainSig :: Label Scheme
+mainSig = (Scheme (tUnit ~> tInt), "main")
+
 -- runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
 -- runTestParser parser input expect =
 -- it (unpack input) (runParser parser "" input == Right expect)
@@ -87,11 +87,11 @@ passIt = it . ("OK ✔ " <>)
 failIt :: Example a => String -> a -> SpecWith (Arg a)
 failIt = it . ("OK ✗ " <>)
 
--- emitModule :: Program MonoType Ast -> IO (ExitCode, String)
+-- emitModule :: Module MonoType Ast -> IO (ExitCode, String)
 -- emitModule prog = compileBinary >> exec
 -- where
 --   compileBinary = do
---     let mdul = ppll (buildProgram "Main" prog)
+--     let mdul = ppll (buildModule "Main" prog)
 --         echo = proc "echo" [TextLazy.unpack mdul]
 --     (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
 --     (_, _, _, procHandle) <-

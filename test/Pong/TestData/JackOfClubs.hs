@@ -2,12 +2,12 @@
 
 module Pong.TestData.JackOfClubs where
 
--- import Data.List.NonEmpty (fromList)
--- import qualified Data.Map.Strict as Map
--- import Pong.Data
--- import Pong.Lang
--- import Pong.Util
---
+import Data.List.NonEmpty (fromList)
+import qualified Data.Map.Strict as Map
+import Pong.Data
+import Pong.Lang
+import Pong.Util
+
 -- program4 :: Text
 -- program4 =
 --  "def main(a : unit) : int =\
@@ -30,104 +30,104 @@ module Pong.TestData.JackOfClubs where
 --  \"
 --
 ---- "
---
--- program5 :: Program () SourceExpr
--- program5 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [((), "a")])
---              ( ()
---              , eLet
---                  ((), "id")
---                  (eLam () [((), "x")] (eVar ((), "x")))
---                  ( eLet
---                      ((), "add")
---                      ( eLam
---                          ()
---                          [((), "x")]
---                          ( eLam
---                              ()
---                              [((), "y")]
---                              ( eOp2
---                                  ((), OAdd)
---                                  (eVar ((), "x"))
---                                  (eVar ((), "y"))
---                              )
---                          )
---                      )
---                      ( eLet
---                          ((), "add2")
---                          (eApp () (eVar ((), "add")) [eLit (PInt 2)])
---                          ( eOp2
---                              ((), OAdd)
---                              ( eApp
---                                  ()
---                                  (eApp () (eVar ((), "id")) [eVar ((), "add2")])
---                                  [ eApp () (eVar ((), "id")) [eLit (PInt 3)]
---                                  ]
---                              )
---                              (eApp () (eVar ((), "add")) [eLit (PInt 4), eLit (PInt 5)])
---                          )
---                      )
---                  )
---              )
---          )
---        ]
---    )
---
--- program6 :: Program MonoType TypedExpr
--- program6 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "a")])
---              ( tInt
---              , eLet
---                  (tVar 0 ~> tVar 0, "id")
---                  (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
---                  ( eLet
---                      (tVar 1 ~> tVar 1 ~> tVar 1, "add")
---                      ( eLam
---                          ()
---                          [(tVar 1, "x")]
---                          ( eLam
---                              ()
---                              [(tVar 1, "y")]
---                              ( eOp2
---                                  (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
---                                  (eVar (tVar 1, "x"))
---                                  (eVar (tVar 1, "y"))
---                              )
---                          )
---                      )
---                      ( eLet
---                          (tInt ~> tInt, "add2")
---                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 2)])
---                          ( eOp2
---                              oAddInt
---                              ( eApp
---                                  tInt
---                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id")) [eVar (tInt ~> tInt, "add2")])
---                                  [ eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]
---                                  ]
---                              )
---                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 4), eLit (PInt 5)])
---                          )
---                      )
---                  )
---              )
---          )
---        ]
---    )
---
--- program7 :: Program MonoType TypedExpr
+
+program5 :: Module () SourceExpr
+program5 =
+  Module
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [((), "a")])
+              ( ()
+              , eLet
+                  ((), "id")
+                  (eLam () [((), "x")] (eVar ((), "x")))
+                  ( eLet
+                      ((), "add")
+                      ( eLam
+                          ()
+                          [((), "x")]
+                          ( eLam
+                              ()
+                              [((), "y")]
+                              ( eOp2
+                                  ((), OAdd)
+                                  (eVar ((), "x"))
+                                  (eVar ((), "y"))
+                              )
+                          )
+                      )
+                      ( eLet
+                          ((), "add2")
+                          (eApp () (eVar ((), "add")) [eLit (PInt 2)])
+                          ( eOp2
+                              ((), OAdd)
+                              ( eApp
+                                  ()
+                                  (eApp () (eVar ((), "id")) [eVar ((), "add2")])
+                                  [ eApp () (eVar ((), "id")) [eLit (PInt 3)]
+                                  ]
+                              )
+                              (eApp () (eVar ((), "add")) [eLit (PInt 4), eLit (PInt 5)])
+                          )
+                      )
+                  )
+              )
+          )
+        ]
+    )
+
+program6 :: Module MonoType TypedExpr
+program6 =
+  Module
+    ( Map.fromList
+        [
+          ( (Scheme (tUnit ~> tInt), "main")
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tVar 0 ~> tVar 0, "id")
+                  (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+                  ( eLet
+                      (tVar 1 ~> tVar 1 ~> tVar 1, "add")
+                      ( eLam
+                          ()
+                          [(tVar 1, "x")]
+                          ( eLam
+                              ()
+                              [(tVar 1, "y")]
+                              ( eOp2
+                                  (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                                  (eVar (tVar 1, "x"))
+                                  (eVar (tVar 1, "y"))
+                              )
+                          )
+                      )
+                      ( eLet
+                          (tInt ~> tInt, "add2")
+                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 2)])
+                          ( eOp2
+                              oAddInt
+                              ( eApp
+                                  tInt
+                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id")) [eVar (tInt ~> tInt, "add2")])
+                                  [ eApp tInt (eVar (tInt ~> tInt, "id")) [eLit (PInt 3)]
+                                  ]
+                              )
+                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add")) [eLit (PInt 4), eLit (PInt 5)])
+                          )
+                      )
+                  )
+              )
+          )
+        ]
+    )
+
+-- program7 :: Module MonoType TypedExpr
 -- program7 =
---  Program
+--  Module
 --    ( Map.fromList
 --        [
 --          ( (Scheme (tUnit ~> tInt), "main")
@@ -168,9 +168,9 @@ module Pong.TestData.JackOfClubs where
 --        ]
 --    )
 --
--- program8 :: Program MonoType TypedExpr
+-- program8 :: Module MonoType TypedExpr
 -- program8 =
---  Program
+--  Module
 --    ( Map.fromList
 --        [
 --          ( (Scheme (tUnit ~> tInt), "main")
@@ -255,9 +255,9 @@ module Pong.TestData.JackOfClubs where
 --        ]
 --    )
 --
--- program9 :: Program MonoType TypedExpr
+-- program9 :: Module MonoType TypedExpr
 -- program9 =
---  Program
+--  Module
 --    ( Map.fromList
 --        [
 --          ( (Scheme (tUnit ~> tInt), "main")
@@ -449,9 +449,9 @@ module Pong.TestData.JackOfClubs where
 ----              in
 ----                (id(add2))(id(3)) + add(4, 5)\
 --
--- program10 :: Program MonoType Ast
+-- program10 :: Module MonoType Ast
 -- program10 =
---  Program
+--  Module
 --    ( Map.fromList
 --        [
 --          ( (Scheme (tUnit ~> tInt), "main")
@@ -577,9 +577,9 @@ module Pong.TestData.JackOfClubs where
 ----   x + y
 ----
 --
--- program11 :: Program MonoType Ast
+-- program11 :: Module MonoType Ast
 -- program11 =
---  Program
+--  Module
 --    ( Map.fromList
 --        [
 --          ( (Scheme (tUnit ~> tInt), "main")
