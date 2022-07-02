@@ -6,31 +6,30 @@ import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
+import Pong.Util
 
--- import Pong.Util
+program4 :: Text
+program4 =
+ "def main(a : unit) : int =\
+ \  let\
+ \    id =\
+ \      lam(x) =>\
+ \        x\
+ \    in\
+ \      let\
+ \        add =\
+ \          lam(x) =>\
+ \            lam(y) =>\
+ \              x + y\
+ \        in\
+ \          let\
+ \            add2 =\
+ \              add(2)\
+ \            in\
+ \              (id(add2))(id(3)) + add(4, 5)\
+ \"
 
--- program4 :: Text
--- program4 =
---  "def main(a : unit) : int =\
---  \  let\
---  \    id =\
---  \      lam(x) =>\
---  \        x\
---  \    in\
---  \      let\
---  \        add =\
---  \          lam(x) =>\
---  \            lam(y) =>\
---  \              x + y\
---  \        in\
---  \          let\
---  \            add2 =\
---  \              add(2)\
---  \            in\
---  \              (id(add2))(id(3)) + add(4, 5)\
---  \"
---
----- "
+-- "
 
 program5 :: Module () SourceExpr
 program5 =

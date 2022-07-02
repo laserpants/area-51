@@ -11,7 +11,7 @@ module Pong.TestHelpers where
 import Pong.Data
 -- import Pong.LLVM.Emit
 import Pong.Lang
--- import Pong.Read
+import Pong.Read
 -- import Pong.Tree
 import Pong.Type
 import Pong.Util
@@ -20,8 +20,7 @@ import Pong.Util
 -- import System.IO.Unsafe
 -- import System.Process hiding (env)
 import Test.Hspec
-
--- import Text.Megaparsec
+import Text.Megaparsec
 
 typeCheck :: TypeChecker a -> Either TypeError a
 typeCheck = evalTypeChecker 1 mempty
@@ -75,9 +74,9 @@ runInferModuleWithEnv env = runTypeChecker 1 env . inferModule <&> fst
 mainSig :: Label Scheme
 mainSig = (Scheme (tUnit ~> tInt), "main")
 
--- runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
--- runTestParser parser input expect =
--- it (unpack input) (runParser parser "" input == Right expect)
+runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
+runTestParser parser input expect =
+  it (unpack input) (runParser parser "" input == Right expect)
 
 {-# INLINE passIt #-}
 passIt :: Example a => String -> a -> SpecWith (Arg a)
