@@ -6,10 +6,10 @@
 
 module Pong.Tree where
 
--- import Control.Monad.Except
--- import Control.Monad.Reader
--- import Control.Monad.State
--- import Control.Monad.Writer
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Writer
 -- import Control.Newtype.Generics (over, unpack)
 -- import Data.Char (isUpper)
 -- import Data.Either.Extra (mapLeft)
@@ -17,15 +17,14 @@ module Pong.Tree where
 import qualified Data.Map.Strict as Map
 -- import qualified Data.Set as Set
 -- import qualified Data.Text as Text
--- import Data.Tuple.Extra (first, second)
+import Data.Tuple.Extra (first, second)
 import Pong.Data
 import Pong.Lang
 import Pong.Read (ParserError)
 import Pong.Type
 import Pong.Util hiding (unpack)
-
 -- import qualified Pong.Util.Env as Env
--- import TextShow (showt)
+import TextShow (showt)
 
 canonical :: (Substitutable a, Free a) => a -> a
 canonical t = apply (Substitution map_) t
@@ -54,90 +53,90 @@ isPolymorphic =
           False
     )
 
--- monomorphize ::
---  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
---  MonoType ->
---  Name ->
---  TypedExpr ->
---  TypedExpr ->
---  m TypedExpr
--- monomorphize t name e1 =
---  para
---    ( \case
---        ELet (t0, var) (expr1, _) (expr2, _)
---          | var == name ->
---              pure (eLet (t0, var) expr1 expr2)
---        ERes r@[_, (_, var), _] (expr1, _) (expr2, _)
---          | var == name ->
---              pure (eRes r expr1 expr2)
---        EPat (_, expr1) cs ->
---          let updateClause (ps, e)
---                | name `elem` (snd <$> ps) = pure (ps, fst e)
---                | otherwise = (,) ps . snd <$> sequence e
---           in ePat <$> expr1 <*> traverse updateClause cs
---        ECon (t0, con)
---          | con == name && not (t `isIsomorphicTo` t0) ->
---              eCon <$> runSubst con e1 t t0
---        EVar (t0, var)
---          | var == name && not (t `isIsomorphicTo` t0) ->
---              eVar <$> runSubst var e1 t t0
---        expr ->
---          embed <$> sequence (expr <&> snd)
---    )
---  where
---    runSubst var expr t1 t2 =
---      case evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2) of
---        Right sub -> do
---          newVar <- uniqueName (var <> "-")
---          tell [((t2, newVar), apply sub expr)]
---          pure (t2, newVar)
---        _ ->
---          error "Implementation error"
---
--- monomorphizeDef ::
---  (MonadState (Int, a) m) =>
---  Label MonoType ->
---  [Label MonoType] ->
---  (MonoType, TypedExpr) ->
---  TypedExpr ->
---  m TypedExpr
--- monomorphizeDef (t, name) args (_, body) expr = do
---  (e, binds) <- runWriterT (monomorphize t name (eLam () args body) expr)
---  pure (foldr (uncurry eLet) e binds)
---
--- monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
--- monomorphizeLets =
---  cata
---    ( \case
---        ELet (t, var) expr1 expr2 | isPolymorphic t -> do
---          e1 <- expr1
---          e2 <- expr2
---          (e, binds) <- runWriterT (monomorphize t var e1 e2)
---          pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
---        expr ->
---          embed <$> sequence expr
---    )
---
--- applyArgs :: [Ast] -> Ast -> Ast
--- applyArgs [] = id
--- applyArgs xs =
---  para
---    ( \case
---        EVar f ->
---          eCall f xs
---        EIf (e1, _) (_, e2) (_, e3) ->
---          eIf e1 e2 e3
---        ELet var (e1, _) (_, e2) ->
---          eLet var e1 e2
---        ECall _ f ys ->
---          eCall f ((fst <$> ys) <> xs)
---        EPat (e1, _) cs ->
---          ePat e1 (snd <$$> cs)
---        ERes fs (e1, _) (_, e2) ->
---          eRes fs e1 e2
---        _ ->
---          error "Implementation error"
---    )
+monomorphize ::
+  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
+  MonoType ->
+  Name ->
+  TypedExpr ->
+  TypedExpr ->
+  m TypedExpr
+monomorphize t name e1 =
+  para
+    ( \case
+        ELet (t0, var) (expr1, _) (expr2, _)
+          | var == name ->
+              pure (eLet (t0, var) expr1 expr2)
+        ERes r@[_, (_, var), _] (expr1, _) (expr2, _)
+          | var == name ->
+              pure (eRes r expr1 expr2)
+        EPat (_, expr1) cs ->
+          let updateClause (ps, e)
+                | name `elem` (snd <$> ps) = pure (ps, fst e)
+                | otherwise = (,) ps . snd <$> sequence e
+           in ePat <$> expr1 <*> traverse updateClause cs
+        ECon (t0, con)
+          | con == name && not (t `isIsomorphicTo` t0) ->
+              eCon <$> runSubst con e1 t t0
+        EVar (t0, var)
+          | var == name && not (t `isIsomorphicTo` t0) ->
+              eVar <$> runSubst var e1 t t0
+        expr ->
+          embed <$> sequence (expr <&> snd)
+    )
+  where
+    runSubst var expr t1 t2 =
+      case evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2) of
+        Right sub -> do
+          newVar <- uniqueName (var <> "-")
+          tell [((t2, newVar), apply sub expr)]
+          pure (t2, newVar)
+        _ ->
+          error "Implementation error"
+
+monomorphizeDef ::
+  (MonadState (Int, a) m) =>
+  Label MonoType ->
+  [Label MonoType] ->
+  (MonoType, TypedExpr) ->
+  TypedExpr ->
+  m TypedExpr
+monomorphizeDef (t, name) args (_, body) expr = do
+  (e, binds) <- runWriterT (monomorphize t name (eLam () args body) expr)
+  pure (foldr (uncurry eLet) e binds)
+
+monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
+monomorphizeLets =
+ cata
+   ( \case
+       ELet (t, var) expr1 expr2 | isPolymorphic t -> do
+         e1 <- expr1
+         e2 <- expr2
+         (e, binds) <- runWriterT (monomorphize t var e1 e2)
+         pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
+       expr ->
+         embed <$> sequence expr
+   )
+
+applyArgs :: [Ast] -> Ast -> Ast
+applyArgs [] = id
+applyArgs xs =
+  para
+   ( \case
+       EVar f ->
+         eCall () f xs
+       EIf (e1, _) (_, e2) (_, e3) ->
+         eIf e1 e2 e3
+       ELet var (e1, _) (_, e2) ->
+         eLet var e1 e2
+       ECall _ f ys ->
+         eCall () f ((fst <$> ys) <> xs)
+       EPat (e1, _) cs ->
+         ePat e1 (snd <$$> cs)
+       ERes fs (e1, _) (_, e2) ->
+         eRes fs e1 e2
+       _ ->
+         error "Implementation error"
+   )
 
 exclude :: [Label t] -> [Name] -> [Label t]
 exclude = flip withoutLabels
@@ -149,36 +148,38 @@ extra t
   where
     ts = argTypes t
 
--- programDefs :: (MonadReader TypeEnv m, MonadState (Int, Program t a) m) => m [Name]
+programDefs = undefined
+
+-- programDefs :: (MonadReader TypeEnv m, MonadState (Int, Module t a) m) => m [Name]
 -- programDefs = do
 --  ns <- gets (Map.keys . Map.mapKeys snd . unpack . snd)
 --  env <- ask
 --  pure (ns <> (fst <$> Env.toList env))
---
--- uniqueName :: (MonadState (Int, a) m) => Name -> m Name
--- uniqueName prefix = do
---  n <- getAndModify (first succ) <&> fst
---  pure (prefix <> showt n)
---
--- liftDef ::
---  (MonadState (Int, Program MonoType Ast) m) =>
---  Name ->
---  [Label MonoType] ->
---  [Label MonoType] ->
---  Ast ->
---  m Ast
--- liftDef name vs args expr = do
---  let ty = foldType t ts
---  insertDef (toScheme "a" (free ty) ty, name) def
---  pure (applyArgs (eVar <$> vs) (eVar (ty, name)))
---  where
---    t = typeOf expr
---    ts = fst <$> as
---    as = vs <> args `without` [(t, name)]
---    def = Function (fromList as) (t, expr)
---
+
+uniqueName :: (MonadState (Int, a) m) => Name -> m Name
+uniqueName prefix = do
+  n <- getAndModify (first succ) <&> fst
+  pure (prefix <> showt n)
+
+liftDef ::
+ (MonadState (Int, Module MonoType Ast) m) =>
+ Name ->
+ [Label MonoType] ->
+ [Label MonoType] ->
+ Ast ->
+ m Ast
+liftDef name vs args expr = do
+  let ty = foldType t ts
+  insertDef (toScheme "a" (free ty) ty, name) def
+  pure (applyArgs (eVar <$> vs) (eVar (ty, name)))
+  where
+    t = typeOf expr
+    ts = fst <$> as
+    as = vs <> args `without` [(t, name)]
+    def = Function (fromList as) (t, expr)
+
 -- makeDef ::
---  (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) =>
+--  (MonadReader TypeEnv m, MonadState (Int, Module MonoType Ast) m) =>
 --  Name ->
 --  Ast ->
 --  ((Ast -> Ast) -> Ast) ->
@@ -196,7 +197,7 @@ extra t
 --    t = typeOf expr
 --
 -- compile ::
---  (MonadReader TypeEnv m, MonadState (Int, Program MonoType Ast) m) =>
+--  (MonadReader TypeEnv m, MonadState (Int, Module MonoType Ast) m) =>
 --  TypedExpr ->
 --  m Ast
 -- compile =
@@ -257,8 +258,8 @@ extra t
 --    ERec row ->
 --      eRec <$> mapRowM compile row
 --
--- compileProgram :: Program MonoType TypedExpr -> Program MonoType Ast
--- compileProgram p = evalState run (1, emptyProgram)
+-- compileModule :: Module MonoType TypedExpr -> Module MonoType Ast
+-- compileModule p = evalState run (1, emptyModule)
 --  where
 --    compileDefs = (`programForM` const (traverse compile))
 --    run = do
@@ -308,16 +309,16 @@ extra t
 --            (fromList (xs <> ys))
 --            (returnType t, applyArgs (eVar <$> ys) expr)
 --
--- normalizeProgramDefs :: Program MonoType Ast -> Program MonoType Ast
--- normalizeProgramDefs = over Program (normalizeDef <$>)
+-- normalizeModuleDefs :: Module MonoType Ast -> Module MonoType Ast
+-- normalizeModuleDefs = over Module (normalizeDef <$>)
 --
 -- runTransform :: State (Int, ()) a -> a
 -- runTransform = flip evalState (1, ())
 --
--- transform1 :: Program MonoType TypedExpr -> Program MonoType TypedExpr
+-- transform1 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 -- transform1 p = runTransform (programForM p (const (traverse monomorphizeLets . hoistTopLambdas)))
 --
--- transform2 :: Program MonoType TypedExpr -> Program MonoType TypedExpr
+-- transform2 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 -- transform2 p = runTransform (programForM p (const (traverse (flip (foldDefsM go) p))))
 --  where
 --    go ((_, name), def) e =
@@ -329,9 +330,9 @@ extra t
 --          pure e
 --
 -- insertConstructors ::
---  Program MonoType (Expr MonoType a0 a1 a2) ->
---  Program MonoType (Expr MonoType a0 a1 a2)
--- insertConstructors (Program p) = Program (p <> Map.fromList (concat extra_))
+--  Module MonoType (Expr MonoType a0 a1 a2) ->
+--  Module MonoType (Expr MonoType a0 a1 a2)
+-- insertConstructors (Module p) = Module (p <> Map.fromList (concat extra_))
 --  where
 --    extra_ =
 --      Map.toList p
@@ -356,8 +357,8 @@ data CompilerError
   = ParserError ParserError
   | TypeError TypeError
 
--- postProcess :: Program MonoType Ast -> Program MonoType Ast
--- postProcess p = over Program (Map.filterWithKey go) p
+-- postProcess :: Module MonoType Ast -> Module MonoType Ast
+-- postProcess p = over Module (Map.filterWithKey go) p
 --  where
 --    names = "main" : (snd <$> (freeVars p :: [Label MonoType]))
 --    go (_, def) =
@@ -365,24 +366,24 @@ data CompilerError
 --        Data{} -> True
 --        _ -> def `elem` names
 --
--- transformProgram :: Program MonoType TypedExpr -> Program MonoType Ast
--- transformProgram =
+-- transformModule :: Module MonoType TypedExpr -> Module MonoType Ast
+-- transformModule =
 --  insertConstructors
 --    >>> transform1
 --    >>> transform2
---    >>> compileProgram
---    >>> normalizeProgramDefs
+--    >>> compileModule
+--    >>> normalizeModuleDefs
 --    >>> postProcess
 --
--- parseAndAnnotate :: Text -> Either CompilerError (Program MonoType TypedExpr)
+-- parseAndAnnotate :: Text -> Either CompilerError (Module MonoType TypedExpr)
 -- parseAndAnnotate =
---  mapLeft ParserError . parseProgram >=> mapLeft TypeError . runInferProgram
+--  mapLeft ParserError . parseModule >=> mapLeft TypeError . runInferModule
 --
--- compileSource :: Text -> Program MonoType Ast
+-- compileSource :: Text -> Module MonoType Ast
 -- compileSource input =
 --  case parseAndAnnotate input of
 --    Left e -> error (show e)
---    Right p -> transformProgram p
+--    Right p -> transformModule p
 
 -------------------------------------------------------------------------------
 -- Typeclass instances

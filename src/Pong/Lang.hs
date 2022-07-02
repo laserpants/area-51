@@ -125,9 +125,6 @@ restrictRow field row =
     Just (e : es) = Map.lookup field m
     (m, k) = unwindRow row
 
--- typeEq :: (Eq v) => Type v -> Type v -> Bool
--- typeEq t1 t2 = normalizeTypeRows t1 == normalizeTypeRows t2
-
 rowEq :: (Eq v) => Type v -> Type v -> Bool
 rowEq t1 t2 = normalizeRows t1 == normalizeRows t2
 
