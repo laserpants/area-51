@@ -2,9 +2,9 @@
 
 module Pong.TestHelpers where
 
--- import Control.Monad ((>=>))
--- import Data.Either.Extra (mapLeft)
--- import qualified Data.Map.Strict as Map
+import Control.Monad ((>=>))
+import Data.Either.Extra (mapLeft)
+import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy as TextLazy
 import GHC.IO.Handle
 import LLVM.Pretty
@@ -12,7 +12,7 @@ import Pong.Data
 import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Read
--- import Pong.Tree
+import Pong.Tree
 import Pong.Type
 import Pong.Util
 import System.Directory
@@ -31,8 +31,8 @@ runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
 runUnifyRows :: MonoType -> MonoType -> Either TypeError Substitution
 runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unifyRows r1 r2)
 
--- lookupDef :: (Scheme, Name) -> Module t a -> Maybe (Definition t a)
--- lookupDef defn (Module p) = Map.lookup defn p
+lookupDef :: (Scheme, Name) -> Module t a -> Maybe (Definition t a)
+lookupDef defn (Module p) = Map.lookup defn p
 
 runInferModuleWithEnv ::
   TypeEnv ->
@@ -40,25 +40,25 @@ runInferModuleWithEnv ::
   Either TypeError (Module MonoType TypedExpr)
 runInferModuleWithEnv env = runTypeChecker 1 env . inferModule <&> fst
 
-----parseAndAnnotateWithEnv ::
----- TypeEnv ->
----- Text ->
----- Either CompilerError (Module MonoType TypedExpr)
-----parseAndAnnotateWithEnv env =
----- mapLeft ParserError . parseModule
-----   >=> mapLeft TypeError . runInferModuleWithEnv env
---
--- compileSourceWithEnv :: TypeEnv -> Text -> Module MonoType Ast
--- compileSourceWithEnv env input =
--- case parseAndAnnotateWithEnv env input of
---   Left e -> error (show e)
---   Right p -> transformModule p
---
--- testHoistModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
--- testHoistModule p = programFor p (const hoistTopLambdas)
---
--- testMonomorphizeModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
--- testMonomorphizeModule p = runTransform (programForM p (const (traverse monomorphizeLets)))
+parseAndAnnotateWithEnv ::
+  TypeEnv ->
+  Text ->
+  Either CompilerError (Module MonoType TypedExpr)
+parseAndAnnotateWithEnv env =
+  mapLeft ParserError . parseModule
+    >=> mapLeft TypeError . runInferModuleWithEnv env
+
+compileSourceWithEnv :: TypeEnv -> Text -> Module MonoType Ast
+compileSourceWithEnv env input =
+  case parseAndAnnotateWithEnv env input of
+    Left e -> error (show e)
+    Right p -> transformModule p
+
+testHoistModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
+testHoistModule p = moduleFor p (const hoistTopLambdas)
+
+testMonomorphizeModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
+testMonomorphizeModule p = runTransform (moduleForM p (const (traverse monomorphizeLets)))
 
 {-# NOINLINE projectDir #-}
 projectDir :: String
