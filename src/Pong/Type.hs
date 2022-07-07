@@ -10,6 +10,7 @@
 
 module Pong.Type where
 
+--import Debug.Trace
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -51,6 +52,7 @@ newtype TypeChecker a
 
 data TypeError
   = UnificationError
+  | InfiniteType
   | NotInScope Name
   | ConstructorNotInScope Name
   | IllFormedExpression
@@ -237,11 +239,11 @@ unifyRows ty1 ty2 =
     ((m1, Fix (TVar r)), (m2, k))
       | Map.null m1 && not (Map.null m2) && k == tVar r ->
           throwError UnificationError
-      | Map.null m1 -> pure (r `mapsTo` ty2)
+      | Map.null m1 -> bindType r ty2
     ((m1, j), (m2, Fix (TVar r)))
       | Map.null m2 && not (Map.null m1) && j == tVar r ->
           throwError UnificationError
-      | Map.null m2 -> pure (r `mapsTo` ty1)
+      | Map.null m2 -> bindType r ty1
     ((m1, j), (m2, k))
       | Map.null m1 -> unifyTypes ty1 ty2
       | otherwise ->
@@ -272,9 +274,9 @@ unifyTypes ty1 ty2 =
     (_, RExt{}) ->
       unifyRows ty1 ty2
     (TVar n, _) ->
-      pure (n `mapsTo` ty2)
+      bindType n ty2
     (_, TVar n) ->
-      pure (n `mapsTo` ty1)
+      bindType n ty1
     (TCon c1 ts1, TCon c2 ts2)
       | c1 == c2 ->
           unifyMany ts1 ts2
@@ -306,6 +308,16 @@ generalize t = do
   t1 <- applySubstitution t
   let vars = filter (`notElem` free env) (free t1)
   pure (toScheme "a" vars t1)
+
+{- ORMOLU_DISABLE -}
+
+bindType :: Int -> MonoType -> TypeChecker Substitution
+bindType n ty
+  | tVar n == ty     = pure mempty
+  | n `elem` free ty = throwError InfiniteType
+  | otherwise        = pure (n `mapsTo` ty)
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 -- Type inference
