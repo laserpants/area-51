@@ -206,40 +206,44 @@ getPrim :: Value -> Prim
 getPrim (PrimValue prim) = prim
 getPrim _ = error "Ill-formed expression"
 
+{- ORMOLU_DISABLE -}
+
 evalOp1 :: Op1 -> Prim -> Prim
-evalOp1 ONot (PBool b) = PBool (not b)
-evalOp1 ONeg (PFloat p) = PFloat (negate p)
+evalOp1 ONot (PBool b)   = PBool (not b)
+evalOp1 ONeg (PFloat p)  = PFloat (negate p)
 evalOp1 ONeg (PDouble p) = PDouble (negate p)
-evalOp1 ONeg (PInt n) = PInt (negate n)
-evalOp1 _ _ = error "Not implemented"
+evalOp1 ONeg (PInt n)    = PInt (negate n)
+evalOp1 _ _              = error "Not implemented"
 
 evalOp2 :: Op2 -> Prim -> Prim -> Prim
 evalOp2 OAdd (PFloat p) (PFloat q) = PFloat (p + q)
 evalOp2 OMul (PFloat p) (PFloat q) = PFloat (p * q)
 evalOp2 OSub (PFloat p) (PFloat q) = PFloat (p - q)
 evalOp2 ODiv (PFloat p) (PFloat q) = PFloat (p / q)
-evalOp2 OLt (PFloat p) (PFloat q) = PBool (p < q)
-evalOp2 OGt (PFloat p) (PFloat q) = PBool (p > q)
+evalOp2 OLt  (PFloat p) (PFloat q) = PBool (p < q)
+evalOp2 OGt  (PFloat p) (PFloat q) = PBool (p > q)
 evalOp2 OLtE (PFloat p) (PFloat q) = PBool (p <= q)
 evalOp2 OGtE (PFloat p) (PFloat q) = PBool (p >= q)
 evalOp2 OAdd (PDouble p) (PDouble q) = PDouble (p + q)
 evalOp2 OMul (PDouble p) (PDouble q) = PDouble (p * q)
 evalOp2 OSub (PDouble p) (PDouble q) = PDouble (p - q)
 evalOp2 ODiv (PDouble p) (PDouble q) = PDouble (p / q)
-evalOp2 OLt (PDouble p) (PDouble q) = PBool (p < q)
-evalOp2 OGt (PDouble p) (PDouble q) = PBool (p > q)
+evalOp2 OLt  (PDouble p) (PDouble q) = PBool (p < q)
+evalOp2 OGt  (PDouble p) (PDouble q) = PBool (p > q)
 evalOp2 OLtE (PDouble p) (PDouble q) = PBool (p <= q)
 evalOp2 OGtE (PDouble p) (PDouble q) = PBool (p >= q)
-evalOp2 OEq (PInt m) (PInt n) = PBool (m == n)
+evalOp2 OEq  (PInt m) (PInt n) = PBool (m == n)
 evalOp2 ONEq (PInt m) (PInt n) = PBool (m /= n)
 evalOp2 OAdd (PInt m) (PInt n) = PInt (m + n)
 evalOp2 OSub (PInt m) (PInt n) = PInt (m - n)
 evalOp2 OMul (PInt m) (PInt n) = PInt (m * n)
-evalOp2 OLt (PInt p) (PInt q) = PBool (p < q)
-evalOp2 OGt (PInt p) (PInt q) = PBool (p > q)
+evalOp2 OLt  (PInt p) (PInt q) = PBool (p < q)
+evalOp2 OGt  (PInt p) (PInt q) = PBool (p > q)
 evalOp2 OLtE (PInt p) (PInt q) = PBool (p <= q)
 evalOp2 OGtE (PInt p) (PInt q) = PBool (p >= q)
 evalOp2 _ _ _ = error "Not implemented"
+
+{- ORMOLU_ENABLE -}
 
 runEval :: Environment (Definition MonoType Ast) -> Eval a -> IO a
 runEval env ast = runReaderT (unEval ast) (env, mempty)
