@@ -10,7 +10,6 @@
 
 module Pong.Type where
 
---import Debug.Trace
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
