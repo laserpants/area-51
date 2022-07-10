@@ -8,6 +8,32 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util
 
+programqq4 :: Text
+programqq4 =
+  "\
+  \func main(a : unit) : int =\
+  \  if true == false\
+  \    then\
+  \      1\
+  \    else\
+  \      100\
+  \"
+
+-- "
+
+programrr4 :: Text
+programrr4 =
+  "\
+  \func main(a : unit) : int =\
+  \  if 3.4 == 3.4\
+  \    then\
+  \      1\
+  \    else\
+  \      100\
+  \"
+
+-- "
+
 programoo4 :: Text
 programoo4 =
   "\

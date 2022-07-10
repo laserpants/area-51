@@ -578,6 +578,12 @@ emitOp2Instr =
  \case
    (t, OEq)  | t == (tInt ~> tInt ~> tBool) -> icmp Int.EQ
    (t, ONEq) | t == (tInt ~> tInt ~> tBool) -> icmp Int.NE
+   (t, OEq)  | t == (tBool ~> tBool ~> tBool) -> icmp Int.EQ
+   (t, ONEq) | t == (tBool ~> tBool ~> tBool) -> icmp Int.NE
+   (t, OEq)  | t == (tFloat ~> tFloat ~> tBool) -> fcmp Float.UEQ
+   (t, ONEq) | t == (tFloat ~> tFloat ~> tBool) -> fcmp Float.UNE
+   (t, OEq)  | t == (tDouble ~> tDouble ~> tBool) -> fcmp Float.UEQ
+   (t, ONEq) | t == (tDouble ~> tDouble ~> tBool) -> fcmp Float.UNE
    (t, OAdd) | t == (tInt ~> tInt ~> tInt) -> add
    (t, OSub) | t == (tInt ~> tInt ~> tInt) -> sub
    (t, OMul) | t == (tInt ~> tInt ~> tInt) -> mul
