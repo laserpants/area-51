@@ -9,35 +9,34 @@ import Pong.Lang
 -- import Pong.Type
 import Pong.Util
 
---
--- program20 :: Text
--- program20 =
---  "def foo(a : unit) : int =\
---  \  5\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  let\
---  \    r =\
---  \      { a = 5, b = true }\
---  \    in\
---  \      let\
---  \        q =\
---  \          { c = 1 | r }\
---  \        in\
---  \          letr\
---  \            { a = x | s } =\
---  \              q\
---  \            in\
---  \              if\
---  \                x == foo(())\
---  \                then\
---  \                  100\
---  \                else\
---  \                  200\
---  \"
---
----- "
---
+program20 :: Text
+program20 =
+  "func foo(a : unit) : int =\
+  \  5\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          field\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              if\
+  \                x == foo(())\
+  \                then\
+  \                  100\
+  \                else\
+  \                  200\
+  \"
+
+-- "
+
 -- program21 :: Text
 -- program21 =
 --  "def baz(a : unit) : { a : int, b : bool } =\
@@ -139,46 +138,46 @@ import Pong.Util
 --  \"
 --
 ---- "
---
--- program25 :: Text
--- program25 =
---  "def foo(a : unit) : int =\
---  \  5\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  let\
---  \    r =\
---  \      { a = false }\
---  \    in\
---  \      letr\
---  \        { a = x | s } =\
---  \          r\
---  \        in\
---  \          if x\
---  \            then 9\
---  \            else 10\
---  \"
---
----- "
---
--- program26 :: Text
--- program26 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    r =\
---  \      { a = 3.14159 }\
---  \    in\
---  \      letr\
---  \        { a = x | s } =\
---  \          r\
---  \        in\
---  \          if x > 3.0\
---  \            then 99\
---  \            else 109\
---  \"
---
----- "
---
+
+program25 :: Text
+program25 =
+  "func foo(a : unit) : int =\
+  \  5\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = false }\
+  \    in\
+  \      field\
+  \        { a = x | s } =\
+  \          r\
+  \        in\
+  \          if x\
+  \            then 9\
+  \            else 10\
+  \"
+
+-- "
+
+program26 :: Text
+program26 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 3.14159 }\
+  \    in\
+  \      field\
+  \        { a = x | s } =\
+  \          r\
+  \        in\
+  \          if x > 3.0\
+  \            then 99\
+  \            else 109\
+  \"
+
+-- "
+
 -- program27 :: Text
 -- program27 =
 --  "def main(_ : unit) : int =\
@@ -196,25 +195,25 @@ import Pong.Util
 --  \"
 --
 ---- "
---
--- program28 :: Text
--- program28 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    b =\
---  \      5\
---  \    in\
---  \      let\
---  \        a =\
---  \          -b\
---  \        in\
---  \          if -5 == a\
---  \            then 1\
---  \            else 2\
---  \"
---
----- "
---
+
+program28 :: Text
+program28 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          -b\
+  \        in\
+  \          if -5 == a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
+
 -- program29 :: Text
 -- program29 =
 --  "def main(_ : unit) : int =\
@@ -250,63 +249,63 @@ import Pong.Util
 --  \"
 --
 ---- "
---
--- program31 :: Text
--- program31 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    b =\
---  \      5\
---  \    in\
---  \      let\
---  \        a =\
---  \          b == -5 && 3 > 2\
---  \        in\
---  \          if a\
---  \            then 1\
---  \            else 2\
---  \"
---
----- "
---
--- program32 :: Text
--- program32 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    b =\
---  \      5\
---  \    in\
---  \      let\
---  \        a =\
---  \          b == -5 || b == 5\
---  \        in\
---  \          if a\
---  \            then 1\
---  \            else 2\
---  \"
---
----- "
---
--- program33 :: Text
--- program33 =
---  "def main(_ : unit) : int =\
---  \  let f =\
---  \    lam(r) =>\
---  \      { x = 111 | r }\
---  \   in\
---  \     let\
---  \       q =\
---  \         f({ y = 2 })\
---  \       in\
---  \         letr\
---  \           { x = a | s } =\
---  \             q\
---  \           in\
---  \             a\
---  \"
---
----- "
---
+
+program31 :: Text
+program31 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == -5 && 3 > 2\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
+
+program32 :: Text
+program32 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == -5 || b == 5\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
+
+program33 :: Text
+program33 =
+  "func main(_ : unit) : int =\
+  \  let f =\
+  \    lam(r) =>\
+  \      { x = 111 | r }\
+  \   in\
+  \     let\
+  \       q =\
+  \         f({ y = 2 })\
+  \       in\
+  \         letr\
+  \           { x = a | s } =\
+  \             q\
+  \           in\
+  \             a\
+  \"
+
+-- "
+
 -- program34 :: Program () SourceExpr
 -- program34 =
 --  Program
@@ -649,25 +648,45 @@ import Pong.Util
 --
 ---- "
 --
--- program37 :: Text
--- program37 =
---  "def main(_ : unit) : int =\
---  \  let f =\
---  \    lam(r) =>\
---  \      { x = 111 | r }\
---  \   in\
---  \     let\
---  \       q =\
---  \         f({ y = 2 })\
---  \       in\
---  \         letr\
---  \           { y = a | s } =\
---  \             q\
---  \           in\
---  \             a\
---  \"
---
----- "
+program37 :: Text
+program37 =
+  "func main(_ : unit) : int =\
+  \  let f =\
+  \    lam(r) =>\
+  \      { x = 111 | r }\
+  \   in\
+  \     let\
+  \       q =\
+  \         f({ y = 2 })\
+  \       in\
+  \         field\
+  \           { y = a | s } =\
+  \             q\
+  \           in\
+  \             a\
+  \"
+
+-- "
+
+program377 :: Text
+program377 =
+  "func main(_ : unit) : int =\
+  \  let f =\
+  \    lam(r) =>\
+  \      { x = 111 | r }\
+  \   in\
+  \     let\
+  \       q =\
+  \         f({ y = 2 })\
+  \       in\
+  \         field\
+  \           { x = a | s } =\
+  \             q\
+  \           in\
+  \             a\
+  \"
+
+-- "
 
 program38 :: Text
 program38 =
@@ -682,7 +701,7 @@ program38 =
   \        in\
   \          a\
   \\r\n\
-  \func foo(r : a) : { x : int | a } =\
+  \func foo(r : { | a }) : { x : int | a } =\
   \  { x = 111 | r }\
   \"
 
@@ -730,6 +749,25 @@ program3x8 =
           )
         ]
     )
+
+program39 :: Text
+program39 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ y = 2 })\
+  \    in\
+  \      field\
+  \        { y = a | s } =\
+  \          q\
+  \        in\
+  \          a\
+  \\r\n\
+  \func foo(r : { | a }) : { x : int | a } =\
+  \  { x = 111 | r }\
+  \"
+
+---- "
 
 --
 ----

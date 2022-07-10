@@ -6,7 +6,8 @@ module Pong.TestData.ThePanamaHat where
 -- import qualified Data.Map.Strict as Map
 -- import Pong.Data
 -- import Pong.Lang
--- import Pong.Util
+import Pong.Util
+
 --
 -- expr101 :: Text
 -- expr101 =
@@ -968,238 +969,238 @@ module Pong.TestData.ThePanamaHat where
 --          )
 --        ]
 --    )
---
--- program400 :: Text
--- program400 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type List a\
---  \  = Nil\
---  \  | Cons a (List a)\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  print_int(runner())\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    xs =\
---  \      Nil\
---  \    in\
---  \      match xs\
---  \        { Nil => 401\
---  \        | Cons(y, ys) => 402\
---  \        }\
---  \"
---
----- "
---
--- program500 :: Text
--- program500 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type List a\
---  \  = Nil\
---  \  | Cons a (List a)\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  print_int(runner())\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    xs =\
---  \      Cons(4, Nil)\
---  \    in\
---  \      match xs\
---  \        { Nil => 401\
---  \        | Cons(y, ys) => 402\
---  \        }\
---  \"
---
----- "
---
--- program501 :: Text
--- program501 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type List a\
---  \  = Nil\
---  \  | Cons a (List a)\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  print_int(runner())\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    xs =\
---  \      Cons(4, Nil)\
---  \    in\
---  \      match xs\
---  \        { Nil => 401\
---  \        | Cons(y, ys) => y\
---  \        }\
---  \"
---
----- "
---
--- program600 :: Text
--- program600 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type Either a b\
---  \  = Left a\
---  \  | Right b\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  print_int(runner())\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    xs =\
---  \      Left(5)\
---  \    in\
---  \      match xs\
---  \        { Left(a) => 1\
---  \        | Right(b) => 2\
---  \        }\
---  \"
---
----- "
---
--- program601 :: Text
--- program601 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type Either a b\
---  \  = Left a\
---  \  | Right b\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  print_int(runner())\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    xs =\
---  \      Right(5)\
---  \    in\
---  \      match xs\
---  \        { Left(a) => 1\
---  \        | Right(b) => 2\
---  \        }\
---  \"
---
----- "
---
--- program602 :: Text
--- program602 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type Either a b\
---  \  = Left a\
---  \  | Right b\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  let\
---  \    r =\
---  \      runner()\
---  \    in\
---  \      print_int(r)\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    ys =\
---  \      Left(50)\
---  \    in\
---  \      let\
---  \        xs =\
---  \          Right(5)\
---  \        in\
---  \          match xs\
---  \            { Left(a) => a\
---  \            | Right(b) =>\
---  \                match ys\
---  \                  { Left(c) => c\
---  \                  | Right(d) => 0\
---  \                  }\
---  \            }\
---  \"
---
----- "
---
--- program603 :: Text
--- program603 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type Either a b\
---  \  = This a\
---  \  | That b\
---  \\r\n\
---  \const num : int =\
---  \  5\
---  \\r\n\
---  \def fact(n : int) : int =\
---  \  if 0 == n\
---  \    then\
---  \      1\
---  \     else\
---  \      n * fact(n - 1)\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  let\
---  \    res =\
---  \      runner()\
---  \    in\
---  \      print_int(res)\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  let\
---  \    ys =\
---  \      This(50)\
---  \    in\
---  \      let\
---  \        xs =\
---  \          That(5)\
---  \        in\
---  \          match xs\
---  \            { This(a) => a\
---  \            | That(b) =>\
---  \                match ys\
---  \                  { This(c) => 1 + fact(num)\
---  \                  | That(d) => 0\
---  \                  }\
---  \            }\
---  \"
---
----- "
---
--- program604 :: Text
--- program604 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \type Either a b\
---  \  = This a\
---  \  | That b\
---  \\r\n\
---  \const succ : int -> int =\
---  \  lam(x) =>\
---  \    x + 1\
---  \\r\n\
---  \def main(_ : unit) : int =\
---  \  let\
---  \    res =\
---  \      runner()\
---  \    in\
---  \      print_int(res)\
---  \\r\n\
---  \def runner(_ : unit) : int =\
---  \  succ(5)\
---  \"
---
----- "
+
+program400 :: Text
+program400 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type List a\
+  \  = Nil\
+  \  | Cons a (List a)\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Nil\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => 402\
+  \        }\
+  \"
+
+-- "
+
+program500 :: Text
+program500 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type List a\
+  \  = Nil\
+  \  | Cons a (List a)\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Cons(4, Nil)\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => 402\
+  \        }\
+  \"
+
+-- "
+
+program501 :: Text
+program501 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type List a\
+  \  = Nil\
+  \  | Cons a (List a)\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Cons(4, Nil)\
+  \    in\
+  \      match xs\
+  \        { Nil => 401\
+  \        | Cons(y, ys) => y\
+  \        }\
+  \"
+
+-- "
+
+program600 :: Text
+program600 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = Left a\
+  \  | Right b\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Left(5)\
+  \    in\
+  \      match xs\
+  \        { Left(a) => 1\
+  \        | Right(b) => 2\
+  \        }\
+  \"
+
+-- "
+
+program601 :: Text
+program601 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = Left a\
+  \  | Right b\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  print_int(runner())\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    xs =\
+  \      Right(5)\
+  \    in\
+  \      match xs\
+  \        { Left(a) => 1\
+  \        | Right(b) => 2\
+  \        }\
+  \"
+
+-- "
+
+program602 :: Text
+program602 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = Left a\
+  \  | Right b\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      runner()\
+  \    in\
+  \      print_int(r)\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    ys =\
+  \      Left(50)\
+  \    in\
+  \      let\
+  \        xs =\
+  \          Right(5)\
+  \        in\
+  \          match xs\
+  \            { Left(a) => a\
+  \            | Right(b) =>\
+  \                match ys\
+  \                  { Left(c) => c\
+  \                  | Right(d) => 0\
+  \                  }\
+  \            }\
+  \"
+
+-- "
+
+program603 :: Text
+program603 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \const num : int =\
+  \  5\
+  \\r\n\
+  \func fact(n : int) : int =\
+  \  if 0 == n\
+  \    then\
+  \      1\
+  \     else\
+  \      n * fact(n - 1)\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    ys =\
+  \      This(50)\
+  \    in\
+  \      let\
+  \        xs =\
+  \          That(5)\
+  \        in\
+  \          match xs\
+  \            { This(a) => a\
+  \            | That(b) =>\
+  \                match ys\
+  \                  { This(c) => 1 + fact(num)\
+  \                  | That(d) => 0\
+  \                  }\
+  \            }\
+  \"
+
+-- "
+
+program604 :: Text
+program604 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \const succ : int -> int =\
+  \  lam(x) =>\
+  \    x + 1\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  succ(5)\
+  \"
+
+-- "

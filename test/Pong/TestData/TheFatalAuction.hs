@@ -57,38 +57,39 @@ program50 =
 
 -- "
 
--- program51 :: Text
--- program51 =
---  "extern print_int : int -> int\
---  \\r\n\
---  \def foo(x : float, y : int, z : bool) : int=\
---  \  y\
---  \\r\n\
---  \def prog(a : unit) : int =\
---  \  let f = foo(4.0f) in f(7, true)\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  print_int(prog(()))\
---  \"
---
----- "
---
--- program52 :: Text
--- program52 =
---  "\
---  \extern print_int : int -> int\
---  \\r\n\
---  \def foo(x : float, y : int, z : bool) : int=\
---  \  y\
---  \\r\n\
---  \def prog(a : unit) : int =\
---  \  let f = foo(4.0f) in let g = f(9) in g(true)\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  print_int(prog(()))\
---  \"
---
----- "
+program51 :: Text
+program51 =
+  "extern print_int : int -> int\
+  \\r\n\
+  \func foo(x : float, y : int, z : bool) : int=\
+  \  y\
+  \\r\n\
+  \func prog(a : unit) : int =\
+  \  let f = foo(4.0f) in f(7, true)\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(prog(()))\
+  \"
+
+-- "
+
+program52 :: Text
+program52 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \func foo(x : float, y : int, z : bool) : int=\
+  \  y\
+  \\r\n\
+  \func prog(a : unit) : int =\
+  \  let f = foo(4.0f) in let g = f(9) in g(true)\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(prog(()))\
+  \"
+
+-- "
+
 --
 ---- def foo(x : a, y : a) : a=
 ----   x
