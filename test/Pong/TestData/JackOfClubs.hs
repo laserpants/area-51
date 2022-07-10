@@ -8,6 +8,28 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util
 
+programo4 :: Text
+programo4 =
+  "extern print_int : int -> int\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(prog())\
+  \\r\n\
+  \func prog(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      lam(n) =>\
+  \        if n == 0\
+  \          then\
+  \            1\
+  \          else\
+  \            n * f(n - 1)\
+  \    in\
+  \      f(15)\
+  \"
+
+-- "
+
 programi4 :: Text
 programi4 =
   "func main(a : unit) : int =\
