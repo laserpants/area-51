@@ -90,6 +90,24 @@ program52 =
 
 -- "
 
+program522 :: Text
+program522 =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \func foo(x : float, y : int, z : bool) : int=\
+  \  y\
+  \\r\n\
+  \func prog(a : unit) : int =\
+  \  let f = foo(4.0f) in let g = f(9) in g(true)\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(prog())\
+  \"
+
+-- "
+
+
 --
 ---- def foo(x : a, y : a) : a=
 ----   x
