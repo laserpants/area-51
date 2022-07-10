@@ -6,7 +6,6 @@
 
 module Pong.Lang where
 
--- import Control.Monad (join)
 import Control.Monad.State
 import Control.Newtype.Generics (over, unpack)
 import Data.Foldable (foldrM)
