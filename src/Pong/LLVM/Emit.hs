@@ -130,8 +130,8 @@ buildModule_ pname p = do
             op <-
               extern
                 (llvmRep defn)
-                (llvmType2 <$> args)
-                (llvmType2 t1)
+                (llvmType True <$> args)
+                (llvmType True t1)
             pure [(defn, (t, op))]
           Constant (t1, _) ->
             pure
@@ -141,7 +141,7 @@ buildModule_ pname p = do
                   ( t
                   , functionRef
                       (llvmRep defn)
-                      (llvmType2 t1)
+                      (llvmType True t1)
                       []
                   )
                 )
@@ -154,8 +154,8 @@ buildModule_ pname p = do
                   ( t
                   , functionRef
                       (llvmRep defn)
-                      (llvmType2 t1)
-                      (llvmType2 . fst <$> toList args)
+                      (llvmType True t1)
+                      (llvmType True . fst <$> toList args)
                   )
                 )
               ]
@@ -189,13 +189,13 @@ buildModule_ pname p = do
                     void $
                       function
                         (llvmRep defn)
-                        (toList args <&> llvmType2 *** llvmRep)
+                        (toList args <&> llvmType True *** llvmRep)
                         charPtr
                         ( \ops -> do
                             let sty =
                                   StructureType
                                     False
-                                    (i8 : (llvmType2 . fst <$> toList args))
+                                    (i8 : (llvmType True . fst <$> toList args))
                             s <- malloc sty
                             storeRange s 0 (int8 n : ops)
                             a <- bitcast s charPtr
@@ -208,7 +208,7 @@ buildModule_ pname p = do
               function
                 (llvmRep defn)
                 []
-                (llvmType2 t1)
+                (llvmType True t1)
                 ( \_ ->
                     emitBody body >>= ret . snd
                 )
@@ -216,8 +216,8 @@ buildModule_ pname p = do
             void $
               function
                 (llvmRep defn)
-                (toList args <&> llvmType2 *** llvmRep)
-                (llvmType2 t1)
+                (toList args <&> llvmType True *** llvmRep)
+                (llvmType True t1)
                 ( \ops ->
                     do
                       r <-
@@ -261,8 +261,8 @@ emitBody =
               lift
                 ( function
                     (llvmRep n)
-                    ((llvmType <$> argTypes e1) `zip` repeat "a")
-                    (llvmType (returnType e1))
+                    ((llvmType True <$> argTypes e1) `zip` repeat "a")
+                    (llvmType True (returnType e1))
                     ( \args -> do
                         as1 <- traverse emitBody as
                         let as2 = zip (argTypes e1) args
@@ -407,7 +407,7 @@ emitCall_ fun args = do
       let u = returnType t
       if arity t == length as
         then do
-          let sty = StructureType False [llvmType (tVar 0 ~> t)]
+          let sty = StructureType False [llvmType False (tVar 0 ~> t)]
           s <- bitcast op (ptr sty)
           f <- loadOffset s 0
           r <- call f (zip (op : (snd <$> as)) (repeat []))
@@ -415,15 +415,15 @@ emitCall_ fun args = do
         else do
           n <- uniqueName "$f"
           let (ts, us) = splitAt (length as) (argTypes t)
-              toFty tys = llvmType (foldType u (tVar 0 : tys))
-              sty1 = StructureType False (toFty us : charPtr : (llvmType2 <$> ts))
+              toFty tys = llvmType False (foldType u (tVar 0 : tys))
+              sty1 = StructureType False (toFty us : charPtr : (llvmType False <$> ts))
               sty2 = StructureType False [toFty (ts <> us)]
           s <- malloc sty1
           storeOffset s 0
             =<< function
               (llvmRep n)
-              ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
-              (llvmType u)
+              ((charPtr, "s") : [(llvmType True uj, llvmRep "a") | uj <- us])
+              (llvmType True u)
               ( \(w : ws) -> do
                   s1 <- bitcast w (ptr sty1)
                   v <- loadOffset s1 1
@@ -447,14 +447,14 @@ emitCall_ fun args = do
         else do
           n <- uniqueName "$f"
           let (ts, us) = splitAt (length as) (argTypes t)
-              fty = llvmType (foldType u (tVar 0 : us))
-              sty = StructureType False (fty : (llvmType2 <$> ts))
+              fty = llvmType False (foldType u (tVar 0 : us))
+              sty = StructureType False (fty : (llvmType False <$> ts))
           s <- malloc sty
           storeOffset s 0
             =<< function
               (llvmRep n)
-              ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
-              (llvmType u)
+              ((charPtr, "s") : [(llvmType True uj, llvmRep "a") | uj <- us])
+              (llvmType True u)
               ( \(w : ws) -> do
                   s1 <- bitcast w (ptr sty)
                   vs <- loadRange s1 [1 .. length args]
@@ -486,7 +486,7 @@ emitPat expr_ cs = mdo
         if null fields
           then body
           else do
-            s1 <- bitcast e (ptr (StructureType False (i8 : (argTypes t <&> llvmType))))
+            s1 <- bitcast e (ptr (StructureType False (i8 : (argTypes t <&> llvmType False))))
             ops <- zip (argTypes t) <$> loadRange s1 [1 .. arity t]
             local (Env.inserts (zip (fields <&> snd) ops)) body
       br end
@@ -512,17 +512,15 @@ llvmPrimType =
      TChar{}   -> i8
      _         -> charPtr
 
-llvmType2 :: MonoType -> LLVM.Type
-llvmType2 =
+llvmType :: Bool -> MonoType -> LLVM.Type
+llvmType voidPtrs =
   \case
-    Fix TArr{} -> charPtr
-    t          -> llvmPrimType t
-
-llvmType :: MonoType -> LLVM.Type
-llvmType =
-  \case
-    ty@(Fix TArr{}) -> ptr (funTy ty)
-    t               -> llvmPrimType t
+    t
+      | isFunTy && voidPtrs -> charPtr
+      | isFunTy -> ptr (funTy t)
+      | otherwise -> llvmPrimType t
+      where
+        isFunTy = isConT ArrT t
 
 {- ORMOLU_ENABLE -}
 
@@ -534,7 +532,7 @@ funTy t =
     , isVarArg = False
     }
   where
-    types = llvmType <$> unwindType t
+    types = llvmType False <$> unwindType t
 
 llvmPrim :: Prim -> CodeGen Constant
 llvmPrim =
