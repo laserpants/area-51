@@ -430,6 +430,12 @@ typeTests =
           t2 :: MonoType
           t2 = tRec (rExt "id" tInt (rExt "name" tString rNil)) ~> tInt
        in it "3" (let Right sub = runUnify t1 t2 in apply sub t1 `rowEq` apply sub t2)
+      -------------------------------------------------------------------------
+      let t1 :: MonoType
+          t1 = tCon "T" [tVar 0]
+       in it "4" (let Right sub = runUnify t1 t1 in apply sub t1 == apply sub t1)
+      -------------------------------------------------------------------------
+      failIt "5" (runUnify (tVar 0 ~> tInt) ((tVar 0 ~> tVar 0) ~> tVar 1) == Left InfiniteType)
 
     describe "- unifyRows" $ do
       let passUnifyRows row1 row2 =

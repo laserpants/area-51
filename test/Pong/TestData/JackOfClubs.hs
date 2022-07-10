@@ -8,6 +8,426 @@ import Pong.Data
 import Pong.Lang
 import Pong.Util
 
+programi4 :: Text
+programi4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      lam(n) =>\
+  \        2 * f(1)\
+  \    in\
+  \      f(5)\
+  \"
+
+-- "
+
+programh4 :: Text
+programh4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      1 + f\
+  \    in\
+  \      5 -- f(5)\
+  \"
+
+-- "
+
+programz4 :: Text
+programz4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    h =\
+  \      lam(z) =>\
+  \        z\
+  \    in\
+  \      let\
+  \        f =\
+  \          lam(n) =>\
+  \            h(n - 1)\
+  \        in\
+  \          f(5)\
+  \"
+
+-- "
+
+--
+-- func main(a : unit) : int =
+--   let
+--     f =
+--       $lam3($lam1)
+--     in
+--       f(5)
+--
+--  func $lam1(z : int) : int =
+--    z
+--
+--  func $lam3(h-1 : int -> int, n : int) : int =
+--    h-1(n - 1)
+--
+--
+
+programg4 :: Text
+programg4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      lam(n) =>\
+  \        if n == 0\
+  \          then\
+  \            1\
+  \          else\
+  \            n * f(n - 1)\
+  \    in\
+  \      f(5)\
+  \"
+
+-- "
+
+programf4 :: Text
+programf4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      lam(g) =>\
+  \        lam(n) =>\
+  \          if n == 0\
+  \            then\
+  \              1\
+  \            else\
+  \              n * g(f, n - 1)\
+  \      in\
+  \        f(f, 5)\
+  \"
+
+-- "
+
+programb4 :: Text
+programb4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      lam(g) =>\
+  \        lam(n) =>\
+  \          if n == 0\
+  \            then\
+  \              1\
+  \            else\
+  \              n * g(g, n - 1)\
+  \      in\
+  \        f(f, 5)\
+  \"
+
+-- "
+
+programc4 :: Module () SourceExpr
+programc4 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [((), "a")])
+              ( ()
+              , eLet
+                  ((), "f")
+                  ( eLam
+                      ()
+                      [((), "g")]
+                      ( eLam
+                          ()
+                          [((), "n")]
+                          ( eIf
+                              ( eOp2
+                                  ((), OEq)
+                                  (eVar ((), "n"))
+                                  (eLit (PInt 0))
+                              )
+                              (eLit (PInt 1))
+                              ( eOp2
+                                  ((), OMul)
+                                  (eVar ((), "n"))
+                                  ( eApp
+                                      ()
+                                      (eVar ((), "g"))
+                                      [ eVar ((), "g")
+                                      , eOp2
+                                          ((), OSub)
+                                          (eVar ((), "n"))
+                                          (eLit (PInt 1))
+                                      ]
+                                  )
+                              )
+                          )
+                      )
+                  )
+                  ( eApp
+                      ()
+                      (eVar ((), "f"))
+                      [ eVar ((), "f")
+                      , eLit (PInt 5)
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+-- x123 =
+--    let
+--      f =
+--        \g n ->
+--          if n == 0 then 1 else n * (g g (n - 1)
+--      in
+--        f f 5
+
+programc6 :: Module MonoType TypedExpr
+programc6 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  ((((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt) ~> tInt ~> tInt) ~> tInt ~> tInt, "f")
+                  ( eLam
+                      ()
+                      [((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")]
+                      ( eLam
+                          ()
+                          [(tInt, "n")]
+                          ( eIf
+                              ( eOp2
+                                  oEqInt
+                                  (eVar (tInt, "n"))
+                                  (eLit (PInt 0))
+                              )
+                              (eLit (PInt 1))
+                              ( eOp2
+                                  oMulInt
+                                  (eVar (tInt, "n"))
+                                  ( eApp
+                                      tInt
+                                      (eVar ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g"))
+                                      [ eVar ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")
+                                      , eOp2
+                                          oSubInt
+                                          (eVar (tInt, "n"))
+                                          (eLit (PInt 1))
+                                      ]
+                                  )
+                              )
+                          )
+                      )
+                  )
+                  ( eApp
+                      tInt
+                      (eVar (((tVar 22 ~> tInt ~> tInt) ~> tInt ~> tInt) ~> tInt ~> tInt, "f"))
+                      [ eVar ((tVar 22 ~> tInt ~> tInt) ~> tInt ~> tInt, "f")
+                      , eLit (PInt 5)
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+programe4 :: Text
+programe4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    f =\
+  \      lam(g) =>\
+  \        lam(n) =>\
+  \          1\
+  \      in\
+  \        f(f, 5)\
+  \"
+
+-- "
+
+--  func main(a : unit) : int =
+--    let
+--      f =
+--        lam(g) =>
+--          lam(n) =>
+--            1
+--        in
+--          f(f, 5)
+
+programd4 :: Module () SourceExpr
+programd4 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [((), "a")])
+              ( ()
+              , eLet
+                  ((), "f")
+                  ( eLam
+                      ()
+                      [((), "g")]
+                      ( eLam
+                          ()
+                          [((), "n")]
+                          (eLit (PInt 1))
+                      )
+                  )
+                  ( eApp
+                      ()
+                      (eVar ((), "f"))
+                      [ eVar ((), "f")
+                      , eLit (PInt 5)
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+programd5 :: Module MonoType TypedExpr
+programd5 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tVar 0 ~> tVar 1 ~> tInt, "f")
+                  ( eLam
+                      ()
+                      [(tVar 0, "g")]
+                      ( eLam
+                          ()
+                          [(tVar 1, "n")]
+                          (eLit (PInt 1))
+                      )
+                  )
+                  ( eApp
+                      tInt
+                      (eVar ((tVar 2 ~> tVar 3 ~> tInt) ~> tInt ~> tInt, "f"))
+                      [ eVar (tVar 2 ~> tVar 3 ~> tInt, "f")
+                      , eLit (PInt 5)
+                      ]
+                  )
+              )
+          )
+        ]
+    )
+
+programa4 :: Text
+programa4 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    foo =\
+  \      lam(x) =>\
+  \        lam(y) =>\
+  \          lam(z) =>\
+  \            x + y + z\
+  \    in\
+  \      let\
+  \        f =\
+  \          foo(1)\
+  \        in\
+  \          let\
+  \            g =\
+  \              f(2)\
+  \            in\
+  \              g(3)\
+  \"
+
+-- "
+
+program94 :: Text
+program94 =
+  "func main(a : unit) : int =\
+  \  let\
+  \     foo =\
+  \       lam(f) =>\
+  \         f(8)\
+  \    in\
+  \      let\
+  \        id =\
+  \          lam(x) =>\
+  \            x\
+  \        in\
+  \          let\
+  \            add =\
+  \              lam(x) =>\
+  \                lam(y) =>\
+  \                  x + y\
+  \            in\
+  \              let\
+  \                add2 =\
+  \                  add(2)\
+  \                in\
+  \                  foo(add2) + add(4, 5)\
+  \"
+
+-- "
+
+program84 :: Text
+program84 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    id =\
+  \      lam(x) =>\
+  \        x\
+  \    in\
+  \      let\
+  \        add =\
+  \          lam(x) =>\
+  \            lam(y) =>\
+  \              x + y\
+  \        in\
+  \          let\
+  \            add2 =\
+  \              add(2)\
+  \            in\
+  \              foo(add2) + add(4, 5)\
+  \\r\n\
+  \func foo(f : int -> int) : int = \
+  \  f(8)\
+  \"
+
+-- "
+
+program74 :: Text
+program74 =
+  "func main(a : unit) : int =\
+  \  let\
+  \    add =\
+  \      lam(x) =>\
+  \        lam(y) =>\
+  \          x + y\
+  \    in\
+  \      let\
+  \        add2 =\
+  \          add(2)\
+  \        in\
+  \          add2(3)\
+  \"
+
+-- "
+
 program4 :: Text
 program4 =
   "func main(a : unit) : int =\
@@ -651,3 +1071,221 @@ program6 =
 --          )
 --        ]
 --    )
+
+module123 :: Module MonoType Ast
+module123 =
+  Module
+    ( Map.fromList
+        [ -- func main(a : unit) : int =
+          --   let
+          --     add2 =
+          --       $lam4(2)
+          --     in
+          --       $lam1(add2, $lam2(3))
+          --       +
+          --       $lam5(4, 5)
+
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eLet
+                  (tInt ~> tInt, "add2")
+                  ( eCall
+                      ()
+                      (tInt ~> tInt ~> tInt, "$lam4")
+                      [eLit (PInt 2)]
+                  )
+                  ( eOp2
+                      oAddInt
+                      ( eCall
+                          ()
+                          ( (tInt ~> tInt) ~> tInt ~> tInt
+                          , "$lam1"
+                          )
+                          [ eVar (tInt ~> tInt, "add2")
+                          , eCall
+                              ()
+                              (tInt ~> tInt, "$lam2")
+                              [ eLit (PInt 3)
+                              ]
+                          ]
+                      )
+                      ( eCall
+                          ()
+                          (tInt ~> tInt ~> tInt, "$lam5")
+                          [ eLit (PInt 4)
+                          , eLit (PInt 5)
+                          ]
+                      )
+                  )
+              )
+          )
+        , -- func $lam2(x : int) : int =
+          --   x
+
+          (
+            ( Scheme (tInt ~> tInt)
+            , "$lam2"
+            )
+          , Function
+              (fromList [(tInt, "x")])
+              ( tInt
+              , eVar (tInt, "x")
+              )
+          )
+        , -- func $lam4(x : int, y : int) : int =
+          --   x + y
+
+          (
+            ( Scheme (tInt ~> tInt ~> tInt)
+            , "$lam4"
+            )
+          , Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              ( tInt
+              , eOp2
+                  oAddInt
+                  (eVar (tInt, "x"))
+                  (eVar (tInt, "y"))
+              )
+          )
+        , -- func $lam5(x : int, y : int) : int =
+          --   x + y
+
+          (
+            ( Scheme (tInt ~> tInt ~> tInt)
+            , "$lam5"
+            )
+          , Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              ( tInt
+              , eOp2
+                  oAddInt
+                  (eVar (tInt, "x"))
+                  (eVar (tInt, "y"))
+              )
+          )
+        , -- func $lam1(x : int -> int, $v0 : int) : int =
+          --   x($v0)
+
+          (
+            ( Scheme ((tInt ~> tInt) ~> tInt ~> tInt)
+            , "$lam1"
+            )
+          , Function
+              (fromList [(tInt ~> tInt, "x"), (tInt, "$v0")])
+              ( tInt
+              , eCall
+                  ()
+                  (tInt ~> tInt, "x")
+                  [eVar (tInt, "$v0")]
+              )
+          )
+        ]
+    )
+
+eCall_ :: Label t -> [Expr t a0 a1 ()] -> Expr t a0 a1 ()
+eCall_ = eCall ()
+
+-- func main(a : unit) : int =
+--   let
+--     f =
+--       lam(g) =>
+--         lam(n) =>
+--           if n == 0
+--             then
+--               1
+--             else
+--               n * g(g, n - 1)
+--       in
+--         f(f, 5)
+
+module456 :: Module MonoType Ast
+module456 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [(tUnit, "a")])
+              ( tInt
+              , eCall_
+                  (((tVar 22 ~> tInt ~> tInt) ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam1")
+                  [ eVar ((tVar 22 ~> tInt ~> tInt) ~> tInt ~> tInt, "$lam2")
+                  , eLit (PInt 5)
+                  ]
+              )
+          )
+        ,
+          (
+            ( Scheme (((tVar "a0" ~> tInt ~> tInt) ~> tInt ~> tInt) ~> tInt ~> tInt)
+            , "$lam1"
+            )
+          , Function
+              ( fromList
+                  [ ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")
+                  , (tInt, "n")
+                  ]
+              )
+              ( tInt
+              , eIf
+                  ( eOp2
+                      oEqInt
+                      (eVar (tInt, "n"))
+                      (eLit (PInt 0))
+                  )
+                  (eLit (PInt 1))
+                  ( eOp2
+                      oMulInt
+                      (eVar (tInt, "n"))
+                      ( eCall_
+                          (tVar 3 ~> (tInt ~> tInt) ~> tInt ~> tInt, "g")
+                          [ eVar ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")
+                          , eOp2
+                              oSubInt
+                              (eVar (tInt, "n"))
+                              (eLit (PInt 1))
+                          ]
+                      )
+                  )
+              )
+          )
+        ,
+          (
+            ( Scheme (((tVar "a0" ~> tInt ~> tInt) ~> tInt ~> tInt) ~> tInt ~> tInt)
+            , "$lam2"
+            )
+          , Function
+              ( fromList
+                  [ ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")
+                  , (tInt, "n")
+                  ]
+              )
+              ( tInt
+              , eIf
+                  (eOp2 oEqInt (eVar (tInt, "n")) (eLit (PInt 0)))
+                  (eLit (PInt 1))
+                  ( eOp2
+                      oMulInt
+                      (eVar (tInt, "n"))
+                      ( eCall_
+                          ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")
+                          [ eVar ((tVar 3 ~> tInt ~> tInt) ~> tInt ~> tInt, "g")
+                          , eOp2
+                              oSubInt
+                              (eVar (tInt, "n"))
+                              (eLit (PInt 1))
+                          ]
+                      )
+                  )
+              )
+          )
+        ]
+    )

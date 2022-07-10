@@ -2,13 +2,12 @@
 
 module Pong.LLVM.EmitTests where
 
-import Pong.TestData.MysteriousSetOfBooks
+import Pong.TestData.JackOfClubs
 import Pong.TestData.TheFatalAuction
-import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 import System.Exit
-import System.IO.Unsafe
+-- import System.IO.Unsafe
 import Test.Hspec
 
 llvmEmitTests :: SpecWith ()
@@ -20,6 +19,20 @@ llvmEmitTests =
             passIt msg (res == r)
       -------------------------------------------------------------------------
       runTest "1" program50 (ExitSuccess, "5")
+      -------------------------------------------------------------------------
+      runTest "2" program4 (ExitFailure 14, "")
+      -------------------------------------------------------------------------
+      runTest "3" program74 (ExitFailure 5, "")
+      -------------------------------------------------------------------------
+      runTest "4" program84 (ExitFailure 19, "")
+      -------------------------------------------------------------------------
+      runTest "5" program94 (ExitFailure 19, "")
+      -------------------------------------------------------------------------
+      runTest "6" programa4 (ExitFailure 6, "")
+      -------------------------------------------------------------------------
+      runTest "7" programg4 (ExitFailure 120, "")
+      -------------------------------------------------------------------------
+      runTest "8" programz4 (ExitFailure 4, "")
 
 --      -------------------------------------------------------------------------
 --      runTest "2" program51 (ExitSuccess, "7")

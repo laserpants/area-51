@@ -2,10 +2,10 @@
 
 module Pong.TestData.TheFatalAuction where
 
-import Data.List.NonEmpty (fromList)
-import qualified Data.Map.Strict as Map
-import Pong.Data
-import Pong.Lang
+-- import Data.List.NonEmpty (fromList)
+-- import qualified Data.Map.Strict as Map
+-- import Pong.Data
+-- import Pong.Lang
 import Pong.Util
 
 -- program44 :: Text
@@ -45,13 +45,13 @@ program50 :: Text
 program50 =
   "extern print_int : int -> int\
   \\r\n\
-  \def foo(x : float, y : int, z : bool) : int=\
+  \func foo(x : float, y : int, z : bool) : int=\
   \  y\
   \\r\n\
-  \def prog(a : unit) : int =\
+  \func prog(a : unit) : int =\
   \  let f = foo(4.0f, 5) in f(true)\
   \\r\n\
-  \def main(a : unit) : int =\
+  \func main(a : unit) : int =\
   \  print_int(prog(()))\
   \"
 

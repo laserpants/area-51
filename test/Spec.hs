@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Pong.EvalTests
--- import Pong.LLVM.EmitTests
+import Pong.LLVM.EmitTests
 import Pong.LangTests
 import Pong.ReadTests
 -- import Pong.TreeTests
@@ -15,7 +15,7 @@ main :: IO ()
 main =
   hspec $ do
     evalTests
-    --    llvmEmitTests
+    llvmEmitTests
     langTests
 
     readTests
