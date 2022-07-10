@@ -394,12 +394,12 @@ emitCall fun args =
   Env.askLookup fun
     >>= \case
       Just f ->
-        emitCall2 f args
+        emitCall_ f args
       _ ->
         error "Implementation error"
 
-emitCall2 :: (MonoType, Operand) -> [CodeGen OpInfo] -> CodeGen OpInfo
-emitCall2 fun args = do
+emitCall_ :: (MonoType, Operand) -> [CodeGen OpInfo] -> CodeGen OpInfo
+emitCall_ fun args = do
   as <- sequence args
   case fun of
     (t, op@LocalReference{}) -> do
