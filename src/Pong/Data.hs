@@ -30,8 +30,8 @@ data TypeF v a
   = TUnit                          -- ^ Unit type
   | TBool                          -- ^ Boolean type
   | TInt                           -- ^ Type of integers (machine bounded)
-  | TFloat                         -- ^ Single precision floating point number
-  | TDouble                        -- ^ Double precision floating point number
+  | TFloat                         -- ^ Single precision floating-point number
+  | TDouble                        -- ^ Double precision floating-point number
   | TChar                          -- ^ Char type
   | TString                        -- ^ String
   | TCon Name [a]                  -- ^ Algebraic data-types
@@ -60,8 +60,8 @@ data ConT
 data Prim
   = PBool Bool                     -- ^ Booleans
   | PInt Int                       -- ^ Integers (machine bounded)
-  | PFloat Float                   -- ^ Single-precision floating point number
-  | PDouble Double                 -- ^ Double-precision floating point number
+  | PFloat Float                   -- ^ Single-precision floating-point number
+  | PDouble Double                 -- ^ Double-precision floating-point number
   | PChar Char                     -- ^ Chars
   | PString Text                   -- ^ Strings
   | PUnit                          -- ^ Unit value
