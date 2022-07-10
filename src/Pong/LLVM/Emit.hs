@@ -35,6 +35,7 @@ import Pong.Util
   , cata
   , embed
   , getAndModify
+  , para
   , project
   , (***)
   , (<$$>)
@@ -113,7 +114,7 @@ forEachIn ::
   Pong.Module MonoType t ->
   (Name -> MonoType -> Definition MonoType t -> m a) ->
   m [a]
-forEachIn p f = moduleForEach p (\label def -> f (snd label) (typeOf def) def)
+forEachIn p f = moduleForEach p (\(_, name_) def -> f name_ (typeOf def) def)
 
 buildModule_ :: Name -> Pong.Module MonoType Ast -> LLVM.Module
 buildModule_ pname p = do
@@ -129,8 +130,8 @@ buildModule_ pname p = do
             op <-
               extern
                 (llvmRep defn)
-                (llvmType <$> args)
-                (llvmType t1)
+                (llvmType2 <$> args)
+                (llvmType2 t1)
             pure [(defn, (t, op))]
           Constant (t1, _) ->
             pure
@@ -140,7 +141,7 @@ buildModule_ pname p = do
                   ( t
                   , functionRef
                       (llvmRep defn)
-                      (llvmType t1)
+                      (llvmType2 t1)
                       []
                   )
                 )
@@ -153,8 +154,8 @@ buildModule_ pname p = do
                   ( t
                   , functionRef
                       (llvmRep defn)
-                      (llvmType t1)
-                      (llvmType . fst <$> toList args)
+                      (llvmType2 t1)
+                      (llvmType2 . fst <$> toList args)
                   )
                 )
               ]
@@ -188,10 +189,13 @@ buildModule_ pname p = do
                     void $
                       function
                         (llvmRep defn)
-                        (toList args <&> llvmType *** llvmRep)
+                        (toList args <&> llvmType2 *** llvmRep)
                         charPtr
                         ( \ops -> do
-                            let sty = StructureType False (i8 : (llvmType . fst <$> toList args))
+                            let sty =
+                                  StructureType
+                                    False
+                                    (i8 : (llvmType2 . fst <$> toList args))
                             s <- malloc sty
                             storeRange s 0 (int8 n : ops)
                             a <- bitcast s charPtr
@@ -204,7 +208,7 @@ buildModule_ pname p = do
               function
                 (llvmRep defn)
                 []
-                (llvmType t1)
+                (llvmType2 t1)
                 ( \_ ->
                     emitBody body >>= ret . snd
                 )
@@ -212,8 +216,8 @@ buildModule_ pname p = do
             void $
               function
                 (llvmRep defn)
-                (toList args <&> llvmType *** llvmRep)
-                (llvmType t1)
+                (toList args <&> llvmType2 *** llvmRep)
+                (llvmType2 t1)
                 ( \ops ->
                     do
                       r <-
@@ -247,89 +251,117 @@ buildModule_ pname p = do
 
 emitBody :: Ast -> CodeGen OpInfo
 emitBody =
-  cata $ \case
-    ELet (_, var) expr1 expr2 -> do
-      e1 <- expr1
-      local (Env.insert var e1) expr2
-    ELit lit -> do
-      op <- emitPrim lit
-      pure (typeOf lit, op)
-    EIf expr1 expr2 expr3 -> mdo
-      (_, ifOp) <- expr1
-      condBr ifOp thenBlock elseBlock
-      thenBlock <- block `named` "then"
-      (_, thenOp) <- expr2
-      br mergeBlock
-      elseBlock <- block `named` "else"
-      (t, elseOp) <- expr3
-      br mergeBlock
-      mergeBlock <- block `named` "ifcont"
-      r <- phi [(thenOp, thenBlock), (elseOp, elseBlock)]
-      pure (t, r)
-    EOp1 (_, ONot) expr1 -> do
-      (_, a) <- expr1
-      r <- icmp Int.EQ (ConstantOperand (Int 1 0)) a
-      pure (tBool, r)
-    EOp1 (t, ONeg) expr1 -> do
-      (_, a) <- expr1
-      r <- emitNegOp a t
-      pure (returnType t, r)
-    EOp2 (_, OLogicOr) expr1 expr2 -> mdo
-      (_, a) <- expr1
-      condBr a op1Block op2Block
-      op1Block <- block `named` "op1"
-      br mergeBlock
-      op2Block <- block `named` "op2"
-      (_, b) <- expr2
-      br mergeBlock
-      mergeBlock <- block `named` "mergeOr"
-      r <- phi [(a, op1Block), (b, op2Block)]
-      pure (tBool, r)
-    EOp2 (_, OLogicAnd) expr1 expr2 -> mdo
-      (_, a) <- expr1
-      condBr a op1Block op2Block
-      op1Block <- block `named` "op1"
-      (_, b) <- expr2
-      br mergeBlock
-      op2Block <- block `named` "op2"
-      br mergeBlock
-      mergeBlock <- block `named` "mergeAnd"
-      r <- phi [(b, op1Block), (a, op2Block)]
-      pure (tBool, r)
-    EOp2 op expr1 expr2 -> do
-      (_, a) <- expr1
-      (_, b) <- expr2
-      r <- emitOp2Instr op a b
-      pure (returnType (fst op), r)
-    EVar (t, var) | isUpper (Text.head var) && 0 == arity t -> do
-      r <- call (functionRef (llvmRep var) charPtr []) []
-      pure (t, r)
-    EVar (t, "{{data}}") -> do
-      r <- emitPrim PUnit
-      s <- inttoptr r charPtr
-      pure (t, s)
-    EVar (_, var) ->
-      Env.askLookup var
-        >>= \case
-          Just (t, op@(ConstantOperand (GlobalReference PointerType{pointerReferent = FunctionType{}} _)))
-            | arity t == 0 -> do
-                r <- call op []
-                pure (t, r)
-          Just op ->
-            pure op
-          Nothing -> error ("Not in scope: " <> show var)
-    ECall () (_, fun) args ->
-      emitCall fun args
-    EPat expr_ cs ->
-      emitPat expr_ cs
-    ENil ->
-      emitNil
-    EExt field e1 e2 ->
-      emitExt field e1 e2
-    ERes fs e1 e2 ->
-      emitRes fs e1 e2
-    ECon{} ->
-      error "Implementation error"
+  para
+    ( \case
+        ELet (_, var) (e1@(Fix (ECall _ (_, fun) as)), _) (_, expr2) -> mdo
+          n <- uniqueName "$g"
+          let insertVar = Env.insert var (typeOf e1, f)
+          f <-
+            local insertVar $
+              lift
+                ( function
+                    (llvmRep n)
+                    ((llvmType <$> argTypes e1) `zip` repeat "a")
+                    (llvmType (returnType e1))
+                    ( \args -> do
+                        as1 <- traverse emitBody as
+                        let as2 = zip (argTypes e1) args
+                        (_, r) <- emitCall fun (pure <$> (as1 <> as2))
+                        ret r
+                    )
+                )
+          local insertVar expr2
+        e ->
+          embed (fst <$> e)
+            & cata
+              ( \case
+                  ELet (_, var) expr1 expr2 -> do
+                    e1 <- expr1
+                    local (Env.insert var e1) expr2
+                  ELit lit -> do
+                    op <- emitPrim lit
+                    pure (typeOf lit, op)
+                  EIf expr1 expr2 expr3 -> mdo
+                    (_, ifOp) <- expr1
+                    condBr ifOp thenBlock elseBlock
+                    thenBlock <- block `named` "then"
+                    (_, thenOp) <- expr2
+                    br mergeBlock
+                    elseBlock <- block `named` "else"
+                    (t, elseOp) <- expr3
+                    br mergeBlock
+                    mergeBlock <- block `named` "ifcont"
+                    r <- phi [(thenOp, thenBlock), (elseOp, elseBlock)]
+                    pure (t, r)
+                  EOp1 (_, ONot) expr1 -> do
+                    (_, a) <- expr1
+                    r <- icmp Int.EQ (ConstantOperand (Int 1 0)) a
+                    pure (tBool, r)
+                  EOp1 (t, ONeg) expr1 -> do
+                    (_, a) <- expr1
+                    r <- emitNegOp a t
+                    pure (returnType t, r)
+                  EOp2 (_, OLogicOr) expr1 expr2 -> mdo
+                    (_, a) <- expr1
+                    condBr a op1Block op2Block
+                    op1Block <- block `named` "op1"
+                    br mergeBlock
+                    op2Block <- block `named` "op2"
+                    (_, b) <- expr2
+                    br mergeBlock
+                    mergeBlock <- block `named` "mergeOr"
+                    r <- phi [(a, op1Block), (b, op2Block)]
+                    pure (tBool, r)
+                  EOp2 (_, OLogicAnd) expr1 expr2 -> mdo
+                    (_, a) <- expr1
+                    condBr a op1Block op2Block
+                    op1Block <- block `named` "op1"
+                    (_, b) <- expr2
+                    br mergeBlock
+                    op2Block <- block `named` "op2"
+                    br mergeBlock
+                    mergeBlock <- block `named` "mergeAnd"
+                    r <- phi [(b, op1Block), (a, op2Block)]
+                    pure (tBool, r)
+                  EOp2 op expr1 expr2 -> do
+                    (_, a) <- expr1
+                    (_, b) <- expr2
+                    r <- emitOp2Instr op a b
+                    pure (returnType (fst op), r)
+                  EVar (t, var) | isUpper (Text.head var) && 0 == arity t -> do
+                    r <- call (functionRef (llvmRep var) charPtr []) []
+                    pure (t, r)
+                  EVar (t, "{{data}}") -> do
+                    r <- emitPrim PUnit
+                    s <- inttoptr r charPtr
+                    pure (t, s)
+                  EVar (t, var)
+                    | arity t > 0 ->
+                        emitCall var []
+                  EVar (_, var) ->
+                    Env.askLookup var
+                      >>= \case
+                        Just (t, op@(ConstantOperand (GlobalReference PointerType{pointerReferent = FunctionType{}} _)))
+                          | arity t == 0 -> do
+                              r <- call op []
+                              pure (t, r)
+                        Just op ->
+                          pure op
+                        Nothing -> error ("Not in scope: " <> show var)
+                  ECall () (_, fun) args ->
+                    emitCall fun args
+                  EPat expr_ cs ->
+                    emitPat expr_ cs
+                  ENil ->
+                    emitNil
+                  EExt field e1 e2 ->
+                    emitExt field e1 e2
+                  ERes fs e1 e2 ->
+                    emitRes fs e1 e2
+                  ECon{} ->
+                    error "Implementation error"
+              )
+    )
 
 emitNil :: CodeGen OpInfo
 emitNil = do
@@ -358,73 +390,80 @@ emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
 emitRes _ _ _ = error "Implementation error"
 
 emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
-emitCall fun args = do
-  as <- sequence args
+emitCall fun args =
   Env.askLookup fun
     >>= \case
-      Just (t, op@LocalReference{}) -> do
-        -- Partially applied function
-        let u = returnType t
-        if arity t == length as
-          then do
-            let sty = StructureType False [llvmType (tVar 0 ~> t)]
-            s <- bitcast op (ptr sty)
-            a <- bitcast op charPtr
-            f <- loadOffset s 0
-            r <- call f (zip (a : (snd <$> as)) (repeat []))
-            pure (u, r)
-          else do
-            n <- uniqueName "$f"
-            let (ts, us) = splitAt (length as) (argTypes t)
-                toFty tys = llvmType (foldType u (tVar 0 : tys))
-                sty1 = StructureType False (toFty us : charPtr : (llvmType <$> ts))
-                sty2 = StructureType False [toFty (ts <> us)]
-            s <- malloc sty1
-            storeOffset s 0
-              =<< function
-                (llvmRep n)
-                ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
-                (llvmType u)
-                ( \(w : ws) -> do
-                    s1 <- bitcast w (ptr sty1)
-                    v <- loadOffset s1 1
-                    s2 <- bitcast v (ptr sty2)
-                    f <- loadOffset s2 0
-                    vs <- loadRange s1 [2 .. 1 + length args]
-                    r <- call f (zip (v : vs <> ws) (repeat []))
-                    ret r
-                )
-            storeOffset s 1 =<< bitcast op charPtr
-            storeRange s 2 (snd <$> as)
-            pure (foldType u us, s)
-      Just (t, op) -> do
-        -- Regular function pointer
-        let u = returnType t
-        if arity t == length as
-          then do
-            r <- call op (zip (snd <$> as) (repeat []))
-            pure (u, r)
-          else do
-            n <- uniqueName "$f"
-            let (ts, us) = splitAt (length as) (argTypes t)
-                fty = llvmType (foldType u (tVar 0 : us))
-                sty = StructureType False (fty : (llvmType <$> ts))
-            s <- malloc sty
-            storeOffset s 0
-              =<< function
-                (llvmRep n)
-                ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
-                (llvmType u)
-                ( \(w : ws) -> do
-                    s1 <- bitcast w (ptr sty)
-                    vs <- loadRange s1 [1 .. length args]
-                    r <- call op (zip (vs <> ws) (repeat []))
-                    ret r
-                )
-            storeRange s 1 (snd <$> as)
-            pure (foldType u us, s)
+      Just f ->
+        emitCall2 f args
       _ ->
         error "Implementation error"
+
+emitCall2 :: (MonoType, Operand) -> [CodeGen OpInfo] -> CodeGen OpInfo
+emitCall2 fun args = do
+  as <- sequence args
+  case fun of
+    (t, op@LocalReference{}) -> do
+      -- Partially applied function
+      let u = returnType t
+      if arity t == length as
+        then do
+          let sty = StructureType False [llvmType (tVar 0 ~> t)]
+          s <- bitcast op (ptr sty)
+          f <- loadOffset s 0
+          r <- call f (zip (op : (snd <$> as)) (repeat []))
+          pure (u, r)
+        else do
+          n <- uniqueName "$f"
+          let (ts, us) = splitAt (length as) (argTypes t)
+              toFty tys = llvmType (foldType u (tVar 0 : tys))
+              sty1 = StructureType False (toFty us : charPtr : (llvmType2 <$> ts))
+              sty2 = StructureType False [toFty (ts <> us)]
+          s <- malloc sty1
+          storeOffset s 0
+            =<< function
+              (llvmRep n)
+              ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
+              (llvmType u)
+              ( \(w : ws) -> do
+                  s1 <- bitcast w (ptr sty1)
+                  v <- loadOffset s1 1
+                  s2 <- bitcast v (ptr sty2)
+                  f <- loadOffset s2 0
+                  vs <- loadRange s1 [2 .. 1 + length args]
+                  r <- call f (zip (v : vs <> ws) (repeat []))
+                  ret r
+              )
+          storeOffset s 1 =<< bitcast op charPtr
+          storeRange s 2 (snd <$> as)
+          r <- bitcast s charPtr
+          pure (foldType u us, r)
+    (t, op) -> do
+      -- Regular function pointer
+      let u = returnType t
+      if arity t == length as
+        then do
+          r <- call op (zip (snd <$> as) (repeat []))
+          pure (u, r)
+        else do
+          n <- uniqueName "$f"
+          let (ts, us) = splitAt (length as) (argTypes t)
+              fty = llvmType (foldType u (tVar 0 : us))
+              sty = StructureType False (fty : (llvmType2 <$> ts))
+          s <- malloc sty
+          storeOffset s 0
+            =<< function
+              (llvmRep n)
+              ((charPtr, "s") : [(llvmType uj, llvmRep "a") | uj <- us])
+              (llvmType u)
+              ( \(w : ws) -> do
+                  s1 <- bitcast w (ptr sty)
+                  vs <- loadRange s1 [1 .. length args]
+                  r <- call op (zip (vs <> ws) (repeat []))
+                  ret r
+              )
+          storeRange s 1 (snd <$> as)
+          r <- bitcast s charPtr
+          pure (foldType u us, r)
 
 emitPat :: CodeGen OpInfo -> [Clause MonoType (CodeGen OpInfo)] -> CodeGen OpInfo
 emitPat expr_ cs = mdo
@@ -459,9 +498,8 @@ emitPat expr_ cs = mdo
 
 {- ORMOLU_DISABLE -}
 
--- | Translate a language type to its corresponding LLVM type
-llvmType :: MonoType -> LLVM.Type
-llvmType =
+llvmPrimType :: MonoType -> LLVM.Type
+llvmPrimType =
  project
    >>> \case
      TUnit     -> i1
@@ -472,8 +510,19 @@ llvmType =
      TVar{}    -> charPtr
      TString{} -> charPtr
      TChar{}   -> i8
-     ty@TArr{} -> ptr (funTy (embed ty))
      _         -> charPtr
+
+llvmType2 :: MonoType -> LLVM.Type
+llvmType2 =
+  \case
+    Fix TArr{} -> charPtr
+    t          -> llvmPrimType t
+
+llvmType :: MonoType -> LLVM.Type
+llvmType =
+  \case
+    ty@(Fix TArr{}) -> ptr (funTy ty)
+    t               -> llvmPrimType t
 
 {- ORMOLU_ENABLE -}
 
