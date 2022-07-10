@@ -195,7 +195,7 @@ buildModule_ pname p = do
                             let sty =
                                   StructureType
                                     False
-                                    (i8 : (llvmType True . fst <$> toList args))
+                                    (i8 : (llvmType False . fst <$> toList args))
                             s <- malloc sty
                             storeRange s 0 (int8 n : ops)
                             a <- bitcast s charPtr
