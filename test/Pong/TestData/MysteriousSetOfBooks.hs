@@ -2,12 +2,13 @@
 
 module Pong.TestData.MysteriousSetOfBooks where
 
--- import Data.List.NonEmpty (fromList)
--- import qualified Data.Map.Strict as Map
--- import Pong.Data
--- import Pong.Lang
+import Data.List.NonEmpty (fromList)
+import qualified Data.Map.Strict as Map
+import Pong.Data
+import Pong.Lang
 -- import Pong.Type
--- import Pong.Util
+import Pong.Util
+
 --
 -- program20 :: Text
 -- program20 =
@@ -667,25 +668,69 @@ module Pong.TestData.MysteriousSetOfBooks where
 --  \"
 --
 ---- "
---
--- program38 :: Text
--- program38 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    q =\
---  \      foo({ y = 2 })\
---  \    in\
---  \      letr\
---  \        { x = a | s } =\
---  \          q\
---  \        in\
---  \          a\
---  \\r\n\
---  \def foo(r : a) : { x : int | a } =\
---  \  { x = 111 | r }\
---  \"
---
+
+program38 :: Text
+program38 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ y = 2 })\
+  \    in\
+  \      field\
+  \        { x = a | s } =\
+  \          q\
+  \        in\
+  \          a\
+  \\r\n\
+  \func foo(r : a) : { x : int | a } =\
+  \  { x = 111 | r }\
+  \"
+
 ---- "
+
+program3x8 :: Module () SourceExpr
+program3x8 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [((), "_")])
+              ( ()
+              , eLet
+                  ((), "q")
+                  ( eApp
+                      ()
+                      (eVar ((), "foo"))
+                      [eExt "y" (eLit (PInt 2)) eNil]
+                  )
+                  ( eRes
+                      [((), "x"), ((), "a"), ((), "s")]
+                      (eVar ((), "q"))
+                      (eVar ((), "a"))
+                  )
+              )
+          )
+        ,
+          (
+            ( Scheme (tRec (tVar "a") ~> tRec (rExt "x" tInt (tVar "a")))
+            , "foo"
+            )
+          , Function
+              (fromList [((), "r")])
+              ( ()
+              , eExt
+                  "x"
+                  (eLit (PInt 111))
+                  (eVar ((), "r"))
+              )
+          )
+        ]
+    )
+
 --
 ----
 ---- [ x : int | r ! y ]

@@ -3,11 +3,13 @@
 module Pong.LLVM.EmitTests where
 
 import Pong.TestData.JackOfClubs
+import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.TheFatalAuction
 import Pong.TestHelpers
 import Pong.Tree
+import Pong.Type
 import System.Exit
--- import System.IO.Unsafe
+import System.IO.Unsafe
 import Test.Hspec
 
 llvmEmitTests :: SpecWith ()
@@ -35,6 +37,14 @@ llvmEmitTests =
       runTest "8" programz4 (ExitFailure 4, "")
       -------------------------------------------------------------------------
       runTest "9" programo4 (ExitSuccess, "1307674368000")
+
+      let runTest2 msg prog res = do
+            let Right r = runInferModule prog
+            q <- runIO $ emitModule $ transformModule r
+            passIt msg (res == q)
+
+      -------------------------------------------------------------------------
+      runTest2 "10" program3x8 (ExitFailure 111, "")
 
 --      -------------------------------------------------------------------------
 --      runTest "2" program51 (ExitSuccess, "7")
@@ -84,5 +94,5 @@ llvmEmitTests =
 --      passIt "24" (unsafePerformIO (emitModule (compileSource program33)) == (ExitFailure 111, ""))
 --      -------------------------------------------------------------------------
 --      passIt "25" (unsafePerformIO (emitModule (compileSource program37)) == (ExitFailure 2, ""))
---      -------------------------------------------------------------------------
---      passIt "26" (unsafePerformIO (emitModule (compileSource program38)) == (ExitFailure 111, ""))
+-------------------------------------------------------------------------
+-- passIt "26" (unsafePerformIO (emitModule (compileSource program38)) == (ExitFailure 111, ""))

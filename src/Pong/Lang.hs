@@ -215,7 +215,7 @@ instance (Typed t, Typed a0) => Typed (Expr t a0 a1 a2) where
           EPat _ cs         -> head (snd <$> cs)
           ENil              -> tRec rNil
           ERes _ _ e        -> e
-          EExt n e1 e2 ->
+          EExt n e1 e2 -> 
             case project e2 of
               TRec r -> tRec (rExt n e1 r)
               _ -> error "Implementation error"

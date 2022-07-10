@@ -388,8 +388,17 @@ inferExpr =
       ePat e <$> inferPat e clauses
     ENil ->
       pure eNil
-    EExt name expr1 expr2 ->
-      eExt name <$> expr1 <*> expr2
+    EExt name expr1 expr2 -> do
+      e1 <- expr1
+      e2 <- expr2
+      eExt name e1
+        <$> case project e2 of
+          EVar (t, var) -> do
+            t0 <- tRec . tVar <$> tag
+            t0 `unify` t
+            pure (eVar (t0, var))
+          _ ->
+            pure e2
     ERes field expr1 expr2 -> do
       e1 <- expr1
       (f, e2) <- inferRestriction (typeOf e1) field expr2
