@@ -5,12 +5,12 @@ module Pong.EvalTests where
 -- import Data.Either.Extra (fromRight)
 import Pong.Data
 import Pong.Eval
---import Pong.TestData.GoAwayDixieGillian
+-- import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
---import Pong.TestData.MysteriousSetOfBooks
---import Pong.TestData.ShirtMixUpAtTheLaundry
---import Pong.TestData.TheFatalAuction
---import Pong.TestData.ThePanamaHat
+-- import Pong.TestData.MysteriousSetOfBooks
+-- import Pong.TestData.ShirtMixUpAtTheLaundry
+-- import Pong.TestData.TheFatalAuction
+-- import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 -- import qualified Pong.Util.Env as Env
@@ -24,6 +24,7 @@ evalTests =
       do
         v <- runIO $ evalModule (compileSource programoo4) mainSig
         it "1" (Just (PrimValue (PInt 1307674368000)) == v)
+
 --     -------------------------------------------------------------------------
 --     do
 --       v <- runIO $ evalModule (transformModule program1) mainSig
