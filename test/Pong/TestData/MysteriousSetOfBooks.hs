@@ -817,7 +817,170 @@ program445 =
   \      q\
   \\r\n\
   \func foo(r : { y : int | z }) : int =\
-  \  field { y = a | q } = r in a\
+  \  field\
+  \    { y = a | q } =\
+  \      r\
+  \    in\
+  \      a\
+  \"
+
+-- "
+
+program44z :: Text
+program44z =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ x = 105, y = 200 })\
+  \    in\
+  \      field { x = b | zz } = q in b\
+  \\r\n\
+  \func foo(r : { x : int, y : int | z }) : { x : int | z } =\
+  \  field\
+  \    { y = a | q } =\
+  \      r\
+  \    in\
+  \      { q }\
+  \"
+
+-- "
+
+program55z :: Text
+program55z =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ x = 105, y = 200, z = 300 })\
+  \    in\
+  \      field { z = b | _ } = q in b\
+  \\r\n\
+  \func foo(r : { x : int, y : int | z }) : { z } =\
+  \  field\
+  \    { y = a | q } =\
+  \      r\
+  \    in\
+  \      field\
+  \        { x = b | p } =\
+  \          q\
+  \        in\
+  \          p\
+  \"
+
+-- "
+
+program55y :: Text
+program55y =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(go(a))\
+  \\r\n\
+  \func go(a : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ x = 105, y = 200, z = 300 })\
+  \    in\
+  \      field { z = b | _ } = q in b\
+  \\r\n\
+  \func foo(r : { x : int, y : int | z }) : { z } =\
+  \  field\
+  \    { y = a | q } =\
+  \      r\
+  \    in\
+  \      field\
+  \        { x = b | p } =\
+  \          q\
+  \        in\
+  \          p\
+  \"
+
+-- "
+
+program55zz :: Text
+program55zz =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ x = 105, y = 200, z = 300 })\
+  \    in\
+  \      field { z = b | _ } = q in b\
+  \\r\n\
+  \func foo(r : { x : int, y : int, z : int }) : { z : int } =\
+  \  field\
+  \    { y = a | q } =\
+  \      r\
+  \    in\
+  \      field\
+  \        { x = b | p } =\
+  \          q\
+  \        in\
+  \          p\
+  \"
+
+-- "
+
+program55zx :: Text
+program55zx =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(go(a))\
+  \\r\n\
+  \func go(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ x = 105, y = 200, z = 300 })\
+  \    in\
+  \      field { z = b | _ } = q in b\
+  \\r\n\
+  \func foo(r : { x : int, y : int, z : int }) : { z : int } =\
+  \  field\
+  \    { y = a | q } =\
+  \      r\
+  \    in\
+  \      field\
+  \        { x = b | p } =\
+  \          q\
+  \        in\
+  \          p\
+  \"
+
+-- "
+
+program55zzz :: Text
+program55zzz =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo(7)\
+  \    in\
+  \      field { z = b | _ } = q in b\
+  \\r\n\
+  \func foo(r : int) : { z : int } =\
+  \  { z = 551 }\
+  \"
+
+-- "
+
+program55zzx :: Text
+program55zzx =
+  "\
+  \extern print_int : int -> int\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  print_int(go())\
+  \\r\n\
+  \func go(a : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo(7)\
+  \    in\
+  \      field { z = b | _ } = q in b\
+  \\r\n\
+  \func foo(r : int) : { z : int } =\
+  \  { z = 551 }\
   \"
 
 -- "

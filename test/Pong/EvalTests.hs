@@ -7,6 +7,7 @@ import Pong.Data
 import Pong.Eval
 -- import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
+import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.ShirtMixUpAtTheLaundry
 -- import Pong.TestData.TheFatalAuction
@@ -24,6 +25,18 @@ evalTests =
       do
         v <- runIO $ evalModule (compileSource programoo4) mainSig
         it "1" (Just (PrimValue (PInt 1307674368000)) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalModule (compileSource program55z) mainSig
+        it "2" (Just (PrimValue (PInt 300)) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalModule (compileSource program55zz) mainSig
+        it "3" (Just (PrimValue (PInt 300)) == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalModule (compileSource program55zzz) mainSig
+        it "4" (Just (PrimValue (PInt 551)) == v)
 
 --     -------------------------------------------------------------------------
 --     do
