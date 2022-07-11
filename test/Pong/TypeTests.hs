@@ -9,6 +9,7 @@ import Pong.Data
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs
+import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Type
@@ -381,6 +382,8 @@ typeTests =
     describe "- inferModule" $ do
       -------------------------------------------------------------------------
       it "1" ((runInferModule program5 <&> canonical) == Right program6)
+      -------------------------------------------------------------------------
+      it "2" ((runInferModule program446 <&> canonical) == Right program447)
     -------------------------------------------------------------------------
     --      let env =
     --            Env.fromList

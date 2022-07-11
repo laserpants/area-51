@@ -245,10 +245,13 @@ matchClause = do
 
 recExpr :: Parser SourceExpr
 recExpr =
-  braces $ do
-    fs <- commaSep (field "=" expr)
-    tl <- optional (symbol "|" *> identifier)
-    pure (foldr (uncurry eExt) (maybe eNil (eVar <$> toLabel) tl) fs)
+  braces $
+    try fields <|> (eVar . toLabel <$> identifier)
+  where
+    fields = do
+      fs <- commaSep (field "=" expr)
+      tl <- optional (symbol "|" *> identifier)
+      pure (foldr (uncurry eExt) (maybe eNil (eVar <$> toLabel) tl) fs)
 
 prim :: Parser Prim
 prim =
@@ -303,12 +306,11 @@ polyType =
       tVar <$> identifier
     recType =
       tRec
-        <$> braces
-          ( do
-              fs <- commaSep (field ":" polyType)
-              tl <- optional (symbol "|" *> identifier)
-              pure (foldr (uncurry rExt) (maybe rNil tVar tl) fs)
-          )
+        <$> braces (try fields <|> tVar <$> identifier)
+    fields = do
+      fs <- commaSep (field ":" polyType)
+      tl <- optional (symbol "|" *> identifier)
+      pure (foldr (uncurry rExt) (maybe rNil tVar tl) fs)
 
 {- ORMOLU_ENABLE -}
 

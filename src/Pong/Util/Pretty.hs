@@ -7,14 +7,13 @@
 module Pong.Util.Pretty where
 
 import Pong.Data
--- import Pong.Lang
+import Pong.Lang
 import Pong.Util
 import Prettyprinter
 
---
--- parensIf :: Bool -> Doc a -> Doc a
--- parensIf True doc = parens doc
--- parensIf _ doc = doc
+parensIf :: Bool -> Doc a -> Doc a
+parensIf True doc = parens doc
+parensIf _ doc = doc
 
 {- ORMOLU_DISABLE -}
 
@@ -31,26 +30,6 @@ instance Pretty Prim where
      PString p     -> dquotes (pretty p)
 
 {- ORMOLU_ENABLE -}
-
--- instance (Pretty v, Pretty (TypeVar v)) => Pretty (Row (Type v) v) where
---  pretty =
---    para
---      ( \case
---          RNil -> ""
---          RVar v -> pretty (TypeVar v)
---          RExt name t (Fix row, doc) ->
---            pretty name
---              <+> ":"
---              <+> pretty t
---                <> ( case row of
---                      RNil ->
---                        ""
---                      RVar v ->
---                        " |" <+> pretty (TypeVar v)
---                      _ ->
---                        "," <+> doc
---                   )
---      )
 
 newtype TypeVar a = TypeVar a
 
@@ -74,22 +53,47 @@ instance (Pretty v, Pretty (TypeVar v)) => Pretty (Type v) where
           TChar   -> "char"
           TString -> "string"
           TVar v  -> pretty (TypeVar v)
-          --         TRec row -> "{" <+> pretty row <+> "}"
-          --         TCon con ts ->
-          --           pretty con
-          --             <+> hsep (uncurry (parensIf . addParens) <$> ts)
-          --         TArr (t1, doc1) (_, doc2) ->
-          --           parensIf (isConT ArrT t1) doc1 <+> "->" <+> doc2
+          TCon con ts ->
+            pretty con
+              <+> hsep (uncurry (parensIf . addParens) <$> ts)
+          TRec (Fix RNil, _) ->
+            "{}"
+          TRec (_, row) ->
+            vsep
+              [ lbrace <+> row
+              , rbrace
+              ]
+          TArr (t1, doc1) (_, doc2) ->
+            vsep
+              [ parensIf (isConT ArrT t1) (align doc1)
+              , "->" <+> doc2
+              ]
+          RExt name (_, doc1) (t2, doc2) ->
+            let field = pretty name <+> colon <+> doc1
+             in case project t2 of
+                  RNil ->
+                    field
+                  TVar{} ->
+                    vsep
+                      [ field
+                      , pipe <+> doc2
+                      ]
+                  _ ->
+                    vsep
+                      [ field
+                      , comma <+> doc2
+                      ]
+          _ ->
+            mempty
       )
-
---   where
---     addParens =
---       cata
---         ( \case
---             TCon _ [] -> False
---             TCon{} -> True
---             TArr{} -> True
---             _ -> False
---         )
+    where
+      addParens =
+        cata
+          ( \case
+              TCon _ [] -> False
+              TCon{} -> True
+              TArr{} -> True
+              _      -> False
+          )
 
 {- ORMOLU_ENABLE -}

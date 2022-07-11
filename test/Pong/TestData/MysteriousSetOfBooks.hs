@@ -767,7 +767,141 @@ program39 =
   \  { x = 111 | r }\
   \"
 
----- "
+-- "
+
+program399 :: Text
+program399 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ y = 2 })\
+  \    in\
+  \      field\
+  \        { y = a | s } =\
+  \          q\
+  \        in\
+  \          a\
+  \\r\n\
+  \func foo(r : { a }) : { x : int | a } =\
+  \  { x = 111 | r }\
+  \"
+
+-- "
+
+program440 :: Text
+program440 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ y = 200 })\
+  \    in\
+  \      field\
+  \        { y = a | s } =\
+  \          q\
+  \        in\
+  \          a\
+  \\r\n\
+  \func foo(r : { a }) : { a } =\
+  \  { r }\
+  \"
+
+-- "
+
+program445 :: Text
+program445 =
+  "func main(_ : unit) : int =\
+  \  let\
+  \    q =\
+  \      foo({ y = 200 })\
+  \    in\
+  \      q\
+  \\r\n\
+  \func foo(r : { y : int | z }) : int =\
+  \  field { y = a | q } = r in a\
+  \"
+
+-- "
+
+program446 :: Module () SourceExpr
+program446 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [((), "_")])
+              ( ()
+              , eLet
+                  ((), "q")
+                  ( eApp
+                      ()
+                      (eVar ((), "foo"))
+                      [eExt "y" (eLit (PInt 200)) eNil]
+                  )
+                  (eVar ((), "q"))
+              )
+          )
+        ,
+          (
+            ( Scheme (tRec (rExt "y" tInt (tVar "z")) ~> tInt)
+            , "foo"
+            )
+          , Function
+              (fromList [((), "r")])
+              ( ()
+              , eRes
+                  [((), "y"), ((), "a"), ((), "q")]
+                  (eVar ((), "r"))
+                  (eVar ((), "a"))
+              )
+          )
+        ]
+    )
+
+program447 :: Module MonoType TypedExpr
+program447 =
+  Module
+    ( Map.fromList
+        [
+          (
+            ( Scheme (tUnit ~> tInt)
+            , "main"
+            )
+          , Function
+              (fromList [(tUnit, "_")])
+              ( tInt
+              , eLet
+                  (tInt, "q")
+                  ( eApp
+                      tInt
+                      (eVar (tRec (rExt "y" tInt rNil) ~> tInt, "foo"))
+                      [eExt "y" (eLit (PInt 200)) eNil]
+                  )
+                  (eVar (tInt, "q"))
+              )
+          )
+        ,
+          (
+            ( Scheme (tRec (rExt "y" tInt (tVar "z")) ~> tInt)
+            , "foo"
+            )
+          , Function
+              (fromList [(tRec (rExt "y" tInt (tVar 0)), "r")])
+              ( tInt
+              , eRes
+                  [ (tInt ~> tRec (tVar 0) ~> tRec (rExt "y" tInt (tVar 0)), "y")
+                  , (tInt, "a")
+                  , (tRec (tVar 0), "q")
+                  ]
+                  (eVar (tRec (rExt "y" tInt (tVar 0)), "r"))
+                  (eVar (tInt, "a"))
+              )
+          )
+        ]
+    )
 
 --
 ----

@@ -496,8 +496,10 @@ inferModule p = local (<> moduleEnv p) (moduleForM p (curry go))
     go =
       \case
         ((scheme, _), Function args (_, expr)) -> do
-          lam <- inferTypes (eLam () (toList args) expr)
           t0 <- instantiate scheme
+          let as_ = argTypes t0 `zip` (snd <$> toList args)
+              localEnv = local (insertArgs (first Left <$> as_))
+          lam <- localEnv (eLam () as_ <$> inferTypes expr)
           t0 `unify` typeOf lam
           applySubstitution lam <&> project >>= \case
             ELam () as body ->
