@@ -517,7 +517,7 @@ llvmType voidPtrs =
   \case
     t
       | isFunTy && voidPtrs -> charPtr
-      | isFunTy -> ptr (funTy t)
+      | isFunTy   -> ptr (funTy t)
       | otherwise -> llvmPrimType t
       where
         isFunTy = isConT ArrT t
