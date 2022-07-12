@@ -78,6 +78,9 @@ runTestParser :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
 runTestParser parser input expect =
   it (unpack input) (runParser parser "" input == Right expect)
 
+runTestParser_ :: (Eq a) => Parser a -> Text -> Either ParserError a -> Bool
+runTestParser_ parser input expect = runParser parser "" input == expect
+
 {-# INLINE passIt #-}
 passIt :: Example a => String -> a -> SpecWith (Arg a)
 passIt = it . ("OK ✔ " <>)

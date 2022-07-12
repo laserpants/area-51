@@ -155,15 +155,15 @@ langTests =
 
       describe "Definition" $ do
         -----------------------------------------------------------------------
-        let def :: Definition MonoType TypedExpr
-            def =
+        let func :: Definition MonoType TypedExpr
+            func =
               Function
                 (fromList [(tInt, "x")])
                 (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
 
         passIt
-          "fun : int -> int -> int ; def fun(x : int) : int -> int = lam(y) => y"
-          (typeOf def == (tInt ~> tInt ~> tInt))
+          "fun : int -> int -> int ; func fun(x : int) : int -> int = lam(y) => y"
+          (typeOf func == (tInt ~> tInt ~> tInt))
 
         describe "- free" $ do
           -------------------------------------------------------------------------
