@@ -42,6 +42,8 @@ readTests =
 
       describe "- Fail" $ do
         -------------------------------------------------------------------------
+        failIt ".3" (isLeft (runParser prim "" ".3"))
+        -------------------------------------------------------------------------
         failIt "x" (isLeft (runParser prim "" "x"))
         -------------------------------------------------------------------------
         failIt "(a)" (isLeft (runParser prim "" "(a)"))
@@ -83,6 +85,8 @@ readTests =
           passIt "true" (runParser expr "" "true" == Right (eLit (PBool True)))
           -------------------------------------------------------------------------
           passIt "false" (runParser expr "" "false" == Right (eLit (PBool False)))
+          -------------------------------------------------------------------------
+          passIt "-5" (runTestParser_ expr "-5" (Right (eOp1 ((), ONeg) (eLit (PInt 5)))))
 
       describe "- Fail" $ do
         -------------------------------------------------------------------------
