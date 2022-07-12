@@ -9,6 +9,7 @@
 module Pong.Eval where
 
 import Control.Monad.Reader
+import Control.Monad.Writer
 import Data.Char (isUpper)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
@@ -19,6 +20,7 @@ import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment)
 import qualified Pong.Util.Env as Env
+import TextShow (showt)
 
 {- ORMOLU_DISABLE -}
 
@@ -65,12 +67,13 @@ type ValueEnv =
   , Environment Value
   )
 
-newtype Eval a = Eval {unEval :: ReaderT ValueEnv IO a}
+newtype Eval a = Eval {unEval :: ReaderT ValueEnv (WriterT Text IO) a}
   deriving
     ( Functor
     , Applicative
     , Monad
     , MonadIO
+    , MonadWriter Text
     , MonadReader ValueEnv
     )
 
@@ -157,7 +160,8 @@ evalCall (t, fun) args
         Just Extern{} ->
           case (fun, as) of
             ("print_int", [PrimValue (PInt n)]) -> do
-              liftIO (print n)
+              --              liftIO (print n)
+              tell (showt n)
               pure (PrimValue (PInt 0))
             _ ->
               error "Not implemented"
@@ -251,10 +255,10 @@ evalOp2 _ _ _ = error "Not implemented"
 
 {- ORMOLU_ENABLE -}
 
-runEval :: Environment (Definition MonoType Ast) -> Eval a -> IO a
-runEval env ast = runReaderT (unEval ast) (env, mempty)
+runEval :: Environment (Definition MonoType Ast) -> Eval a -> IO (a, Text)
+runEval env ast = runWriterT (runReaderT (unEval ast) (env, mempty))
 
-evalModule :: Module MonoType Ast -> Label Scheme -> IO (Maybe Value)
+evalModule :: Module MonoType Ast -> Label Scheme -> IO (Maybe (Value, Text))
 evalModule (Module p) def =
   case Map.lookup def p of
     Just (Function _ (_, ast)) -> evaluate ast

@@ -926,7 +926,7 @@ program55zx =
   \extern print_int : int -> int\
   \\r\n\
   \func main(a : unit) : int =\
-  \  print_int(go(a))\
+  \  print_int(go())\
   \\r\n\
   \func go(_ : unit) : int =\
   \  let\

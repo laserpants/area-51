@@ -17,6 +17,9 @@ import Pong.Tree
 -- import qualified Pong.Util.Env as Env
 import Test.Hspec
 
+exitSuccessValue :: Value
+exitSuccessValue = PrimValue (PInt 0)
+
 evalTests :: SpecWith ()
 evalTests =
   describe "Pong.Eval" $ do
@@ -24,19 +27,27 @@ evalTests =
       -------------------------------------------------------------------------
       do
         v <- runIO $ evalModule (compileSource programoo4) mainSig
-        it "1" (Just (PrimValue (PInt 1307674368000)) == v)
+        it "1" (Just (PrimValue (PInt 1307674368000)) == (fst <$> v))
       -------------------------------------------------------------------------
       do
         v <- runIO $ evalModule (compileSource program55z) mainSig
-        it "2" (Just (PrimValue (PInt 300)) == v)
+        it "2" (Just (PrimValue (PInt 300)) == (fst <$> v))
       -------------------------------------------------------------------------
       do
         v <- runIO $ evalModule (compileSource program55zz) mainSig
-        it "3" (Just (PrimValue (PInt 300)) == v)
+        it "3" (Just (PrimValue (PInt 300)) == (fst <$> v))
       -------------------------------------------------------------------------
       do
         v <- runIO $ evalModule (compileSource program55zzz) mainSig
-        it "4" (Just (PrimValue (PInt 551)) == v)
+        it "4" (Just (PrimValue (PInt 551)) == (fst <$> v))
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalModule (compileSource program55zzx) mainSig
+        it "5" (Just (exitSuccessValue, "551") == v)
+      -------------------------------------------------------------------------
+      do
+        v <- runIO $ evalModule (compileSource program55zx) mainSig
+        it "5" (Just (exitSuccessValue, "300") == v)
 
 --     -------------------------------------------------------------------------
 --     do
