@@ -35,11 +35,11 @@ data Type
 
 #### Composite types
 
-| Constructor   | Type                                    | Notation                | Remarks             |
-| ------------- | --------------------------------------- | ----------------------- | ------------------- |
-| `TCon`        | Algebraic data type                     | `Con s t r u ...`       |                     |
-| `TArr`        | Function type                           | `s → t`                 |                     |
-| `TVar`        | Type variable                           | `'0`, `a`               |                     |
+| Constructor   | Type                                    | Notation                |
+| ------------- | --------------------------------------- | ----------------------- |
+| `TCon`        | Algebraic data type                     | `Con s t r u ...`       |
+| `TArr`        | Function type                           | `s → t`                 |
+| `TVar`        | Type variable                           | `'0`, `a`               |
 
 ##### Algebraic data types
 
@@ -95,8 +95,8 @@ data Prim
 | ------------- | -------- | -------------------------------------------------------- | --------------------------------------- |
 | `PBool`       | `bool`   | `false` \| `true`                                        |                                         |
 | `PInt`        | `int`    | `-2^63`, &hellip;, `-1`, `0`, `1`, &hellip;, `2^63-1`    | Signed 64-bit integer                   |
-| `PFloat`      | `float`  | `/\d+\.\d+f/`                                            | Single-precision floating point numbers |
-| `PDouble`     | `double` | `/\d+\.\d+/`                                             | Double-precision floating point numbers |
+| `PFloat`      | `float`  | `/\d+\.\d+f/`                                            | Single-precision floating point number  |
+| `PDouble`     | `double` | `/\d+\.\d+/`                                             | Double-precision floating point number  |
 | `PChar`       | `char`   | &hellip;, `'a'`, `'b'`, `'c'`, &hellip;                  | A single ASCII character                |
 | `PString`     | `string` | `""`, `"a"`, `"aa"`, `"aaa"`, &hellip;, `"b"`, &hellip;  |                                         |
 | `PUnit`       | `unit`   | `()`                                                     |                                         |
