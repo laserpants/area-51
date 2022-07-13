@@ -126,6 +126,10 @@ instance Free MonoType where
 
 {- ORMOLU_ENABLE -}
 
+{-# INLINE constructorName #-}
+constructorName :: Constructor -> Name
+constructorName (Constructor name _) = name
+
 instance (Free t, Free a) => Free (Definition t a) where
   freeIn =
     \case

@@ -43,11 +43,17 @@ data Type
 
 ##### Algebraic data types
 
+```
+data Constructor = Constructor Name [Type]
+```
+
 ##### Type schemes
+
+A *type scheme* is a type along with a set of bound type variables.
 
 #### Record and row types
 
-A row is a sequence of labeled fields that encode the type of a record.
+A *row* is a sequence of labeled fields that encode the type of a record.
 
 | Constructor   | Type                                    | Kind                 | Remarks             |
 | ------------- | --------------------------------------- | -------------------- | ------------------- |

@@ -137,9 +137,8 @@ data ConE
 
 -- | Data (value) constructor
 data Constructor = Constructor
-  { conName   :: Name              -- ^ Constructor name
-  , conFields :: [Type Name]       -- ^ Field types
-  }
+  Name                             -- ^ Constructor name
+  [Type Name]                      -- ^ Field types
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)        -- ^ Function definition 

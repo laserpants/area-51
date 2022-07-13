@@ -240,7 +240,7 @@ buildModule_ pname p = do
         & concatMap
           ( \case
               (_, Data _ cs) ->
-                sort (conName <$> cs) `zip` [0 :: Integer ..]
+                sort (constructorName <$> cs) `zip` [0 :: Integer ..]
               _ ->
                 []
           )

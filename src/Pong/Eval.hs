@@ -176,12 +176,12 @@ evalCall (t, fun) args
 
 evalPat :: Value -> [Clause MonoType (Eval Value)] -> Eval Value
 evalPat (ConValue name fields) (((_, con) : vars, value) : clauses)
-  | constructorName == con =
+  | conName == con =
       localSecond (Env.inserts (zip (snd <$> vars) fields)) value
   | otherwise =
       evalPat (ConValue name fields) clauses
   where
-    constructorName =
+    conName =
       case Text.splitOn "-" name of
         [c, _] -> c
         _ -> name
