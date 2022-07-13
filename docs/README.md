@@ -61,7 +61,7 @@ A row is a sequence of labeled fields that encode the type of a record.
 
 ##### Row equality and normalization
 
-Since records are unordered, it is natural to considered rows equivalent up to permutation of distinct labels. This can be more formally expressed as an equivalence relation.
+Since records are unordered, it is natural to consider rows equivalent up to permutation of distinct labels. This can be more formally expressed as an equivalence relation.
 
 ##### Open rows
 
