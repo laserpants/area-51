@@ -49,7 +49,12 @@ data Constructor = Constructor Name [Type]
 
 ##### Type schemes
 
-A *type scheme* is a type along with a set of bound type variables.
+Type schemes are used to describe polymorphic types. A polymorphic type is parameterized by one or more type variables.
+
+| Type                         | Bound variables | Haskell expression                                                           |
+| ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| `List a → Int`               | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
+| `(a → b) → List a → List b`  | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
 
 #### Record and row types
 
@@ -61,7 +66,7 @@ A *row* is a sequence of labeled fields that encode the type of a record.
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-| Record                                | Type                               | Row                                           |
+| Record                                | Type                               | Row expression                                |
 | ------------------------------------- | ---------------------------------- | --------------------------------------------- |
 | `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `RExt "name" TString (RExt "dog" TBool RNil)` |
 
@@ -71,7 +76,7 @@ Since records are unordered, it is natural to consider rows equivalent up to per
 
 ##### Open rows
 
-A row can be either *open* or *closed*. Whereas a closed row has a sequence that ends with the empty row, an open row is one in which the final element is a variable:
+A row can be either *open* or *closed*. A closed row has a sequence that ends with the empty row, whereas an open row is one in which the final element is a variable:
 
 ```
 { id : int, name : string | a }
