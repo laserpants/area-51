@@ -373,7 +373,7 @@ definition = functionDef <|> constantDef <|> externalDef <|> typeDef
       polyType
         >>= ( project
                 >>> \case
-                  TCon con ts -> pure (Constructor con ts)
+                  TCon con ts -> pure (tCon con ts)
                   _ -> fail "Not a constructor"
             )
 

@@ -74,7 +74,7 @@ moduleEnv = Env.fromList . concatMap go . Map.toList . unpack
     go = \case
       ((Scheme s, _), Data _ cons) ->
         cons
-          <&> ( \(Constructor con fs) ->
+          <&> ( \(Fix (TCon con fs)) ->
                   (con, Right (Scheme (foldType s fs)))
               )
       ((scheme, defn), _) ->

@@ -240,7 +240,7 @@ buildModule_ pname p = do
         & concatMap
           ( \case
               (_, Data _ cs) ->
-                sort (constructorName <$> cs) `zip` [0 :: Integer ..]
+                sort (consName <$> cs) `zip` [0 :: Integer ..]
               _ ->
                 []
           )
@@ -248,6 +248,8 @@ buildModule_ pname p = do
       case Text.splitOn "-" con of
         [c, _] -> c
         _ -> con
+    consName (Fix (TCon con _)) = con
+    consName _ = error "Implementation error"
 
 emitBody :: Ast -> CodeGen OpInfo
 emitBody =

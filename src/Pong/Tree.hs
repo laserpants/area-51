@@ -338,7 +338,7 @@ insertConstructors (Module p) = Module (p <> Map.fromList (concat extra_))
         <&> \((Scheme s, _), def) ->
           case def of
             Data _ cons ->
-              cons <&> \(Constructor con fs) ->
+              cons <&> \(Fix (TCon con fs)) ->
                 let t = foldType s fs
                     names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
                     t0 = toMonoType names t

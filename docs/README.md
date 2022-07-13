@@ -43,10 +43,6 @@ data Type
 
 ##### Algebraic data types
 
-```
-data Constructor = Constructor Name [Type]
-```
-
 ##### Type schemes
 
 Type schemes are used to describe polymorphic types. A polymorphic type is parameterized by one or more type variables.

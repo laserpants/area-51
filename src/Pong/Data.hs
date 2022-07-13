@@ -135,16 +135,11 @@ data ConE
   | LitE                           -- ^ Expression is an ELit
   | LamE                           -- ^ Expression is an ELam
 
--- | Data (value) constructor
-data Constructor = Constructor
-  Name                             -- ^ Constructor name
-  [Type Name]                      -- ^ Field types
-
 data Definition t a
   = Function (List1 (Label t)) (t, a)        -- ^ Function definition 
   | Constant (t, a)                          -- ^ Constant expression
   | Extern [MonoType] MonoType               -- ^ External function 
-  | Data Name [Constructor]                  -- ^ Data type declaration
+  | Data Name [Type Name]                    -- ^ Data type declaration
 
 -- Program module
 newtype Module t a
@@ -270,13 +265,6 @@ deriving instance Functor (ExprF t a0 a1 a2)
 deriving instance Foldable (ExprF t a0 a1 a2)
 
 deriving instance Traversable (ExprF t a0 a1 a2)
-
--- Constructor
-deriving instance Show Constructor
-
-deriving instance Eq Constructor
-
-deriving instance Ord Constructor
 
 -- Definition
 deriving instance (Show t, Show a) =>
