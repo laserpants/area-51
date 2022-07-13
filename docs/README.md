@@ -65,7 +65,7 @@ Since records are unordered, it is natural to considered rows equivalent up to p
 
 ##### Open rows
 
-A row can be either *open* or *closed*. Whereas a closed row has a sequence which ends with the empty row, an open row is one in which the final element is a variable:
+A row can be either *open* or *closed*. Whereas a closed row has a sequence that ends with the empty row, an open row is one in which the final element is a variable:
 
 ```
 { id : int, name : string | a }
