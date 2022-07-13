@@ -137,7 +137,7 @@ data Op2
 | `OSub`        | Subtraction           | `-`     | 6          | Left                |                     |
 | `OMul`        | Multiplication        | `*`     | 7          | Left                |                     |
 | `ODiv`        | Division              | `/`     | 7          | Left                |                     |
-| `OLogicOr`    | Logical OR            | `||`    | 2          | Right               |                     |
+| `OLogicOr`    | Logical OR            | `\|\|`  | 2          | Right               |                     |
 | `OLogicAnd`   | Logical AND           | `&&`    | 3          | Right               |                     |
 
 ### Expression syntax
