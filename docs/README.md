@@ -6,16 +6,16 @@
 
 ```
 data Type
-  = TUnit                          
-  | TBool                          
-  | TInt                           
-  | TFloat                         
-  | TDouble                        
-  | TChar                          
-  | TString                        
-  | TCon Name [Type]                  
+  = TUnit
+  | TBool
+  | TInt
+  | TFloat
+  | TDouble
+  | TChar
+  | TString
+  | TCon Name [Type]
   | TArr Type Type
-  | TVar Var                         
+  | TVar Var
   | TRec Type
   | RNil
   | RExt Name Type Type
@@ -75,31 +75,31 @@ A row can be either *open* or *closed*. Whereas a closed row has a sequence whic
 
 ```
 data Prim
-  = PBool Bool                   
-  | PInt Int                     
-  | PFloat Float                 
-  | PDouble Double               
-  | PChar Char                   
-  | PString Text                 
-  | PUnit                        
+  = PBool Bool
+  | PInt Int
+  | PFloat Float
+  | PDouble Double
+  | PChar Char
+  | PString Text
+  | PUnit
 ```
 
-| Constructor   | Type     | Values                                                   | Remarks             |
-| ------------- | -------- | -------------------------------------------------------- | ------------------- |
-| `PBool`       | `bool`   | `false` \| `true`                                        |                     |
+| Constructor   | Type     | Values                                                   | Remarks                                 |
+| ------------- | -------- | -------------------------------------------------------- | --------------------------------------- |
+| `PBool`       | `bool`   | `false` \| `true`                                        |                                         |
 | `PInt`        | `int`    | `-2^63`, &hellip;, `-1`, `0`, `1`, &hellip;, `2^63-1`    | Signed 64-bit integer                   |
 | `PFloat`      | `float`  | `/\d+\.\d+f/`                                            | Single-precision floating point numbers |
 | `PDouble`     | `double` | `/\d+\.\d+/`                                             | Double-precision floating point numbers |
 | `PChar`       | `char`   | &hellip;, `'a'`, `'b'`, `'c'`, &hellip;                  | A single ASCII character                |
-| `PString`     | `string` | `""`, `"a"`, `"aa"`, `"aaa"`, &hellip;, `"b"`, &hellip;  |                     |
-| `PUnit`       | `unit`   | `()`                                                     |                     |
+| `PString`     | `string` | `""`, `"a"`, `"aa"`, `"aaa"`, &hellip;, `"b"`, &hellip;  |                                         |
+| `PUnit`       | `unit`   | `()`                                                     |                                         |
 
 ### Unary operators
 
 ```
 data Op1
-  = ONot  
-  | ONeg  
+  = ONot
+  | ONeg
 ```
 
 | Constructor   | Operator            | Symbol  | Remarks                                                                             |
@@ -111,18 +111,18 @@ data Op1
 
 ```
 data Op2
-  = OEq                   
-  | ONEq                  
-  | OLt                   
-  | OGt                   
-  | OLtE                  
-  | OGtE                  
-  | OAdd                  
-  | OSub                  
-  | OMul                  
-  | ODiv                  
-  | OLogicOr              
-  | OLogicAnd             
+  = OEq
+  | ONEq
+  | OLt
+  | OGt
+  | OLtE
+  | OGtE
+  | OAdd
+  | OSub
+  | OMul
+  | ODiv
+  | OLogicOr
+  | OLogicAnd
 ```
 
 | Constructor   | Operator              | Symbol  | Precedence | Associativity       | Remarks             |
@@ -143,18 +143,18 @@ data Op2
 ### Expression syntax
 
 ```
-data Expr 
-  = EVar Label                           
+data Expr
+  = EVar Label
   | ECon Label
-  | ELit Prim                                
+  | ELit Prim
   | EIf Expr Expr Expr
   | ELet Label Expr Expr
-  | EApp Expr [Expr]                            
-  | ELam [Label] Expr                      
-  | ECall Label [Expr]                   
-  | EOp1 Op1 Expr                          
-  | EOp2 Op2 Expr Expr                        
-  | EPat Expr [Clause]                      
+  | EApp Expr [Expr]
+  | ELam [Label] Expr
+  | ECall Label [Expr]
+  | EOp1 Op1 Expr
+  | EOp2 Op2 Expr Expr
+  | EPat Expr [Clause]
   | ENil
   | EExt Name Expr Expr
   | ERes [Label] Expr Expr
@@ -176,11 +176,11 @@ type Clause = ([Label], Expr)
 
 #### Records
 
-Records are unordered containers of labeled fields. 
+Records are unordered containers of labeled fields.
 
 ##### Duplicate fields
 
-Due to reasons discussed in [x], 
+Due to reasons discussed in [x],
 
 ##### Examples
 
