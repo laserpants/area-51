@@ -19,6 +19,13 @@ import Test.Hspec
 langTests :: SpecWith ()
 langTests =
   describe "Pong.Lang" $ do
+    describe "- normalizeRows" $ do
+      let r1, r2 :: MonoType
+          r1 = rExt "foo" tInt (rExt "baz" tBool rNil)
+          r2 = rExt "baz" tBool (rExt "foo" tInt rNil)
+
+      passIt "1" $ normalizeRows r1 == r2
+
     --    describe "- mapRow" $ do
     --      let from :: Row TypedExpr Int
     --          from = rExt "key" (eVar (tInt, "x")) rNil
@@ -38,12 +45,6 @@ langTests =
       it "TODO" True
 
     describe "- bimapRow" $ do
-      it "TODO" True
-
-    describe "- normalizeRow" $ do
-      it "TODO" True
-
-    describe "- noramlizeTypeRows" $ do
       it "TODO" True
 
     describe "- foldRow" $ do
