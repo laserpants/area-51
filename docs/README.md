@@ -47,7 +47,7 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 
 ##### Type schemes
 
-Type schemes denote polymorphic types &mdash; types parameterized by one or more type variables. These type variables are said to be *bound* in the scheme under consideration.
+Type schemes denote polymorphic types &mdash; types parameterized by one or more type variables. These type variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                  | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
@@ -70,95 +70,29 @@ A *row* is a structure whose purpose is to encode the type of a [record](#record
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `TRec (RExt "name" TString (RExt "dog" TBool RNil))` |
 
-We use the notation $()$ for the empty row, and $( l : t \ | \ r )$ for the row $r$ extended by a label $l$ and type $t$.
+We use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$ for the row $r$ extended by a label $l$ and type $t$.
 
 ##### Row equality and normalization
 
 Since records are unordered, it follows that we consider rows equivalent up to permutation of labels. This can be more formally expressed as an equivalence relation defined over the set of types.
 
-RNil            | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr
---------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------
-$$() \cong ()$$ | $$r \cong r$$ | $$\frac{ t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n } { \text{C}(t_0, t_1 \dots t_n) \cong \text{C}(u_0, u_1 \dots u_n) }$$ | $$\frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) }$$ | $$\frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 }$$
+RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim           
+----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+$$\wr \wr \cong \wr \wr$$     | $$r \cong r$$ | $$\frac{ t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n } { \text{C}(t_0, t_1 \dots t_n) \cong \text{C}(u_0, u_1 \dots u_n) }$$ | $$\frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) }$$ | $$\frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 }$$ | $$\text{()} \cong \text{()} \\ \text{bool} \cong \text{bool} \\ \text{int} \cong \text{int} \\ \text{float} \cong \text{float} \\ \text{double} \cong \text{double} \\ \text{char} \cong \text{char} \\ \text{string} \cong \text{string}$$
 
-Transitivity                                                     | Head                                                                                               | Exchange
----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------
-$$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { ( l : t_1 \mid r_1 ) \cong ( l : t_2 \mid r_2 ) }$$ | $$\frac{ l_1 \ne l_2 } { ( l_1 : t_1 \mid ( l_2 : t_2 \mid r )) \cong ( l_2 : t_2 \mid ( l_1 : t_1 \mid r )) }$$
+Transitivity                                                     | Head                                                                                                                  | Exchange
+---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
+$$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { \wr \ l : t_1 \mid r_1 \ \wr \ \cong \ \wr\ l : t_2 \mid r_2 \ \wr }$$ | $$\frac{ l_1 \ne l_2 } { \wr \ l_1 : t_1 \mid \wr \ l_2 : t_2 \mid r \wr \wr \ \cong \ \wr \ l_2 : t_2 \mid \wr \ l_1 : t_1 \mid r \wr \wr }$$
 
 In practice, this is much easier than it looks.
 
-<!--
-###### Nil rule
-
-$$ () \cong () $$
-
-###### Var rule
-
-$$ r \cong r $$
-
-###### Con rule
-
 $$
-\frac{
-    t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n
-  } {
-    C(t_0, t_1 \dots t_n) \cong C(u_0, u_1 \dots u_n)
-  }
+  t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)
 $$
-
-###### Rec rule
-
-$$
-\frac{
-    r_1 \cong r_2
-  } {
-    \text{Rec}(r_1) \cong \text{Rec}(r_2)
-  }
-$$
-
-###### Function rule
-
-$$
-\frac{
-    t_1 \cong t_2 \quad u_1 \cong u_2
-  } {
-    t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2
-  }
-$$
-
-###### Transitivity rule
-
-$$
-\frac{
-    t_1 \cong t_2 \quad t_2 \cong t_3
-  } {
-    t_1 \cong t_3
-  }
-$$
-
-###### Head rule
-
-$$
-\frac{
-    r_1 \cong r_2 \quad t_1 \cong t_2
-  } {
-    ( l : t_1 \mid r_1 ) \cong ( l : t_2 \mid r_2 )
-  }
-$$
-
-###### Exchange rule
-
-$$
-\frac{
-    l_1 \ne l_2
-  } {
-    ( l_1 : t_1 \mid ( l_2 : t_2 \mid r )) \cong ( l_2 : t_2 \mid ( l_1 : t_1 \mid r ))
-  }
-$$
--->
 
 ##### Open rows
 
-Furthermore, a row can be either *open* or *closed*. A closed row consists of a sequence ending with the empty row, whereas an open row is one in which the final element is a type variable:
+Furthermore, a row can be either *open* or *closed*. A closed row consists of a sequence ending in the empty row, whereas an open row is one in which the final element is a type variable:
 
 ```
 { id : int, name : string | a }
