@@ -5,9 +5,9 @@ module Pong.LangTests where
 -- import Data.Either.Extra (fromRight')
 import Data.Function ((&))
 import Data.List.NonEmpty (fromList)
+import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
-import qualified Data.Map.Strict as Map
 -- import qualified Pong.Read as Pong
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.JackOfClubs

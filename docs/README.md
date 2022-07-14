@@ -203,12 +203,12 @@ Records are usually defined as unordered containers of labeled *fields* (name-va
 
 $$
 \begin{align*}
- &\{ \\
- & &l_0 &= [v_{(0, 0)}, v_{(0, 1)}, \dots, v_{(0, m_0)}], \\
- & &l_1 &= [v_{(1, 0)}, v_{(1, 1)}, \dots, v_{(1, m_1)}], \\
- & & &\dots, \\
- & &l_n &= [v_{(n, 0)}, v_{(n, 1)}, \dots, v_{(n, m_n)}] \\
- &\} \\
+  & \{ &                                 & \\
+  &    & l_0                             &= [v_0, v^{\prime}_0, \dots, v^{\prime\dots\prime}_0], \\
+  &    & l_1                             &= [v_1, v^{\prime}_1, \dots, v^{\prime\dots\prime}_1], \\
+  &    &                                 & \vdots \\
+  &    & l_m                             &= [v_m, v^{\prime}_m, \dots, v^{\prime\dots\prime}_m] \\
+  & \} &                                 & \\
 \end{align*}
 $$
 
