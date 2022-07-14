@@ -33,6 +33,8 @@ data Type
 | `TChar`       | Char                                    | `char`   |
 | `TString`     | String                                  | `string` |
 
+These types correspond, in a one-to-one manner, to the built-in language primitives (described [here](#language-primitives)).
+
 #### Composite types
 
 | Constructor   | Type                                    | Notation                |
@@ -45,16 +47,14 @@ data Type
 
 ##### Type schemes
 
-Type schemes are used to describe polymorphic types. A polymorphic type is parameterized by one or more type variables.
+Type schemes denote polymorphic types &mdash; types parameterized by one or more type variables. Such type variables are said to be *bound* in the scheme under consideration.
 
-| Type                         | Bound variables | Haskell expression                                                           |
+| Type scheme                  | Bound variables | Haskell expression                                                           |
 | ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
 | `List a → Int`               | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
 | `(a → b) → List a → List b`  | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
 
 #### Record and row types
-
-A *row* is a sequence of labeled fields that encode the type of a record.
 
 | Constructor   | Type                                    | Kind                 | Remarks             |
 | ------------- | --------------------------------------- | -------------------- | ------------------- |
@@ -62,17 +62,33 @@ A *row* is a sequence of labeled fields that encode the type of a record.
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-| Record                                | Type                               | Row expression                                |
-| ------------------------------------- | ---------------------------------- | --------------------------------------------- |
-| `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `RExt "name" TString (RExt "dog" TBool RNil)` |
+A *row* is a structure whose purpose is to encode the type of a record. At the implementation level, it is a chain of labeled type-fields. A row is either
+- empty; or
+- the extension of an existing row, formed by adding an extra label-type pair to it.
+
+| Record                                | Type                               | Type rep. as Haskell expression                      |
+| ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
+| `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `TRec (RExt "name" TString (RExt "dog" TBool RNil))` |
+
+We use the notation $()$ for the empty row, and $( l : t \ | \ r )$ for the row $r$ extended by a label $l$ and type $t$.
 
 ##### Row equality and normalization
 
-Since records are unordered, it is natural to consider rows equivalent up to permutation of distinct labels. This can be more formally expressed as an equivalence relation.
+Since records are unordered, it follows that we consider rows equivalent up to permutation of labels. This can be more formally expressed as an equivalence relation.
+
+$$ () \cong () $$
+
+$$
+\frac{
+    l_0 \ne l_1
+  } {
+    ( l_0 : t_0 \mid ( l_1 : t_1 \mid r )) \cong ( l_1 : t_1 \mid ( l_0 : t_0 \mid r ))
+  }
+$$
 
 ##### Open rows
 
-A row can be either *open* or *closed*. A closed row has a sequence that ends with the empty row, whereas an open row is one in which the final element is a variable:
+Furthermore, a row can be either *open* or *closed*. A closed row consists of a sequence ending with the empty row, whereas an open row is one in which the final element is a type variable:
 
 ```
 { id : int, name : string | a }
@@ -183,11 +199,18 @@ type Clause = ([Label], Expr)
 
 #### Records
 
-Records are unordered containers of labeled fields.
+Records are typically described as unordered containers of labeled fields. Contrary to this intuitive understanding, and for reasons discussed in [x], fields, in our implementation, are actually sequences of values. In other words, the same label is allowed to appear more than once in a record.
 
-##### Duplicate fields
-
-Due to reasons discussed in [x],
+$$
+\begin{align*}
+ &\{ \\
+ & &l_0 &= [v_{(0, 0)}, v_{(0, 1)}, \dots, v_{(0, m_0)}], \\
+ & &l_1 &= [v_{(1, 0)}, v_{(1, 1)}, \dots, v_{(1, m_1)}], \\
+ & & &\dots, \\
+ & &l_n &= [v_{(n, 0)}, v_{(n, 1)}, \dots, v_{(n, m_n)}] \\
+ &\} \\
+\end{align*}
+$$
 
 ##### Examples
 
