@@ -76,6 +76,17 @@ We use the notation $()$ for the empty row, and $( l : t \ | \ r )$ for the row 
 
 Since records are unordered, it follows that we consider rows equivalent up to permutation of labels. This can be more formally expressed as an equivalence relation defined over the set of types.
 
+| RNil              | TVar            | TCon                                                                                                                                  | TRec                                                                   | TArr                                                                                               |
+| ----------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| $$ () \cong () $$ | $$ r \cong r $$ | $$ \frac{ t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n } { \text{C}(t_0, t_1 \dots t_n) \cong \text{C}(u_0, u_1 \dots u_n) } $$ | $$ \frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) } $$ | $$ \frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 } $$ |
+
+| Transitivity                                                        | Head                                                                                                 | Exchange                                                                                                           |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| $$ \frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 } $$  | $$ \frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { ( l : t_1 \mid r_1 ) \cong ( l : t_2 \mid r_2 ) } $$ | $$ \frac{ l_1 \ne l_2 } { ( l_1 : t_1 \mid ( l_2 : t_2 \mid r )) \cong ( l_2 : t_2 \mid ( l_1 : t_1 \mid r )) } $$ |
+
+In practice, this is much easier than it looks.
+
+<!--
 ###### Nil rule
 
 $$ () \cong () $$
@@ -143,6 +154,7 @@ $$
     ( l_1 : t_1 \mid ( l_2 : t_2 \mid r )) \cong ( l_2 : t_2 \mid ( l_1 : t_1 \mid r ))
   }
 $$
+-->
 
 ##### Open rows
 
@@ -257,7 +269,7 @@ type Clause = ([Label], Expr)
 
 #### Records
 
-Records are usually defined as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered sequence of values. The reasons for this are discussed in [x].
+Records are usually defined as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered sequence of values. The reasons for this are discussed in [<a href="#footnote-1">1</a>].
 
 $$
 \begin{align*}
@@ -275,3 +287,13 @@ $$
 ##### Extension
 
 ##### Restriction
+
+## Footnotes
+
+<ol>
+  <li id="footnote-1">
+    <p>
+      TODO
+    </p>
+  </li>
+</ol>
