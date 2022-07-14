@@ -47,9 +47,9 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 
 ##### Type schemes
 
-Type schemes denote polymorphic types &mdash; types parameterized by one or more type variables. Such type variables are said to be *bound* in the scheme under consideration.
+Type schemes denote polymorphic types &mdash; types parameterized by one or more type variables. These type variables are said to be *bound* in the scheme under consideration.
 
-| Type scheme                  | Bound variables | Haskell expression                                                           |
+| Type scheme                  | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
 | `List a → Int`               | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
 | `(a → b) → List a → List b`  | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
@@ -62,11 +62,11 @@ Type schemes denote polymorphic types &mdash; types parameterized by one or more
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-A *row* is a structure whose purpose is to encode the type of a record. At the implementation level, it is a chain of labeled type-fields. A row is either
+A *row* is a structure whose purpose is to encode the type of a record. At the implementation level, it is a [cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
 - empty; or
-- the extension of an existing row, formed by adding an extra label-type pair to it.
+- the extension of an existing row, formed by adding (consing) an extra label-type pair on to it.
 
-| Record                                | Type                               | Type rep. as Haskell expression                      |
+| Record                                | Type                               | Type rep. (Haskell expression)                       |
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `TRec (RExt "name" TString (RExt "dog" TBool RNil))` |
 
@@ -199,7 +199,7 @@ type Clause = ([Label], Expr)
 
 #### Records
 
-Records are typically described as unordered containers of labeled fields. Contrary to this intuitive understanding, and for reasons discussed in [x], fields, in our implementation, are actually sequences of values. In other words, the same label is allowed to appear more than once in a record.
+Records are usually defined as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered sequences of values. The reasons for this are discussed in [x].
 
 $$
 \begin{align*}

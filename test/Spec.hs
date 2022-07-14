@@ -4,7 +4,7 @@ import Pong.EvalTests
 import Pong.LLVM.EmitTests
 import Pong.LangTests
 import Pong.ReadTests
--- import Pong.TreeTests
+import Pong.TreeTests
 import Pong.TypeTests
 -- import Pong.Util.EnvTests
 -- import Pong.Util.PrettyTests
@@ -19,7 +19,7 @@ main =
     langTests
 
     readTests
-    --    treeTests
+    treeTests
     typeTests
 
 --    utilTests

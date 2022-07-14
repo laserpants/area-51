@@ -3,24 +3,23 @@
 module Pong.TreeTests where
 
 -- import Data.List.NonEmpty (fromList)
--- import Pong.Data
--- import Pong.Lang
+import Pong.Data
+import Pong.Lang
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.GeraniumPlant
 -- import Pong.TestData.GoAwayDixieGillian
 -- import Pong.TestData.JackOfClubs
 ---- import Pong.TestData.TheFatalAuction
 -- import Pong.TestData.ThePanamaHat
--- import Pong.TestHelpers
--- import Pong.Tree
+import Pong.Tree
 -- import Pong.Util
--- import Test.Hspec hiding (after, before)
---
--- {- HLINT ignore "Use null" -}
---
--- treeTests :: SpecWith ()
--- treeTests =
---  describe "Pong.Tree" $ do
+import Test.Hspec hiding (after, before)
+
+{- HLINT ignore "Use null" -}
+
+treeTests :: SpecWith ()
+treeTests =
+  describe "Pong.Tree" $ do
 --    describe "- hoistTopLambdas" $ do
 --      -------------------------------------------------------------------------
 --      let def :: Definition MonoType TypedExpr
@@ -241,15 +240,15 @@ module Pong.TreeTests where
 --
 --    describe "- appArgs" $ do
 --      it "TODO" True
---
---    describe "- exclude" $ do
---      -------------------------------------------------------------------------
---      it "1" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "c")] ["a", "b"] == [(tInt, "c")])
---      -------------------------------------------------------------------------
---      it "2" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "c")] [] == [(tInt, "a"), (tInt, "b"), (tInt, "c")])
---      -------------------------------------------------------------------------
---      it "3" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "c")] ["a", "b", "c"] == [])
---      -------------------------------------------------------------------------
---      it "4" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "b"), (tInt, "c")] ["a", "b", "c"] == [])
---      -------------------------------------------------------------------------
---      it "5" (exclude [(tInt, "a"), (tBool, "b") :: Label MonoType, (tInt, "b"), (tInt, "c")] ["a", "b", "c"] == [])
+
+    describe "- exclude" $ do
+      -------------------------------------------------------------------------
+      it "1" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "c")] ["a", "b"] == [(tInt, "c")])
+      -------------------------------------------------------------------------
+      it "2" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "c")] [] == [(tInt, "a"), (tInt, "b"), (tInt, "c")])
+      -------------------------------------------------------------------------
+      it "3" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "c")] ["a", "b", "c"] == [])
+      -------------------------------------------------------------------------
+      it "4" (exclude [(tInt, "a"), (tInt, "b") :: Label MonoType, (tInt, "b"), (tInt, "c")] ["a", "b", "c"] == [])
+      -------------------------------------------------------------------------
+      it "5" (exclude [(tInt, "a"), (tBool, "b") :: Label MonoType, (tInt, "b"), (tInt, "c")] ["a", "b", "c"] == [])

@@ -221,9 +221,12 @@ compile =
       xs <- sequence args
       pure
         ( case project f of
-            ECall _ g ys -> eCall () g (ys <> xs)
-            EVar v -> if null xs then eVar v else eCall () v xs
-            _ -> error "Implementation error"
+            ECall _ g ys ->
+              eCall () g (ys <> xs)
+            EVar v ->
+              if null xs then eVar v else eCall () v xs
+            _ ->
+              error "Implementation error"
         )
     ELet var expr1 expr2 -> do
       e1 <- expr1

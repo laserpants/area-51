@@ -7,6 +7,7 @@ import Data.Function ((&))
 import Data.List.NonEmpty (fromList)
 import Pong.Data
 import Pong.Lang
+import qualified Data.Map.Strict as Map
 -- import qualified Pong.Read as Pong
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.JackOfClubs
@@ -51,10 +52,16 @@ langTests =
       it "TODO" True
 
     describe "- foldRow1" $ do
-      it "TODO" True
+      -------------------------------------------------------------------------
+      it "1" (foldRow1 (Map.fromList []) == (rNil :: MonoType))
+      it "2" (foldRow1 (Map.fromList [("a", [tInt]), ("b", [tBool])]) == (rExt "a" tInt (rExt "b" tBool rNil) :: MonoType))
+      it "3" (foldRow1 (Map.fromList [("a", [tInt, tBool, tUnit]), ("b", [tBool])]) == (rExt "a" tInt (rExt "a" tBool (rExt "a" tUnit (rExt "b" tBool rNil))) :: MonoType))
 
     describe "- unwindRow" $ do
-      it "TODO" True
+      -------------------------------------------------------------------------
+      it "1" (unwindRow rNil == (Map.fromList [], rNil :: MonoType))
+      it "2" (unwindRow (rExt "a" tInt (rExt "b" tBool rNil) :: MonoType) == (Map.fromList [("a", [tInt]), ("b", [tBool])], rNil :: MonoType))
+      it "3" (unwindRow (rExt "a" tInt (rExt "a" tBool (rExt "a" tUnit (rExt "b" tBool rNil))) :: MonoType) == (Map.fromList [("a", [tInt, tBool, tUnit]), ("b", [tBool])], rNil :: MonoType))
 
     describe "- restrictRow" $ do
       it "1" (restrictRow "id" (rExt "id" tInt rNil :: MonoType) == (tInt, rNil))
