@@ -49,7 +49,8 @@ langTests =
       it "TODO" True
 
     describe "- foldRow" $ do
-      it "TODO" True
+      it "1" (foldRow rNil (Map.fromList []) == (rNil :: MonoType))
+      it "2" (foldRow (tVar 0) (Map.fromList [("a", [tInt, tBool, tUnit]), ("b", [tBool])]) == (rExt "a" tInt (rExt "a" tBool (rExt "a" tUnit (rExt "b" tBool (tVar 0)))) :: MonoType))
 
     describe "- foldRow1" $ do
       -------------------------------------------------------------------------
