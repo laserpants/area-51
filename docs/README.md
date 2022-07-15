@@ -43,7 +43,7 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 
 ##### Type schemes
 
-Type schemes represent polymorphic types &mdash; types parameterized by one or more type variables. These variables are said to be *bound* in the type scheme under consideration.
+Type schemes represent polymorphic types &mdash; types parameterized by any number of type variables. These variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                        | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------------- | --------------- | ---------------------------------------------------------------------------- |
