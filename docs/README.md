@@ -33,15 +33,15 @@ data Type
 | `TChar`       | Char                                    | `char`   |
 | `TString`     | String                                  | `string` |
 
-These types correspond, in a one-to-one manner, to the built-in language primitives (described [here](#language-primitives)).
+These types correspond, in a one-to-one manner, to the built-in language primitives (detailed [here](#language-primitives)).
 
 #### Composite types
 
 | Constructor   | Type                                    | Notation                |
 | ------------- | --------------------------------------- | ----------------------- |
+| `TVar`        | Type variable                           | `'0`, `a`               |
 | `TCon`        | Algebraic data type                     | `Con s t r u ...`       |
 | `TArr`        | Function type                           | `s → t`                 |
-| `TVar`        | Type variable                           | `'0`, `a`               |
 
 ##### Algebraic data types
 
