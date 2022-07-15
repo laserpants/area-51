@@ -35,24 +35,32 @@ data Type
 
 These types correspond, in a one-to-one manner, to the built-in language primitives (detailed [here](#language-primitives)).
 
-#### Composite types
+#### Type variables
 
 | Constructor   | Type                                    | Notation                |
 | ------------- | --------------------------------------- | ----------------------- |
 | `TVar`        | Type variable                           | `'0`, `a`               |
+
+##### Type schemes
+
+Type schemes represent polymorphic types &mdash; types parameterized by one or more type variables. These variables are said to be *bound* in the type scheme under consideration.
+
+| Type scheme                        | Bound variables | Type rep. (Haskell expression)                                               |
+| ---------------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| `List a → Int`                     | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
+| `(a → b) → List a → List b`        | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
+
+The notation $\forall[v_0 \ v_1 \dots v_n] . \ s$ is sometimes used to say that variables $v_0, v_1 \dots v_n$ appear bound in $s$.
+
+
+#### Composite types
+
+| Constructor   | Type                                    | Notation                |
+| ------------- | --------------------------------------- | ----------------------- |
 | `TCon`        | Algebraic data type                     | `Con s t r u ...`       |
 | `TArr`        | Function type                           | `s → t`                 |
 
 ##### Algebraic data types
-
-##### Type schemes
-
-Type schemes represent polymorphic types &mdash; types parameterized by one or more type variables. These type variables are said to be *bound* in the type scheme under consideration.
-
-| Type scheme                  | Bound variables | Type rep. (Haskell expression)                                               |
-| ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| `List a → Int`               | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
-| `(a → b) → List a → List b`  | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
 
 #### Record and row types
 
@@ -70,42 +78,50 @@ A *row* is a structure whose purpose is to encode the type of a [record](#record
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `TRec (RExt "name" TString (RExt "dog" TBool RNil))` |
 
-We use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$ for the row $r$ extended by a label $l$ and type $t$.
+In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$ for the row $r$ extended by a label $l$ and type $t$.
 
 ##### Row equality and normalization
 
-Since records are unordered, it follows that we consider rows equivalent up to permutation of labels. This can be more formally expressed as an equivalence relation defined over the set of types.
+Since records are unordered, it follows naturally that we think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The distinctness condition is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of duplicates matters.
+For example, the type of `{ foo : t0, foo : t1, baz : t2 }` is the same as `{ baz : t2, foo : t0, foo : t1 }`, but *not* the same as `{ foo : t0, baz : t2, foo : t1 }`.
+
+This type of equality can be expressed, more formally, as an equivalence relation defined over the set of types.
 
 RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim<sup>†</sup>
 ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-$$\wr \wr \cong \wr \wr$$     | $$r \cong r$$ | $$\frac{ t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n } { \text{C}(t_0, t_1 \dots t_n) \cong \text{C}(u_0, u_1 \dots u_n) }$$ | $$\frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) }$$ | $$\frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 }$$ | $$t_{\star} \cong t_{\star}$$
+$$\wr \wr \cong \wr \wr$$     | $$r \cong r$$ | $$\frac{ t_1 \cong u_1, t_2 \cong u_2, \dots, t_n \cong u_n } { \text{C}(t_1, t_2 \dots t_n) \cong \text{C}(u_1, u_2 \dots u_n) }$$ | $$\frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) }$$ | $$\frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 }$$ | $$t_{\star} \cong t_{\star}$$
 
-†) Here $t_{\star}$ is the set of primitive types: `unit`, `bool`, `int`, `float`, `double`, `char`, and `string`.
+†) Here $t_{\star}$ is any of the primitive types, so we have that; $t_{\text{unit}} \cong t_{\text{unit}}, t_{\text{bool}} \cong t_{\text{bool}}$, etc.
 
 Transitivity                                                     | Head                                                                                                                   | Exchange
 ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
 $$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { \wr \ l : t_1 \mid r_1 \ \wr \cong \wr \ l : t_2 \mid r_2 \ \wr }$$ | $$\frac{ l_1 \ne l_2 } { \wr\ l_1 : t_1 \mid \wr \ l_2 : t_2 \mid r \wr \wr \cong \wr\ l_2 : t_2 \mid \wr \ l_1 : t_1 \mid r \wr \wr }$$
 
-In practice, this is much easier than it looks.
-
-$$
-  t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)
-$$
-
-$$
-  \wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr
-$$
+In practice, this is much easier than it looks. Using $<$ to denote the alphabetical order of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Given this, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is, $t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)$.
 
 $$
   \wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ r \ \wr \cdots \wr \wr
 $$
 
 $$
+  f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ r \cdots 
+$$
+
+
+$$
   \wr \ l_1 : t_1 \ | \ r \ \wr
 $$
 
 $$
-  \underbrace{f_1 | f_2 | \cdots | f_{i_1} }_{g_1}
+  \underbrace{f_1 | f_2 | \cdots | f_{i_1} }_{g_1} | \underbrace{f_{i_1+1} | \cdots | f_{i_2} }_{g_2} | \cdots | f_{i_{(n - 1)}} | \underbrace{f_{i_{(n - 1)}+1} \cdots | f_{i_n}}_{g_n} | r 
+$$
+
+$$
+  i_0 = 0
+$$
+
+$$
+  f_j = (l_j : t_j)
 $$
 
 ##### Open rows
@@ -221,7 +237,7 @@ type Clause = ([Label], Expr)
 
 #### Records
 
-Records are usually defined as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered sequence of values. The reasons for this are discussed in [<a href="#footnote-1">1</a>].
+Records are usually described as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is actually allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered *sequence* of values. The reasons for this are discussed in [<a href="#footnote-1">1</a>].
 
 $$
 \begin{align*}
