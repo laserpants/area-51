@@ -76,11 +76,11 @@ We use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$
 
 Since records are unordered, it follows that we consider rows equivalent up to permutation of labels. This can be more formally expressed as an equivalence relation defined over the set of types.
 
-RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim
+RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim<sup>†</sup>
 ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 $$\wr \wr \cong \wr \wr$$     | $$r \cong r$$ | $$\frac{ t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n } { \text{C}(t_0, t_1 \dots t_n) \cong \text{C}(u_0, u_1 \dots u_n) }$$ | $$\frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) }$$ | $$\frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 }$$ | $$t_{\star} \cong t_{\star}$$
 
-$t_{\star}$ here represents the set of primitive types: `int`, `unit`, `bool`, etc.
+†) Here $t_{\star}$ is the set of primitive types: `unit`, `bool`, `int`, `float`, `double`, `char`, and `string`.
 
 Transitivity                                                     | Head                                                                                                                   | Exchange
 ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -93,7 +93,11 @@ $$
 $$
 
 $$
-  \wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \dots \wr \wr
+  \wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr
+$$
+
+$$
+  \wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ r \ \wr \cdots \wr \wr
 $$
 
 $$
