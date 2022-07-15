@@ -242,6 +242,8 @@ langTests =
       describe "- x" $ do
         -------------------------------------------------------------------------
         passIt "x" (untag (eVar (tInt, "x") :: TypedExpr) == [tInt])
+        passIt "C" (untag (eCon (tCon "C" [], "C") :: TypedExpr) == [tCon "C" []])
+        passIt "5" (untag (eLit (PInt 5) :: TypedExpr) == [])
 
       describe "- 5" $ do
         -------------------------------------------------------------------------
