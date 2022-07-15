@@ -50,7 +50,7 @@ Type schemes represent polymorphic types &mdash; types parameterized by one or m
 | `List a → Int`                     | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
 | `(a → b) → List a → List b`        | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
 
-The notation $\forall[v_0 \ v_1 \dots v_n] . \ s$ is sometimes used to say that precisely the variables $v_0, v_1 \dots v_n$ appear bound in $s$.
+The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that precisely the variables $v_0, v_1 \dots v_n$ appear bound in $s$.
 
 
 #### Composite types
