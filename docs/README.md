@@ -100,6 +100,10 @@ $$
   \wr \ l_1 : t_1 \ | \ r \ \wr
 $$
 
+$$
+  \wr \underbrace{f_1 | f_2 | \cdots | f_{i_1}}_{g_1} | \underbrace{{f_{i_1+1}} | \cdots | f_{i_2}}_{g_2} | \dots | f_{i_{(n-1)}} | \underbrace{f_{i_{(n-1)}+1} | \cdots f_{i_n}}_{g_n} | r \wr
+$$
+
 ##### Open rows
 
 Furthermore, a row can be either *open* or *closed*. A closed row consists of a sequence ending in the empty row, whereas an open row is one in which the final element is a type variable:
