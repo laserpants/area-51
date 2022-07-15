@@ -101,7 +101,7 @@ $$
 $$
 
 $$
-  \underbrace{a}_{b}
+  \underbrace{f_1 | f_2 | \cdots | f_{i_1} }_{g_1}
 $$
 
 ##### Open rows
