@@ -101,7 +101,7 @@ $$
 $$
 
 $$
-  \wr \underbrace{f_1 }_{g_1} | \underbrace{{f_{i_1+1}} | \cdots | f_{i_2}}_{g_2} | \dots | f_{i_{(n-1)}} | \underbrace{f_{i_{(n-1)}+1} | \cdots f_{i_n}}_{g_n} | r \wr
+  \underbrace{a}_{b}
 $$
 
 ##### Open rows
