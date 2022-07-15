@@ -82,7 +82,7 @@ In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l 
 
 ##### Row equality and normalization
 
-Since records are unordered, it follows naturally that we think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The distinctness condition is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of duplicates matters.
+Since records are unordered, it follows naturally to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The distinctness condition is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of duplicates matters.
 For example, the type of `{ foo : t0, foo : t1, baz : t2 }` is the same as `{ baz : t2, foo : t0, foo : t1 }`, but *not* the same as `{ foo : t0, baz : t2, foo : t1 }`.
 
 This type of equality can be expressed, more formally, as an equivalence relation defined over the set of types.
