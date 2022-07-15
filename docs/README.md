@@ -47,7 +47,7 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 
 ##### Type schemes
 
-Type schemes denote polymorphic types &mdash; types parameterized by one or more type variables. These type variables are said to be *bound* in the type scheme under consideration.
+Type schemes represent polymorphic types &mdash; types parameterized by one or more type variables. These type variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                  | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
@@ -76,7 +76,7 @@ We use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$
 
 Since records are unordered, it follows that we consider rows equivalent up to permutation of labels. This can be more formally expressed as an equivalence relation defined over the set of types.
 
-RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim           
+RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim
 ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 $$\wr \wr \cong \wr \wr$$     | $$r \cong r$$ | $$\frac{ t_0 \cong u_0, t_1 \cong u_1, \dots, t_n \cong u_n } { \text{C}(t_0, t_1 \dots t_n) \cong \text{C}(u_0, u_1 \dots u_n) }$$ | $$\frac{ r_1 \cong r_2 } { \text{Rec}(r_1) \cong \text{Rec}(r_2) }$$ | $$\frac{ t_1 \cong t_2 \quad u_1 \cong u_2 } { t_1 \rightarrow u_1 \cong t_2 \rightarrow u_2 }$$ | $$t_{\star} \cong t_{\star}$$
 
@@ -90,6 +90,14 @@ In practice, this is much easier than it looks.
 
 $$
   t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)
+$$
+
+$$
+  \wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \dots \wr \wr
+$$
+
+$$
+  \wr \ l_1 : t_1 \ | \ r \ \wr
 $$
 
 ##### Open rows
