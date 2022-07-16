@@ -46,15 +46,15 @@ type Type = Fix TypeF
 -------------------------------------------------------------------------------
 
 data Prim
-  = PUnit
-  | PBool Bool
-  | PInt Int
-  | PBig Integer
-  | PNat Integer
-  | PFloat Float
-  | PDouble Double
-  | PChar Char
-  | PString Text
+  = RUnit
+  | RBool Bool
+  | RInt Int
+  | RBig Integer
+  | RNat Integer
+  | RFloat Float
+  | RDouble Double
+  | RChar Char
+  | RString Text
 
 -------------------------------------------------------------------------------
 
