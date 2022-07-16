@@ -1,0 +1,17 @@
+name:                teriyaki
+version:             0.1.0.0
+homepage:            https://github.com/githubuser/teriyaki#readme
+license:             BSD3
+author:              Heikki Johannes Hildén
+maintainer:          hildenjohannes@gmail.com
+copyright:           2022 Heikki Johannes Hildén
+extra-source-files:
+- README.md
+
+dependencies:
+  - base >= 4.7 && < 5
+
+executables:
+  teriyaki:
+    source-dirs:      src
+    main:             Main.hs
