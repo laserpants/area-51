@@ -381,9 +381,9 @@ typeTests =
 
     describe "- inferModule" $ do
       -------------------------------------------------------------------------
-      it "1" ((runInferModule program5 <&> canonical) == Right program6)
+      it "1" ((runInferModuleDefs program5 <&> canonical) == Right program6)
       -------------------------------------------------------------------------
-      it "2" ((runInferModule program446 <&> canonical) == Right program447)
+      it "2" ((runInferModuleDefs program446 <&> canonical) == Right program447)
     -------------------------------------------------------------------------
     --      let env =
     --            Env.fromList

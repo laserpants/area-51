@@ -11,7 +11,10 @@ import Pong.Util
 
 program20 :: Text
 program20 =
-  "func foo(a : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func foo(a : unit) : int =\
   \  5\
   \\r\n\
   \func main(_ : unit) : int =\
@@ -141,7 +144,10 @@ program20 =
 
 program25 :: Text
 program25 =
-  "func foo(a : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func foo(a : unit) : int =\
   \  5\
   \\r\n\
   \func main(_ : unit) : int =\
@@ -162,7 +168,10 @@ program25 =
 
 program26 :: Text
 program26 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    r =\
   \      { a = 3.14159 }\
@@ -198,7 +207,10 @@ program26 =
 
 program28 :: Text
 program28 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    b =\
   \      5\
@@ -252,7 +264,10 @@ program28 =
 
 program31 :: Text
 program31 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    b =\
   \      5\
@@ -270,7 +285,10 @@ program31 =
 
 program32 :: Text
 program32 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    b =\
   \      5\
@@ -288,7 +306,10 @@ program32 =
 
 program33 :: Text
 program33 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let f =\
   \    lam(r) =>\
   \      { x = 111 | r }\
@@ -650,7 +671,10 @@ program33 =
 --
 program37 :: Text
 program37 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let f =\
   \    lam(r) =>\
   \      { x = 111 | r }\
@@ -670,7 +694,10 @@ program37 =
 
 program377 :: Text
 program377 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let f =\
   \    lam(r) =>\
   \      { x = 111 | r }\
@@ -690,7 +717,10 @@ program377 =
 
 program38 :: Text
 program38 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ y = 2 })\
@@ -707,52 +737,53 @@ program38 =
 
 ---- "
 
-program3x8 :: Module () SourceExpr
+program3x8 :: ModuleDefs () SourceExpr
 program3x8 =
-  Module
-    ( Map.fromList
-        [
-          (
-            ( Scheme (tUnit ~> tInt)
-            , "main"
-            )
-          , Function
-              (fromList [((), "_")])
-              ( ()
-              , eLet
-                  ((), "q")
-                  ( eApp
-                      ()
-                      (eVar ((), "foo"))
-                      [eExt "y" (eLit (PInt 2)) eNil]
-                  )
-                  ( eRes
-                      [((), "x"), ((), "a"), ((), "s")]
-                      (eVar ((), "q"))
-                      (eVar ((), "a"))
-                  )
+  Map.fromList
+    [
+      (
+        ( Scheme (tUnit ~> tInt)
+        , "main"
+        )
+      , Function
+          (fromList [((), "_")])
+          ( ()
+          , eLet
+              ((), "q")
+              ( eApp
+                  ()
+                  (eVar ((), "foo"))
+                  [eExt "y" (eLit (PInt 2)) eNil]
+              )
+              ( eRes
+                  [((), "x"), ((), "a"), ((), "s")]
+                  (eVar ((), "q"))
+                  (eVar ((), "a"))
               )
           )
-        ,
-          (
-            ( Scheme (tRec (tVar "a") ~> tRec (rExt "x" tInt (tVar "a")))
-            , "foo"
-            )
-          , Function
-              (fromList [((), "r")])
-              ( ()
-              , eExt
-                  "x"
-                  (eLit (PInt 111))
-                  (eVar ((), "r"))
-              )
+      )
+    ,
+      (
+        ( Scheme (tRec (tVar "a") ~> tRec (rExt "x" tInt (tVar "a")))
+        , "foo"
+        )
+      , Function
+          (fromList [((), "r")])
+          ( ()
+          , eExt
+              "x"
+              (eLit (PInt 111))
+              (eVar ((), "r"))
           )
-        ]
-    )
+      )
+    ]
 
 program39 :: Text
 program39 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ y = 2 })\
@@ -771,7 +802,10 @@ program39 =
 
 program399 :: Text
 program399 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ y = 2 })\
@@ -790,7 +824,10 @@ program399 =
 
 program440 :: Text
 program440 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ y = 200 })\
@@ -809,7 +846,10 @@ program440 =
 
 program445 :: Text
 program445 =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ y = 200 })\
@@ -828,7 +868,10 @@ program445 =
 
 program44z :: Text
 program44z =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ x = 105, y = 200 })\
@@ -847,7 +890,10 @@ program44z =
 
 program55z :: Text
 program55z =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ x = 105, y = 200, z = 300 })\
@@ -871,6 +917,8 @@ program55z =
 program55y :: Text
 program55y =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \func main(a : unit) : int =\
@@ -899,7 +947,10 @@ program55y =
 
 program55zz :: Text
 program55zz =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo({ x = 105, y = 200, z = 300 })\
@@ -923,6 +974,8 @@ program55zz =
 program55zx :: Text
 program55zx =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \func main(a : unit) : int =\
@@ -951,7 +1004,10 @@ program55zx =
 
 program55zzz :: Text
 program55zzz =
-  "func main(_ : unit) : int =\
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
   \  let\
   \    q =\
   \      foo(7)\
@@ -967,6 +1023,8 @@ program55zzz =
 program55zzx :: Text
 program55zzx =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \func main(a : unit) : int =\
@@ -985,86 +1043,82 @@ program55zzx =
 
 -- "
 
-program446 :: Module () SourceExpr
+program446 :: ModuleDefs () SourceExpr
 program446 =
-  Module
-    ( Map.fromList
-        [
-          (
-            ( Scheme (tUnit ~> tInt)
-            , "main"
-            )
-          , Function
-              (fromList [((), "_")])
-              ( ()
-              , eLet
-                  ((), "q")
-                  ( eApp
-                      ()
-                      (eVar ((), "foo"))
-                      [eExt "y" (eLit (PInt 200)) eNil]
-                  )
-                  (eVar ((), "q"))
+  Map.fromList
+    [
+      (
+        ( Scheme (tUnit ~> tInt)
+        , "main"
+        )
+      , Function
+          (fromList [((), "_")])
+          ( ()
+          , eLet
+              ((), "q")
+              ( eApp
+                  ()
+                  (eVar ((), "foo"))
+                  [eExt "y" (eLit (PInt 200)) eNil]
               )
+              (eVar ((), "q"))
           )
-        ,
-          (
-            ( Scheme (tRec (rExt "y" tInt (tVar "z")) ~> tInt)
-            , "foo"
-            )
-          , Function
-              (fromList [((), "r")])
-              ( ()
-              , eRes
-                  [((), "y"), ((), "a"), ((), "q")]
-                  (eVar ((), "r"))
-                  (eVar ((), "a"))
-              )
+      )
+    ,
+      (
+        ( Scheme (tRec (rExt "y" tInt (tVar "z")) ~> tInt)
+        , "foo"
+        )
+      , Function
+          (fromList [((), "r")])
+          ( ()
+          , eRes
+              [((), "y"), ((), "a"), ((), "q")]
+              (eVar ((), "r"))
+              (eVar ((), "a"))
           )
-        ]
-    )
+      )
+    ]
 
-program447 :: Module MonoType TypedExpr
+program447 :: ModuleDefs MonoType TypedExpr
 program447 =
-  Module
-    ( Map.fromList
-        [
-          (
-            ( Scheme (tUnit ~> tInt)
-            , "main"
-            )
-          , Function
-              (fromList [(tUnit, "_")])
-              ( tInt
-              , eLet
-                  (tInt, "q")
-                  ( eApp
-                      tInt
-                      (eVar (tRec (rExt "y" tInt rNil) ~> tInt, "foo"))
-                      [eExt "y" (eLit (PInt 200)) eNil]
-                  )
-                  (eVar (tInt, "q"))
+  Map.fromList
+    [
+      (
+        ( Scheme (tUnit ~> tInt)
+        , "main"
+        )
+      , Function
+          (fromList [(tUnit, "_")])
+          ( tInt
+          , eLet
+              (tInt, "q")
+              ( eApp
+                  tInt
+                  (eVar (tRec (rExt "y" tInt rNil) ~> tInt, "foo"))
+                  [eExt "y" (eLit (PInt 200)) eNil]
               )
+              (eVar (tInt, "q"))
           )
-        ,
-          (
-            ( Scheme (tRec (rExt "y" tInt (tVar "z")) ~> tInt)
-            , "foo"
-            )
-          , Function
-              (fromList [(tRec (rExt "y" tInt (tVar 0)), "r")])
-              ( tInt
-              , eRes
-                  [ (tInt ~> tRec (tVar 0) ~> tRec (rExt "y" tInt (tVar 0)), "y")
-                  , (tInt, "a")
-                  , (tRec (tVar 0), "q")
-                  ]
-                  (eVar (tRec (rExt "y" tInt (tVar 0)), "r"))
-                  (eVar (tInt, "a"))
-              )
+      )
+    ,
+      (
+        ( Scheme (tRec (rExt "y" tInt (tVar "z")) ~> tInt)
+        , "foo"
+        )
+      , Function
+          (fromList [(tRec (rExt "y" tInt (tVar 0)), "r")])
+          ( tInt
+          , eRes
+              [ (tInt ~> tRec (tVar 0) ~> tRec (rExt "y" tInt (tVar 0)), "y")
+              , (tInt, "a")
+              , (tRec (tVar 0), "q")
+              ]
+              (eVar (tRec (rExt "y" tInt (tVar 0)), "r"))
+              (eVar (tInt, "a"))
           )
-        ]
-    )
+      )
+    ]
 
 --
 ----

@@ -2,6 +2,7 @@
 
 module Pong.LLVM.EmitTests where
 
+import Pong.Data
 import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.TheFatalAuction
@@ -45,7 +46,7 @@ llvmEmitTests =
             passIt msg (res == q)
 
       -------------------------------------------------------------------------
-      runTest2 "10" program3x8 (ExitFailure 111, "")
+      runTest2 "10" (Module "Main" program3x8) (ExitFailure 111, "")
 
       --      -------------------------------------------------------------------------
       runTest "2" program51 (ExitSuccess, "7")
@@ -75,9 +76,9 @@ llvmEmitTests =
       passIt "13" (unsafePerformIO (emitModule (compileSource program604)) == (ExitSuccess, "6"))
       --      -------------------------------------------------------------------------
       passIt "14" (unsafePerformIO (emitModule (compileSource program20)) == (ExitFailure 100, ""))
-      --      -------------------------------------------------------------------------
-      --      passIt "15" (unsafePerformIO (emitModule (compileSource program24)) == (ExitFailure 5, ""))
-      --      -------------------------------------------------------------------------
+      --      --      -------------------------------------------------------------------------
+      --      --      passIt "15" (unsafePerformIO (emitModule (compileSource program24)) == (ExitFailure 5, ""))
+      --      --      -------------------------------------------------------------------------
       passIt "16" (unsafePerformIO (emitModule (compileSource program25)) == (ExitFailure 10, ""))
       --      -------------------------------------------------------------------------
       passIt "17" (unsafePerformIO (emitModule (compileSource program26)) == (ExitFailure 99, ""))
@@ -110,7 +111,7 @@ llvmEmitTests =
 
       passIt "30" (unsafePerformIO (emitModule (compileSource program440)) == (ExitFailure 200, ""))
 
-      passIt "31" (unsafePerformIO (emitModule (transformModule program447)) == (ExitFailure 200, ""))
+      passIt "31" (unsafePerformIO (emitModule (transformModule (Module "Main" program447))) == (ExitFailure 200, ""))
 
       passIt "32" (unsafePerformIO (emitModule (compileSource program445)) == (ExitFailure 200, ""))
 

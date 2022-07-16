@@ -151,7 +151,7 @@ readTests =
 
     describe "- parseModule" $ do
       -------------------------------------------------------------------------
-      it "1" (parseModule program4 == Right program5)
+      it "1" (parseModule program4 == Right (Module "Main" program5))
 
 --     -------------------------------------------------------------------------
 --     it "2" (parseModule program200 == Right program201)

@@ -43,7 +43,10 @@ import Pong.Util
 
 program50 :: Text
 program50 =
-  "extern print_int : int -> int\
+  "\
+  \module Main\
+  \\r\n\
+  \extern print_int : int -> int\
   \\r\n\
   \func foo(x : float, y : int, z : bool) : int=\
   \  y\
@@ -59,7 +62,10 @@ program50 =
 
 program51 :: Text
 program51 =
-  "extern print_int : int -> int\
+  "\
+  \module Main\
+  \\r\n\
+  \extern print_int : int -> int\
   \\r\n\
   \func foo(x : float, y : int, z : bool) : int=\
   \  y\
@@ -76,6 +82,8 @@ program51 =
 program52 :: Text
 program52 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \func foo(x : float, y : int, z : bool) : int=\
@@ -93,6 +101,8 @@ program52 =
 program522 :: Text
 program522 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \func foo(x : float, y : int, z : bool) : int=\

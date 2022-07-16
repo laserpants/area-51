@@ -973,6 +973,8 @@ import Pong.Util
 program400 :: Text
 program400 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type List a\
@@ -998,6 +1000,8 @@ program400 =
 program500 :: Text
 program500 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type List a\
@@ -1023,6 +1027,8 @@ program500 =
 program501 :: Text
 program501 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type List a\
@@ -1048,6 +1054,8 @@ program501 =
 program600 :: Text
 program600 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
@@ -1073,6 +1081,8 @@ program600 =
 program601 :: Text
 program601 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
@@ -1098,6 +1108,8 @@ program601 =
 program602 :: Text
 program602 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
@@ -1135,6 +1147,8 @@ program602 =
 program603 :: Text
 program603 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
@@ -1182,6 +1196,8 @@ program603 =
 program604 :: Text
 program604 =
   "\
+  \module Main\
+  \\r\n\
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\

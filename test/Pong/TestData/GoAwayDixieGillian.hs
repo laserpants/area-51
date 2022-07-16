@@ -7,92 +7,90 @@ import qualified Data.Map.Strict as Map
 import Pong.Data
 import Pong.Lang
 
-program1 :: Module MonoType TypedExpr
+program1 :: ModuleDefs MonoType TypedExpr
 program1 =
-  Module
-    ( Map.fromList
-        [
-          ( (Scheme (tUnit ~> tInt), "main")
-          , Function
-              (fromList [(tUnit, "a")])
-              ( tInt
-              , eLet
-                  ( tRec
+  Map.fromList
+    [
+      ( (Scheme (tUnit ~> tInt), "main")
+      , Function
+          (fromList [(tUnit, "a")])
+          ( tInt
+          , eLet
+              ( tRec
+                  ( rExt
+                      "a"
+                      tInt
                       ( rExt
-                          "a"
-                          tInt
+                          "b"
+                          tBool
                           ( rExt
-                              "b"
-                              tBool
-                              ( rExt
-                                  "c"
-                                  tInt
-                                  rNil
-                              )
+                              "c"
+                              tInt
+                              rNil
                           )
                       )
-                  , "r"
                   )
-                  ( ( eExt
-                        "a"
-                        (eLit (PInt 100))
+              , "r"
+              )
+              ( ( eExt
+                    "a"
+                    (eLit (PInt 100))
+                    ( eExt
+                        "b"
+                        (eLit (PBool True))
                         ( eExt
-                            "b"
-                            (eLit (PBool True))
-                            ( eExt
-                                "c"
-                                (eLit (PInt 3))
-                                eNil
-                            )
+                            "c"
+                            (eLit (PInt 3))
+                            eNil
                         )
                     )
-                  )
-                  ( eRes
-                      [
-                        ( tInt
-                            ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
-                            ~> tRec
-                              ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
-                              )
-                        , "a"
-                        )
-                      , (tInt, "x")
-                      ,
-                        ( tRec
+                )
+              )
+              ( eRes
+                  [
+                    ( tInt
+                        ~> tRec (rExt "b" tBool (rExt "c" tInt rNil))
+                        ~> tRec
+                          ( rExt "a" tInt (rExt "b" tBool (rExt "c" tInt rNil))
+                          )
+                    , "a"
+                    )
+                  , (tInt, "x")
+                  ,
+                    ( tRec
+                        ( rExt
+                            "b"
+                            tBool
                             ( rExt
-                                "b"
-                                tBool
-                                ( rExt
-                                    "c"
-                                    tInt
-                                    rNil
-                                )
+                                "c"
+                                tInt
+                                rNil
                             )
-                        , "q"
                         )
-                      ]
-                      ( eVar
-                          ( tRec
+                    , "q"
+                    )
+                  ]
+                  ( eVar
+                      ( tRec
+                          ( rExt
+                              "a"
+                              tInt
                               ( rExt
-                                  "a"
-                                  tInt
+                                  "b"
+                                  tBool
                                   ( rExt
-                                      "b"
-                                      tBool
-                                      ( rExt
-                                          "c"
-                                          tInt
-                                          rNil
-                                      )
+                                      "c"
+                                      tInt
+                                      rNil
                                   )
                               )
-                          , "r"
                           )
+                      , "r"
                       )
-                      ( eVar (tInt, "x")
-                      )
+                  )
+                  ( eVar (tInt, "x")
                   )
               )
           )
-        ]
-    )
+      )
+    ]
