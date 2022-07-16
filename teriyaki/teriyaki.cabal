@@ -6,23 +6,38 @@ cabal-version: 1.12
 
 name:           teriyaki
 version:        0.1.0.0
-category:       Web
 homepage:       https://github.com/githubuser/teriyaki#readme
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2022 Author name here
+author:         Heikki Johannes Hildén
+maintainer:     hildenjohannes@gmail.com
+copyright:      2022 Heikki Johannes Hildén
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
 
-executable teriyaki
-  main-is: Main.hs
+library
+  exposed-modules:
+      Teriyaki.Data
+      Teriyaki.Lang
+      Teriyaki.Util
   other-modules:
       Paths_teriyaki
   hs-source-dirs:
       src
+  ghc-options: -Wall -Werror
   build-depends:
       base >=4.7 && <5
+    , text
+  default-language: Haskell2010
+
+executable pong
+  main-is: Main.hs
+  other-modules:
+      Paths_teriyaki
+  hs-source-dirs:
+      app
+  build-depends:
+      base >=4.7 && <5
+    , text
   default-language: Haskell2010
