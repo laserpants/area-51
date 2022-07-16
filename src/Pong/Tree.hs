@@ -34,8 +34,8 @@ isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 
 -- | Predicate to test if the type contains at least one type variable
-isPolymorphic :: Type v -> Bool
-isPolymorphic =
+containsTVar :: Type v -> Bool
+containsTVar =
   cata
     ( \case
         TVar{} ->
@@ -107,7 +107,7 @@ monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
 monomorphizeLets =
   cata
     ( \case
-        ELet (t, var) expr1 expr2 | isPolymorphic t -> do
+        ELet (t, var) expr1 expr2 | containsTVar t -> do
           e1 <- expr1
           e2 <- expr2
           (e, binds) <- runWriterT (monomorphize t var e1 e2)

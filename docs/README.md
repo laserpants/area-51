@@ -114,13 +114,19 @@ In practice, row comparison is much easier than it looks. Using $<$ to denote th
 
 To simplify notation, we write $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ r \ \wr \cdots \wr \wr$
 in which $f_j = (l_j : t_j)$
-This can be further simplified to $f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ r \cdots$
+This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ r \cdots \ \wr$
 
 $$
-  r = \underbrace{f_1 | f_2 | \cdots | f_{i_1} }_{g_1} | \underbrace{f_{i_1+1} | \cdots | f_{i_2} }_{g_2} | \cdots | f_{i_{(n - 1)}} | \underbrace{f_{i_{(n - 1)}+1} \cdots | f_{i_n}}_{g_n} | q,
+  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ | \ f_{i_1} }_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}_{g_n} \ | \ q \ \wr,
   \quad
   i_0 = 0
 $$
+
+$$
+  r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr,
+$$
+
+In code, one way to do this is to convert the row to a hash map, and then translate the hash map back to a row again, ordering the keys alphabetically.
 
 ##### Open rows
 
