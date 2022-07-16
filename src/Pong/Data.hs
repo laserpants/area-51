@@ -141,9 +141,12 @@ data Definition t a
   | Extern [MonoType] MonoType               -- ^ External function 
   | Data Name [Type Name]                    -- ^ Data type declaration
 
+type ModuleDefs t a
+  = Map (Label Scheme) (Definition t a)
+
 -- Program module
-newtype Module t a
-  = Module (Map (Label Scheme) (Definition t a))
+data Module t a
+  = Module Name (ModuleDefs t a)
 
 -------------------------------------------------------------------------------
 -- Typeclass instances
@@ -285,13 +288,6 @@ deriving instance (Show t, Show a) =>
 
 deriving instance (Eq t, Eq a) =>
   Eq (Module t a)
-
-deriving instance (Ord t) =>
-  Semigroup (Module t a)
-
-deriving instance Generic (Module t a)
-
-instance Newtype (Module t a)
 
 deriving instance Functor (Module t)
 

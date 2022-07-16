@@ -259,7 +259,7 @@ runEval :: Environment (Definition MonoType Ast) -> Eval a -> IO (a, Text)
 runEval env ast = runWriterT (runReaderT (unEval ast) (env, mempty))
 
 evalModule :: Module MonoType Ast -> Label Scheme -> IO (Maybe (Value, Text))
-evalModule (Module p) def =
+evalModule (Module _ p) def =
   case Map.lookup def p of
     Just (Function _ (_, ast)) -> evaluate ast
     Just (Constant (_, ast)) -> evaluate ast

@@ -10,7 +10,6 @@ module Pong.LLVM.Emit where
 
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Newtype.Generics (unpack)
 import Data.Char (isUpper, ord)
 import Data.Function ((&))
 import Data.List (sort, sortOn)
@@ -54,16 +53,16 @@ type CodeGenEnv = Environment OpInfo
 type CodeGen a =
   IRBuilderT
     ( StateT
-        (Int, Pong.Module MonoType Ast)
+        (Int, ModuleDefs MonoType Ast)
         (ReaderT CodeGenEnv ModuleBuilder)
     )
     a
 
 runCodeGen ::
   CodeGenEnv ->
-  StateT (Int, Pong.Module MonoType Ast) (ReaderT CodeGenEnv ModuleBuilder) a ->
+  StateT (Int, ModuleDefs MonoType Ast) (ReaderT CodeGenEnv ModuleBuilder) a ->
   ModuleBuilder a
-runCodeGen env c = runReaderT (evalStateT c (1, emptyModule)) env
+runCodeGen env c = runReaderT (evalStateT c (1, mempty)) env
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< Text.unpack
@@ -111,14 +110,14 @@ concealOp op =
 
 forEachIn ::
   (Monad m) =>
-  Pong.Module MonoType t ->
+  ModuleDefs MonoType t ->
   (Name -> MonoType -> Definition MonoType t -> m a) ->
   m [a]
 forEachIn p f = moduleForEach p (\(_, name_) def -> f name_ (typeOf def) def)
 
-buildModule_ :: Name -> Pong.Module MonoType Ast -> LLVM.Module
-buildModule_ pname p = do
-  buildModule (llvmRep pname) $ do
+buildModule_ :: Pong.Module MonoType Ast -> LLVM.Module
+buildModule_ (Pong.Module modname p) = do
+  buildModule (llvmRep modname) $ do
     void (extern "gc_malloc" [i64] charPtr)
     void (extern "hashmap_init" [] charPtr)
     void (extern "hashmap_lookup" [charPtr, charPtr] charPtr)
@@ -235,7 +234,7 @@ buildModule_ pname p = do
   where
     buildEnv = Env.fromList . concat <$$> forEachIn p
     consIndices =
-      unpack p
+      p
         & Map.toList
         & concatMap
           ( \case
