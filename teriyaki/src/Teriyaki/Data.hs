@@ -1,14 +1,19 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Teriyaki.Data where
 
-import Data.Text (Text)
+import Data.Data (Data)
+import Data.Typeable (Typeable)
 import Teriyaki.Util
 
 -------------------------------------------------------------------------------
 
 data KindF a
-  = KCon Name
+  = KTyp
+  | KRow
   | KArr a a
 
 type Kind = Fix KindF
@@ -79,11 +84,11 @@ data ExprF a
   | ECon Label
   | ELit Prim
   | EApp Type a [a]
-  | EFix -- ?
-  | ELam -- ?
+  | ELam Type [Pattern] a
   | EIf a a a
   | EPat -- ?
   | ELet Label a a
+  | EFix Label a a
   | EFun -- ?
   | EOp1 (Type, Op1) a
   | EOp2 (Type, Op2) a a
@@ -102,9 +107,92 @@ type Expr = Fix ExprF
 -------------------------------------------------------------------------------
 
 data Op1
+  = ONot
+  | ONeg
 
 -------------------------------------------------------------------------------
 
 data Op2
+  = OEq
+  | ONEq
+  | OLt
+  | OGt
+  | OLtE
+  | OGtE
+  | OAdd
+  | OSub
+  | OMul
+  | ODiv
+  | OPow
+  | OMod
+  | OOr
+  | OAnd
+  | OLArr
+  | ORarr
+  | OFPip
+  | OBPip
+  | ODot
+  | OGet
 
 -------------------------------------------------------------------------------
+
+data Assoc
+  = AL
+  | AR
+  | ANone
+
+-------------------------------------------------------------------------------
+
+-- Kind
+deriving instance
+  (Show a) =>
+  Show (KindF a)
+
+deriving instance
+  (Eq a) =>
+  Eq (KindF a)
+
+deriving instance
+  (Ord a) =>
+  Ord (KindF a)
+
+deriving instance
+  (Data a) =>
+  Data (KindF a)
+
+deriving instance
+  (Typeable a) =>
+  Typeable (KindF a)
+
+deriveShow1 ''KindF
+
+deriveEq1 ''KindF
+
+deriveOrd1 ''KindF
+
+-- Type
+deriving instance
+  (Show a) =>
+  Show (TypeF a)
+
+deriving instance
+  (Eq a) =>
+  Eq (TypeF a)
+
+deriving instance
+  (Ord a) =>
+  Ord (TypeF a)
+
+deriving instance
+  (Data a) =>
+  Data (TypeF a)
+
+deriving instance
+  (Typeable a) =>
+  Typeable (TypeF a)
+
+deriveShow1 ''TypeF
+
+deriveEq1 ''TypeF
+
+deriveOrd1 ''TypeF
