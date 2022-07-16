@@ -6,7 +6,7 @@ module Teriyaki.Util
   , Coalgebra
   )
 where
- 
+
 import Data.Fix (Fix (..))
 import Data.Text
 

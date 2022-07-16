@@ -19,7 +19,7 @@ data Prim
 type Type = Fix TypeF
 
 data PatternF a
-  = PVar 
+  = PVar
 
 data ExprF a
   = EVar
