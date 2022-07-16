@@ -136,9 +136,9 @@ data ConE
   | LamE                           -- ^ Expression is an ELam
 
 data Definition t a
-  = Function (List1 (Label t)) (t, a)        -- ^ Function definition 
+  = Function (List1 (Label t)) (t, a)        -- ^ Function definition
   | Constant (t, a)                          -- ^ Constant expression
-  | Extern [MonoType] MonoType               -- ^ External function 
+  | Extern [MonoType] MonoType               -- ^ External function
   | Data Name [Type Name]                    -- ^ Data type declaration
 
 type ModuleDefs t a

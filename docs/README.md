@@ -39,7 +39,8 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 
 | Constructor   | Type                                    | Notation                |
 | ------------- | --------------------------------------- | ----------------------- |
-| `TVar`        | Type variable                           | `'0`, `a`               |
+| `TVar`        | Type variable                           | `'0`                    |
+| `TVar`        | Polymorphic type variable               | `a`                     |
 
 ##### Type schemes
 
