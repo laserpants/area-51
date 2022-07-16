@@ -10,7 +10,6 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
-import Control.Newtype.Generics (over, unpack)
 import Data.Char (isUpper)
 import Data.Either.Extra (mapLeft)
 import Data.List.NonEmpty (fromList, toList)
@@ -148,9 +147,9 @@ extra t
   where
     ts = argTypes t
 
-moduleDefs :: (MonadReader TypeEnv m, MonadState (Int, Module t a) m) => m [Name]
+moduleDefs :: (MonadReader TypeEnv m, MonadState (Int, ModuleDefs t a) m) => m [Name]
 moduleDefs = do
-  ns <- gets (Map.keys . Map.mapKeys snd . unpack . snd)
+  ns <- gets (Map.keys . Map.mapKeys snd . snd)
   env <- ask
   pure (ns <> (fst <$> Env.toList env))
 
@@ -160,7 +159,7 @@ uniqueName prefix = do
   pure (prefix <> showt n)
 
 liftDef ::
-  (MonadState (Int, Module MonoType Ast) m) =>
+  (MonadState (Int, ModuleDefs MonoType Ast) m) =>
   Name ->
   [Label MonoType] ->
   [Label MonoType] ->
@@ -177,7 +176,7 @@ liftDef name vs args expr = do
     def = Function (fromList as) (t, expr)
 
 makeDef ::
-  (MonadReader TypeEnv m, MonadState (Int, Module MonoType Ast) m) =>
+  (MonadReader TypeEnv m, MonadState (Int, ModuleDefs MonoType Ast) m) =>
   Name ->
   Ast ->
   ((Ast -> Ast) -> Ast) ->
@@ -195,7 +194,7 @@ makeDef name expr f =
     t = typeOf expr
 
 compile ::
-  (MonadReader TypeEnv m, MonadState (Int, Module MonoType Ast) m) =>
+  (MonadReader TypeEnv m, MonadState (Int, ModuleDefs MonoType Ast) m) =>
   TypedExpr ->
   m Ast
 compile =
@@ -261,7 +260,7 @@ compile =
       eExt name <$> expr1 <*> expr2
 
 compileModule :: Module MonoType TypedExpr -> Module MonoType Ast
-compileModule p = evalState run (1, emptyModule)
+compileModule (Module n p) = Module n (evalState run (1, mempty))
   where
     compileDefs = (`moduleForM` const (traverse compile))
     run = do
@@ -311,17 +310,19 @@ normalizeDef = \case
             (fromList (xs <> ys))
             (returnType t, applyArgs (eVar <$> ys) expr)
 
-normalizeModuleDefs :: Module MonoType Ast -> Module MonoType Ast
-normalizeModuleDefs = over Module (normalizeDef <$>)
+normalizeDefs :: Module MonoType Ast -> Module MonoType Ast
+normalizeDefs (Module n p) = Module n (normalizeDef <$> p)
 
 runTransform :: State (Int, ()) a -> a
 runTransform = flip evalState (1, ())
 
 transform1 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
-transform1 p = runTransform (moduleForM p (const (traverse monomorphizeLets . hoistTopLambdas)))
+transform1 (Module n p) =
+  Module n (runTransform (moduleForM p (const (traverse monomorphizeLets . hoistTopLambdas))))
 
 transform2 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
-transform2 p = runTransform (moduleForM p (const (traverse (flip (moduleFoldM go) p))))
+transform2 (Module n p) =
+  Module n (runTransform (moduleForM p (const (traverse (flip (moduleFoldM go) p)))))
   where
     go ((_, name), def) e =
       case def of
@@ -334,7 +335,7 @@ transform2 p = runTransform (moduleForM p (const (traverse (flip (moduleFoldM go
 insertConstructors ::
   Module MonoType (Expr MonoType a0 a1 a2) ->
   Module MonoType (Expr MonoType a0 a1 a2)
-insertConstructors (Module p) = Module (p <> Map.fromList (concat extra_))
+insertConstructors (Module n p) = Module n (p <> Map.fromList (concat extra_))
   where
     extra_ =
       Map.toList p
@@ -360,7 +361,7 @@ data CompilerError
   | TypeError TypeError
 
 postProcess :: Module MonoType Ast -> Module MonoType Ast
-postProcess p = over Module (Map.filterWithKey go) p
+postProcess (Module n p) = Module n (Map.filterWithKey go p)
   where
     names = "main" : (snd <$> (freeVars p :: [Label MonoType]))
     go (_, def) =
@@ -374,7 +375,7 @@ transformModule =
     >>> transform1
     >>> transform2
     >>> compileModule
-    >>> normalizeModuleDefs
+    >>> normalizeDefs
     >>> postProcess
 
 parseAndAnnotate :: Text -> Either CompilerError (Module MonoType TypedExpr)
