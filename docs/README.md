@@ -2,6 +2,12 @@
 
 ## Language implementation
 
+### Identifiers
+
+```
+type Name = Text
+```
+
 ### Types
 
 ```
@@ -44,6 +50,10 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 
 ##### Type schemes
 
+```
+newtype Scheme = Scheme (Type Name)
+```
+
 Type schemes represent polymorphic types &mdash; types parameterized by any number of type variables. These variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                        | Bound variables | Type rep. (Haskell expression)                                               |
@@ -81,9 +91,9 @@ A *row* is a structure whose purpose is to encode the type of a [record](#record
 
 In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$ for the row $r$ extended by a label $l$ and type $t$.
 
-##### Row equality and normalization
+##### Row equality
 
-Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The distinctness condition is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of duplicates matters.
+Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The distinctness condition is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates matters.
 For example, the type of `{ foo : t0, foo : t1, baz : t2 }` is the same as `{ baz : t2, foo : t0, foo : t1 }`, but *not* the same as `{ foo : t0, baz : t2, foo : t1 }`.
 
 This type of equality can be expressed, more formally, as an equivalence relation defined over the set of types.
@@ -98,31 +108,18 @@ Transitivity                                                     | Head         
 ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
 $$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { \wr \ l : t_1 \mid r_1 \ \wr \cong \wr \ l : t_2 \mid r_2 \ \wr }$$ | $$\frac{ l_1 \ne l_2 } { \wr\ l_1 : t_1 \mid \wr \ l_2 : t_2 \mid r \wr \wr \cong \wr\ l_2 : t_2 \mid \wr \ l_1 : t_1 \mid r \wr \wr }$$
 
-In practice, this is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Given this, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is, $t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)$.
+In practice, row comparison is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Given this &mdash; to determine if two rows are in the above equivalence relation &mdash; we can simply compare their normal forms. That is, $t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)$.
+
+##### Row normalization
+
+To simplify notation, we write $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ r \ \wr \cdots \wr \wr$
+in which $f_j = (l_j : t_j)$
+This can be further simplified to $f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ r \cdots$
 
 $$
-  \wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ r \ \wr \cdots \wr \wr
-$$
-
-$$
-  f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ r \cdots 
-$$
-
-
-$$
-  \wr \ l_1 : t_1 \ | \ r \ \wr
-$$
-
-$$
-  \underbrace{f_1 | f_2 | \cdots | f_{i_1} }_{g_1} | \underbrace{f_{i_1+1} | \cdots | f_{i_2} }_{g_2} | \cdots | f_{i_{(n - 1)}} | \underbrace{f_{i_{(n - 1)}+1} \cdots | f_{i_n}}_{g_n} | r 
-$$
-
-$$
+  r = \underbrace{f_1 | f_2 | \cdots | f_{i_1} }_{g_1} | \underbrace{f_{i_1+1} | \cdots | f_{i_2} }_{g_2} | \cdots | f_{i_{(n - 1)}} | \underbrace{f_{i_{(n - 1)}+1} \cdots | f_{i_n}}_{g_n} | q,
+  \quad
   i_0 = 0
-$$
-
-$$
-  f_j = (l_j : t_j)
 $$
 
 ##### Open rows
@@ -242,12 +239,10 @@ Records are usually described as unordered containers of labeled *fields* (name-
 
 $$
 \begin{align*}
-  & \{ &                                 & \\
-  &    & l_0                             &= [v_0, v^{\prime}_0, \dots, v^{\prime\dots\prime}_0], \\
-  &    & l_1                             &= [v_1, v^{\prime}_1, \dots, v^{\prime\dots\prime}_1], \\
-  &    &                                 & \vdots \\
-  &    & l_m                             &= [v_m, v^{\prime}_m, \dots, v^{\prime\dots\prime}_m] \\
-  & \} &                                 & \\
+  l_0 &= [v_0, v^{\prime}_0, \dots, v^{\prime\dots\prime}_0], \\
+  l_1 &= [v_1, v^{\prime}_1, \dots, v^{\prime\dots\prime}_1], \\
+      & \vdots \\
+  l_m &= [v_m, v^{\prime}_m, \dots, v^{\prime\dots\prime}_m] \\
 \end{align*}
 $$
 
