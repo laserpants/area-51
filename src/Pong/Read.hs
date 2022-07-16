@@ -93,6 +93,7 @@ keywords =
   , "double"
   , "char"
   , "string"
+  , "module"
   ]
 
 keyword :: Text -> Parser ()
@@ -379,8 +380,10 @@ definition = functionDef <|> constantDef <|> externalDef <|> typeDef
 
 module_ :: Parser (Module () SourceExpr)
 module_ = do
+  keyword "module"
+  modname <- word (withInitial upperChar)
   defs <- many definition
-  pure (Module (Map.fromList defs))
+  pure (Module modname (Map.fromList defs))
 
 parseModule :: Text -> Either ParserError (Module () SourceExpr)
 parseModule = runParser module_ ""

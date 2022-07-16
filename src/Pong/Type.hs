@@ -68,8 +68,8 @@ runTypeChecker ::
 runTypeChecker n env (TypeChecker c) =
   runState (runReaderT (runExceptT c) env) (n, mempty)
 
-moduleEnv :: Module t a -> TypeEnv
-moduleEnv = Env.fromList . concatMap go . Map.toList . unpack
+moduleEnv :: ModuleDefs t a -> TypeEnv
+moduleEnv = Env.fromList . concatMap go . Map.toList
   where
     go = \case
       ((Scheme s, _), Data _ cons) ->
@@ -163,7 +163,7 @@ instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) wh
         def
 
 instance (Substitutable t, Substitutable a) => Substitutable (Module t a) where
-  apply sub (Module p) = Module (apply sub p)
+  apply = fmap . apply
 
 compose :: Substitution -> Substitution -> Substitution
 compose = over2 Substitution fun
@@ -487,9 +487,9 @@ inferCase mt (con : vs) expr = do
   pure ((t, snd con) : tvs, e)
 inferCase _ _ _ = error "Implementation error"
 
-inferModule ::
-  Module () SourceExpr -> TypeChecker (Module MonoType TypedExpr)
-inferModule p = local (<> moduleEnv p) (moduleForM p (curry go))
+inferModuleDefs ::
+  ModuleDefs () SourceExpr -> TypeChecker (ModuleDefs MonoType TypedExpr)
+inferModuleDefs p = local (<> moduleEnv p) (moduleForM p (curry go))
   where
     inferTypes =
       tagExpr >=> inferExpr >=> applySubstitution
@@ -514,10 +514,15 @@ inferModule p = local (<> moduleEnv p) (moduleForM p (curry go))
         (_, Data name cons) ->
           pure (Data name cons)
 
+runInferModuleDefs ::
+  ModuleDefs () SourceExpr ->
+  Either TypeError (ModuleDefs MonoType TypedExpr)
+runInferModuleDefs = runTypeChecker 1 mempty . inferModuleDefs <&> fst
+
 runInferModule ::
   Module () SourceExpr ->
   Either TypeError (Module MonoType TypedExpr)
-runInferModule = runTypeChecker 1 mempty . inferModule <&> fst
+runInferModule (Module n p) = Module n <$> runInferModuleDefs p
 
 -------------------------------------------------------------------------------
 -- Typeclass instances
