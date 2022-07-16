@@ -7,7 +7,6 @@
 module Pong.Lang where
 
 import Control.Monad.State
-import Control.Newtype.Generics (over, unpack)
 import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
@@ -138,8 +137,8 @@ instance (Free t, Free a) => Free (Definition t a) where
       _ ->
         []
 
-instance (Free t, Free a) => Free (Module t a) where
-  freeIn (Module p) = freeIn (Map.elems p)
+instance (Free t, Free a) => Free (ModuleDefs t a) where
+  freeIn = freeIn . Map.elems
 
 instance (Free a) => Free (Environment a) where
   freeIn env = freeIn =<< Env.elems env
@@ -328,9 +327,9 @@ instance
 
 instance
   (Ord t, FreeVars (Label t) t, FreeVars (Label a0) t) =>
-  FreeVars (Module t (Expr t a0 a1 a2)) t
+  FreeVars (ModuleDefs t (Expr t a0 a1 a2)) t
   where
-  freeVarsIn (Module p) = Set.unions (go . snd <$> Map.toList p)
+  freeVarsIn p = Set.unions (go . snd <$> Map.toList p)
     where
       go =
         \case
@@ -489,75 +488,57 @@ foldType1 = foldr1 tArr
 insertArgs :: [Label t] -> Environment t -> Environment t
 insertArgs = Env.inserts . (swap <$>)
 
-{-# INLINE emptyModule #-}
-emptyModule :: (Ord t) => Module t a
-emptyModule = Module mempty
-
 {-# INLINE modifyModule #-}
 modifyModule ::
-  (MonadState (r, Module t a) m) =>
+  (MonadState (r, ModuleDefs t a) m) =>
   (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
   m ()
-modifyModule = modify . second . over Module
+modifyModule = modify . second
 
 {-# INLINE insertIntoModule #-}
 insertIntoModule ::
-  (MonadState (r, Module t a) m) =>
+  (MonadState (r, ModuleDefs t a) m) =>
   Label Scheme ->
   Definition t a ->
   m ()
 insertIntoModule = modifyModule <$$> Map.insert
 
-renameDef :: Name -> Name -> Module t a -> Module t a
-renameDef from to = over Module (Map.mapKeys rename)
+renameDef :: Name -> Name -> ModuleDefs t a -> ModuleDefs t a
+renameDef from to = Map.mapKeys rename
   where
     rename (t, defn) = (t, if defn == from then to else defn)
 
 {-# INLINE moduleForEach #-}
 moduleForEach ::
   (Monad m) =>
-  Module t a ->
+  ModuleDefs t a ->
   (Label Scheme -> Definition t a -> m b) ->
   m [b]
-moduleForEach (Module p) = forM (Map.toList p) . uncurry
+moduleForEach p = forM (Map.toList p) . uncurry
 
 {-# INLINE moduleFoldM #-}
 moduleFoldM ::
   (Monad m) =>
   ((Label Scheme, Definition t a) -> r -> m r) ->
   r ->
-  Module t a ->
+  ModuleDefs t a ->
   m r
-moduleFoldM f a = foldrM f a . Map.toList . unpack
-
-{-# INLINE moduleMap #-}
-moduleMap ::
-  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
-  Module t1 a1 ->
-  Module t2 a2
-moduleMap = over Module . Map.mapWithKey
+moduleFoldM f a = foldrM f a . Map.toList
 
 {-# INLINE moduleFor #-}
 moduleFor ::
-  Module t1 a1 ->
+  ModuleDefs t1 a1 ->
   (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
-  Module t2 a2
-moduleFor = flip moduleMap
-
-moduleMapM ::
-  (Monad m) =>
-  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
-  Module t1 a1 ->
-  m (Module t2 a2)
-moduleMapM f = Module <$$> Map.traverseWithKey f . unpack
+  ModuleDefs t2 a2
+moduleFor = flip Map.mapWithKey
 
 {-# INLINE moduleForM #-}
 moduleForM ::
   (Monad m) =>
-  Module t1 a1 ->
+  ModuleDefs t1 a1 ->
   (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
-  m (Module t2 a2)
-moduleForM = flip moduleMapM
+  m (ModuleDefs t2 a2)
+moduleForM = flip Map.traverseWithKey
 
 {-# INLINE tUnit #-}
 tUnit :: Type v
