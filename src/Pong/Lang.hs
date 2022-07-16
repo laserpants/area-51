@@ -14,7 +14,7 @@ import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
-import Data.Tuple.Extra (first, second)
+import Data.Tuple.Extra (first)
 import Pong.Data
 import Pong.Util
   ( Map
@@ -30,7 +30,6 @@ import Pong.Util
   , varSequence
   , withoutLabels
   , (!)
-  , (<$$>)
   , (<&>)
   , (<<<)
   , (>>>)
@@ -487,21 +486,6 @@ foldType1 = foldr1 tArr
 {-# INLINE insertArgs #-}
 insertArgs :: [Label t] -> Environment t -> Environment t
 insertArgs = Env.inserts . (swap <$>)
-
-{-# INLINE modifyModule #-}
-modifyModule ::
-  (MonadState (r, ModuleDefs t a) m) =>
-  (Map (Label Scheme) (Definition t a) -> Map (Label Scheme) (Definition t a)) ->
-  m ()
-modifyModule = modify . second
-
-{-# INLINE insertIntoModule #-}
-insertIntoModule ::
-  (MonadState (r, ModuleDefs t a) m) =>
-  Label Scheme ->
-  Definition t a ->
-  m ()
-insertIntoModule = modifyModule <$$> Map.insert
 
 renameDef :: Name -> Name -> ModuleDefs t a -> ModuleDefs t a
 renameDef from to = Map.mapKeys rename

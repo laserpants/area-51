@@ -167,13 +167,14 @@ liftDef ::
   m Ast
 liftDef name vs args expr = do
   let ty = foldType t ts
-  insertIntoModule (toScheme "a" (free ty) ty, name) def
+  insertDef (toScheme "a" (free ty) ty, name) def
   pure (applyArgs (eVar <$> vs) (eVar (ty, name)))
   where
     t = typeOf expr
     ts = fst <$> as
     as = vs <> args `without` [(t, name)]
     def = Function (fromList as) (t, expr)
+    insertDef = modify . second <$$> Map.insert
 
 makeDef ::
   (MonadReader TypeEnv m, MonadState (Int, ModuleDefs MonoType Ast) m) =>
