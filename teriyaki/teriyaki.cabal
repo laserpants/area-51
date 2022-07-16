@@ -28,10 +28,12 @@ library
   ghc-options: -Wall -Werror
   build-depends:
       base >=4.7 && <5
+    , data-fix
+    , recursion-schemes
     , text
   default-language: Haskell2010
 
-executable pong
+executable teriyaki
   main-is: Main.hs
   other-modules:
       Paths_teriyaki
@@ -39,5 +41,7 @@ executable pong
       app
   build-depends:
       base >=4.7 && <5
+    , data-fix
+    , recursion-schemes
     , text
   default-language: Haskell2010

@@ -10,6 +10,8 @@ extra-source-files:
 
 dependencies:
   - base >= 4.7 && < 5
+  - data-fix
+  - recursion-schemes
   - text
 
 library:
@@ -20,7 +22,7 @@ library:
   - -Werror
 
 executables:
-  pong:
+  teriyaki:
     main: Main.hs
     source-dirs:         
     - app

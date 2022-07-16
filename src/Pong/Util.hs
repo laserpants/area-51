@@ -13,7 +13,6 @@ module Pong.Util
   , module Data.Text
   , (<$$>)
   , Name
-  , Names
   , Algebra
   , Coalgebra
   , List1
@@ -64,8 +63,6 @@ withoutLabels elems = filter (\a -> snd a `notElem` Set.fromList elems)
 infixl 4 <$$>
 
 type Name = Text
-
-type Names = [Name]
 
 type Algebra f a = f a -> a
 
