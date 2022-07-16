@@ -108,13 +108,26 @@ Transitivity                                                     | Head         
 ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
 $$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { \wr \ l : t_1 \mid r_1 \ \wr \cong \wr \ l : t_2 \mid r_2 \ \wr }$$ | $$\frac{ l_1 \ne l_2 } { \wr\ l_1 : t_1 \mid \wr \ l_2 : t_2 \mid r \wr \wr \cong \wr\ l_2 : t_2 \mid \wr \ l_1 : t_1 \mid r \wr \wr }$$
 
-In practice, row comparison is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Given this &mdash; to determine if two rows are in the above equivalence relation &mdash; we can simply compare their normal forms. That is, $t_1 \cong t_2  \iff  \text{normal}(t_1) = \text{normal}(t_2)$.
+In practice, row comparison is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Let $\nu(t)$ be the nromal form of type $t$. Given this, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is;
+
+$$
+  t_1 \cong t_2  \iff  \nu(t_1) = \nu(t_2).
+$$
 
 ##### Row normalization
 
-To simplify notation, we write $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ r \ \wr \cdots \wr \wr$
-in which $f_j = (l_j : t_j)$
-This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ r \cdots \ \wr$
+RNil                                 | TVar                                    | TCon                                                                                       | TRec                                             | TArr                                                     | Prim
+------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------- | -------------------------------------------
+$$\nu(\wr \wr) = \wr \wr$$           | $$\nu(r) = r$$                          | $\nu(\text{C}(t_1, t_2, \dots, t_n) = \text{C}(\nu(t_1), \nu(t_2), \dots, \nu(t_n))$       | $\nu(\text{Rec}(r)) = \text{Rec}(\nu(r))$        | $\nu(t \rightarrow u) = \nu(t) \rightarrow \nu(u)$       | $\nu(t_{\star}) = t_{\star}$
+
+To simplify notation, we can denote a row extension $r$ as $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ q \ \wr \cdots \wr \wr$, where $f_j = (l_j : t_j)$.
+This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \cdots \ \wr$
+
+Without rearranging the fields, a $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
+- all labels within a group have the same label, but
+- no two adjacent groups have identical labels.
+
+That is;
 
 $$
   r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ | \ f_{i_1} }_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}_{g_n} \ | \ q \ \wr,
@@ -122,11 +135,9 @@ $$
   i_0 = 0
 $$
 
-$$
-  r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr,
-$$
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\text{normal}(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically.
 
-One way to do this, in code, is to first convert the row to a hash map, and then translate the hash map back into a row again, with the keys ordered alphabetically.
+One way to do this efficiently, in code, is to first convert the row to a hash map, and then translate the hash map back into a row again, with the keys ordered alphabetically.
 
 ##### Open rows
 
