@@ -97,11 +97,11 @@ Since records are unordered, it is natural to think of rows as identical [up to]
 
 Name     | Type
 -------- | ----
-q        | `{ foo : t0, foo : t1, baz : t2 }`
-r        | `{ baz : t2, foo : t0, foo : t1 }`
-s        | `{ foo : t1, foo : t0, baz : t2 }`
+*q*      | `{ foo : t0, foo : t1, baz : t2 }`
+*r*      | `{ baz : t2, foo : t0, foo : t1 }`
+*s*      | `{ foo : t1, foo : t0, baz : t2 }`
 
-Given these conditions, `q` and `r` are interchangeable, but swapping the two fields labeled `foo` is not permitted. The last type `s` is therefore a different type.
+Given these conditions, *q* and *r* are interchangeable, but swapping the two fields labeled `foo` is not permitted. The last type *s* is therefore a different type.
 
 This form of equality can be expressed, more formally, as an equivalence relation $\cong$, defined over the set of types. In the above example, $q \cong r \not \cong s$.
 
