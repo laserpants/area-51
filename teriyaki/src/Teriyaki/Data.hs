@@ -6,8 +6,6 @@
 
 module Teriyaki.Data where
 
-import Data.Data (Data)
-import Data.Typeable (Typeable)
 import Teriyaki.Util
 
 -------------------------------------------------------------------------------
@@ -139,10 +137,9 @@ data ExprF a
   | ENil
   | EExt Name a a
   | EAnn Type a
-  | EHole Type
+  | ESub Type
 
--- TODO:
--- Codata?
+--  | ECo a
 
 type Expr = Fix ExprF
 

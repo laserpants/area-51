@@ -9,6 +9,8 @@ module Teriyaki.Util
   , Name
   , Algebra
   , Coalgebra
+  , Data
+  , Typeable
   , embed
   , project
   , embed1
@@ -19,11 +21,13 @@ module Teriyaki.Util
   )
 where
 
+import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
 import Data.Functor.Foldable
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text
+import Data.Typeable (Typeable)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
 

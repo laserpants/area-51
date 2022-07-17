@@ -140,52 +140,73 @@ eVar :: Label -> Expr
 eVar = embed1 EVar
 
 {-# INLINE eCon #-}
-eCon = undefined
+eCon :: Label -> Expr
+eCon = embed1 ECon
 
 {-# INLINE eLit #-}
-eLit = undefined
+eLit :: Prim -> Expr
+eLit = embed1 ELit
 
 {-# INLINE eApp #-}
-eApp = undefined
+eApp :: Type -> Expr -> [Expr] -> Expr
+eApp = embed3 EApp
 
-{-# INLINE eLam #-}
-eLam = undefined
+-- TODO
+-- {-# INLINE eLam #-}
+-- eLam = undefined
 
 {-# INLINE eIf #-}
-eIf = undefined
+eIf :: Expr -> Expr -> Expr -> Expr
+eIf = embed3 EIf
 
-{-# INLINE ePat #-}
-ePat = undefined
+-- TODO
+-- {-# INLINE ePat #-}
+-- ePat = undefined
 
 {-# INLINE eLet #-}
-eLet = undefined
+eLet :: Binding -> Expr -> Expr -> Expr
+eLet = embed3 ELet
 
-{-# INLINE eFix #-}
-eFix = undefined
-
-{-# INLINE eFun #-}
-eFun = undefined
+-- TODO
+-- {-# INLINE eFix #-}
+-- eFix = undefined
+--
+-- {-# INLINE eFun #-}
+-- eFun = undefined
 
 {-# INLINE eOp1 #-}
-eOp1 = undefined
+eOp1 :: (Type, Op1) -> Expr -> Expr
+eOp1 = embed2 EOp1
 
 {-# INLINE eOp2 #-}
-eOp2 = undefined
+eOp2 :: (Type, Op2) -> Expr -> Expr -> Expr
+eOp2 = embed3 EOp2
 
 {-# INLINE eTup #-}
-eTup = undefined
+eTup :: Expr
+eTup = embed ETup
 
 {-# INLINE eList #-}
-eList = undefined
+eList :: Expr
+eList = embed EList
 
 {-# INLINE eNil #-}
-eNil = undefined
+eNil :: Expr
+eNil = embed ENil
 
 {-# INLINE eExt #-}
-eExt = undefined
+eExt :: Name -> Expr -> Expr -> Expr
+eExt = embed3 EExt
 
 {-# INLINE eAnn #-}
-eAnn = undefined
+eAnn :: Type -> Expr -> Expr
+eAnn = embed2 EAnn
 
-{-# INLINE eHole #-}
-eHole = undefined
+{-# INLINE eSub #-}
+eSub :: Type -> Expr
+eSub = embed1 ESub
+
+-- TODO
+-- {-# INLINE eCo #-}
+-- eCo :: Expr -> Expr
+-- eCo = embed1 ECo
