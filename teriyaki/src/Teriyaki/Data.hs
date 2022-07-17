@@ -19,7 +19,7 @@ type Kind = Fix KindF
 
 -------------------------------------------------------------------------------
 
-data TypeF a
+data TypeF v a
   = TUnit
   | TBool
   | TInt
@@ -32,7 +32,7 @@ data TypeF a
   | TVoid
   | TTup
   | TList
-  | TVar Kind Int
+  | TVar Kind v
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
@@ -40,7 +40,7 @@ data TypeF a
   | TNil
   | TExt Name a a
 
-type Type = Fix TypeF
+type Type v = Fix (TypeF v)
 
 -------------------------------------------------------------------------------
 
@@ -57,30 +57,30 @@ data Prim
 
 -------------------------------------------------------------------------------
 
-type Label = (Type, Name)
+type Label t = (t, Name)
 
 -------------------------------------------------------------------------------
 
-data PatternF a
-  = PVar Label
+data PatternF t a
+  = PVar (Label t)
   | PLit Prim
   | PAs a
   | POr a a
   | PAny
-  | PCon Label [a]
+  | PCon (Label t) [a]
   | PTup [a]
   | PList [a]
   | PNil
   | PExt Name a a
-  | PAnn Type a
+  | PAnn t a
 
-type Pattern = Fix PatternF
+type Pattern t = Fix (PatternF t)
 
 -------------------------------------------------------------------------------
 
-data Binding
-  = BPat Type Pattern
-  | BFun Type Name [Pattern]
+data Binding t
+  = BPat t (Pattern t)
+  | BFun t Name [Pattern t]
 
 -------------------------------------------------------------------------------
 
@@ -89,8 +89,8 @@ data Choice
 
 -------------------------------------------------------------------------------
 
-data Clause
-  = Clause Type [Pattern] [Choice]
+data Clause t
+  = Clause t [Pattern t] [Choice]
 
 -------------------------------------------------------------------------------
 
@@ -124,29 +124,30 @@ data Op2
 
 -------------------------------------------------------------------------------
 
-data ExprF a
-  = EVar Label
-  | ECon Label
+data ExprF t a
+  = EVar (Label t)
+  | ECon (Label t)
   | ELit Prim
-  | EApp Type a [a]
-  | ELam Type [Pattern] a
+  | EApp t a [a]
+  | ELam t [Pattern t] a
   | EIf a a a
   | EPat -- ?
-  | ELet Binding a a
-  | EFix Label a a
+  | ELet (Binding t) a a
+  | EFix (Label t) a a
   | EFun -- ?
-  | EOp1 (Type, Op1) a
-  | EOp2 (Type, Op2) a a
+  | EOp1 (t, Op1) a
+  | EOp2 (t, Op2) a a
   | ETup
   | EList
   | ENil
   | EExt Name a a
-  | EAnn Type a
-  | ESub Type
+  | ESub t
+
+--  | EAnn Type a
 
 --  | ECo a
 
-type Expr = Fix ExprF
+type Expr t = Fix (ExprF t)
 
 -------------------------------------------------------------------------------
 
@@ -192,24 +193,24 @@ deriving instance Traversable KindF
 
 -- Type
 deriving instance
-  (Show a) =>
-  Show (TypeF a)
+  (Show v, Show a) =>
+  Show (TypeF v a)
 
 deriving instance
-  (Eq a) =>
-  Eq (TypeF a)
+  (Eq v, Eq a) =>
+  Eq (TypeF v a)
 
 deriving instance
-  (Ord a) =>
-  Ord (TypeF a)
+  (Ord v, Ord a) =>
+  Ord (TypeF v a)
 
 deriving instance
-  (Data a) =>
-  Data (TypeF a)
+  (Data v, Data a) =>
+  Data (TypeF v a)
 
 deriving instance
-  (Typeable a) =>
-  Typeable (TypeF a)
+  (Typeable v, Typeable a) =>
+  Typeable (TypeF v a)
 
 deriveShow1 ''TypeF
 
@@ -217,11 +218,11 @@ deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
 
-deriving instance Functor TypeF
+deriving instance Functor (TypeF v)
 
-deriving instance Foldable TypeF
+deriving instance Foldable (TypeF v)
 
-deriving instance Traversable TypeF
+deriving instance Traversable (TypeF v)
 
 -- Prim
 deriving instance Show Prim
@@ -236,24 +237,24 @@ deriving instance Typeable Prim
 
 -- Pattern
 deriving instance
-  (Show a) =>
-  Show (PatternF a)
+  (Show t, Show a) =>
+  Show (PatternF t a)
 
 deriving instance
-  (Eq a) =>
-  Eq (PatternF a)
+  (Eq t, Eq a) =>
+  Eq (PatternF t a)
 
 deriving instance
-  (Ord a) =>
-  Ord (PatternF a)
+  (Ord t, Ord a) =>
+  Ord (PatternF t a)
 
 deriving instance
-  (Data a) =>
-  Data (PatternF a)
+  (Data t, Data a) =>
+  Data (PatternF t a)
 
 deriving instance
-  (Typeable a) =>
-  Typeable (PatternF a)
+  (Typeable t, Typeable a) =>
+  Typeable (PatternF t a)
 
 deriveShow1 ''PatternF
 
@@ -261,22 +262,22 @@ deriveEq1 ''PatternF
 
 deriveOrd1 ''PatternF
 
-deriving instance Functor PatternF
+deriving instance Functor (PatternF t)
 
-deriving instance Foldable PatternF
+deriving instance Foldable (PatternF t)
 
-deriving instance Traversable PatternF
+deriving instance Traversable (PatternF t)
 
 -- Binding
-deriving instance Show Binding
+deriving instance (Show t) => Show (Binding t)
 
-deriving instance Eq Binding
+deriving instance (Eq t) => Eq (Binding t)
 
-deriving instance Ord Binding
+deriving instance (Ord t) => Ord (Binding t)
 
-deriving instance Data Binding
+deriving instance (Data t) => Data (Binding t)
 
-deriving instance Typeable Binding
+deriving instance (Typeable t) => Typeable (Binding t)
 
 -- Choice
 deriving instance Show Choice
@@ -290,15 +291,15 @@ deriving instance Data Choice
 deriving instance Typeable Choice
 
 -- Clause
-deriving instance Show Clause
+deriving instance (Show t) => Show (Clause t)
 
-deriving instance Eq Clause
+deriving instance (Eq t) => Eq (Clause t)
 
-deriving instance Ord Clause
+deriving instance (Ord t) => Ord (Clause t)
 
-deriving instance Data Clause
+deriving instance (Data t) => Data (Clause t)
 
-deriving instance Typeable Clause
+deriving instance (Typeable t) => Typeable Clause
 
 -- Op1
 deriving instance Show Op1
@@ -324,24 +325,24 @@ deriving instance Typeable Op2
 
 -- Expr
 deriving instance
-  (Show a) =>
-  Show (ExprF a)
+  (Show t, Show a) =>
+  Show (ExprF t a)
 
 deriving instance
-  (Eq a) =>
-  Eq (ExprF a)
+  (Eq t, Eq a) =>
+  Eq (ExprF t a)
 
 deriving instance
-  (Ord a) =>
-  Ord (ExprF a)
+  (Ord t, Ord a) =>
+  Ord (ExprF t a)
 
 deriving instance
-  (Data a) =>
-  Data (ExprF a)
+  (Data t, Data a) =>
+  Data (ExprF t a)
 
 deriving instance
-  (Typeable a) =>
-  Typeable (ExprF a)
+  (Typeable t, Typeable a) =>
+  Typeable (ExprF t a)
 
 deriveShow1 ''ExprF
 
@@ -349,11 +350,11 @@ deriveEq1 ''ExprF
 
 deriveOrd1 ''ExprF
 
-deriving instance Functor ExprF
+deriving instance Functor (ExprF t)
 
-deriving instance Foldable ExprF
+deriving instance Foldable (ExprF t)
 
-deriving instance Traversable ExprF
+deriving instance Traversable (ExprF t)
 
 -- Assoc
 deriving instance Show Assoc
