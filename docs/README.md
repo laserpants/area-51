@@ -54,7 +54,7 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 newtype Scheme = Scheme (Type Name)
 ```
 
-Type schemes encode polymorphic types &mdash; types parameterized by some number of type variables (possibly zero). These variables are said to be *bound* in the type scheme under consideration.
+Type schemes encode polymorphic types &mdash; types parameterized by some number (possibly zero) of type variables. These variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                        | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------------- | --------------- | ---------------------------------------------------------------------------- |
@@ -101,7 +101,7 @@ q        | `{ foo : t0, foo : t1, baz : t2 }`
 r        | `{ baz : t2, foo : t0, foo : t1 }`
 s        | `{ foo : t1, foo : t0, baz : t2 }`
 
-Given these conditions, `q` and `r` are interchangeable, but swapping the two fields labeled `foo` is not permitted. The last type `s` is therefore a different type. 
+Given these conditions, `q` and `r` are interchangeable, but swapping the two fields labeled `foo` is not permitted. The last type `s` is therefore a different type.
 
 This form of equality can be expressed, more formally, as an equivalence relation $\cong$, defined over the set of types. In the above example, $q \cong r \not \cong s$.
 
@@ -141,9 +141,9 @@ $$
   i_0 = 0
 $$
 
-We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\text{normal}(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically.
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically.
 
-One way to do this efficiently, in code, is to first convert the row to a hash map, and then translate the hash map back into a row again, with the keys ordered alphabetically.
+One way to do this efficiently, in code, is to first convert the row to a hash map, and then translate the map back into a row again, this time with the keys ordered alphabetically.
 
 ##### Open rows
 
