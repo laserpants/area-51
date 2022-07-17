@@ -17,6 +17,8 @@ kRow = embed KRow
 kArr :: Kind -> Kind -> Kind
 kArr = embed2 KArr
 
+infixr 1 `kArr`
+
 {-# INLINE tUnit #-}
 tUnit :: Type v
 tUnit = embed TUnit
@@ -80,6 +82,12 @@ tApp = embed3 TApp
 {-# INLINE tArr #-}
 tArr :: Type v -> Type v -> Type v
 tArr = embed2 TArr
+
+infixr 1 `tArr`
+
+{-# INLINE (~>) #-}
+(~>) :: Type v -> Type v -> Type v
+(~>) = tArr
 
 {-# INLINE tRec #-}
 tRec :: Type v -> Type v
