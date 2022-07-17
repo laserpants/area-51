@@ -21,9 +21,9 @@ where
 
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
+import Data.Functor.Foldable
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text
-import Data.Functor.Foldable
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
 

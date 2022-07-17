@@ -16,7 +16,7 @@ dependencies:
   - deriving-compat
 
 library:
-  source-dirs: 
+  source-dirs:
   - src
   ghc-options:
   - -Wall
@@ -25,5 +25,5 @@ library:
 executables:
   teriyaki:
     main: Main.hs
-    source-dirs:         
+    source-dirs:
     - app

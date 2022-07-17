@@ -1,6 +1,6 @@
 module Main where
 
---import Teriyaki.Data
+-- import Teriyaki.Data
 import Teriyaki.Lang
 
 main :: IO ()
