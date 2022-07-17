@@ -54,7 +54,7 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 newtype Scheme = Scheme (Type Name)
 ```
 
-Type schemes encode polymorphic types &mdash; types parameterized by some number of type variables (possibly zero). These variables are said to be *bound* in the type scheme under consideration.
+Type schemes encode polymorphic types &mdash; types parameterized by some number (possibly zero) of type variables. These variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                        | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------------- | --------------- | ---------------------------------------------------------------------------- |
