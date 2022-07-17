@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
@@ -170,6 +171,12 @@ deriveEq1 ''KindF
 
 deriveOrd1 ''KindF
 
+deriving instance Functor KindF
+
+deriving instance Foldable KindF
+
+deriving instance Traversable KindF
+
 -- Type
 deriving instance
   (Show a) =>
@@ -196,3 +203,9 @@ deriveShow1 ''TypeF
 deriveEq1 ''TypeF
 
 deriveOrd1 ''TypeF
+
+deriving instance Functor TypeF
+
+deriving instance Foldable TypeF
+
+deriving instance Traversable TypeF
