@@ -136,13 +136,13 @@ Without rearranging the fields, a row extension $r$ can then be partitioned into
 That is;
 
 $$
-  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ |  f_{i_1} }_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}_{g_n} \ | \ q \ \wr,
+  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ |  f_{i_1} }\_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }\_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}\_{g_n} \ | \ q \ \wr,
   \quad
-  i_0 = 0
+  i_0 = 0,
 $$
 
 $$
-  f_1 = f_2 = \cdots = f_{i_1} \ne f_{i_1+1} =
+  f_1 = f_2 = \cdots = f_{i_1} \ne f_{i_1+1} = \cdots = f_{i_2} \ne \cdots \ne f_{i_{(n - 1)}+1} = \cdots = f_{i_n}.
 $$
 
 We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
