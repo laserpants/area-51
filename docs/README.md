@@ -127,7 +127,7 @@ RNil                                 | TVar                                    |
 ------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------- | -------------------------------------------
 $$\nu(\wr \wr) = \wr \wr$$           | $$\nu(r) = r$$                          | $\nu(\text{C}(t_1, t_2, \dots, t_n) = \text{C}(\nu(t_1), \nu(t_2), \dots, \nu(t_n))$       | $\nu(\text{Rec}(r)) = \text{Rec}(\nu(r))$        | $\nu(t \rightarrow u) = \nu(t) \rightarrow \nu(u)$       | $\nu(t_{\star}) = t_{\star}$
 
-To simplify notation, we can denote a row extension $r$ as $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ q \ \wr \cdots \wr \wr$, where $f_j = (l_j : t_j)$. This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \ \wr$.
+To simplify notation, we can represent a row extension $r$ as $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ q \ \wr \cdots \wr \wr$, where $f_j = (l_j : t_j)$. This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \ \wr$.
 
 Without rearranging the fields, a row extension $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
 - all labels within a group have the same label, but
