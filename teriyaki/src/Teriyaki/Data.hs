@@ -19,6 +19,10 @@ type Kind = Fix KindF
 
 -------------------------------------------------------------------------------
 
+type TyVar v = (Kind, v)
+
+-------------------------------------------------------------------------------
+
 data TypeF v a
   = TUnit
   | TBool
@@ -32,7 +36,7 @@ data TypeF v a
   | TVoid
   | TTup
   | TList
-  | TVar Kind v
+  | TVar (TyVar v)
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
@@ -152,8 +156,8 @@ type Expr t = Fix (ExprF t)
 -------------------------------------------------------------------------------
 
 data Assoc
-  = AL
-  | AR
+  = ALeft
+  | ARight
   | ANone
 
 -------------------------------------------------------------------------------

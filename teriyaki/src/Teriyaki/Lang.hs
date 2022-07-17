@@ -3,6 +3,8 @@ module Teriyaki.Lang where
 import Teriyaki.Data
 import Teriyaki.Util
 
+-------------------------------------------------------------------------------
+
 {-# INLINE kTyp #-}
 kTyp :: Kind
 kTyp = embed KTyp
@@ -16,79 +18,79 @@ kArr :: Kind -> Kind -> Kind
 kArr = embed2 KArr
 
 {-# INLINE tUnit #-}
-tUnit :: Type t
+tUnit :: Type v
 tUnit = embed TUnit
 
 {-# INLINE tBool #-}
-tBool :: Type t
+tBool :: Type v
 tBool = embed TBool
 
 {-# INLINE tInt #-}
-tInt :: Type t
+tInt :: Type v
 tInt = embed TInt
 
 {-# INLINE tBig #-}
-tBig :: Type t
+tBig :: Type v
 tBig = embed TBig
 
 {-# INLINE tNat #-}
-tNat :: Type t
+tNat :: Type v
 tNat = embed TNat
 
 {-# INLINE tFloat #-}
-tFloat :: Type t
+tFloat :: Type v
 tFloat = embed TFloat
 
 {-# INLINE tDouble #-}
-tDouble :: Type t
+tDouble :: Type v
 tDouble = embed TDouble
 
 {-# INLINE tChar #-}
-tChar :: Type t
+tChar :: Type v
 tChar = embed TChar
 
 {-# INLINE tString #-}
-tString :: Type t
+tString :: Type v
 tString = embed TString
 
 {-# INLINE tVoid #-}
-tVoid :: Type t
+tVoid :: Type v
 tVoid = embed TVoid
 
 {-# INLINE tTup #-}
-tTup :: Type t
+tTup :: Type v
 tTup = embed TTup
 
 {-# INLINE tList #-}
-tList :: Type t
+tList :: Type v
 tList = embed TList
 
 {-# INLINE tVar #-}
-tVar :: Kind -> t -> Type t
-tVar = embed2 TVar
+tVar :: TyVar v -> Type v
+tVar = embed1 TVar
 
 {-# INLINE tCon #-}
-tCon :: Kind -> Name -> Type t
+tCon :: Kind -> Name -> Type v
 tCon = embed2 TCon
 
 {-# INLINE tApp #-}
-tApp :: Kind -> Type t -> Type t -> Type t
+tApp :: Kind -> Type v -> Type v -> Type v
 tApp = embed3 TApp
 
 {-# INLINE tArr #-}
-tArr :: Type t -> Type t -> Type t
+tArr :: Type v -> Type v -> Type v
 tArr = embed2 TArr
 
 {-# INLINE tRec #-}
-tRec :: Type t -> Type t
+tRec :: Type v -> Type v
 tRec = embed1 TRec
 
 {-# INLINE tNil #-}
-tNil :: Type t
+tNil :: Type v
 tNil = embed TNil
 
 {-# INLINE tExt #-}
-tExt :: Name -> Type t -> Type t -> Type t
+tExt :: Name -> Type v -> Type v -> Type v
 tExt = embed3 TExt
 
 {-# INLINE pVar #-}
@@ -199,7 +201,7 @@ eExt :: Name -> Expr t -> Expr t -> Expr t
 eExt = embed3 EExt
 
 -- {-# INLINE eAnn #-}
--- eAnn :: Type t -> Expr t -> Expr t
+-- eAnn :: Type v -> Expr t -> Expr t
 -- eAnn = embed2 EAnn
 
 {-# INLINE eSub #-}
