@@ -93,7 +93,7 @@ In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l 
 
 ##### Row equality
 
-Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates does matter. For example, consider the following three types:
+Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates *does* matter. For example, consider the following three types:
 
 Name     | Type
 -------- | ----
