@@ -54,14 +54,14 @@ These types correspond, in a one-to-one manner, to the built-in language primiti
 newtype Scheme = Scheme (Type Name)
 ```
 
-Type schemes represent polymorphic types &mdash; types parameterized by any number of type variables. These variables are said to be *bound* in the type scheme under consideration.
+Type schemes encode polymorphic types &mdash; types parameterized by some number of type variables (possibly zero). These variables are said to be *bound* in the type scheme under consideration.
 
 | Type scheme                        | Bound variables | Type rep. (Haskell expression)                                               |
 | ---------------------------------- | --------------- | ---------------------------------------------------------------------------- |
 | `List a → Int`                     | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
 | `(a → b) → List a → List b`        | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
 
-> The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that (precisely) the variables $v_0, v_1 \dots v_n$ appear bound in $s$.
+> The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that $v_0, v_1 \dots v_n$ is the set of variables which appear bound in $s$.
 
 
 #### Composite types
@@ -89,14 +89,19 @@ A *row* is a structure whose purpose is to encode the type of a [record](#record
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `{ name = "Scooby Doo", dog = true }` | `{ name : string, dog : bool }`    | `TRec (RExt "name" TString (RExt "dog" TBool RNil))` |
 
-In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$ for the row $r$ extended by a label $l$ and type $t$.
+In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l : t \ | \ r \ \wr$ for the row $r$ extended to include a new field with label $l$ and type $t$.
 
 ##### Row equality
 
-Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The distinctness condition is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates matters.
-For example, the type of `{ foo : t0, foo : t1, baz : t2 }` is the same as `{ baz : t2, foo : t0, foo : t1 }`, but *not* the same as `{ foo : t0, baz : t2, foo : t1 }`.
+Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates does matter. For example, consider the following three types:
 
-This type of equality can be expressed, more formally, as an equivalence relation defined over the set of types.
+Name     | Type
+-------- | ----
+q        | `{ foo : t0, foo : t1, baz : t2 }`
+r        | `{ baz : t2, foo : t0, foo : t1 }`
+s        | `{ foo : t1, foo : t0, baz : t2 }`
+
+Given these conditions, `q` and `r` are interchangeable, but `s` is a different type. This form of equality can be expressed, more formally, as an equivalence relation $\cong$, defined over the set of types. In the above example, $q \cong r \not \cong s$.
 
 RNil                          | TVar          | TCon                                                                                                                                | TRec                                                                 | TArr                                                                                             | Prim<sup>†</sup>
 ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -108,7 +113,7 @@ Transitivity                                                     | Head         
 ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
 $$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { \wr \ l : t_1 \mid r_1 \ \wr \cong \wr \ l : t_2 \mid r_2 \ \wr }$$ | $$\frac{ l_1 \ne l_2 } { \wr\ l_1 : t_1 \mid \wr \ l_2 : t_2 \mid r \wr \wr \cong \wr\ l_2 : t_2 \mid \wr \ l_1 : t_1 \mid r \wr \wr }$$
 
-In practice, row comparison is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Let $\nu(t)$ be the nromal form of type $t$. Given this, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is;
+In practice, row comparison is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Let $\nu(t)$ be the normal form of $t$. Given this mapping, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is;
 
 $$
   t_1 \cong t_2  \iff  \nu(t_1) = \nu(t_2).
@@ -121,9 +126,9 @@ RNil                                 | TVar                                    |
 $$\nu(\wr \wr) = \wr \wr$$           | $$\nu(r) = r$$                          | $\nu(\text{C}(t_1, t_2, \dots, t_n) = \text{C}(\nu(t_1), \nu(t_2), \dots, \nu(t_n))$       | $\nu(\text{Rec}(r)) = \text{Rec}(\nu(r))$        | $\nu(t \rightarrow u) = \nu(t) \rightarrow \nu(u)$       | $\nu(t_{\star}) = t_{\star}$
 
 To simplify notation, we can denote a row extension $r$ as $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ q \ \wr \cdots \wr \wr$, where $f_j = (l_j : t_j)$.
-This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \cdots \ \wr$
+This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \ \wr$.
 
-Without rearranging the fields, a $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
+Without rearranging the fields, a row extension $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
 - all labels within a group have the same label, but
 - no two adjacent groups have identical labels.
 
