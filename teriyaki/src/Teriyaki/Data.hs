@@ -80,6 +80,17 @@ type Pattern = Fix PatternF
 
 -------------------------------------------------------------------------------
 
+data Binding
+  = BPat Type Pattern
+  | BFun Type Name [Pattern]
+
+-------------------------------------------------------------------------------
+
+data Clause
+  = Clause
+
+-------------------------------------------------------------------------------
+
 data ExprF a
   = EVar Label
   | ECon Label
@@ -88,7 +99,7 @@ data ExprF a
   | ELam Type [Pattern] a
   | EIf a a a
   | EPat -- ?
-  | ELet Label a a
+  | ELet Binding a a
   | EFix Label a a
   | EFun -- ?
   | EOp1 (Type, Op1) a
@@ -98,10 +109,10 @@ data ExprF a
   | ENil
   | EExt Name a a
   | EAnn Type a
+  | EHole Type
 
 -- TODO:
 -- Codata?
--- Hole?
 
 type Expr = Fix ExprF
 
