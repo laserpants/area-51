@@ -141,7 +141,7 @@ $$
   i_0 = 0
 $$
 
-We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then translate the map back into a row again, this time with the keys ordered alphabetically.
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
 
 ##### Open rows
 
