@@ -33,7 +33,7 @@ canonical t = apply (Substitution map_) t
 isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 
--- | Predicate to test if the type contains at least one type variable
+-- | Predicate to test whether the type contains at least one type variable
 containsTVar :: Type v -> Bool
 containsTVar =
   cata
