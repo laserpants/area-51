@@ -33,7 +33,7 @@ canonical t = apply (Substitution map_) t
 isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
 
--- | Predicate to test if the type contains at least one type variable
+-- | Predicate to test whether the type contains at least one type variable
 containsTVar :: Type v -> Bool
 containsTVar =
   cata
@@ -183,7 +183,7 @@ makeDef ::
   ((Ast -> Ast) -> Ast) ->
   m Ast
 makeDef name expr f =
-  if isConT ArrT t
+  if hasHeadT ArrT t
     then do
       defs <- moduleDefs
       ndef <- uniqueName name
@@ -285,9 +285,9 @@ hoistTopLambdas =
   fmap combineLambdas
     >>> \case
       Function args (t, expr)
-        | isConE LamE expr -> combine t (toList args) expr
+        | hasHeadE LamE expr -> combine t (toList args) expr
       Constant (t, expr)
-        | isConE LamE expr -> combine t [] expr
+        | hasHeadE LamE expr -> combine t [] expr
       def -> def
   where
     combine t as (Fix (ELam _ bs expr)) =
@@ -297,10 +297,10 @@ hoistTopLambdas =
 normalizeDef :: Definition MonoType Ast -> Definition MonoType Ast
 normalizeDef = \case
   Function args (t, expr)
-    | isConT ArrT t ->
+    | hasHeadT ArrT t ->
         fun t (toList args) expr
   Constant (t, expr)
-    | isConT ArrT t ->
+    | hasHeadT ArrT t ->
         fun t [] expr
   def ->
     def

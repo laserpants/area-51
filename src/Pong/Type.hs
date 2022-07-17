@@ -150,7 +150,10 @@ instance
 instance Substitutable Void where
   apply = const id
 
-instance (Substitutable t, Substitutable a) => Substitutable (Definition t a) where
+instance
+  (Substitutable t, Substitutable a) =>
+  Substitutable (Definition t a)
+  where
   apply sub =
     \case
       Function as (t, a) ->

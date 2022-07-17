@@ -97,11 +97,11 @@ Since records are unordered, it is natural to think of rows as identical [up to]
 
 Name     | Type
 -------- | ----
-q        | `{ foo : t0, foo : t1, baz : t2 }`
-r        | `{ baz : t2, foo : t0, foo : t1 }`
-s        | `{ foo : t1, foo : t0, baz : t2 }`
+*q*      | `{ foo : t0, foo : t1, baz : t2 }`
+*r*      | `{ baz : t2, foo : t0, foo : t1 }`
+*s*      | `{ foo : t1, foo : t0, baz : t2 }`
 
-Given these conditions, `q` and `r` are interchangeable, but swapping the two fields labeled `foo` is not permitted. The last type `s` is therefore a different type.
+Given these conditions, *q* and *r* are interchangeable, but swapping the two fields labeled `foo` is not permitted. The last type *s* is therefore a different type.
 
 This form of equality can be expressed, more formally, as an equivalence relation $\cong$, defined over the set of types. In the above example, $q \cong r \not \cong s$.
 
@@ -136,9 +136,13 @@ Without rearranging the fields, a row extension $r$ can then be partitioned into
 That is;
 
 $$
-  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ | \ f_{i_1} }_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}_{g_n} \ | \ q \ \wr,
+  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ |  f_{i_1} }\_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }\_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}\_{g_n} \ | \ q \ \wr,
   \quad
-  i_0 = 0
+  i_0 = 0,
+$$
+
+$$
+  l_1 = l_2 = \cdots = l_{i_1} \ne l_{i_1+1} = \cdots = l_{i_2} \ne \cdots \ne l_{i_{(n - 1)}+1} = \cdots = l_{i_n}.
 $$
 
 We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
