@@ -91,33 +91,6 @@ data Clause
 
 -------------------------------------------------------------------------------
 
-data ExprF a
-  = EVar Label
-  | ECon Label
-  | ELit Prim
-  | EApp Type a [a]
-  | ELam Type [Pattern] a
-  | EIf a a a
-  | EPat -- ?
-  | ELet Binding a a
-  | EFix Label a a
-  | EFun -- ?
-  | EOp1 (Type, Op1) a
-  | EOp2 (Type, Op2) a a
-  | ETup
-  | EList
-  | ENil
-  | EExt Name a a
-  | EAnn Type a
-  | EHole Type
-
--- TODO:
--- Codata?
-
-type Expr = Fix ExprF
-
--------------------------------------------------------------------------------
-
 data Op1
   = ONot
   | ONeg
@@ -145,6 +118,33 @@ data Op2
   | OBPip
   | ODot
   | OGet
+
+-------------------------------------------------------------------------------
+
+data ExprF a
+  = EVar Label
+  | ECon Label
+  | ELit Prim
+  | EApp Type a [a]
+  | ELam Type [Pattern] a
+  | EIf a a a
+  | EPat -- ?
+  | ELet Binding a a
+  | EFix Label a a
+  | EFun -- ?
+  | EOp1 (Type, Op1) a
+  | EOp2 (Type, Op2) a a
+  | ETup
+  | EList
+  | ENil
+  | EExt Name a a
+  | EAnn Type a
+  | EHole Type
+
+-- TODO:
+-- Codata?
+
+type Expr = Fix ExprF
 
 -------------------------------------------------------------------------------
 
@@ -220,3 +220,135 @@ deriving instance Functor TypeF
 deriving instance Foldable TypeF
 
 deriving instance Traversable TypeF
+
+-- Prim
+deriving instance Show Prim
+
+deriving instance Eq Prim
+
+deriving instance Ord Prim
+
+deriving instance Data Prim
+
+deriving instance Typeable Prim
+
+-- Pattern
+deriving instance
+  (Show a) =>
+  Show (PatternF a)
+
+deriving instance
+  (Eq a) =>
+  Eq (PatternF a)
+
+deriving instance
+  (Ord a) =>
+  Ord (PatternF a)
+
+deriving instance
+  (Data a) =>
+  Data (PatternF a)
+
+deriving instance
+  (Typeable a) =>
+  Typeable (PatternF a)
+
+deriveShow1 ''PatternF
+
+deriveEq1 ''PatternF
+
+deriveOrd1 ''PatternF
+
+deriving instance Functor PatternF
+
+deriving instance Foldable PatternF
+
+deriving instance Traversable PatternF
+
+-- Binding
+deriving instance Show Binding
+
+deriving instance Eq Binding
+
+deriving instance Ord Binding
+
+deriving instance Data Binding
+
+deriving instance Typeable Binding
+
+-- Clause
+deriving instance Show Clause
+
+deriving instance Eq Clause
+
+deriving instance Ord Clause
+
+deriving instance Data Clause
+
+deriving instance Typeable Clause
+
+-- Op1
+deriving instance Show Op1
+
+deriving instance Eq Op1
+
+deriving instance Ord Op1
+
+deriving instance Data Op1
+
+deriving instance Typeable Op1
+
+-- Op2
+deriving instance Show Op2
+
+deriving instance Eq Op2
+
+deriving instance Ord Op2
+
+deriving instance Data Op2
+
+deriving instance Typeable Op2
+
+-- Expr
+deriving instance
+  (Show a) =>
+  Show (ExprF a)
+
+deriving instance
+  (Eq a) =>
+  Eq (ExprF a)
+
+deriving instance
+  (Ord a) =>
+  Ord (ExprF a)
+
+deriving instance
+  (Data a) =>
+  Data (ExprF a)
+
+deriving instance
+  (Typeable a) =>
+  Typeable (ExprF a)
+
+deriveShow1 ''ExprF
+
+deriveEq1 ''ExprF
+
+deriveOrd1 ''ExprF
+
+deriving instance Functor ExprF
+
+deriving instance Foldable ExprF
+
+deriving instance Traversable ExprF
+
+-- Assoc
+deriving instance Show Assoc
+
+deriving instance Eq Assoc
+
+deriving instance Ord Assoc
+
+deriving instance Data Assoc
+
+deriving instance Typeable Assoc
