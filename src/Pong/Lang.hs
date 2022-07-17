@@ -242,8 +242,8 @@ freeIndex ts =
     [] -> 0
     vs -> succ (maximum vs)
 
-isConT :: ConT -> Type v -> Bool
-isConT con =
+hasHeadT :: HeadT -> Type v -> Bool
+hasHeadT con =
   project >>> \case
     TArr{}
       | ArrT == con -> True
@@ -253,8 +253,8 @@ isConT con =
       | RecT == con -> True
     _ -> False
 
-isConE :: ConE -> Expr t a0 a1 a2 -> Bool
-isConE con =
+hasHeadE :: HeadE -> Expr t a0 a1 a2 -> Bool
+hasHeadE con =
   project >>> \case
     EVar{}
       | VarE == con -> True

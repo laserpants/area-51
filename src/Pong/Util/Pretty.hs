@@ -65,7 +65,7 @@ instance (Pretty v, Pretty (TypeVar v)) => Pretty (Type v) where
               ]
           TArr (t1, doc1) (_, doc2) ->
             vsep
-              [ parensIf (isConT ArrT t1) (align doc1)
+              [ parensIf (hasHeadT ArrT t1) (align doc1)
               , "->" <+> doc2
               ]
           RExt name (_, doc1) (t2, doc2) ->

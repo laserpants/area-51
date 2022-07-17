@@ -50,8 +50,8 @@ type MonoType = Type Int
 -- | Polymorphic type scheme
 newtype Scheme = Scheme (Type Name)
 
--- | Type variety (head construtor of a Type value)
-data ConT
+-- | Head construtor variety of a Type
+data HeadT
   = VarT                           -- ^ Type is a TVar
   | ArrT                           -- ^ Type is a TArr
   | RecT                           -- ^ Type is a TRec
@@ -129,8 +129,8 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
--- | Expression variety (head construtor of an Expr value)
-data ConE
+-- | Head construtor variety of an Expr
+data HeadE
   = VarE                           -- ^ Expression is an EVar
   | LitE                           -- ^ Expression is an ELit
   | LamE                           -- ^ Expression is an ELam
@@ -191,19 +191,19 @@ deriving instance Generic Scheme
 
 instance Newtype Scheme
 
--- ConT
-deriving instance Show ConT
+-- HeadT
+deriving instance Show HeadT
 
-deriving instance Eq ConT
+deriving instance Eq HeadT
 
-deriving instance Ord ConT
+deriving instance Ord HeadT
 
 -- Con
-deriving instance Show ConE
+deriving instance Show HeadE
 
-deriving instance Eq ConE
+deriving instance Eq HeadE
 
-deriving instance Ord ConE
+deriving instance Ord HeadE
 
 -- Prim
 deriving instance Show Prim

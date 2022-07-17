@@ -521,7 +521,7 @@ llvmType voidPtrs =
       | isFunTy   -> ptr (funTy t)
       | otherwise -> llvmPrimType t
       where
-        isFunTy = isConT ArrT t
+        isFunTy = hasHeadT ArrT t
 
 {- ORMOLU_ENABLE -}
 
