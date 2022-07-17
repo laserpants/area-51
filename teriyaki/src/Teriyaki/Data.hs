@@ -32,7 +32,7 @@ data TypeF a
   | TVoid
   | TTup
   | TList
-  | TVar Kind Name
+  | TVar Kind Int
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
@@ -84,8 +84,13 @@ data Binding
 
 -------------------------------------------------------------------------------
 
+data Choice
+  = Choice
+
+-------------------------------------------------------------------------------
+
 data Clause
-  = Clause
+  = Clause Type [Pattern] [Choice]
 
 -------------------------------------------------------------------------------
 
@@ -272,6 +277,17 @@ deriving instance Ord Binding
 deriving instance Data Binding
 
 deriving instance Typeable Binding
+
+-- Choice
+deriving instance Show Choice
+
+deriving instance Eq Choice
+
+deriving instance Ord Choice
+
+deriving instance Data Choice
+
+deriving instance Typeable Choice
 
 -- Clause
 deriving instance Show Clause

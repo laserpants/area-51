@@ -64,7 +64,7 @@ tList :: Type
 tList = embed TList
 
 {-# INLINE tVar #-}
-tVar :: Kind -> Name -> Type
+tVar :: Kind -> Int -> Type
 tVar = embed2 TVar
 
 {-# INLINE tCon #-}
