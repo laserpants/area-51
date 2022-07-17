@@ -82,8 +82,8 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
 A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
-1. empty; or
-2. the extension of an existing row, formed by consing (adding) an extra label-type pair on to it.
+1. empty (`RNil`); or
+2. the extension (`RExt`) of an existing row, formed by consing (adding) an extra label-type pair on to it.
 
 | Record                                | Type                               | Type rep. (Haskell expression)                       |
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
@@ -93,7 +93,7 @@ In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l 
 
 ##### Row equality
 
-Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates does matter. For example, consider the following three types:
+Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates *does* matter. For example, consider the following three types:
 
 Name     | Type
 -------- | ----
@@ -115,7 +115,7 @@ Transitivity                                                     | Head         
 ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------
 $$\frac{ t_1 \cong t_2 \quad t_2 \cong t_3 } { t_1 \cong t_3 }$$ | $$\frac{ r_1 \cong r_2 \quad t_1 \cong t_2 } { \wr \ l : t_1 \mid r_1 \ \wr \cong \wr \ l : t_2 \mid r_2 \ \wr }$$ | $$\frac{ l_1 \ne l_2 } { \wr\ l_1 : t_1 \mid \wr \ l_2 : t_2 \mid r \wr \wr \cong \wr\ l_2 : t_2 \mid \wr \ l_1 : t_1 \mid r \wr \wr }$$
 
-In practice, row comparison is much easier than it looks. Using $<$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Let $\nu(t)$ be the normal form of $t$. Given this mapping, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is;
+In practice, row comparison is much easier than it looks. Using $\le$ to denote the alphabetical order on the set of labels, we say that a row $\wr \ l_1 : t_1 \ | \wr l_2 : t_2 \ | \dots | \wr l_n : t_n \ | \ r \ \wr \cdots \wr \wr$ is in *normal form* when it holds true that $\forall i_{1 \le i \le {n-1}} : l_i \le l_{i+1}$. Let $\nu(t)$ be the normal form of $t$. Given this mapping, to determine if two rows are in the above equivalence relation, we can simply compare their normal forms. That is;
 
 $$
   t_1 \cong t_2  \iff  \nu(t_1) = \nu(t_2).
@@ -127,7 +127,7 @@ RNil                                 | TVar                                    |
 ------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------- | -------------------------------------------
 $$\nu(\wr \wr) = \wr \wr$$           | $$\nu(r) = r$$                          | $\nu(\text{C}(t_1, t_2, \dots, t_n) = \text{C}(\nu(t_1), \nu(t_2), \dots, \nu(t_n))$       | $\nu(\text{Rec}(r)) = \text{Rec}(\nu(r))$        | $\nu(t \rightarrow u) = \nu(t) \rightarrow \nu(u)$       | $\nu(t_{\star}) = t_{\star}$
 
-To simplify notation, we can denote a row extension $r$ as $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ q \ \wr \cdots \wr \wr$, where $f_j = (l_j : t_j)$. This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \ \wr$.
+To simplify notation, we can represent a row extension $r$ as $\wr \ f_1 \ | \wr f_2 \ | \dots | \wr f_n \ | \ q \ \wr \cdots \wr \wr$, where $f_j = (l_j : t_j)$. This can be further simplified to $\wr \ f_1 \ | \ f_2 \ | \ \dots \ | \ f_n \ | \ q \ \wr$.
 
 Without rearranging the fields, a row extension $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
 - all labels within a group have the same label, but
@@ -141,9 +141,7 @@ $$
   i_0 = 0
 $$
 
-We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically.
-
-One way to do this efficiently, in code, is to first convert the row to a hash map, and then translate the map back into a row again, this time with the keys ordered alphabetically.
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
 
 ##### Open rows
 
