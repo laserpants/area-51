@@ -19,7 +19,7 @@ type Kind = Fix KindF
 
 -------------------------------------------------------------------------------
 
-type TyVar v = (Kind, v)
+type TVar v = (Kind, v)
 
 -------------------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ data TypeF v a
   | TVoid
   | TTup
   | TList
-  | TVar (TyVar v)
+  | TVar (TVar v)
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a

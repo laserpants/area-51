@@ -66,7 +66,7 @@ tList :: Type v
 tList = embed TList
 
 {-# INLINE tVar #-}
-tVar :: TyVar v -> Type v
+tVar :: TVar v -> Type v
 tVar = embed1 TVar
 
 {-# INLINE tCon #-}
