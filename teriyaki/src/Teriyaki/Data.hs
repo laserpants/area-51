@@ -31,13 +31,13 @@ data TypeF a
   | TChar
   | TString
   | TVoid
+  | TTup
+  | TList
   | TVar Kind Name
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
   | TRec a
-  | TTup
-  | TList
   | TNil
   | TExt Name a a
 
