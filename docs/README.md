@@ -136,7 +136,7 @@ Without rearranging the fields, a row extension $r$ can then be partitioned into
 That is;
 
 $$
-  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ | \ f_{i_1} }_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}_{g_n} \ | \ q \ \wr,
+  r = \wr \ \underbrace{f_1 \ | \ f_2 | \cdots \ |  f_{i_1} }_{g_1} \ | \ \underbrace{f_{i_1+1} \ | \ \cdots \ | \ f_{i_2} }_{g_2} \ | \ \cdots \ | \ f_{i_{(n - 1)}} \ | \ \underbrace{f_{i_{(n - 1)}+1} \cdots \ | \ f_{i_n}}_{g_n} \ | \ q \ \wr,
   \quad
   i_0 = 0
 $$
