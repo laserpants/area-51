@@ -48,6 +48,21 @@ type Type v = Fix (TypeF v)
 
 -------------------------------------------------------------------------------
 
+--newtype MonoIndex = MonoIndex Int
+--newtype PolyIndex = PolyIndex Int
+--
+--newtype MonoType = MonoType (Type MonoIndex)
+--newtype Generic = Generic (Type PolyIndex)
+
+-------------------------------------------------------------------------------
+
+--data Predicate a = InClass Name a
+--
+--data Scheme 
+--  = Forall [Kind] [Predicate Generic] Generic
+
+-------------------------------------------------------------------------------
+
 data Prim
   = RUnit
   | RBool Bool
