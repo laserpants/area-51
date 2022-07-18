@@ -294,15 +294,16 @@ hoistTopLambdas =
     combine _ _ _ = error "Implementation error"
 
 normalizeDef :: Definition MonoType Ast -> Definition MonoType Ast
-normalizeDef = \case
-  Function args (t, expr)
-    | hasHeadT ArrT t ->
-        fun t (toList args) expr
-  Constant (t, expr)
-    | hasHeadT ArrT t ->
-        fun t [] expr
-  def ->
-    def
+normalizeDef =
+  \case
+    Function args (t, expr)
+      | hasHeadT ArrT t ->
+          fun t (toList args) expr
+    Constant (t, expr)
+      | hasHeadT ArrT t ->
+          fun t [] expr
+    def ->
+      def
   where
     fun t xs expr =
       let ys = extra t
