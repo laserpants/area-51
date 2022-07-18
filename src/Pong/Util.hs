@@ -28,6 +28,7 @@ module Pong.Util
   , localSecond
   , asksSecond
   , getAndModify
+  , mapFoldrWithKeyM
   , varSequence
   )
 where
@@ -37,10 +38,12 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
+import Data.Foldable (foldrM)
 import Data.Functor ((<&>))
 import Data.Functor.Foldable
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map.Strict (Map, (!), (!?))
+import qualified Data.Map.Strict as Map
 import Data.Ord.Deriving (deriveOrd1)
 import qualified Data.Set as Set
 import Data.Text (Text, pack, unpack)
@@ -126,6 +129,9 @@ getAndModify f = do
   s <- get
   modify f
   pure s
+
+mapFoldrWithKeyM :: (Monad m) => ((k, a) -> b -> m b) -> b -> Map k a -> m b
+mapFoldrWithKeyM f a = foldrM f a . Map.toList
 
 varSequence :: Text -> [a] -> [(a, Text)]
 varSequence prefix names = names `zip` [prefix <> showt i | i <- [0 :: Int ..]]

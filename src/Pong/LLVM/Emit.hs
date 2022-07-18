@@ -113,7 +113,7 @@ forEachIn ::
   ModuleDefs MonoType t ->
   (Name -> MonoType -> Definition MonoType t -> m a) ->
   m [a]
-forEachIn p f = moduleForEach p (\(_, name_) def -> f name_ (typeOf def) def)
+forEachIn p f = forEachDef p (\(_, n) def -> f n (typeOf def) def)
 
 buildModule_ :: Pong.Module MonoType Ast -> LLVM.Module
 buildModule_ (Pong.Module modname p) = do

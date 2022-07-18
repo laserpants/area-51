@@ -492,7 +492,7 @@ inferCase _ _ _ = error "Implementation error"
 
 inferModuleDefs ::
   ModuleDefs () SourceExpr -> TypeChecker (ModuleDefs MonoType TypedExpr)
-inferModuleDefs p = local (<> moduleEnv p) (moduleForM p (curry go))
+inferModuleDefs p = local (<> moduleEnv p) (Map.traverseWithKey (curry go) p)
   where
     inferTypes =
       tagExpr >=> inferExpr >=> applySubstitution

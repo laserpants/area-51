@@ -263,7 +263,7 @@ compile =
 compileModule :: Module MonoType TypedExpr -> Module MonoType Ast
 compileModule (Module n p) = Module n (evalState run (1, mempty))
   where
-    compileDefs = (`moduleForM` const (traverse compile))
+    compileDefs = traverse (traverse compile)
     run = do
       q <- runReaderT (compileDefs p) (moduleEnv p)
       (_, r) <- get
@@ -319,11 +319,11 @@ runTransform = flip evalState (1, ())
 
 transform1 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 transform1 (Module n p) =
-  Module n (runTransform (moduleForM p (const (traverse monomorphizeLets . hoistTopLambdas))))
+  Module n (runTransform (traverse (traverse monomorphizeLets . hoistTopLambdas) p))
 
 transform2 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 transform2 (Module n p) =
-  Module n (runTransform (moduleForM p (const (traverse (flip (moduleFoldM go) p)))))
+  Module n (runTransform (traverse (traverse (flip (mapFoldrWithKeyM go) p)) p))
   where
     go ((_, name), def) e =
       case def of
