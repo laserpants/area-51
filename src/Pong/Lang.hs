@@ -7,7 +7,6 @@
 module Pong.Lang where
 
 import Control.Monad.State
-import Data.Foldable (foldrM)
 import Data.List (nub)
 import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
@@ -492,37 +491,13 @@ renameDef from to = Map.mapKeys rename
   where
     rename (t, defn) = (t, if defn == from then to else defn)
 
-{-# INLINE moduleForEach #-}
-moduleForEach ::
+{-# INLINE forEachDef #-}
+forEachDef ::
   (Monad m) =>
   ModuleDefs t a ->
   (Label Scheme -> Definition t a -> m b) ->
   m [b]
-moduleForEach p = forM (Map.toList p) . uncurry
-
-{-# INLINE moduleFoldM #-}
-moduleFoldM ::
-  (Monad m) =>
-  ((Label Scheme, Definition t a) -> r -> m r) ->
-  r ->
-  ModuleDefs t a ->
-  m r
-moduleFoldM f a = foldrM f a . Map.toList
-
-{-# INLINE moduleFor #-}
-moduleFor ::
-  ModuleDefs t1 a1 ->
-  (Label Scheme -> Definition t1 a1 -> Definition t2 a2) ->
-  ModuleDefs t2 a2
-moduleFor = flip Map.mapWithKey
-
-{-# INLINE moduleForM #-}
-moduleForM ::
-  (Monad m) =>
-  ModuleDefs t1 a1 ->
-  (Label Scheme -> Definition t1 a1 -> m (Definition t2 a2)) ->
-  m (ModuleDefs t2 a2)
-moduleForM = flip Map.traverseWithKey
+forEachDef p = forM (Map.toList p) . uncurry
 
 {-# INLINE tUnit #-}
 tUnit :: Type v

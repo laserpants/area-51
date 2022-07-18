@@ -80,20 +80,22 @@ newtype Eval a = Eval {unEval :: ReaderT ValueEnv (WriterT Text IO) a}
 eval :: Ast -> Eval Value
 eval =
   cata $ \case
-    EVar (_, var) | isUpper (Text.head var) -> do
-      pure (ConValue var [])
-    EVar (t, var) -> do
-      (defs, vals) <- ask
-      case Env.lookup var vals of
-        Just val -> pure val
-        Nothing ->
-          case Env.lookup var defs of
-            Just (Constant (_, expr)) -> do
-              eval expr
-            Just Function{} ->
-              pure (Closure (t, var) [])
-            _ ->
-              error "Eval error"
+    EVar (t, var)
+      | isUpper (Text.head var) ->
+          pure (ConValue var [])
+      | otherwise -> do
+          (defs, vals) <- ask
+          case Env.lookup var vals of
+            Just val ->
+              pure val
+            Nothing ->
+              case Env.lookup var defs of
+                Just (Constant (_, expr)) -> do
+                  eval expr
+                Just Function{} ->
+                  pure (Closure (t, var) [])
+                _ ->
+                  error "Eval error"
     ELit prim ->
       pure (PrimValue prim)
     EIf cond true false ->

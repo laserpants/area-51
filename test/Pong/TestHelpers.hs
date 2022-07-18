@@ -58,11 +58,11 @@ runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unif
 
 testHoistModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 testHoistModule (Module n p) =
-  Module n (moduleFor p (const hoistTopLambdas))
+  Module n (hoistTopLambdas <$> p)
 
 testMonomorphizeModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 testMonomorphizeModule (Module n p) =
-  Module n (runTransform (moduleForM p (const (traverse monomorphizeLets))))
+  Module n (runTransform (traverse (traverse monomorphizeLets) p))
 
 {-# NOINLINE projectDir #-}
 projectDir :: String
