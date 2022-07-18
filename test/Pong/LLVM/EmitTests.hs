@@ -41,8 +41,9 @@ llvmEmitTests =
       runTest "9" programo4 (ExitSuccess, "1307674368000")
 
       let runTest2 msg prog res = do
-            let Right r = runInferModule prog
-            q <- runIO $ emitModule $ transformModule r
+            let Right (Module n d) = runInferModule prog
+            let defs = transformDefs d
+            q <- runIO $ emitModule (Module n defs)
             passIt msg (res == q)
 
       -------------------------------------------------------------------------
@@ -109,9 +110,11 @@ llvmEmitTests =
 
       passIt "29" (unsafePerformIO (emitModule (compileSource programqq4)) == (ExitFailure 100, ""))
 
+      -- TODO
+
       passIt "30" (unsafePerformIO (emitModule (compileSource program440)) == (ExitFailure 200, ""))
 
-      passIt "31" (unsafePerformIO (emitModule (transformModule (Module "Main" program447))) == (ExitFailure 200, ""))
+      passIt "31" (unsafePerformIO (emitModule (Module "Main" (transformDefs program447))) == (ExitFailure 200, ""))
 
       passIt "32" (unsafePerformIO (emitModule (compileSource program445)) == (ExitFailure 200, ""))
 

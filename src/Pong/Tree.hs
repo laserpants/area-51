@@ -260,14 +260,13 @@ compile =
     EExt name expr1 expr2 ->
       eExt name <$> expr1 <*> expr2
 
-compileModule :: Module MonoType TypedExpr -> Module MonoType Ast
-compileModule (Module n p) = Module n (evalState run (1, mempty))
+compileDefs :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType Ast
+compileDefs defs = evalState run (1, mempty)
   where
-    compileDefs = traverse (traverse compile)
     run = do
-      q <- runReaderT (compileDefs p) (moduleEnv p)
-      (_, r) <- get
-      pure (q <> r)
+      a <- runReaderT (traverse (traverse compile) defs) (moduleEnv defs)
+      b <- gets snd
+      pure (a <> b)
 
 combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 combineLambdas =
@@ -311,19 +310,15 @@ normalizeDef = \case
             (fromList (xs <> ys))
             (returnType t, applyArgs (eVar <$> ys) expr)
 
-normalizeDefs :: Module MonoType Ast -> Module MonoType Ast
-normalizeDefs (Module n p) = Module n (normalizeDef <$> p)
-
 runTransform :: State (Int, ()) a -> a
 runTransform = flip evalState (1, ())
 
-transform1 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
-transform1 (Module n p) =
-  Module n (runTransform (traverse (traverse monomorphizeLets . hoistTopLambdas) p))
+transform1 :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType TypedExpr
+transform1 = runTransform . traverse (traverse monomorphizeLets . hoistTopLambdas)
 
-transform2 :: Module MonoType TypedExpr -> Module MonoType TypedExpr
-transform2 (Module n p) =
-  Module n (runTransform (traverse (traverse (flip (mapFoldrWithKeyM go) p)) p))
+transform2 :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType TypedExpr
+transform2 defs =
+  runTransform (traverse (traverse (flip (mapFoldrWithKeyM go) defs)) defs)
   where
     go ((_, name), def) e =
       case def of
@@ -334,12 +329,12 @@ transform2 (Module n p) =
           pure e
 
 insertConstructors ::
-  Module MonoType (Expr MonoType a0 a1 a2) ->
-  Module MonoType (Expr MonoType a0 a1 a2)
-insertConstructors (Module n p) = Module n (p <> Map.fromList (concat extra_))
+  ModuleDefs MonoType (Expr MonoType a0 a1 a2) ->
+  ModuleDefs MonoType (Expr MonoType a0 a1 a2)
+insertConstructors defs = defs <> Map.fromList (concat extra_)
   where
     extra_ =
-      Map.toList p
+      Map.toList defs
         <&> \((Scheme s, _), def) ->
           case def of
             Data _ cons ->
@@ -361,22 +356,22 @@ data CompilerError
   = ParserError ParserError
   | TypeError TypeError
 
-postProcess :: Module MonoType Ast -> Module MonoType Ast
-postProcess (Module n p) = Module n (Map.filterWithKey go p)
+postProcess :: ModuleDefs MonoType Ast -> ModuleDefs MonoType Ast
+postProcess defs = Map.filterWithKey go defs
   where
-    names = "main" : (snd <$> (freeVars p :: [Label MonoType]))
+    names = "main" : (snd <$> (freeVars defs :: [Label MonoType]))
     go (_, def) =
       \case
         Data{} -> True
         _ -> def `elem` names
 
-transformModule :: Module MonoType TypedExpr -> Module MonoType Ast
-transformModule =
+transformDefs :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType Ast
+transformDefs =
   insertConstructors
     >>> transform1
     >>> transform2
-    >>> compileModule
-    >>> normalizeDefs
+    >>> compileDefs
+    >>> fmap normalizeDef
     >>> postProcess
 
 parseAndAnnotate :: Text -> Either CompilerError (Module MonoType TypedExpr)
@@ -387,7 +382,7 @@ compileSource :: Text -> Module MonoType Ast
 compileSource input =
   case parseAndAnnotate input of
     Left e -> error (show e)
-    Right p -> transformModule p
+    Right (Module n defs) -> Module n (transformDefs defs)
 
 -------------------------------------------------------------------------------
 -- Typeclass instances
