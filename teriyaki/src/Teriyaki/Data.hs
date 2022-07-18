@@ -48,17 +48,17 @@ type Type v = Fix (TypeF v)
 
 -------------------------------------------------------------------------------
 
---newtype MonoIndex = MonoIndex Int
---newtype PolyIndex = PolyIndex Int
+-- newtype MonoIndex = MonoIndex Int
+-- newtype PolyIndex = PolyIndex Int
 --
---newtype MonoType = MonoType (Type MonoIndex)
---newtype Generic = Generic (Type PolyIndex)
+-- newtype MonoType = MonoType (Type MonoIndex)
+-- newtype Generic = Generic (Type PolyIndex)
 
 -------------------------------------------------------------------------------
 
---data Predicate a = InClass Name a
+-- data Predicate a = InClass Name a
 --
---data Scheme 
+-- data Scheme
 --  = Forall [Kind] [Predicate Generic] Generic
 
 -------------------------------------------------------------------------------

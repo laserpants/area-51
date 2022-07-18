@@ -3,10 +3,10 @@ module Teriyaki.Lang where
 import Teriyaki.Data
 import Teriyaki.Util
 
---class Typed a where
+-- class Typed a where
 --  typeOf :: a -> MonoType
 --
---instance Typed MonoType where
+-- instance Typed MonoType where
 --  typeOf = id
 
 -------------------------------------------------------------------------------
