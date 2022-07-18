@@ -332,26 +332,24 @@ transform2 defs =
 insertConstructors ::
   ModuleDefs MonoType (Expr MonoType a0 a1 a2) ->
   ModuleDefs MonoType (Expr MonoType a0 a1 a2)
-insertConstructors defs = defs <> Map.fromList (concat extra_)
+insertConstructors defs = defs <> Map.fromList (Map.toList defs >>= go)
   where
-    extra_ =
-      Map.toList defs
-        <&> \((Scheme s, _), def) ->
-          case def of
-            Data _ cons ->
-              cons <&> \(Fix (TCon con fs)) ->
-                let t = foldType s fs
-                    names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
-                    t0 = toMonoType names t
-                    r0 = returnType t0
-                    body = (r0, eVar (r0, "{{data}}"))
-                 in ( (Scheme t, con)
-                    , if null fs
-                        then Constant body
-                        else Function (fromList (varSequence "d" (argTypes t0))) body
-                    )
-            _ ->
-              []
+    go ((Scheme s, _), def) =
+      case def of
+        Data _ cons ->
+          cons <&> \(Fix (TCon con fs)) ->
+            let t = foldType s fs
+                names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
+                t0 = toMonoType names t
+                r0 = returnType t0
+                body = (r0, eVar (r0, "{{data}}"))
+             in ( (Scheme t, con)
+                , if null fs
+                    then Constant body
+                    else Function (fromList (varSequence "d" (argTypes t0))) body
+                )
+        _ ->
+          []
 
 data CompilerError
   = ParserError ParserError
