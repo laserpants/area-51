@@ -391,80 +391,76 @@ emitRes [(_, field), (t0, v), (t1, r)] a1 a2 = do
 emitRes _ _ _ = error "Implementation error"
 
 emitCall :: Name -> [CodeGen OpInfo] -> CodeGen OpInfo
-emitCall fun args =
-  Env.askLookup fun
+emitCall name_ args =
+  Env.askLookup name_
     >>= \case
-      Just f ->
-        emitCall_ f args
-      _ ->
+      Nothing ->
         error "Implementation error"
-
-emitCall_ :: (MonoType, Operand) -> [CodeGen OpInfo] -> CodeGen OpInfo
-emitCall_ fun args = do
-  as <- sequence args
-  case fun of
-    (t, op@LocalReference{}) -> do
-      -- Partially applied function
-      let u = returnType t
-      if arity t == length as
-        then do
-          let sty = StructureType False [llvmType False (tVar 0 ~> t)]
-          s <- bitcast op (ptr sty)
-          f <- loadOffset s 0
-          r <- call f (zip (op : (snd <$> as)) (repeat []))
-          pure (u, r)
-        else do
-          n <- uniqueName "$f"
-          let (ts, us) = splitAt (length as) (argTypes t)
-              toFty tys = llvmType False (foldType u (tVar 0 : tys))
-              sty1 = StructureType False (toFty us : charPtr : (llvmType False <$> ts))
-              sty2 = StructureType False [toFty (ts <> us)]
-          s <- malloc sty1
-          storeOffset s 0
-            =<< function
-              (llvmRep n)
-              ((charPtr, "s") : [(llvmType True uj, llvmRep "a") | uj <- us])
-              (llvmType True u)
-              ( \(w : ws) -> do
-                  s1 <- bitcast w (ptr sty1)
-                  v <- loadOffset s1 1
-                  s2 <- bitcast v (ptr sty2)
-                  f <- loadOffset s2 0
-                  vs <- loadRange s1 [2 .. 1 + length args]
-                  r <- call f (zip (v : vs <> ws) (repeat []))
-                  ret r
-              )
-          storeOffset s 1 =<< bitcast op charPtr
-          storeRange s 2 (snd <$> as)
-          r <- bitcast s charPtr
-          pure (foldType u us, r)
-    (t, op) -> do
-      -- Regular function pointer
-      let u = returnType t
-      if arity t == length as
-        then do
-          r <- call op (zip (snd <$> as) (repeat []))
-          pure (u, r)
-        else do
-          n <- uniqueName "$f"
-          let (ts, us) = splitAt (length as) (argTypes t)
-              fty = llvmType False (foldType u (tVar 0 : us))
-              sty = StructureType False (fty : (llvmType False <$> ts))
-          s <- malloc sty
-          storeOffset s 0
-            =<< function
-              (llvmRep n)
-              ((charPtr, "s") : [(llvmType True uj, llvmRep "a") | uj <- us])
-              (llvmType True u)
-              ( \(w : ws) -> do
-                  s1 <- bitcast w (ptr sty)
-                  vs <- loadRange s1 [1 .. length args]
-                  r <- call op (zip (vs <> ws) (repeat []))
-                  ret r
-              )
-          storeRange s 1 (snd <$> as)
-          r <- bitcast s charPtr
-          pure (foldType u us, r)
+      Just fun -> do
+        as <- sequence args
+        case fun of
+          (t, op@LocalReference{}) -> do
+            -- Partially applied function
+            let u = returnType t
+            if arity t == length as
+              then do
+                let sty = StructureType False [llvmType False (tVar 0 ~> t)]
+                s <- bitcast op (ptr sty)
+                f <- loadOffset s 0
+                r <- call f (zip (op : (snd <$> as)) (repeat []))
+                pure (u, r)
+              else do
+                n <- uniqueName "$f"
+                let (ts, us) = splitAt (length as) (argTypes t)
+                    toFty tys = llvmType False (foldType u (tVar 0 : tys))
+                    sty1 = StructureType False (toFty us : charPtr : (llvmType False <$> ts))
+                    sty2 = StructureType False [toFty (ts <> us)]
+                s <- malloc sty1
+                storeOffset s 0
+                  =<< function
+                    (llvmRep n)
+                    ((charPtr, "s") : [(llvmType True uj, llvmRep "a") | uj <- us])
+                    (llvmType True u)
+                    ( \(w : ws) -> do
+                        s1 <- bitcast w (ptr sty1)
+                        v <- loadOffset s1 1
+                        s2 <- bitcast v (ptr sty2)
+                        f <- loadOffset s2 0
+                        vs <- loadRange s1 [2 .. 1 + length args]
+                        r <- call f (zip (v : vs <> ws) (repeat []))
+                        ret r
+                    )
+                storeOffset s 1 =<< bitcast op charPtr
+                storeRange s 2 (snd <$> as)
+                r <- bitcast s charPtr
+                pure (foldType u us, r)
+          (t, op) -> do
+            -- Regular function pointer
+            let u = returnType t
+            if arity t == length as
+              then do
+                r <- call op (zip (snd <$> as) (repeat []))
+                pure (u, r)
+              else do
+                n <- uniqueName "$f"
+                let (ts, us) = splitAt (length as) (argTypes t)
+                    fty = llvmType False (foldType u (tVar 0 : us))
+                    sty = StructureType False (fty : (llvmType False <$> ts))
+                s <- malloc sty
+                storeOffset s 0
+                  =<< function
+                    (llvmRep n)
+                    ((charPtr, "s") : [(llvmType True uj, llvmRep "a") | uj <- us])
+                    (llvmType True u)
+                    ( \(w : ws) -> do
+                        s1 <- bitcast w (ptr sty)
+                        vs <- loadRange s1 [1 .. length args]
+                        r <- call op (zip (vs <> ws) (repeat []))
+                        ret r
+                    )
+                storeRange s 1 (snd <$> as)
+                r <- bitcast s charPtr
+                pure (foldType u us, r)
 
 emitPat :: CodeGen OpInfo -> [Clause MonoType (CodeGen OpInfo)] -> CodeGen OpInfo
 emitPat expr_ cs = mdo
