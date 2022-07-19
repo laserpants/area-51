@@ -63,12 +63,11 @@ containsTVar =
 
 monomorphize ::
   (MonadState (Int, a) m) =>
-  MonoType ->
-  Name ->
+  Label MonoType ->
   TypedExpr ->
   TypedExpr ->
   WriterT [(Label MonoType, TypedExpr)] m TypedExpr
-monomorphize t name e1 =
+monomorphize (t, name) e1 =
   para
     ( \case
         ELet (t0, var) (expr1, _) (expr2, _)
@@ -101,17 +100,6 @@ monomorphize t name e1 =
         _ ->
           error "Implementation error"
 
-monomorphizeDef ::
-  (MonadState (Int, a) m) =>
-  Label MonoType ->
-  [Label MonoType] ->
-  (MonoType, TypedExpr) ->
-  TypedExpr ->
-  m TypedExpr
-monomorphizeDef (t, name) args (_, body) expr = do
-  (e, binds) <- runWriterT (monomorphize t name (eLam () args body) expr)
-  pure (foldr (uncurry eLet) e binds)
-
 monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
 monomorphizeLets =
   cata
@@ -119,7 +107,7 @@ monomorphizeLets =
         ELet (t, var) expr1 expr2 | containsTVar t -> do
           e1 <- expr1
           e2 <- expr2
-          (e, binds) <- runWriterT (monomorphize t var e1 e2)
+          (e, binds) <- runWriterT (monomorphize (t, var) e1 e2)
           pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
         expr ->
           embed <$> sequence expr
@@ -318,13 +306,14 @@ transform2 :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType TypedExpr
 transform2 defs =
   runTransform (traverse (traverse (flip (mapFoldrWithKeyM go) defs)) defs)
   where
-    go ((_, name), def) e =
-      case def of
-        Function args body ->
-          let as = toList args
-           in monomorphizeDef (foldType (fst body) (fst <$> as), name) as body e
-        _ ->
-          pure e
+    go ((_, name), Function args body) e =
+      let as = toList args
+          t1 = foldType (fst body) (fst <$> as)
+          e1 = eLam () as (snd body)
+       in do
+            (e2, binds) <- runWriterT (monomorphize (t1, name) e1 e)
+            pure (foldr (uncurry eLet) e2 binds)
+    go _ e = pure e
 
 insertConstructors ::
   ModuleDefs MonoType (Expr MonoType a0 a1 a2) ->
