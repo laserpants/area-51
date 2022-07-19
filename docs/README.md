@@ -81,7 +81,7 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
+A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [Cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
 1. empty (`RNil`); or
 2. the extension (`RExt`) of an existing row, formed by consing (adding) an extra label-type pair on to it.
 
