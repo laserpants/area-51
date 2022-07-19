@@ -62,34 +62,34 @@ containsTVar =
     )
 
 monomorphize ::
-  (MonadState (Int, a) m) =>
   Label MonoType ->
   TypedExpr ->
   TypedExpr ->
-  WriterT [(Label MonoType, TypedExpr)] m TypedExpr
+  State (Int, a) (TypedExpr, [(Label MonoType, TypedExpr)])
 monomorphize (t, name) e1 =
-  para
-    ( \case
-        ELet (t0, var) (expr1, _) (expr2, _)
-          | var == name ->
-              pure (eLet (t0, var) expr1 expr2)
-        ERes r@[_, (_, var), _] (expr1, _) (expr2, _)
-          | var == name ->
-              pure (eRes r expr1 expr2)
-        EPat (_, expr1) cs ->
-          let updateClause (ps, e)
-                | name `elem` (snd <$> ps) = pure (ps, fst e)
-                | otherwise = (,) ps . snd <$> sequence e
-           in ePat <$> expr1 <*> traverse updateClause cs
-        ECon (t0, con)
-          | con == name && not (t `isIsomorphicTo` t0) ->
-              eCon <$> runSubst con e1 t t0
-        EVar (t0, var)
-          | var == name && not (t `isIsomorphicTo` t0) ->
-              eVar <$> runSubst var e1 t t0
-        expr ->
-          embed <$> sequence (expr <&> snd)
-    )
+  runWriterT
+    <<< para
+      ( \case
+          ELet (t0, var) (expr1, _) (expr2, _)
+            | var == name ->
+                pure (eLet (t0, var) expr1 expr2)
+          ERes r@[_, (_, var), _] (expr1, _) (expr2, _)
+            | var == name ->
+                pure (eRes r expr1 expr2)
+          EPat (_, expr1) cs ->
+            let updateClause (ps, e)
+                  | name `elem` (snd <$> ps) = pure (ps, fst e)
+                  | otherwise = (,) ps . snd <$> sequence e
+             in ePat <$> expr1 <*> traverse updateClause cs
+          ECon (t0, con)
+            | con == name && not (t `isIsomorphicTo` t0) ->
+                eCon <$> runSubst con e1 t t0
+          EVar (t0, var)
+            | var == name && not (t `isIsomorphicTo` t0) ->
+                eVar <$> runSubst var e1 t t0
+          expr ->
+            embed <$> sequence (expr <&> snd)
+      )
   where
     runSubst var expr t1 t2 =
       case evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2) of
@@ -100,14 +100,14 @@ monomorphize (t, name) e1 =
         _ ->
           error "Implementation error"
 
-monomorphizeLets :: (MonadState (Int, a) m) => TypedExpr -> m TypedExpr
+monomorphizeLets :: TypedExpr -> State (Int, a) TypedExpr
 monomorphizeLets =
   cata
     ( \case
         ELet (t, var) expr1 expr2 | containsTVar t -> do
           e1 <- expr1
           e2 <- expr2
-          (e, binds) <- runWriterT (monomorphize (t, var) e1 e2)
+          (e, binds) <- monomorphize (t, var) e1 e2
           pure (foldr (uncurry eLet) (eLet (t, var) e1 e) binds)
         expr ->
           embed <$> sequence expr
@@ -282,11 +282,9 @@ normalizeDef :: Definition MonoType Ast -> Definition MonoType Ast
 normalizeDef =
   \case
     Function args (t, expr)
-      | hasHeadT ArrT t ->
-          fun t (toList args) expr
+      | hasHeadT ArrT t -> fun t (toList args) expr
     Constant (t, expr)
-      | hasHeadT ArrT t ->
-          fun t [] expr
+      | hasHeadT ArrT t -> fun t [] expr
     def ->
       def
   where
@@ -311,7 +309,7 @@ transform2 defs =
           t1 = foldType (fst body) (fst <$> as)
           e1 = eLam () as (snd body)
        in do
-            (e2, binds) <- runWriterT (monomorphize (t1, name) e1 e)
+            (e2, binds) <- monomorphize (t1, name) e1 e
             pure (foldr (uncurry eLet) e2 binds)
     go _ e = pure e
 

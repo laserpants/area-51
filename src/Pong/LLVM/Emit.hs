@@ -62,7 +62,7 @@ runCodeGen ::
   CodeGenEnv ->
   StateT (Int, ModuleDefs MonoType Ast) (ReaderT CodeGenEnv ModuleBuilder) a ->
   ModuleBuilder a
-runCodeGen env c = runReaderT (evalStateT c (1, mempty)) env
+runCodeGen env a = runReaderT (evalStateT a (1, mempty)) env
 
 llvmRep :: (IsString s) => Name -> s
 llvmRep = fromString <<< Text.unpack
@@ -116,7 +116,7 @@ forEachIn ::
 forEachIn p f = forEachDef p (\(_, n) def -> f n (typeOf def) def)
 
 buildModule_ :: Pong.Module MonoType Ast -> LLVM.Module
-buildModule_ (Pong.Module modname p) = do
+buildModule_ (Pong.Module modname p) =
   buildModule (llvmRep modname) $ do
     void (extern "gc_malloc" [i64] charPtr)
     void (extern "hashmap_init" [] charPtr)
