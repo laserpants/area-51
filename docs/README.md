@@ -63,7 +63,6 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 > The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that $v_0, v_1 \dots v_n$ is the set of variables which appear bound in $s$.
 
-
 #### Composite types
 
 | Constructor   | Type                                    | Notation                |
