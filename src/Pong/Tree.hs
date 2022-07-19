@@ -291,7 +291,8 @@ hoistTopLambdas =
   where
     combine t as (Fix (ELam _ bs expr)) =
       Function (fromList (as <> bs)) (returnType t, expr)
-    combine _ _ _ = error "Implementation error"
+    combine _ _ _ =
+      error "Implementation error"
 
 normalizeDef :: Definition MonoType Ast -> Definition MonoType Ast
 normalizeDef =
@@ -332,10 +333,10 @@ transform2 defs =
 insertConstructors ::
   ModuleDefs MonoType (Expr MonoType a0 a1 a2) ->
   ModuleDefs MonoType (Expr MonoType a0 a1 a2)
-insertConstructors defs = defs <> Map.fromList (Map.toList defs >>= go)
+insertConstructors defs = defs <> Map.fromList (Map.toList defs >>= uncurry go)
   where
-    go ((Scheme s, _), def) =
-      case def of
+    go (Scheme s, _) =
+      \case
         Data _ cons ->
           cons <&> \(Fix (TCon con fs)) ->
             let t = foldType s fs
