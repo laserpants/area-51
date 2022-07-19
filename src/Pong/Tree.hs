@@ -1,5 +1,9 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
@@ -10,6 +14,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
+import Control.Newtype.Generics (Newtype)
 import Data.Char (isUpper)
 import Data.Either.Extra (mapLeft)
 import Data.List.NonEmpty (fromList, toList)
@@ -17,6 +22,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
+import GHC.Generics (Generic)
 import Pong.Data
 import Pong.Lang
 import Pong.Read (ParserError, parseModule)
@@ -25,10 +31,13 @@ import Pong.Util hiding (unpack)
 import qualified Pong.Util.Env as Env
 import TextShow (showt)
 
+newtype Transform a
+  = Transform (ReaderT TypeEnv (State (Int, ModuleDefs MonoType Ast)) a)
+
 canonical :: (Substitutable a, Free a) => a -> a
-canonical t = apply (Substitution map_) t
+canonical t = apply (Substitution sub) t
   where
-    map_ = Map.fromList (free t `zip` (tVar <$> [0 ..]))
+    sub = Map.fromList (free t `zip` (tVar <$> [0 ..]))
 
 isIsomorphicTo :: (Eq a, Substitutable a, Free a) => a -> a -> Bool
 isIsomorphicTo t0 t1 = canonical t0 == canonical t1
@@ -53,12 +62,12 @@ containsTVar =
     )
 
 monomorphize ::
-  (MonadState (Int, a) m, MonadWriter [(Label MonoType, TypedExpr)] m) =>
+  (MonadState (Int, a) m) =>
   MonoType ->
   Name ->
   TypedExpr ->
   TypedExpr ->
-  m TypedExpr
+  WriterT [(Label MonoType, TypedExpr)] m TypedExpr
 monomorphize t name e1 =
   para
     ( \case
@@ -147,7 +156,7 @@ extra t
   where
     ts = argTypes t
 
-moduleDefs :: (MonadReader TypeEnv m, MonadState (Int, ModuleDefs t a) m) => m [Name]
+moduleDefs :: Transform [Name]
 moduleDefs = do
   ns <- gets (Map.keys . Map.mapKeys snd . snd)
   env <- ask
@@ -158,13 +167,7 @@ uniqueName prefix = do
   n <- getAndModify (first succ) <&> fst
   pure (prefix <> showt n)
 
-liftDef ::
-  (MonadState (Int, ModuleDefs MonoType Ast) m) =>
-  Name ->
-  [Label MonoType] ->
-  [Label MonoType] ->
-  Ast ->
-  m Ast
+liftDef :: Name -> [Label MonoType] -> [Label MonoType] -> Ast -> Transform Ast
 liftDef name vs args expr = do
   let ty = foldType t ts
   insertDef (toScheme "a" (free ty) ty, name) def
@@ -176,12 +179,7 @@ liftDef name vs args expr = do
     def = Function (fromList as) (t, expr)
     insertDef = modify . second <$$> Map.insert
 
-makeDef ::
-  (MonadReader TypeEnv m, MonadState (Int, ModuleDefs MonoType Ast) m) =>
-  Name ->
-  Ast ->
-  ((Ast -> Ast) -> Ast) ->
-  m Ast
+makeDef :: Name -> Ast -> ((Ast -> Ast) -> Ast) -> Transform Ast
 makeDef name expr f =
   if hasHeadT ArrT t
     then do
@@ -194,10 +192,7 @@ makeDef name expr f =
   where
     t = typeOf expr
 
-compile ::
-  (MonadReader TypeEnv m, MonadState (Int, ModuleDefs MonoType Ast) m) =>
-  TypedExpr ->
-  m Ast
+compile :: TypedExpr -> Transform Ast
 compile =
   cata $ \case
     ELam _ args expr1 -> do
@@ -263,8 +258,9 @@ compile =
 compileDefs :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType Ast
 compileDefs defs = evalState run (1, mempty)
   where
+    Transform xx = traverse (traverse compile) defs
     run = do
-      a <- runReaderT (traverse (traverse compile) defs) (moduleEnv defs)
+      a <- runReaderT xx (moduleEnv defs)
       b <- gets snd
       pure (a <> b)
 
@@ -388,6 +384,22 @@ compileSource input =
 -- Typeclass instances
 -------------------------------------------------------------------------------
 
+-- CompilerError
 deriving instance Show CompilerError
 
 deriving instance Eq CompilerError
+
+-- Transform
+deriving instance Functor Transform
+
+deriving instance Applicative Transform
+
+deriving instance Monad Transform
+
+deriving instance (MonadState (Int, ModuleDefs MonoType Ast)) Transform
+
+deriving instance (MonadReader TypeEnv) Transform
+
+deriving instance Generic (Transform a)
+
+instance Newtype (Transform a)
