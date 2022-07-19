@@ -246,20 +246,21 @@ compile =
 compileDefs :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType Ast
 compileDefs defs = evalState run (1, mempty)
   where
-    Transform xx = traverse (traverse compile) defs
+    Transform e = traverse (traverse compile) defs
     run = do
-      a <- runReaderT xx (moduleEnv defs)
+      a <- runReaderT e (moduleEnv defs)
       b <- gets snd
       pure (a <> b)
 
 combineLambdas :: Expr t a0 a1 a2 -> Expr t a0 a1 a2
 combineLambdas =
-  cata $
-    \case
-      ELam t xs (Fix (ELam _ ys expr)) ->
-        eLam t (xs <> ys) expr
-      e ->
-        embed e
+  cata
+    ( \case
+        ELam t xs (Fix (ELam _ ys expr)) ->
+          eLam t (xs <> ys) expr
+        e ->
+          embed e
+    )
 
 hoistTopLambdas ::
   Definition MonoType (Expr MonoType a0 a1 a2) ->
