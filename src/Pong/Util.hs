@@ -130,8 +130,8 @@ getAndModify f = do
   modify f
   pure s
 
-mapFoldrWithKeyM :: (Monad m) => ((k, a) -> b -> m b) -> b -> Map k a -> m b
-mapFoldrWithKeyM f a = foldrM f a . Map.toList
+mapFoldrWithKeyM :: (Monad m) => (k -> a -> b -> m b) -> b -> Map k a -> m b
+mapFoldrWithKeyM f a = foldrM (uncurry f) a . Map.toList
 
 varSequence :: Text -> [a] -> [(a, Text)]
 varSequence prefix names = names `zip` [prefix <> showt i | i <- [0 :: Int ..]]

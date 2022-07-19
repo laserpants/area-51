@@ -63,7 +63,6 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 > The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that $v_0, v_1 \dots v_n$ is the set of variables which appear bound in $s$.
 
-
 #### Composite types
 
 | Constructor   | Type                                    | Notation                |
@@ -81,7 +80,7 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
+A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [Cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
 1. empty (`RNil`); or
 2. the extension (`RExt`) of an existing row, formed by consing (adding) an extra label-type pair on to it.
 
@@ -131,7 +130,7 @@ To simplify notation, we can represent a row extension $r$ as $\wr \ f_1 \ | \wr
 
 Without rearranging the fields, a row extension $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
 - all labels within a group have the same label, but
-- no two adjacent groups have identical labels.
+- no two adjacent groups do.
 
 That is;
 
