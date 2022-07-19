@@ -304,14 +304,14 @@ transform2 :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType TypedExpr
 transform2 defs =
   runTransform (traverse (traverse (flip (mapFoldrWithKeyM go) defs)) defs)
   where
-    go ((_, name), Function args body) e =
+    go (_, name) (Function args body) e =
       let as = toList args
           t1 = foldType (fst body) (fst <$> as)
           e1 = eLam () as (snd body)
        in do
             (e2, binds) <- monomorphize (t1, name) e1 e
             pure (foldr (uncurry eLet) e2 binds)
-    go _ e = pure e
+    go _ _ e = pure e
 
 insertConstructors ::
   ModuleDefs MonoType (Expr MonoType a0 a1 a2) ->
