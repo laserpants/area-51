@@ -131,7 +131,7 @@ To simplify notation, we can represent a row extension $r$ as $\wr \ f_1 \ | \wr
 
 Without rearranging the fields, a row extension $r$ can then be partitioned into groups $g_1, g_2, \dots , g_n$ in such a way that
 - all labels within a group have the same label, but
-- no two adjacent groups have identical labels.
+- no two adjacent groups do.
 
 That is;
 
