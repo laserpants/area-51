@@ -4,6 +4,7 @@ module Teriyaki.Util
   , module Data.Eq.Deriving
   , module Data.Ord.Deriving
   , module Text.Show.Deriving
+  , module Data.Tuple.Extra
   , module Data.Void
   , (<$$>)
   , Name
@@ -11,8 +12,8 @@ module Teriyaki.Util
   , Coalgebra
   , Data
   , Typeable
-  , embed
   , project
+  , embed
   , embed1
   , embed2
   , embed3
@@ -26,7 +27,8 @@ import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
 import Data.Functor.Foldable
 import Data.Ord.Deriving (deriveOrd1)
-import Data.Text
+import Data.Text (Text)
+import Data.Tuple.Extra (first, second)
 import Data.Typeable (Typeable)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)

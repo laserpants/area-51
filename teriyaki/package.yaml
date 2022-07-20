@@ -10,10 +10,17 @@ extra-source-files:
 
 dependencies:
   - base >= 4.7 && < 5
+  - containers
   - data-fix
-  - recursion-schemes
-  - text
   - deriving-compat
+  - extra
+  - mtl
+  - newtype-generics
+  - recursion-schemes
+  - set-monad
+  - text
+  - text-show
+  - transformers
 
 library:
   source-dirs:

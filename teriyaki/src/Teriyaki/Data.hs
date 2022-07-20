@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -297,15 +298,20 @@ deriving instance Data Choice
 deriving instance Typeable Choice
 
 -- Clause
-deriving instance (Show t) => Show (Clause t)
+deriving instance (Show t) =>
+  Show (Clause t)
 
-deriving instance (Eq t) => Eq (Clause t)
+deriving instance (Eq t) =>
+  Eq (Clause t)
 
-deriving instance (Ord t) => Ord (Clause t)
+deriving instance (Ord t) =>
+  Ord (Clause t)
 
-deriving instance (Data t) => Data (Clause t)
+deriving instance (Data t) =>
+  Data (Clause t)
 
-deriving instance (Typeable t) => Typeable Clause
+deriving instance (Typeable t) =>
+  Typeable Clause
 
 -- Op1
 deriving instance Show Op1
