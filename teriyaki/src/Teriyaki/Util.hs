@@ -25,7 +25,7 @@ where
 import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
-import Data.Functor.Foldable
+import Data.Functor.Foldable (Base, Corecursive, embed, project)
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text (Text)
 import Data.Tuple.Extra (first, second)

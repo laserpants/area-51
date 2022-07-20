@@ -20,10 +20,6 @@ type Kind = Fix KindF
 
 -------------------------------------------------------------------------------
 
-type TVar v = (Kind, v)
-
--------------------------------------------------------------------------------
-
 data TypeF v a
   = TUnit
   | TBool
@@ -37,7 +33,7 @@ data TypeF v a
   | TVoid
   | TTup
   | TList
-  | TVar (TVar v)
+  | TVar Kind v
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
@@ -64,35 +60,39 @@ type Type v = Fix (TypeF v)
 
 -------------------------------------------------------------------------------
 
+{- ORMOLU_DISABLE -}
+
 data Prim
   = IUnit
-  | IBool Bool
-  | IInt Int
-  | IBig Integer
-  | INat Integer
-  | IFloat Float
-  | IDouble Double
-  | IChar Char
-  | IString Text
+  | IBool    Bool
+  | IInt     Int
+  | IBig     Integer
+  | INat     Integer
+  | IFloat   Float
+  | IDouble  Double
+  | IChar    Char
+  | IString  Text
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 
-type Label t = (t, Name)
-
--------------------------------------------------------------------------------
+{- ORMOLU_DISABLE -}
 
 data PatternF t a
-  = PVar (Label t)
-  | PLit Prim
-  | PAs a
-  | POr a a
-  | PAny
-  | PCon (Label t) [a]
-  | PTup [a]
-  | PList [a]
-  | PNil
-  | PExt Name a a
-  | PAnn t a
+  = PVar  t Name
+  | PLit  t Prim
+  | PAs   t a
+  | POr   t a a
+  | PAny  t
+  | PCon  t Name [a]
+  | PTup  t [a]
+  | PList t [a]
+  | PNil  t
+  | PExt  t Name a a
+  | PAnn  t a
+
+{- ORMOLU_ENABLE -}
 
 type Pattern t = Fix (PatternF t)
 
@@ -114,58 +114,69 @@ data Clause t
 
 -------------------------------------------------------------------------------
 
-data Op1
-  = ONot
-  | ONeg
+{- ORMOLU_DISABLE -}
+
+data Op1 t
+  = ONot t
+  | ONeg t
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 
-data Op2
-  = OEq
-  | ONEq
-  | OLt
-  | OGt
-  | OLtE
-  | OGtE
-  | OAdd
-  | OSub
-  | OMul
-  | ODiv
-  | OPow
-  | OMod
-  | OOr
-  | OAnd
-  | OLArr
-  | ORarr
-  | OFPip
-  | OBPip
-  | ODot
-  | OGet
+{- ORMOLU_DISABLE -}
+
+data Op2 t
+  = OEq   t
+  | ONEq  t
+  | OLt   t
+  | OGt   t
+  | OLtE  t
+  | OGtE  t
+  | OAdd  t
+  | OSub  t
+  | OMul  t
+  | ODiv  t
+  | OPow  t
+  | OMod  t
+  | OOr   t
+  | OAnd  t
+  | OLArr t
+  | ORarr t
+  | OFPip t
+  | OBPip t
+  | ODot  t
+  | OGet  t
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
+
+{- ORMOLU_DISABLE -}
 
 data ExprF t a
-  = EVar (Label t)
-  | ECon (Label t)
-  | ELit Prim
-  | EApp t a [a]
-  | ELam t [Pattern t] a
-  | EIf a a a
-  | EPat -- ?
-  | ELet (Binding t) a a
-  | EFix (Label t) a a
-  | EFun -- ?
-  | EOp1 (t, Op1) a
-  | EOp2 (t, Op2) a a
-  | ETup
-  | EList
-  | ENil
-  | EExt Name a a
-  | ESub t
+  = EVar  t Name
+  | ECon  t Name
+  | ELit  t Prim
+  | EApp  t a [a]
+  | ELam  t [Pattern t] a
+  | EIf   t a a a
+  | EPat  t -- ?
+  | ELet  t (Binding t) a a
+  | EFix  t Name a a
+  | EFun  t -- ?
+  | EOp1  t (Op1 t) a
+  | EOp2  t (Op2 t) a a
+  | ETup  t
+  | EList t
+  | ENil  t
+  | EExt  t Name a a
+  | ESub  t
+  | ECo   t a
 
 --  | EAnn Type a
 
---  | ECo a
+{- ORMOLU_ENABLE -}
 
 type Expr t = Fix (ExprF t)
 
@@ -314,26 +325,36 @@ deriving instance (Typeable t) =>
   Typeable Clause
 
 -- Op1
-deriving instance Show Op1
+deriving instance (Show t) =>
+  Show (Op1 t)
 
-deriving instance Eq Op1
+deriving instance (Eq t) =>
+  Eq (Op1 t)
 
-deriving instance Ord Op1
+deriving instance (Ord t) => 
+  Ord (Op1 t)
 
-deriving instance Data Op1
+deriving instance (Data t) => 
+  Data (Op1 t)
 
-deriving instance Typeable Op1
+deriving instance (Typeable t) =>
+  Typeable (Op1 t)
 
 -- Op2
-deriving instance Show Op2
+deriving instance (Show t) =>
+  Show (Op2 t)
 
-deriving instance Eq Op2
+deriving instance (Eq t) =>
+  Eq (Op2 t)
 
-deriving instance Ord Op2
+deriving instance (Ord t) =>
+  Ord (Op2 t)
 
-deriving instance Data Op2
+deriving instance (Data t) =>
+  Data (Op2 t)
 
-deriving instance Typeable Op2
+deriving instance (Typeable t) =>
+  Typeable (Op2 t)
 
 -- Expr
 deriving instance (Show t, Show a) =>
