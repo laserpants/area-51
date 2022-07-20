@@ -149,7 +149,7 @@ $$
   l_1 = l_2 = \cdots = l_{i_1} \ne l_{i_1+1} = \cdots = l_{i_2} \ne \cdots \ne l_{i_{(n - 1)}+1} = \cdots = l_{i_n}.
 $$
 
-We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$. Also define the sequence $\langle s_1, s_2, \dots, s_n \rangle$ as the groups $\langle g_i \rangle$ ordered alphabetically. 
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$. Define the sequence $\langle s_1, s_2, \dots, s_n \rangle$ as the groups $\langle g_i \rangle$ ordered alphabetically. Then;
 
 $$
   \nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr
