@@ -85,7 +85,7 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [Cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
+A *row* is a structure whose purpose is to encode the type of a [record](#records), implemented as a chain of labeled type-fields. Inductively defined, a row is either
 1. empty (`RNil`); or
 2. the extension (`RExt`) of an existing row, formed by consing (adding) an extra label-type pair on to it.
 
@@ -97,7 +97,7 @@ In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l 
 
 ##### Row equality
 
-Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates *does* matter. For example, consider the following three types:
+Since records are unordered, but rows are list-like in nature, we end up with some ambiguity when determining the type of a record. In the previous example, we gave `TRec (RExt "name" TString (RExt "dog" TBool RNil))` as the type of the record `{ name = "Scooby Doo", dog = true }`, but `TRec (RExt "dog" TBool (RExt "name" TString RNil))` is just as valid. For this reason, it makese sense to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates *does* matter. For example, consider the following three types:
 
 Name     | Type
 -------- | ----
