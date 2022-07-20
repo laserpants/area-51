@@ -149,7 +149,13 @@ $$
   l_1 = l_2 = \cdots = l_{i_1} \ne l_{i_1+1} = \cdots = l_{i_2} \ne \cdots \ne l_{i_{(n - 1)}+1} = \cdots = l_{i_n}.
 $$
 
-We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$. Also define the sequence $\langle s_1, s_2, \dots, s_n \rangle$ as the groups $\langle g_i \rangle$ ordered alphabetically. 
+
+$$
+  \nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr
+$$ 
+
+One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
 
 ##### Open rows
 
