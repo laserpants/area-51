@@ -72,6 +72,11 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 ##### Algebraic data types
 
+| Type                  | Type rep. (Haskell expression)            | 
+| --------------------- | ----------------------------------------- | 
+| `List int`            | `TCon "List" [TInt]`                      | 
+| `Either Error float`  | `TCon "Either" [TCon "Error" [], TFloat]` | 
+
 #### Record and row types
 
 | Constructor   | Type                                    | Kind                 | Remarks             |
