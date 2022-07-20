@@ -5,7 +5,7 @@ import Teriyaki.Lang
 
 test1 =
   [ [] :: [ProgPattern ()]
-  ] 
+  ]
 
 main :: IO ()
 main = print kTyp
