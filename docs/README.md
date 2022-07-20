@@ -87,7 +87,7 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 A *row* is a structure whose purpose is to encode the type of a [record](#records), implemented as a chain of labeled type-fields. Inductively defined, a row is either
 1. empty (`RNil`); or
-2. the extension (`RExt`) of an existing row, formed by consing (adding) an extra label-type pair on to it.
+2. the extension (`RExt`) of an existing row, formed by *consing* (adding) an extra label-type pair on to it.
 
 | Record                                | Type                               | Type rep. (Haskell expression)                       |
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
