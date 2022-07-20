@@ -64,15 +64,15 @@ type Type v = Fix (TypeF v)
 -------------------------------------------------------------------------------
 
 data Prim
-  = RUnit
-  | RBool Bool
-  | RInt Int
-  | RBig Integer
-  | RNat Integer
-  | RFloat Float
-  | RDouble Double
-  | RChar Char
-  | RString Text
+  = IUnit
+  | IBool Bool
+  | IInt Int
+  | IBig Integer
+  | INat Integer
+  | IFloat Float
+  | IDouble Double
+  | IChar Char
+  | IString Text
 
 -------------------------------------------------------------------------------
 
@@ -177,25 +177,22 @@ data Assoc
 
 -------------------------------------------------------------------------------
 
+{- ORMOLU_DISABLE -}
+
 -- Kind
-deriving instance
-  (Show a) =>
+deriving instance (Show a) =>
   Show (KindF a)
 
-deriving instance
-  (Eq a) =>
+deriving instance (Eq a) =>
   Eq (KindF a)
 
-deriving instance
-  (Ord a) =>
+deriving instance (Ord a) =>
   Ord (KindF a)
 
-deriving instance
-  (Data a) =>
+deriving instance (Data a) =>
   Data (KindF a)
 
-deriving instance
-  (Typeable a) =>
+deriving instance (Typeable a) =>
   Typeable (KindF a)
 
 deriveShow1 ''KindF
@@ -211,24 +208,19 @@ deriving instance Foldable KindF
 deriving instance Traversable KindF
 
 -- Type
-deriving instance
-  (Show v, Show a) =>
+deriving instance (Show v, Show a) =>
   Show (TypeF v a)
 
-deriving instance
-  (Eq v, Eq a) =>
+deriving instance (Eq v, Eq a) =>
   Eq (TypeF v a)
 
-deriving instance
-  (Ord v, Ord a) =>
+deriving instance (Ord v, Ord a) =>
   Ord (TypeF v a)
 
-deriving instance
-  (Data v, Data a) =>
+deriving instance (Data v, Data a) =>
   Data (TypeF v a)
 
-deriving instance
-  (Typeable v, Typeable a) =>
+deriving instance (Typeable v, Typeable a) =>
   Typeable (TypeF v a)
 
 deriveShow1 ''TypeF
@@ -255,24 +247,19 @@ deriving instance Data Prim
 deriving instance Typeable Prim
 
 -- Pattern
-deriving instance
-  (Show t, Show a) =>
+deriving instance (Show t, Show a) =>
   Show (PatternF t a)
 
-deriving instance
-  (Eq t, Eq a) =>
+deriving instance (Eq t, Eq a) =>
   Eq (PatternF t a)
 
-deriving instance
-  (Ord t, Ord a) =>
+deriving instance (Ord t, Ord a) =>
   Ord (PatternF t a)
 
-deriving instance
-  (Data t, Data a) =>
+deriving instance (Data t, Data a) =>
   Data (PatternF t a)
 
-deriving instance
-  (Typeable t, Typeable a) =>
+deriving instance (Typeable t, Typeable a) =>
   Typeable (PatternF t a)
 
 deriveShow1 ''PatternF
@@ -343,24 +330,19 @@ deriving instance Data Op2
 deriving instance Typeable Op2
 
 -- Expr
-deriving instance
-  (Show t, Show a) =>
+deriving instance (Show t, Show a) =>
   Show (ExprF t a)
 
-deriving instance
-  (Eq t, Eq a) =>
+deriving instance (Eq t, Eq a) =>
   Eq (ExprF t a)
 
-deriving instance
-  (Ord t, Ord a) =>
+deriving instance (Ord t, Ord a) =>
   Ord (ExprF t a)
 
-deriving instance
-  (Data t, Data a) =>
+deriving instance (Data t, Data a) =>
   Data (ExprF t a)
 
-deriving instance
-  (Typeable t, Typeable a) =>
+deriving instance (Typeable t, Typeable a) =>
   Typeable (ExprF t a)
 
 deriveShow1 ''ExprF
