@@ -161,10 +161,10 @@ data ExprF t a
   | EApp  t a [a]
   | ELam  t [Pattern t] a
   | EIf   t a a a
-  | EPat  t -- ?
+  | EPat  t -- TODO
   | ELet  t (Binding t) a a
   | EFix  t Name a a
-  | EFun  t -- ?
+  | EFun  t -- TODO
   | EOp1  t (Op1 t) a
   | EOp2  t (Op2 t) a a
   | ETup  t
@@ -287,15 +287,20 @@ deriving instance Foldable (PatternF t)
 deriving instance Traversable (PatternF t)
 
 -- Binding
-deriving instance (Show t) => Show (Binding t)
+deriving instance (Show t) =>
+  Show (Binding t)
 
-deriving instance (Eq t) => Eq (Binding t)
+deriving instance (Eq t) =>
+  Eq (Binding t)
 
-deriving instance (Ord t) => Ord (Binding t)
+deriving instance (Ord t) =>
+  Ord (Binding t)
 
-deriving instance (Data t) => Data (Binding t)
+deriving instance (Data t) =>
+  Data (Binding t)
 
-deriving instance (Typeable t) => Typeable (Binding t)
+deriving instance (Typeable t) =>
+  Typeable (Binding t)
 
 -- Choice
 deriving instance Show Choice

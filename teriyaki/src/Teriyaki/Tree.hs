@@ -1,6 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StrictData #-}
 
@@ -20,33 +18,6 @@ type ConstructorEnv =
 
 constructorEnv :: [(Name, ([Name], Int))] -> ConstructorEnv
 constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
-
-class Tagged t a | t -> a where
-  getTag :: t -> a
-  setTag :: a -> t -> t
-
-{- ORMOLU_DISABLE -}
-
-instance Tagged (Pattern t) t where
-  getTag =
-    cata
-      ( \case
-          PVar  t _      -> t
-          PLit  t _      -> t
-          PAs   t _      -> t
-          POr   t _ _    -> t
-          PAny  t        -> t
-          PCon  t _ _    -> t
-          PTup  t _      -> t
-          PList t _      -> t
-          PNil  t        -> t
-          PExt  t _ _ _  -> t
-          PAnn  t _      -> t
-      )
-
-  setTag = undefined
-
-{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 
