@@ -149,6 +149,7 @@ instance Tagged (Expr t) t where
           EExt  t _ _ _      -> t
           ESub  t            -> t
           ECo   t _          -> t
+          _ -> error "TODO"
       )
 
   setTag t =
@@ -172,6 +173,7 @@ instance Tagged (Expr t) t where
           EExt  _ a1 a2 a3   -> eExt  t a1 a2 a3
           ESub  _            -> eSub  t
           ECo   _ a1         -> eCo   t a1
+          _ -> error "TODO"
       )
 
 

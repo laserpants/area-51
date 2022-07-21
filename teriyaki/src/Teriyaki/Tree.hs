@@ -31,10 +31,7 @@ exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
 {- ORMOLU_ENABLE -}
 
 useful ::
-  (MonadReader ConstructorEnv m) =>
-  PatternMatrix t ->
-  [Pattern t] ->
-  m Bool
+  (MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
 useful px ps = stage3 (stage2 . stage1 <$$> px) (stage2 . stage1 <$> ps)
   where
     stage1 =
@@ -64,6 +61,7 @@ useful px ps = stage3 (stage2 . stage1 <$$> px) (stage2 . stage1 <$> ps)
             else stage3 (defaultMatrix qx) qs
         OrPattern p r ->
           stage3 qx (p : qs) ||^ stage3 qx (r : qs)
+    stage3 _ _ = error "Implementation error"
 
 isComplete :: (MonadReader ConstructorEnv m) => [Name] -> m Bool
 isComplete [] = pure False
@@ -71,11 +69,13 @@ isComplete names@(name : _) = do
   defined <- ask
   pure (lookupCon (defined `Env.union` builtIn) name == Set.fromList names)
 
+-- TODO: use (<>) ???
+
 lookupCon :: ConstructorEnv -> Name -> Set Name
-lookupCon constructors con
-  --  | isTupleCon con || isRowCon con = Set.singleton con
-  | False = undefined
-  | otherwise = maybe mempty fst (Env.lookup con constructors)
+lookupCon constructors con =
+  -- \| isTupleCon con || isRowCon con = Set.singleton con
+  -- \| otherwise = maybe mempty fst (Env.lookup con constructors)
+  maybe mempty fst (Env.lookup con constructors)
 
 builtIn :: ConstructorEnv
 builtIn =
@@ -102,6 +102,7 @@ defaultMatrix :: PatternMatrix t -> PatternMatrix t
 defaultMatrix = (go =<<)
   where
     go :: [Pattern t] -> PatternMatrix t
+    go [] = error "Implementation error"
     go (p : ps) =
       case project p of
         PCon{}                  -> []
@@ -110,7 +111,7 @@ defaultMatrix = (go =<<)
         PNil{}                  -> []
         PExt{}                  -> []
         PLit{}                  -> []
-        PAnn    _ p             -> go (p : ps)
+        PAnn    _ q             -> go (q : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
         _                       -> [ps]
