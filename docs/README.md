@@ -155,7 +155,7 @@ $$
   \nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr
 $$ 
 
-One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform this map back into a row again, this time with the keys ordered alphabetically.
+One way to do this efficiently, in code, is to first convert the row into a hash map, and then transform this map back to a row again, this time with the keys ordered alphabetically.
 
 ##### Open rows
 
