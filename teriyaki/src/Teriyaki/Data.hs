@@ -161,10 +161,10 @@ data ExprF t a
   | EApp  t a [a]
   | ELam  t [Pattern t] a
   | EIf   t a a a
-  | EPat  t -- TODO
+  | EPat  t a [Clause t]
   | ELet  t (Binding t) a a
   | EFix  t Name a a
-  | EFun  t -- TODO
+  | EFun  t [Clause t]
   | EOp1  t (Op1 t) a
   | EOp2  t (Op2 t) a a
   | ETup  t

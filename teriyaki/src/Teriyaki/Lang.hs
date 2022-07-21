@@ -137,10 +137,10 @@ instance Tagged (Expr t) t where
           EApp  t _ _        -> t
           ELam  t _ _        -> t
           EIf   t _ _ _      -> t
-          EPat  t            -> t
+          EPat  t _ _        -> t
           ELet  t _ _ _      -> t
           EFix  t _ _ _      -> t
-          EFun  t            -> t
+          EFun  t _          -> t
           EOp1  t _ _        -> t
           EOp2  t _ _ _      -> t
           ETup  t            -> t
@@ -160,10 +160,10 @@ instance Tagged (Expr t) t where
           EApp  _ a1 a2      -> eApp  t a1 a2
           ELam  _ a1 a2      -> eLam  t a1 a2
           EIf   _ a1 a2 a3   -> eIf   t a1 a2 a3
-          EPat  _            -> undefined -- TODO
+          EPat  _ a1 a2      -> ePat  t a1 a2
           ELet  _ a1 a2 a3   -> eLet  t a1 a2 a3
           EFix  _ a1 a2 a3   -> eFix  t a1 a2 a3
-          EFun  _            -> undefined -- TODO
+          EFun  _ a1         -> eFun  t a1
           EOp1  _ a1 a2      -> eOp1  t a1 a2
           EOp2  _ a1 a2 a3   -> eOp2  t a1 a2 a3
           ETup  _            -> eTup  t
@@ -351,10 +351,9 @@ eLam = embed3 ELam
 eIf :: t -> Expr t -> Expr t -> Expr t -> Expr t
 eIf = embed4 EIf
 
--- TODO
 {-# INLINE ePat #-}
-ePat :: t -> Expr t
-ePat = embed1 EPat
+ePat :: t -> Expr t -> [Clause t] -> Expr t
+ePat = embed3 EPat
 
 {-# INLINE eLet #-}
 eLet :: t -> Binding t -> Expr t -> Expr t -> Expr t
@@ -364,10 +363,9 @@ eLet = embed4 ELet
 eFix :: t -> Name -> Expr t -> Expr t -> Expr t
 eFix = embed4 EFix
 
--- TODO
 {-# INLINE eFun #-}
-eFun :: t -> Expr t
-eFun = embed1 EFun
+eFun :: t -> [Clause t] -> Expr t
+eFun = embed2 EFun
 
 {-# INLINE eOp1 #-}
 eOp1 :: t -> Op1 t -> Expr t -> Expr t
