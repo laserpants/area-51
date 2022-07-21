@@ -1,12 +1,17 @@
 module Main where
 
--- import Teriyaki.Data
--- import Teriyaki.Lang
---
--- test1 :: [[Pattern ()]]
--- test1 =
---  [ []
---  ]
+import Control.Monad.Reader
+import Teriyaki.Data
+import Teriyaki.Tree
+
+test1 :: [[Pattern ()]]
+test1 =
+  [ []
+  ]
+
+runtest1 :: Bool
+runtest1 =
+  runReader (exhaustive test1) mempty
 
 main :: IO ()
-main = print "X" -- print kTyp
+main = print ("X" :: String) -- print kTyp

@@ -22,7 +22,7 @@ instance Tagged (Pattern t) t where
       ( \case
           PVar  t _          -> t
           PLit  t _          -> t
-          PAs   t _          -> t
+          PAs   t _ _        -> t
           POr   t _ _        -> t
           PAny  t            -> t
           PCon  t _ _        -> t
@@ -38,7 +38,7 @@ instance Tagged (Pattern t) t where
       ( \case
           PVar  _ a1         -> pVar  t a1
           PLit  _ a1         -> pLit  t a1
-          PAs   _ a1         -> pAs   t a1
+          PAs   _ a1 a2      -> pAs   t a1 a2
           POr   _ a1 a2      -> pOr   t a1 a2
           PAny  _            -> pAny  t
           PCon  _ a1 a2      -> pCon  t a1 a2
@@ -292,8 +292,8 @@ pLit :: t -> Prim -> Pattern t
 pLit = embed2 PLit
 
 {-# INLINE pAs #-}
-pAs :: t -> Pattern t -> Pattern t
-pAs = embed2 PAs
+pAs :: t -> Name -> Pattern t -> Pattern t
+pAs = embed3 PAs
 
 {-# INLINE pOr #-}
 pOr :: t -> Pattern t -> Pattern t -> Pattern t

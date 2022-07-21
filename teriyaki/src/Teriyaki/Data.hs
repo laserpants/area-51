@@ -82,7 +82,7 @@ data Prim
 data PatternF t a
   = PVar  t Name
   | PLit  t Prim
-  | PAs   t a
+  | PAs   t Name a
   | POr   t a a
   | PAny  t
   | PCon  t Name [a]
@@ -185,6 +185,15 @@ data Assoc
   = ALeft
   | ARight
   | ANone
+
+-------------------------------------------------------------------------------
+
+data PatternGroup t
+  = ConGroup Name [Pattern t]
+  | OrPattern (Pattern t) (Pattern t)
+  | WildcardPattern
+
+type PatternMatrix t = [[Pattern t]]
 
 -------------------------------------------------------------------------------
 
@@ -335,10 +344,10 @@ deriving instance (Show t) =>
 deriving instance (Eq t) =>
   Eq (Op1 t)
 
-deriving instance (Ord t) => 
+deriving instance (Ord t) =>
   Ord (Op1 t)
 
-deriving instance (Data t) => 
+deriving instance (Data t) =>
   Data (Op1 t)
 
 deriving instance (Typeable t) =>
@@ -398,3 +407,19 @@ deriving instance Ord Assoc
 deriving instance Data Assoc
 
 deriving instance Typeable Assoc
+
+-- PatternGroup
+deriving instance (Show t) =>
+  Show (PatternGroup t)
+
+deriving instance (Eq t) =>
+  Eq (PatternGroup t)
+
+deriving instance (Ord t) =>
+  Ord (PatternGroup t)
+
+deriving instance (Data t) =>
+  Data (PatternGroup t)
+
+deriving instance (Typeable t) =>
+  Typeable (PatternGroup t)

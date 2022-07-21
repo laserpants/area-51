@@ -8,6 +8,7 @@ module Teriyaki.Util
   , module Text.Show.Deriving
   , module Data.Tuple.Extra
   , module Data.Void
+  , module Data.Function
   , (<$$>)
   , Name
   , Algebra
@@ -26,6 +27,7 @@ import Control.Arrow ((<<<), (>>>))
 import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
+import Data.Function ((&))
 import Data.Functor.Foldable (Base, Corecursive, cata, embed, project)
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text (Text)
