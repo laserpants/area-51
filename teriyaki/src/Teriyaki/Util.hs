@@ -1,6 +1,7 @@
 module Teriyaki.Util
   ( module Data.Fix
   , module Data.Text
+  , module Control.Arrow
   , module Data.Eq.Deriving
   , module Data.Functor.Foldable
   , module Data.Ord.Deriving
@@ -13,8 +14,6 @@ module Teriyaki.Util
   , Coalgebra
   , Data
   , Typeable
-  , project
-  , embed
   , embed1
   , embed2
   , embed3
@@ -23,6 +22,7 @@ module Teriyaki.Util
   )
 where
 
+import Control.Arrow ((<<<), (>>>))
 import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))

@@ -391,9 +391,9 @@ eNil = embed1 ENil
 eExt :: t -> Name -> Expr t -> Expr t -> Expr t
 eExt = embed4 EExt
 
----- {-# INLINE eAnn #-}
----- eAnn :: Type v -> Expr t -> Expr t
----- eAnn = embed2 EAnn
+{-# INLINE eAnn #-}
+eAnn :: t -> Expr t -> Expr t
+eAnn = embed2 EAnn
 
 {-# INLINE eSub #-}
 eSub :: t -> Expr t

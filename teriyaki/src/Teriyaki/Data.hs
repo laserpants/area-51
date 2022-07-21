@@ -173,8 +173,7 @@ data ExprF t a
   | EExt  t Name a a
   | ESub  t
   | ECo   t a
-
---  | EAnn Type a
+  | EAnn  t a
 
 {- ORMOLU_ENABLE -}
 

@@ -4,7 +4,6 @@
 
 module Teriyaki.Tree where
 
-import Control.Arrow ((<<<), (>>>))
 import Control.Monad.Reader
 import Data.Set.Monad (Set)
 import qualified Data.Set.Monad as Set
