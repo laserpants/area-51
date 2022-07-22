@@ -38,6 +38,8 @@ test1 =
 -- exhaustive
 test2 :: [[Pattern ()]]
 test2 =
+  -- True
+  -- False
   [ [pLit () (IBool True)]
   , [pLit () (IBool False)]
   ]
@@ -45,18 +47,19 @@ test2 =
 -- not exhaustive
 test3 :: [[Pattern ()]]
 test3 =
+  -- True
   [ [pLit () (IBool True)]
   ]
 
 -- exhaustive
 test4 :: [[Pattern ()]]
 test4 =
-  -- x :: (y :: ys)
+  -- x :: y :: ys
+  -- []
+  -- z :: zs
   [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
-  , -- []
-    [pCon () "[]" []]
-  , -- z :: zs
-    [pCon () "(::)" [pVar () "z", pVar () "zs"]]
+  , [pCon () "[]" []]
+  , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
   ]
 
 -- not exhaustive
@@ -179,6 +182,99 @@ test17 =
   [ [pLit () (IInt 5), pLit () (IInt 5)]
   , [pVar () "x", pLit () (IInt 0)]
   ]
+
+-- exhaustive
+test18 :: [[Pattern ()]]
+test18 =
+  [ [ pLit () (IBool True) ]
+  , [ pLit () (IBool False) ]
+  ]
+
+-- exhaustive
+test19 :: [[Pattern ()]]
+test19 =
+  [ [ pLit () (IBool True) ]
+  , [ pAny () ]
+  ]
+
+-- not exhaustive
+test20 :: [[Pattern ()]]
+test20 =
+  [ [ pLit () (IBool True) ]
+  ]
+
+-- exhaustive
+test21 :: [[Pattern ()]]
+test21 =
+  [ [ pLit () IUnit ]
+  ]
+
+-- exhaustive
+test22 :: [[Pattern ()]]
+test22 =
+  [ [ pLit () IUnit, pLit () IUnit ]
+  ]
+
+-- exhaustive
+test23 :: [[Pattern ()]]
+test23 =
+  [ [ pLit () IUnit, pAny () ]
+  ]
+
+-- not exhaustive
+test24 :: [[Pattern ()]]
+test24 =
+  [ [ pLit () IUnit, pLit () (IInt 3) ]
+  ]
+
+-- not exhaustive
+test25 :: [[Pattern ()]]
+test25 =
+  [ [ pLit () (IString "x") ]
+  , [ pLit () (IString "y") ]
+  ]
+
+-- exhaustive
+test26 :: [[Pattern ()]]
+test26 =
+  [ [ pLit () (IString "x") ]
+  , [ pLit () (IString "y") ]
+  , [ pAny () ]
+  ]
+
+--------------- Tuple patterns
+
+-- not exhaustive
+test27 :: [[Pattern ()]]
+test27 =
+  -- (1, 2)
+  [ [ pTup () [ pLit () (IInt 1), pLit () (IInt 2) ] ]
+  ]
+
+-- exhaustive
+test28 :: [[Pattern ()]]
+test28 =
+  -- (_, _)
+  [ [ pTup () [ pAny (), pAny () ] ]
+  ]
+
+-- exhaustive
+test29 :: [[Pattern ()]]
+test29 =
+  -- (1, 2)
+  -- (_, _)
+  [ [ pTup () [ pLit () (IInt 1), pLit () (IInt 2) ] ]
+  , [ pTup () [ pAny (), pAny () ] ]
+  ]
+
+
+
+
+
+
+
+
+
 
 main :: IO ()
 main = print ("X" :: String) -- print kTyp
