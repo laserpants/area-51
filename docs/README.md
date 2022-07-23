@@ -72,6 +72,11 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 ##### Algebraic data types
 
+| Type                  | Type rep. (Haskell expression)            | 
+| --------------------- | ----------------------------------------- | 
+| `List int`            | `TCon "List" [TInt]`                      | 
+| `Either Error float`  | `TCon "Either" [TCon "Error" [], TFloat]` | 
+
 #### Record and row types
 
 | Constructor   | Type                                    | Kind                 | Remarks             |
@@ -80,9 +85,9 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 | `RNil`        | The empty row                           | `row`                |                     |
 | `RExt`        | Row extension                           | `type → row → row`   |                     |
 
-A *row* is a structure whose purpose is to encode the type of a [record](#records). At the implementation level, it is a [Cons list](https://en.wikipedia.org/wiki/Cons)-like chain of labeled type-fields. Inductively defined, a row is either
+A *row* is a structure whose purpose is to encode the type of a [record](#records), implemented as a chain of labeled type-fields. Inductively defined, a row is either
 1. empty (`RNil`); or
-2. the extension (`RExt`) of an existing row, formed by consing (adding) an extra label-type pair on to it.
+2. the extension (`RExt`) of an existing row, formed by *consing* (adding) an extra label-type pair on to it.
 
 | Record                                | Type                               | Type rep. (Haskell expression)                       |
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
@@ -92,7 +97,7 @@ In the following, we use the notation $\wr \wr$ for the empty row, and $\wr \ l 
 
 ##### Row equality
 
-Since records are unordered, it is natural to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates *does* matter. For example, consider the following three types:
+Since records are unordered, but rows are list-like in nature, we end up with some ambiguity when determining the type of a record. In the previous example, we gave `TRec (RExt "name" TString (RExt "dog" TBool RNil))` as the type of the record `{ name = "Scooby Doo", dog = true }`, but `TRec (RExt "dog" TBool (RExt "name" TString RNil))` is just as valid. For this reason, it makes sense to think of rows as identical [up to](https://en.wikipedia.org/wiki/Up_to#:~:text=Equivalence%20relations%20are%20often%20used,%22ignoring%20the%20particular%20ordering%22.) permutation of distinct labels. In other words, two rows are essentially the same if we can get from one to the other through rearrangement of labels. The restriction on *distinct* labels is important, though. A label can appear multiple times in a record (see discussion [here](#records)), and the relative order of these duplicates *does* matter. For example, consider the following three types:
 
 Name     | Type
 -------- | ----
@@ -144,7 +149,13 @@ $$
   l_1 = l_2 = \cdots = l_{i_1} \ne l_{i_1+1} = \cdots = l_{i_2} \ne \cdots \ne l_{i_{(n - 1)}+1} = \cdots = l_{i_n}.
 $$
 
-We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$ and $\nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr$ where $\langle s_1, s_2, \dots, s_n \rangle$ are the groups $\langle g_i \rangle$ ordered alphabetically. One way to do this efficiently, in code, is to first convert the row to a hash map, and then transform the map back into a row again, this time with the keys ordered alphabetically.
+We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$. Define the sequence $\langle s_1, s_2, \dots, s_n \rangle$ as the groups $\langle g_i \rangle$ ordered alphabetically. Then;
+
+$$
+  \nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr
+$$ 
+
+One way to do this efficiently, in code, is to first convert the row into a hash map, and then transform this map back to a row again, this time with the keys ordered alphabetically.
 
 ##### Open rows
 
