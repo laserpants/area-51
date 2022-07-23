@@ -250,13 +250,13 @@ tString = embed TString
 tVoid :: Type v
 tVoid = embed TVoid
 
---{-# INLINE tTup #-}
---tTup :: Type v
---tTup = embed TTup
+-- {-# INLINE tTup #-}
+-- tTup :: Type v
+-- tTup = embed TTup
 --
---{-# INLINE tList #-}
---tList :: Type v
---tList = embed TList
+-- {-# INLINE tList #-}
+-- tList :: Type v
+-- tList = embed TList
 
 {-# INLINE tVar #-}
 tVar :: Kind -> v -> Type v
@@ -380,9 +380,9 @@ eOp1 = embed3 EOp1
 eOp2 :: t -> Op2 t -> Expr t -> Expr t -> Expr t
 eOp2 = embed4 EOp2
 
---{-# INLINE eTup #-}
---eTup :: t -> Expr t
---eTup = embed1 ETup
+-- {-# INLINE eTup #-}
+-- eTup :: t -> Expr t
+-- eTup = embed1 ETup
 
 {-# INLINE eList #-}
 eList :: t -> [Expr t] -> Expr t

@@ -31,9 +31,9 @@ data TypeF v a
   | TChar
   | TString
   | TVoid
---  | TTup
---  | TList
-  | TVar Kind v
+  | --  | TTup
+    --  | TList
+    TVar Kind v
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
