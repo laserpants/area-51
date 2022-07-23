@@ -31,9 +31,9 @@ data TypeF v a
   | TChar
   | TString
   | TVoid
-  | --  | TTup
-    --  | TList
-    TVar Kind v
+  | TTup [a] -- ??
+  | TList a -- ??
+  | TVar Kind v
   | TCon Kind Name
   | TApp Kind a a
   | TArr a a
@@ -87,6 +87,8 @@ data PatternF t a
   | PAny  t
   | PCon  t Name [a]
   | PTup  t [a]
+  | PList t [a]
+-- | PRec t a   -- ???
   | PNil  t
   | PExt  t Name a a
   | PAnn  t a
@@ -166,8 +168,9 @@ data ExprF t a
   | EFun  t [Clause t]
   | EOp1  t (Op1 t) a
   | EOp2  t (Op2 t) a a
---  | ETup  t
+  | ETup  t [a]
   | EList t [a]
+-- | ERec t a  -- ???
   | ENil  t
   | EExt  t Name a a
   | ESub  t
@@ -177,6 +180,10 @@ data ExprF t a
 {- ORMOLU_ENABLE -}
 
 type Expr t = Fix (ExprF t)
+
+-------------------------------------------------------------------------------
+
+type FieldSet a = Map Name [a]
 
 -------------------------------------------------------------------------------
 

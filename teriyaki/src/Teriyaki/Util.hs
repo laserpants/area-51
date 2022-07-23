@@ -2,11 +2,13 @@ module Teriyaki.Util
   ( module Data.Fix
   , module Data.Text
   , module Control.Arrow
+  , module Data.Map.Strict
   , module Data.Eq.Deriving
   , module Data.Functor.Foldable
   , module Data.Ord.Deriving
   , module Text.Show.Deriving
   , module Data.Tuple.Extra
+  , module Data.List.Extra
   , module Data.Void
   , module Data.Function
   , (<$$>)
@@ -28,10 +30,12 @@ import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
 import Data.Function ((&))
-import Data.Functor.Foldable (Base, Corecursive, cata, embed, project)
+import Data.Functor.Foldable (Base, Corecursive, cata, embed, para, project)
+import Data.List.Extra (singleton)
+import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Text (Text)
-import Data.Tuple.Extra (first, second)
+import Data.Tuple.Extra (both, first, second)
 import Data.Typeable (Typeable)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)

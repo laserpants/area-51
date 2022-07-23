@@ -5,17 +5,92 @@
 
 module Teriyaki.Lang where
 
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import Teriyaki.Data
 import Teriyaki.Util
 
 -------------------------------------------------------------------------------
 
-tupleCon :: Int -> Name
-tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
+fieldSet :: [(Name, a)] -> FieldSet a
+fieldSet = foldr (uncurry (Map.insertWith (<>))) mempty . (singleton <$$>)
 
-foldTuple :: t -> [Pattern t] -> Pattern t
-foldTuple t ps = pCon t (tupleCon (length ps)) ps
+-------------------------------------------------------------------------------
+
+class Row r where
+  rNil :: r
+  rExt :: Name -> r -> r -> r
+  rInit :: r -> [(Name, r)]
+  rLeaf :: r -> r
+
+instance Row (Type v) where
+  rNil = tNil
+  rExt = tExt
+  rInit =
+    para
+      ( \case
+          TExt n p q ->
+            (n, fst p) : snd q
+          _ ->
+            []
+      )
+  rLeaf =
+    cata
+      ( \case
+          TExt _ _ r ->
+            r
+          r ->
+            embed r
+      )
+
+instance (Row t) => Row (Expr t) where
+  rNil = eNil rNil
+  rExt n p q = eExt (rExt n (getTag p) (getTag q)) n p q
+  rInit =
+    para
+      ( \case
+          EExt _ n p q ->
+            (n, fst p) : snd q
+          _ ->
+            []
+      )
+  rLeaf =
+    cata
+      ( \case
+          EExt _ _ _ r ->
+            r
+          r ->
+            embed r
+      )
+
+instance (Row t) => Row (Pattern t) where
+  rNil = pNil rNil
+  rExt n p q = pExt (rExt n (getTag p) (getTag q)) n p q
+  rInit =
+    para
+      ( \case
+          PExt _ n p q ->
+            (n, fst p) : snd q
+          _ ->
+            []
+      )
+  rLeaf =
+    cata
+      ( \case
+          PExt _ _ _ r ->
+            r
+          r ->
+            embed r
+      )
+
+instance Row () where
+  rNil = ()
+  rExt _ _ _ = ()
+  rInit _ = []
+  rLeaf _ = ()
+
+unwindRow :: (Row r) => r -> (FieldSet r, r)
+unwindRow r = (fieldSet (rInit r), rLeaf r)
 
 -------------------------------------------------------------------------------
 
@@ -36,7 +111,7 @@ instance Tagged (Pattern t) t where
           PAny  t            -> t
           PCon  t _ _        -> t
           PTup  t _          -> t
---          PList t _          -> t
+          PList t _          -> t
           PNil  t            -> t
           PExt  t _ _ _      -> t
           PAnn  t _          -> t
@@ -52,7 +127,7 @@ instance Tagged (Pattern t) t where
           PAny  _            -> pAny  t
           PCon  _ a1 a2      -> pCon  t a1 a2
           PTup  _ a1         -> pTup  t a1
---          PList _ a1         -> pList t a1
+          PList _ a1         -> pList t a1
           PNil  _            -> pNil  t
           PExt  _ a1 a2 a3   -> pExt  t a1 a2 a3
           PAnn  _ a1         -> pAnn  t a1
@@ -158,6 +233,7 @@ instance Tagged (Expr t) t where
           EExt  t _ _ _      -> t
           ESub  t            -> t
           ECo   t _          -> t
+          _ -> error "TODO"
       )
 
   setTag t =
@@ -181,6 +257,7 @@ instance Tagged (Expr t) t where
           EExt  _ a1 a2 a3   -> eExt  t a1 a2 a3
           ESub  _            -> eSub  t
           ECo   _ a1         -> eCo   t a1
+          _ -> error "TODO"
       )
 
 
@@ -250,13 +327,13 @@ tString = embed TString
 tVoid :: Type v
 tVoid = embed TVoid
 
--- {-# INLINE tTup #-}
--- tTup :: Type v
--- tTup = embed TTup
---
--- {-# INLINE tList #-}
--- tList :: Type v
--- tList = embed TList
+{-# INLINE tTup #-}
+tTup :: [Type v] -> Type v
+tTup = embed1 TTup
+
+{-# INLINE tList #-}
+tList :: Type v -> Type v
+tList = embed1 TList
 
 {-# INLINE tVar #-}
 tVar :: Kind -> v -> Type v
@@ -320,6 +397,10 @@ pCon = embed3 PCon
 pTup :: t -> [Pattern t] -> Pattern t
 pTup = embed2 PTup
 
+{-# INLINE pList #-}
+pList :: t -> [Pattern t] -> Pattern t
+pList = embed2 PList
+
 {-# INLINE pNil #-}
 pNil :: t -> Pattern t
 pNil = embed1 PNil
@@ -380,9 +461,9 @@ eOp1 = embed3 EOp1
 eOp2 :: t -> Op2 t -> Expr t -> Expr t -> Expr t
 eOp2 = embed4 EOp2
 
--- {-# INLINE eTup #-}
--- eTup :: t -> Expr t
--- eTup = embed1 ETup
+{-# INLINE eTup #-}
+eTup :: t -> [Expr t] -> Expr t
+eTup = embed2 ETup
 
 {-# INLINE eList #-}
 eList :: t -> [Expr t] -> Expr t
@@ -407,3 +488,44 @@ eSub = embed1 ESub
 {-# INLINE eCo #-}
 eCo :: t -> Expr t -> Expr t
 eCo = embed2 ECo
+
+-------------------------------------------------------------------------------
+
+pListNil :: t -> Pattern t
+pListNil t = pCon t "[]" []
+
+pListCons :: t -> Pattern t -> Pattern t -> Pattern t
+pListCons t head_ tail_ = pCon t "(::)" [head_, tail_]
+
+tupleCon :: Int -> Name
+tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
+
+foldTuple :: t -> [Pattern t] -> Pattern t
+foldTuple t ps = pCon t (tupleCon (length ps)) ps
+
+foldList :: t -> [Pattern t] -> Pattern t
+foldList t = foldr (pListCons t) (pListNil t)
+
+foldRow :: (Row t) => Pattern t -> Pattern t
+foldRow a = Map.foldrWithKey (flip . foldr . go) leaf m
+  where
+    (m, r) = unwindRow a
+    leaf =
+      case project r of
+        PNil t -> pCon t "{}" []
+        _ -> r
+    go n p q =
+      pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]
+
+-- foldRow :: (Row t) => Pattern t -> Pattern t
+-- foldRow = pFlatten . unwindRow
+--
+-- pFlatten :: (Row t) => (FieldSet (Pattern t), Pattern t) -> Pattern t
+-- pFlatten (m, r) = Map.foldrWithKey (flip . foldr . go) leaf m
+--  where
+--    leaf =
+--      case project r of
+--        PNil t -> pCon t "{}" []
+--        _ -> r
+--    go n p q =
+--      pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]

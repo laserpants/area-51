@@ -71,15 +71,16 @@ isComplete names@(name : _) = do
   pure (lookupCon (defined <> builtIn) name == Set.fromList names)
 
 isTupleCon :: Name -> Bool
-isTupleCon con =
-  case Text.all (== ',') <$> stripped con of
-    Just b -> b
-    _ -> False
+isTupleCon con = Just True == (Text.all (== ',') <$> stripped con)
   where
-    stripped = Text.stripSuffix ")" <=< Text.stripPrefix "("
+    stripped = Text.stripPrefix "(" <=< Text.stripSuffix ")"
 
-isRowCon _ =
-  False -- TODO
+isRowCon :: Name -> Bool
+isRowCon con = ("{", "}") == fstLst
+  where
+    fstLst
+      | "" == con = ("", "")
+      | otherwise = both Text.singleton (Text.head con, Text.last con)
 
 lookupCon :: ConstructorEnv -> Name -> Set Name
 lookupCon constructors con
@@ -100,7 +101,7 @@ builtIn =
     , ("#Double" , ([], 1))
     , ("#Char"   , ([], 1))
     , ("#String" , ([], 1))
-    , ("#"       , (["#"], 1))
+--    , ("#"       , (["#"], 1))
     , ("[]"      , (["[]", "(::)"], 0))
     , ("(::)"    , (["[]", "(::)"], 2))
     ]
@@ -114,10 +115,12 @@ specialized name ts = (go =<<)
         PCon    _ con rs
           | con == name         -> [rs <> ps]
           | otherwise           -> []
-        PLit    t lit           -> go (pCon t (primCon lit) []:ps)
+        PLit    t lit           -> go (pCon t (primCon lit) [] : ps)
+        PList   t elms          -> go (foldList t elms : ps)
         PTup    t elms          -> go (foldTuple t elms : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
+        PAnn    _ q             -> go (q : ps)
         _                       -> [(pAny <$> ts) <> ps]
 
 defaultMatrix :: PatternMatrix t -> PatternMatrix t
@@ -129,12 +132,13 @@ defaultMatrix = (go =<<)
       case project p of
         PCon    {}              -> []
         PTup    {}              -> []
+        PList   {}              -> []
         PNil    {}              -> []
         PExt    {}              -> []
         PLit    {}              -> []
-        PAnn    _ q             -> go (q : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
+        PAnn    _ q             -> go (q : ps)
         _                       -> [ps]
 
 patternGroups :: Pattern t -> PatternGroup t
@@ -143,11 +147,12 @@ patternGroups =
     >>> \case
       PCon      _ con ps        -> ConGroup con ps
       PTup      t elms          -> patternGroups (foldTuple t elms)
-      -- TODO
+      PList     t elms          -> patternGroups (foldList t elms)
       -- PRecord
       PLit      t lit           -> patternGroups (pCon t (primCon lit) [])
       PAs       _ _ p           -> patternGroups p
       POr       _ p q           -> OrPattern p q
+      PAnn      _ p             -> patternGroups p
       _                         -> WildcardPattern
 
 headCons :: PatternMatrix t -> [(Name, [Pattern t])]
@@ -162,8 +167,10 @@ headCons = (>>= go)
         -- PRecord
         PLit    _ q             -> [(primCon q, [])]
         PTup    t elms          -> go (foldTuple t elms : ps)
+        PList   t elms          -> go (foldList t elms : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
+        PAnn    _ q             -> go (q : ps)
         _                       -> []
 
 primCon :: Prim -> Name
