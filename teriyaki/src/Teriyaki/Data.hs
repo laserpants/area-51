@@ -31,8 +31,8 @@ data TypeF v a
   | TChar
   | TString
   | TVoid
-  | TTup [a] -- ??
-  | TList a -- ??
+  | TTup [a]
+  | TList a
   | TVar Kind v
   | TCon Kind Name
   | TApp Kind a a
@@ -88,7 +88,7 @@ data PatternF t a
   | PCon  t Name [a]
   | PTup  t [a]
   | PList t [a]
--- | PRec t a   -- ???
+  | PRec  t a
   | PNil  t
   | PExt  t Name a a
   | PAnn  t a
@@ -170,7 +170,7 @@ data ExprF t a
   | EOp2  t (Op2 t) a a
   | ETup  t [a]
   | EList t [a]
--- | ERec t a  -- ???
+  | ERec  t a
   | ENil  t
   | EExt  t Name a a
   | ESub  t

@@ -21,7 +21,7 @@ class Row r where
   rNil :: r
   rExt :: Name -> r -> r -> r
   rInit :: r -> [(Name, r)]
-  rLeaf :: r -> r
+  rLast :: r -> r
 
 instance Row (Type v) where
   rNil = tNil
@@ -34,7 +34,7 @@ instance Row (Type v) where
           _ ->
             []
       )
-  rLeaf =
+  rLast =
     cata
       ( \case
           TExt _ _ r ->
@@ -54,7 +54,7 @@ instance (Row t) => Row (Expr t) where
           _ ->
             []
       )
-  rLeaf =
+  rLast =
     cata
       ( \case
           EExt _ _ _ r ->
@@ -74,7 +74,7 @@ instance (Row t) => Row (Pattern t) where
           _ ->
             []
       )
-  rLeaf =
+  rLast =
     cata
       ( \case
           PExt _ _ _ r ->
@@ -87,10 +87,10 @@ instance Row () where
   rNil = ()
   rExt _ _ _ = ()
   rInit _ = []
-  rLeaf _ = ()
+  rLast _ = ()
 
 unwindRow :: (Row r) => r -> (FieldSet r, r)
-unwindRow r = (fieldSet (rInit r), rLeaf r)
+unwindRow r = (fieldSet (rInit r), rLast r)
 
 -------------------------------------------------------------------------------
 
@@ -112,6 +112,7 @@ instance Tagged (Pattern t) t where
           PCon  t _ _        -> t
           PTup  t _          -> t
           PList t _          -> t
+          PRec  t _          -> t
           PNil  t            -> t
           PExt  t _ _ _      -> t
           PAnn  t _          -> t
@@ -128,6 +129,7 @@ instance Tagged (Pattern t) t where
           PCon  _ a1 a2      -> pCon  t a1 a2
           PTup  _ a1         -> pTup  t a1
           PList _ a1         -> pList t a1
+          PRec  _ a1         -> pRec  t a1
           PNil  _            -> pNil  t
           PExt  _ a1 a2 a3   -> pExt  t a1 a2 a3
           PAnn  _ a1         -> pAnn  t a1
@@ -227,13 +229,14 @@ instance Tagged (Expr t) t where
           EFun  t _          -> t
           EOp1  t _ _        -> t
           EOp2  t _ _ _      -> t
---          ETup  t            -> t
+          ETup  t _          -> t
           EList t _          -> t
+          ERec  t _          -> t
           ENil  t            -> t
           EExt  t _ _ _      -> t
           ESub  t            -> t
           ECo   t _          -> t
-          _ -> error "TODO"
+          EAnn  t _          -> t
       )
 
   setTag t =
@@ -251,13 +254,14 @@ instance Tagged (Expr t) t where
           EFun  _ a1         -> eFun  t a1
           EOp1  _ a1 a2      -> eOp1  t a1 a2
           EOp2  _ a1 a2 a3   -> eOp2  t a1 a2 a3
---          ETup  _            -> eTup  t
+          ETup  _ a1         -> eTup  t a1
           EList _ a1         -> eList t a1
+          ERec  _ a1         -> eRec  t a1
           ENil  _            -> eNil  t
           EExt  _ a1 a2 a3   -> eExt  t a1 a2 a3
           ESub  _            -> eSub  t
           ECo   _ a1         -> eCo   t a1
-          _ -> error "TODO"
+          EAnn  _ a1         -> eAnn  t a1
       )
 
 
@@ -401,6 +405,10 @@ pTup = embed2 PTup
 pList :: t -> [Pattern t] -> Pattern t
 pList = embed2 PList
 
+{-# INLINE pRec #-}
+pRec :: t -> Pattern t -> Pattern t
+pRec = embed2 PRec
+
 {-# INLINE pNil #-}
 pNil :: t -> Pattern t
 pNil = embed1 PNil
@@ -468,6 +476,10 @@ eTup = embed2 ETup
 {-# INLINE eList #-}
 eList :: t -> [Expr t] -> Expr t
 eList = embed2 EList
+
+{-# INLINE eRec #-}
+eRec :: t -> Expr t -> Expr t
+eRec = embed2 ERec
 
 {-# INLINE eNil #-}
 eNil :: t -> Expr t

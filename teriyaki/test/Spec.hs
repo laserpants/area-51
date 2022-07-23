@@ -256,9 +256,13 @@ runExchaustivePatternMatchTest msg b px =
   where
     prefix = if b then "✔" else "✗"
 
+{- ORMOLU_DISABLE -}
+
 testConstructorEnv :: ConstructorEnv
 testConstructorEnv =
   constructorEnv
-    [ ("[]", (["[]", "(::)"], 0))
-    , ("(::)", (["[]", "(::)"], 2))
+    [ ("[]"      , (["[]", "(::)"], 0))
+    , ("(::)"    , (["[]", "(::)"], 2))
     ]
+
+{- ORMOLU_ENABLE -}
