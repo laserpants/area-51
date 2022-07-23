@@ -14,99 +14,99 @@ main =
 testExhaustive :: SpecWith ()
 testExhaustive =
   describe "Exhaustive pattern match checking" $ do
-    runExchaustivePatternMatchTest
+    runTestExhaustive
       "No patterns"
       True -- exhaustive
       [ []
       ]
 
     describe "Literal patterns" $ do
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| True | False"
         True -- exhaustive
         [ [pLit () (IBool True)]
         , [pLit () (IBool False)]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| True"
         False -- not exhaustive
         [ [pLit () (IBool True)]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| True | _"
         True -- exhaustive
         [ [pLit () (IBool True)]
         , [pAny ()]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| ()"
         True -- exhaustive
         [ [pLit () IUnit]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| (), ()"
         True -- exhaustive
         [ [pLit () IUnit, pLit () IUnit]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| (), _"
         True -- exhaustive
         [ [pLit () IUnit, pAny ()]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| (), 3"
         False -- not exhaustive
         [ [pLit () IUnit, pLit () (IInt 3)]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| 5"
         False -- not exhaustive
         [ [pLit () (IInt 5)]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| 5 | 4"
         False -- not exhaustive
         [ [pLit () (IInt 5)]
         , [pLit () (IInt 4)]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| 5 | x"
         True -- exhaustive
         [ [pLit () (IInt 5)]
         , [pVar () "x"]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| 5, 5 | x, y"
         True -- exhaustive
         [ [pLit () (IInt 5), pLit () (IInt 5)]
         , [pVar () "x", pVar () "y"]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| 5, 5 | x, 0"
         False -- not exhaustive
         [ [pLit () (IInt 5), pLit () (IInt 5)]
         , [pVar () "x", pLit () (IInt 0)]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| \"x\" | \"y\""
         False -- not exhaustive
         [ [pLit () (IString "x")]
         , [pLit () (IString "y")]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| \"x\" | \"y\" | _"
         True -- exhaustive
         [ [pLit () (IString "x")]
@@ -115,20 +115,20 @@ testExhaustive =
         ]
 
     describe "List literals" $ do
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| [_, _, _]"
         False -- not exhaustive
         [ [pList () [pAny (), pAny (), pAny ()]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| [_, _, _] | []"
         False -- not exhaustive
         [ [pList () [pAny (), pAny (), pAny ()]]
         , [pList () []]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| [_, _, _] | _"
         True -- exhaustive
         [ [pList () [pAny (), pAny (), pAny ()]]
@@ -136,13 +136,13 @@ testExhaustive =
         ]
 
     describe "Constructed value patterns" $ do
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| _ :: _ :: _ :: []"
         False -- not exhaustive
         [ [pCon () "(::)" [pAny (), pCon () "(::)" [pAny (), pCon () "(::)" [pAny (), pCon () "[]" []]]]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| [] | x :: y :: ys | z :: zs"
         True -- exhaustive
         [ [pCon () "[]" []]
@@ -150,7 +150,7 @@ testExhaustive =
         , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: y :: ys | [] | z :: zs"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
@@ -158,14 +158,14 @@ testExhaustive =
         , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: y :: ys | z :: zs"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: y :: ys | z :: zs | _ :: _"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
@@ -173,7 +173,7 @@ testExhaustive =
         , [pCon () "(::)" [pAny (), pAny ()]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: y :: ys | z :: zs | _ :: _ | []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
@@ -182,7 +182,7 @@ testExhaustive =
         , [pCon () "[]" []]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: y :: ys | [] | z :: []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
@@ -190,40 +190,40 @@ testExhaustive =
         , [pCon () "(::)" [pVar () "z", pCon () "[]" []]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: y :: ys | []"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "[]" []]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| []"
         False -- not exhaustive
         [ [pCon () "[]" []]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| _"
         True -- exhaustive
         [ [pAny ()]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| [] | _"
         True -- exhaustive
         [ [pCon () "[]" []]
         , [pAny ()]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: ys | []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "ys"]]
         , [pCon () "[]" []]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| x :: ys | x"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "ys"]]
@@ -231,27 +231,27 @@ testExhaustive =
         ]
 
     describe "Tuple patterns" $ do
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| (1, 2)"
         False -- not exhaustive
         [ [pTup () [pLit () (IInt 1), pLit () (IInt 2)]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| (_, _)"
         True -- exhaustive
         [ [pTup () [pAny (), pAny ()]]
         ]
 
-      runExchaustivePatternMatchTest
+      runTestExhaustive
         "| (1, 2) | (_, _)"
         True -- exhaustive
         [ [pTup () [pLit () (IInt 1), pLit () (IInt 2)]]
         , [pTup () [pAny (), pAny ()]]
         ]
 
-runExchaustivePatternMatchTest :: String -> Bool -> PatternMatrix t -> SpecWith ()
-runExchaustivePatternMatchTest msg b px =
+runTestExhaustive :: String -> Bool -> PatternMatrix t -> SpecWith ()
+runTestExhaustive msg b px =
   it (prefix <> " " <> msg) $ b == runReader (exhaustive px) testConstructorEnv
   where
     prefix = if b then "✔" else "✗"
