@@ -17,7 +17,7 @@ testExhaustive =
     runTestExhaustive
       "No patterns"
       True -- exhaustive
-      [ []
+      [ [] :: [Pattern ()]
       ]
 
     describe "Literal patterns" $ do
@@ -250,7 +250,20 @@ testExhaustive =
         , [pTup () [pAny (), pAny ()]]
         ]
 
-runTestExhaustive :: String -> Bool -> PatternMatrix t -> SpecWith ()
+    describe "Record patterns" $ do
+      runTestExhaustive
+        "| { a = _ }"
+        True -- exhaustive
+        [ [pRec () (pExt () "a" (pAny ()) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { a = 5 }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "a" (pLit () (IInt 5)) (pNil ()))]
+        ]
+
+runTestExhaustive :: (Row t) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =
   it (prefix <> " " <> msg) $ b == runReader (exhaustive px) testConstructorEnv
   where

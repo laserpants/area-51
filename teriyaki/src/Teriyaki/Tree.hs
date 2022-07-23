@@ -25,14 +25,14 @@ constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 {- ORMOLU_DISABLE -}
 
-exhaustive :: (MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
+exhaustive :: (Row t, MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
 exhaustive []        = pure False
 exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
 
 {- ORMOLU_ENABLE -}
 
 useful ::
-  (MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
+  (Row t, MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
 useful px ps = stage3 (stage2 . stage1 <$$> px) (stage2 . stage1 <$> ps)
   where
     stage1 =
@@ -101,12 +101,12 @@ builtIn =
     , ("#Double" , ([], 1))
     , ("#Char"   , ([], 1))
     , ("#String" , ([], 1))
---    , ("#"       , (["#"], 1))
+    , ("#{*}"    , (["#{*}"], 1))
     , ("[]"      , (["[]", "(::)"], 0))
     , ("(::)"    , (["[]", "(::)"], 2))
     ]
 
-specialized :: Name -> [t] -> PatternMatrix t -> PatternMatrix t
+specialized :: (Row t) => Name -> [t] -> PatternMatrix t -> PatternMatrix t
 specialized name ts = (go =<<)
   where
     go [] = error "Implementation error"
@@ -118,59 +118,64 @@ specialized name ts = (go =<<)
         PLit    t lit           -> go (pCon t (primCon lit) [] : ps)
         PList   t elms          -> go (foldList t elms : ps)
         PTup    t elms          -> go (foldTuple t elms : ps)
-        PAs     _ _ q           -> go (q : ps)
+        PRec    t q             -> go (foldRecord (pRec t q) : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
+        PAs     _ _ q           -> go (q : ps)
         PAnn    _ q             -> go (q : ps)
+        PNil    {}              -> error "Implementation error"
+        PExt    {}              -> error "Implementation error"
         _                       -> [(pAny <$> ts) <> ps]
 
-defaultMatrix :: PatternMatrix t -> PatternMatrix t
+defaultMatrix :: (Row t) => PatternMatrix t -> PatternMatrix t
 defaultMatrix = (go =<<)
   where
-    go :: [Pattern t] -> PatternMatrix t
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
         PCon    {}              -> []
         PTup    {}              -> []
         PList   {}              -> []
-        PNil    {}              -> []
-        PExt    {}              -> []
         PLit    {}              -> []
-        PAs     _ _ q           -> go (q : ps)
+        PNil    {}              -> error "Implementation error"
+        PExt    {}              -> error "Implementation error"
+        PRec    t q             -> go (foldRecord (pRec t q) : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
+        PAs     _ _ q           -> go (q : ps)
         PAnn    _ q             -> go (q : ps)
         _                       -> [ps]
 
-patternGroups :: Pattern t -> PatternGroup t
+patternGroups :: (Row t) => Pattern t -> PatternGroup t
 patternGroups =
   project
     >>> \case
       PCon      _ con ps        -> ConGroup con ps
       PTup      t elms          -> patternGroups (foldTuple t elms)
       PList     t elms          -> patternGroups (foldList t elms)
-      -- PRecord
       PLit      t lit           -> patternGroups (pCon t (primCon lit) [])
+      PRec      t p             -> patternGroups (foldRecord (pRec t p))
+      PAnn      _ p             -> patternGroups p
       PAs       _ _ p           -> patternGroups p
       POr       _ p q           -> OrPattern p q
-      PAnn      _ p             -> patternGroups p
+      PNil      {}              -> error "Implementation error"
+      PExt      {}              -> error "Implementation error"
       _                         -> WildcardPattern
 
-headCons :: PatternMatrix t -> [(Name, [Pattern t])]
+headCons :: (Row t) => PatternMatrix t -> [(Name, [Pattern t])]
 headCons = (>>= go)
   where
-    go :: [Pattern t] -> [(Name, [Pattern t])]
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
         PCon    _ name rs       -> [(name, rs)]
-        -- TODO
-        -- PRecord
         PLit    _ q             -> [(primCon q, [])]
         PTup    t elms          -> go (foldTuple t elms : ps)
         PList   t elms          -> go (foldList t elms : ps)
-        PAs     _ _ q           -> go (q : ps)
+        PRec    t q             -> go (foldRecord (pRec t q) : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
+        PAs     _ _ q           -> go (q : ps)
         PAnn    _ q             -> go (q : ps)
+        PNil    {}              -> error "Implementation error"
+        PExt    {}              -> error "Implementation error"
         _                       -> []
 
 primCon :: Prim -> Name

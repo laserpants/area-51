@@ -529,15 +529,9 @@ foldRow a = Map.foldrWithKey (flip . foldr . go) leaf m
     go n p q =
       pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]
 
--- foldRow :: (Row t) => Pattern t -> Pattern t
--- foldRow = pFlatten . unwindRow
---
--- pFlatten :: (Row t) => (FieldSet (Pattern t), Pattern t) -> Pattern t
--- pFlatten (m, r) = Map.foldrWithKey (flip . foldr . go) leaf m
---  where
---    leaf =
---      case project r of
---        PNil t -> pCon t "{}" []
---        _ -> r
---    go n p q =
---      pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]
+foldRecord :: (Row t) => Pattern t -> Pattern t
+foldRecord =
+  project
+    >>> \case
+      PRec t p -> pCon t "#{*}" [foldRow p]
+      _ -> error "Implementation error"
