@@ -5,8 +5,17 @@
 
 module Teriyaki.Lang where
 
+import qualified Data.Text as Text
 import Teriyaki.Data
 import Teriyaki.Util
+
+-------------------------------------------------------------------------------
+
+tupleCon :: Int -> Name
+tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
+
+foldTuple :: t -> [Pattern t] -> Pattern t
+foldTuple t ps = pCon t (tupleCon (length ps)) ps
 
 -------------------------------------------------------------------------------
 
@@ -27,7 +36,7 @@ instance Tagged (Pattern t) t where
           PAny  t            -> t
           PCon  t _ _        -> t
           PTup  t _          -> t
-          PList t _          -> t
+--          PList t _          -> t
           PNil  t            -> t
           PExt  t _ _ _      -> t
           PAnn  t _          -> t
@@ -43,7 +52,7 @@ instance Tagged (Pattern t) t where
           PAny  _            -> pAny  t
           PCon  _ a1 a2      -> pCon  t a1 a2
           PTup  _ a1         -> pTup  t a1
-          PList _ a1         -> pList t a1
+--          PList _ a1         -> pList t a1
           PNil  _            -> pNil  t
           PExt  _ a1 a2 a3   -> pExt  t a1 a2 a3
           PAnn  _ a1         -> pAnn  t a1
@@ -143,13 +152,12 @@ instance Tagged (Expr t) t where
           EFun  t _          -> t
           EOp1  t _ _        -> t
           EOp2  t _ _ _      -> t
-          ETup  t            -> t
-          EList t            -> t
+--          ETup  t            -> t
+          EList t _          -> t
           ENil  t            -> t
           EExt  t _ _ _      -> t
           ESub  t            -> t
           ECo   t _          -> t
-          _ -> error "TODO"
       )
 
   setTag t =
@@ -167,13 +175,12 @@ instance Tagged (Expr t) t where
           EFun  _ a1         -> eFun  t a1
           EOp1  _ a1 a2      -> eOp1  t a1 a2
           EOp2  _ a1 a2 a3   -> eOp2  t a1 a2 a3
-          ETup  _            -> eTup  t
-          EList _            -> eList t
+--          ETup  _            -> eTup  t
+          EList _ a1         -> eList t a1
           ENil  _            -> eNil  t
           EExt  _ a1 a2 a3   -> eExt  t a1 a2 a3
           ESub  _            -> eSub  t
           ECo   _ a1         -> eCo   t a1
-          _ -> error "TODO"
       )
 
 
@@ -243,13 +250,13 @@ tString = embed TString
 tVoid :: Type v
 tVoid = embed TVoid
 
-{-# INLINE tTup #-}
-tTup :: Type v
-tTup = embed TTup
-
-{-# INLINE tList #-}
-tList :: Type v
-tList = embed TList
+--{-# INLINE tTup #-}
+--tTup :: Type v
+--tTup = embed TTup
+--
+--{-# INLINE tList #-}
+--tList :: Type v
+--tList = embed TList
 
 {-# INLINE tVar #-}
 tVar :: Kind -> v -> Type v
@@ -313,10 +320,6 @@ pCon = embed3 PCon
 pTup :: t -> [Pattern t] -> Pattern t
 pTup = embed2 PTup
 
-{-# INLINE pList #-}
-pList :: t -> [Pattern t] -> Pattern t
-pList = embed2 PList
-
 {-# INLINE pNil #-}
 pNil :: t -> Pattern t
 pNil = embed1 PNil
@@ -377,13 +380,13 @@ eOp1 = embed3 EOp1
 eOp2 :: t -> Op2 t -> Expr t -> Expr t -> Expr t
 eOp2 = embed4 EOp2
 
-{-# INLINE eTup #-}
-eTup :: t -> Expr t
-eTup = embed1 ETup
+--{-# INLINE eTup #-}
+--eTup :: t -> Expr t
+--eTup = embed1 ETup
 
 {-# INLINE eList #-}
-eList :: t -> Expr t
-eList = embed1 EList
+eList :: t -> [Expr t] -> Expr t
+eList = embed2 EList
 
 {-# INLINE eNil #-}
 eNil :: t -> Expr t

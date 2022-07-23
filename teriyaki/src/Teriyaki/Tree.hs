@@ -8,6 +8,7 @@ import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
 import Data.Set.Monad (Set)
 import qualified Data.Set.Monad as Set
+import qualified Data.Text as Text
 import Teriyaki.Data
 import Teriyaki.Lang
 import Teriyaki.Util
@@ -24,7 +25,7 @@ constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 {- ORMOLU_DISABLE -}
 
-exhaustive :: (MonadReader ConstructorEnv m) => [[Pattern t]] -> m Bool
+exhaustive :: (MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
 exhaustive []        = pure False
 exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
 
@@ -67,22 +68,42 @@ isComplete :: (MonadReader ConstructorEnv m) => [Name] -> m Bool
 isComplete [] = pure False
 isComplete names@(name : _) = do
   defined <- ask
-  pure (lookupCon (defined `Env.union` builtIn) name == Set.fromList names)
+  pure (lookupCon (defined <> builtIn) name == Set.fromList names)
 
--- TODO: use (<>) ???
+isTupleCon :: Name -> Bool
+isTupleCon con =
+  case Text.all (== ',') <$> stripped con of
+    Just b -> b
+    _ -> False
+  where
+    stripped = Text.stripSuffix ")" <=< Text.stripPrefix "("
+
+isRowCon _ =
+  False -- TODO
 
 lookupCon :: ConstructorEnv -> Name -> Set Name
-lookupCon constructors con =
-  -- \| isTupleCon con || isRowCon con = Set.singleton con
-  -- \| otherwise = maybe mempty fst (Env.lookup con constructors)
-  maybe mempty fst (Env.lookup con constructors)
+lookupCon constructors con
+  | isTupleCon con || isRowCon con = Set.singleton con
+  | otherwise = maybe mempty fst (Env.lookup con constructors)
+
+{- ORMOLU_DISABLE -}
 
 builtIn :: ConstructorEnv
 builtIn =
   constructorEnv
-    []
-
-{- ORMOLU_DISABLE -}
+    [ ("#True"   , (["#True", "#False"], 0))
+    , ("#False"  , (["#True", "#False"], 0))
+    , ("#()"     , (["#()"], 0))
+    , ("#Int"    , ([], 1))
+    , ("#Big"    , ([], 1))
+    , ("#Float"  , ([], 1))
+    , ("#Double" , ([], 1))
+    , ("#Char"   , ([], 1))
+    , ("#String" , ([], 1))
+    , ("#"       , (["#"], 1))
+    , ("[]"      , (["[]", "(::)"], 0))
+    , ("(::)"    , (["[]", "(::)"], 2))
+    ]
 
 specialized :: Name -> [t] -> PatternMatrix t -> PatternMatrix t
 specialized name ts = (go =<<)
@@ -93,7 +114,8 @@ specialized name ts = (go =<<)
         PCon    _ con rs
           | con == name         -> [rs <> ps]
           | otherwise           -> []
-        --        PLit -> undefined
+        PLit    t lit           -> go (pCon t (primCon lit) []:ps)
+        PTup    t elms          -> go (foldTuple t elms : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
         _                       -> [(pAny <$> ts) <> ps]
@@ -105,12 +127,11 @@ defaultMatrix = (go =<<)
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
-        PCon{}                  -> []
-        PTup{}                  -> []
-        PList{}                 -> []
-        PNil{}                  -> []
-        PExt{}                  -> []
-        PLit{}                  -> []
+        PCon    {}              -> []
+        PTup    {}              -> []
+        PNil    {}              -> []
+        PExt    {}              -> []
+        PLit    {}              -> []
         PAnn    _ q             -> go (q : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
@@ -121,11 +142,10 @@ patternGroups =
   project
     >>> \case
       PCon      _ con ps        -> ConGroup con ps
+      PTup      t elms          -> patternGroups (foldTuple t elms)
       -- TODO
-      -- PTup
-      -- PList
       -- PRecord
-      -- PLit
+      PLit      t lit           -> patternGroups (pCon t (primCon lit) [])
       PAs       _ _ p           -> patternGroups p
       POr       _ p q           -> OrPattern p q
       _                         -> WildcardPattern
@@ -137,15 +157,25 @@ headCons = (>>= go)
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
-        -- PLit    _ r       -> [(prim r, [])]
         PCon    _ name rs       -> [(name, rs)]
         -- TODO
-        -- PTup
-        -- PList
         -- PRecord
-        -- PLit
+        PLit    _ q             -> [(primCon q, [])]
+        PTup    t elms          -> go (foldTuple t elms : ps)
         PAs     _ _ q           -> go (q : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
         _                       -> []
+
+primCon :: Prim -> Name
+primCon (IBool True)    = "#True"
+primCon (IBool False)   = "#False"
+primCon IUnit           = "#()"
+primCon IInt{}          = "#Int"
+primCon IBig{}          = "#Big"
+primCon INat{}          = "#Nat"
+primCon IFloat{}        = "#Float"
+primCon IDouble{}       = "#Double"
+primCon IChar{}         = "#Char"
+primCon IString{}       = "#String"
 
 {- ORMOLU_ENABLE -}

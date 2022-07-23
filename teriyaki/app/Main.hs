@@ -65,34 +65,36 @@ test4 =
 -- not exhaustive
 test5 :: [[Pattern ()]]
 test5 =
-  -- x :: (y :: ys)
+  -- x :: y :: ys
+  -- z :: zs
   [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
-  , -- z :: zs
-    [pCon () "(::)" [pVar () "z", pVar () "zs"]]
+  , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
   ]
 
 -- not exhaustive
 test6 :: [[Pattern ()]]
 test6 =
-  -- x :: (y :: ys)
+  -- x :: y :: ys
+  -- z :: zs
+  -- _ :: _
+  --
   [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
-  , -- z :: zs
-    [pCon () "(::)" [pVar () "z", pVar () "zs"]]
-  , -- _ :: _
-    [pCon () "(::)" [pAny (), pAny ()]]
+  , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
+  , [pCon () "(::)" [pAny (), pAny ()]]
   ]
 
 -- exhaustive
 test7 :: [[Pattern ()]]
 test7 =
-  -- x :: (y :: ys)
+  -- x :: y :: ys
+  -- z :: zs
+  -- _ :: _
+  -- []
+  --
   [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
-  , -- z :: zs
-    [pCon () "(::)" [pVar () "z", pVar () "zs"]]
-  , -- _ :: _
-    [pCon () "(::)" [pAny (), pAny ()]]
-  , -- []
-    [pCon () "[]" []]
+  , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
+  , [pCon () "(::)" [pAny (), pAny ()]]
+  , [pCon () "[]" []]
   ]
 
 -- exhaustive
