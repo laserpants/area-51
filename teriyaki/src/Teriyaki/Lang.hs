@@ -277,6 +277,41 @@ instance Tagged (Expr t) t where
 
 -------------------------------------------------------------------------------
 
+pListNil :: t -> Pattern t
+pListNil t = pCon t "[]" []
+
+pListCons :: t -> Pattern t -> Pattern t -> Pattern t
+pListCons t head_ tail_ = pCon t "(::)" [head_, tail_]
+
+tupleCon :: Int -> Name
+tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
+
+foldTuple :: t -> [Pattern t] -> Pattern t
+foldTuple t ps = pCon t (tupleCon (length ps)) ps
+
+foldList :: t -> [Pattern t] -> Pattern t
+foldList t = foldr (pListCons t) (pListNil t)
+
+foldRow :: (Row t) => Pattern t -> Pattern t
+foldRow a = Map.foldrWithKey (flip . foldr . go) leaf m
+  where
+    (m, r) = unwindRow a
+    leaf =
+      case project r of
+        PNil t -> pCon t "{}" []
+        _ -> r
+    go n p q =
+      pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]
+
+foldRecord :: (Row t) => Pattern t -> Pattern t
+foldRecord =
+  project
+    >>> \case
+      PRec t p -> pCon t "#{*}" [foldRow p]
+      _ -> error "Implementation error"
+
+-------------------------------------------------------------------------------
+
 {-# INLINE kTyp #-}
 kTyp :: Kind
 kTyp = embed KTyp
@@ -500,38 +535,3 @@ eSub = embed1 ESub
 {-# INLINE eCo #-}
 eCo :: t -> Expr t -> Expr t
 eCo = embed2 ECo
-
--------------------------------------------------------------------------------
-
-pListNil :: t -> Pattern t
-pListNil t = pCon t "[]" []
-
-pListCons :: t -> Pattern t -> Pattern t -> Pattern t
-pListCons t head_ tail_ = pCon t "(::)" [head_, tail_]
-
-tupleCon :: Int -> Name
-tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
-
-foldTuple :: t -> [Pattern t] -> Pattern t
-foldTuple t ps = pCon t (tupleCon (length ps)) ps
-
-foldList :: t -> [Pattern t] -> Pattern t
-foldList t = foldr (pListCons t) (pListNil t)
-
-foldRow :: (Row t) => Pattern t -> Pattern t
-foldRow a = Map.foldrWithKey (flip . foldr . go) leaf m
-  where
-    (m, r) = unwindRow a
-    leaf =
-      case project r of
-        PNil t -> pCon t "{}" []
-        _ -> r
-    go n p q =
-      pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]
-
-foldRecord :: (Row t) => Pattern t -> Pattern t
-foldRecord =
-  project
-    >>> \case
-      PRec t p -> pCon t "#{*}" [foldRow p]
-      _ -> error "Implementation error"
