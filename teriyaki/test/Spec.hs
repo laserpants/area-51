@@ -167,6 +167,29 @@ testExhaustive =
         , [pList () []]
         ]
 
+      runTestExhaustive
+        "| [] | [x] | [x, y] | x :: y :: ys"
+        True -- exhaustive
+        [ [pList () []]
+        , [pList () [pVar () "x"]]
+        , [pList () [pVar () "x", pVar () "y"]]
+        , [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
+        ]
+
+    describe "Or-patterns" $ do
+
+      runTestExhaustive
+        "| False"
+        False -- not exhaustive
+        [ [pLit () (IBool False)]
+        ]
+
+      runTestExhaustive
+        "| False or True"
+        True -- exhaustive
+        [ [pOr () (pLit () (IBool False)) (pLit () (IBool True))]
+        ]
+
     describe "Constructed value patterns" $ do
       runTestExhaustive
         "| _ :: _ :: _ :: []"
