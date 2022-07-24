@@ -94,14 +94,20 @@ unwindRow r = (fieldSet (rInit r), rLast r)
 
 -------------------------------------------------------------------------------
 
-class Tuple a where
-  tup :: [a] -> a
+class Tuple t a | t -> a where
+  tup :: a -> [t] -> t
 
-instance Tuple () where
-  tup _ = ()
+instance Tuple () () where
+  tup _ _ = ()
 
-instance Tuple (Type v) where
-  tup = tTup
+instance Tuple (Type v) () where
+  tup _ = tTup
+
+instance Tuple (Expr t) t where
+  tup = eTup
+
+instance Tuple (Pattern t) t where
+  tup = pTup
 
 -------------------------------------------------------------------------------
 

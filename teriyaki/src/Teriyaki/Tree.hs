@@ -25,13 +25,17 @@ constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 {- ORMOLU_DISABLE -}
 
-exhaustive :: (Row t, Tuple t, MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
+exhaustive :: (Row t, Tuple t (), MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
 exhaustive []        = pure False
 exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
 
 {- ORMOLU_ENABLE -}
 
-useful :: (Row t, Tuple t, MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
+useful ::
+  (Row t, Tuple t (), MonadReader ConstructorEnv m) =>
+  PatternMatrix t ->
+  [Pattern t] ->
+  m Bool
 useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
   where
     go [] _ = pure True -- Zero rows (0x0 matrix)
@@ -60,14 +64,15 @@ useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
     go _ _ =
       error "Implementation error"
 
-preprocessRecords :: (Row t, Tuple t) => Pattern t -> Pattern t
+-- Translate records to tuples for better performance
+preprocessRecords :: (Row t, Tuple t ()) => Pattern t -> Pattern t
 preprocessRecords =
   cata $
     \case
       PRec _ a ->
         foldr2
           ( \d e ->
-              pTup (tup [getTag d, getTag e]) [d, e]
+              pTup (tup () [getTag d, getTag e]) [d, e]
           )
           leaf
           m
@@ -76,9 +81,9 @@ preprocessRecords =
           leaf =
             case project r of
               PNil _ ->
-                pLit (tup []) IUnit
+                pLit (tup () []) IUnit
               PCon _ "{}" [] ->
-                pLit (tup []) IUnit
+                pLit (tup () []) IUnit
               _ -> r
       p ->
         embed p

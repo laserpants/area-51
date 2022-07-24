@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 import Control.Monad.Reader
@@ -739,7 +740,7 @@ testExhaustive =
         , [pCon () "(::)" [pAny (), pCon () "(::)" [pAny (), pAny ()]]]
         ]
 
-runTestExhaustive :: (Row t, Tuple t) => String -> Bool -> PatternMatrix t -> SpecWith ()
+runTestExhaustive :: (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =
   it (prefix <> " " <> msg) $ b == runReader (exhaustive px) testConstructorEnv
   where
