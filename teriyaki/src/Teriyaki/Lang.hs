@@ -101,7 +101,7 @@ instance Tuple () () where
   tup _ _ = ()
 
 instance Tuple (Type v) () where
-  tup _ = tTup
+  tup = const tTup
 
 instance Tuple (Expr t) t where
   tup = eTup

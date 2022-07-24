@@ -25,9 +25,12 @@ constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 {- ORMOLU_DISABLE -}
 
-exhaustive :: (Row t, Tuple t (), MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
-exhaustive []        = pure False
-exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
+exhaustive ::
+  (Row t, Tuple t (), MonadReader ConstructorEnv m) =>
+  PatternMatrix t ->
+  m Bool
+exhaustive []          = pure False
+exhaustive px@(ps : _) = not <$> useful px (pAny . getTag <$> ps)
 
 {- ORMOLU_ENABLE -}
 
