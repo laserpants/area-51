@@ -33,36 +33,31 @@ exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
 
 useful ::
   (Row t, MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
-useful px ps = stage3 (stage2 . stage1 <$$> px) (stage2 . stage1 <$> ps)
-  where
-    stage1 =
-      id -- TODO
-    stage2 =
-      id -- TODO
-    stage3 [] _ = pure True -- Zero rows (0x0 matrix)
-    stage3 (p : _) qs
-      | null p = pure False -- One or more rows but no columns
-      | null qs = error "Implementation error"
-    stage3 qx (q : qs) =
-      case patternGroups q of
-        ConGroup con rs ->
-          let special = specialized con (getTag <$> rs)
-           in stage3 (special qx) (head (special [q : qs]))
-        WildcardPattern -> do
-          let cs = headCons qx
-          complete <- isComplete (fst <$> cs)
-          if complete
-            then
-              cs
-                & anyM
-                  ( \(con, rs) -> do
-                      let special = specialized con (getTag <$> rs)
-                       in stage3 (special qx) (head (special [q : qs]))
-                  )
-            else stage3 (defaultMatrix qx) qs
-        OrPattern p r ->
-          stage3 qx (p : qs) ||^ stage3 qx (r : qs)
-    stage3 _ _ = error "Implementation error"
+useful [] _ = pure True -- Zero rows (0x0 matrix)
+useful (p : _) qs
+  | null p = pure False -- One or more rows but no columns
+  | null qs = error "Implementation error"
+useful qx (q : qs) =
+  case patternGroups q of
+    ConGroup con rs ->
+      let special = specialized con (getTag <$> rs)
+       in useful (special qx) (head (special [q : qs]))
+    WildcardPattern -> do
+      let cs = headCons qx
+      complete <- isComplete (fst <$> cs)
+      if complete
+        then
+          cs
+            & anyM
+              ( \(con, rs) -> do
+                  let special = specialized con (getTag <$> rs)
+                   in useful (special qx) (head (special [q : qs]))
+              )
+        else useful (defaultMatrix qx) qs
+    OrPattern p r ->
+      useful qx (p : qs) ||^ useful qx (r : qs)
+useful _ _ =
+  error "Implementation error"
 
 isComplete :: (MonadReader ConstructorEnv m) => [Name] -> m Bool
 isComplete [] = pure False

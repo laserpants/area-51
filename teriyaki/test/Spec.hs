@@ -189,6 +189,49 @@ testExhaustive =
         [ [pOr () (pLit () (IBool False)) (pLit () (IBool True))]
         ]
 
+      runTestExhaustive
+        "| [] or (_ :: _)"
+        True -- exhaustive
+        [ [pOr () (pList () []) (pCon () "(::)" [pAny (), pAny ()])]
+        ]
+
+      runTestExhaustive
+        "| (_ :: _) or []"
+        True -- exhaustive
+        [ [pOr () (pCon () "(::)" [pAny (), pAny ()]) (pCon () "[]" [])]
+        ]
+
+    -- TODO: add more cases
+
+    describe "As-patterns" $ do
+      runTestExhaustive
+        "| (x :: ys) as xs | []"
+        True -- exhaustive
+        [ [pAs () "xs" (pCon () "(::)" [pVar () "x", pVar () "ys"])]
+        , [pList () []]
+        ]
+
+      runTestExhaustive
+        "| (x :: ys) as xs"
+        False -- not exhaustive
+        [ [pAs () "xs" (pCon () "(::)" [pVar () "x", pVar () "ys"])]
+        ]
+
+      runTestExhaustive
+        "| True"
+        True -- exhaustive
+        [ [pAs () "foo" (pAny ())]
+        ]
+
+      runTestExhaustive
+        "| [] | [x] as xs | [x, y] as xs | (x :: y :: ys) as xs"
+        True -- exhaustive
+        [ [pList () []]
+        , [pAs () "xs" (pList () [pVar () "x"])]
+        , [pAs () "xs" (pList () [pVar () "x", pVar () "y"])]
+        , [pAs () "xs" (pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]])]
+        ]
+
     describe "Constructed value patterns" $ do
       runTestExhaustive
         "| _ :: _ :: _ :: []"
@@ -397,6 +440,36 @@ testExhaustive =
         [ [pTup () [pVar () "x", pTup () [pVar () "y", pVar () "z"]]]
         ]
 
+      runTestExhaustive
+        "| (false, false) | (false, true) | (true, false) | (true, true)"
+        True -- exhaustive
+        [ [pTup () [pLit () (IBool False), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool False), pLit () (IBool True)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool True)]]
+        ]
+
+      runTestExhaustive
+        "| (false, false) | (false, true) | (true, false)"
+        False -- not exhaustive
+        [ [pTup () [pLit () (IBool False), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool False), pLit () (IBool True)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool False)]]
+        ]
+
+      runTestExhaustive
+        "| (false, false, false) | (false, false, true) | (false, true, false) | (false, true, true) | (true, false, false) | (true, false, true) | (true, true, false) | (true, true, true)"
+        True -- exhaustive
+        [ [pTup () [pLit () (IBool False),pLit () (IBool False), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool False),pLit () (IBool False), pLit () (IBool True)]]
+        , [pTup () [pLit () (IBool False), pLit () (IBool True), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool False), pLit () (IBool True), pLit () (IBool True)]]
+        , [pTup () [pLit () (IBool True),pLit () (IBool False), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool True),pLit () (IBool False), pLit () (IBool True)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool True), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool True), pLit () (IBool True)]]
+        ]
+
     describe "Record patterns" $ do
       runTestExhaustive
         "| { a = _ }"
@@ -408,6 +481,252 @@ testExhaustive =
         "| { a = 5 }"
         False -- not exhaustive
         [ [pRec () (pExt () "a" (pLit () (IInt 5)) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { x = 3, y = 4 } | { x = 6, y = 7 }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pLit () (IInt 4)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pLit () (IInt 7)) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = x }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pVar () "x") (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { x = x }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pVar () "x") (pCon () "{}" []))]
+        ]
+
+      runTestExhaustive
+        "| { x = true }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IBool True)) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { x = 3, y = 4 } | { x = 6, y = 7 } | { x = _, y = 7 } | { x = x, y = _ }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pLit () (IInt 4)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pLit () (IInt 7)) (pNil ())))]
+        , [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pLit () (IInt 7)) (pNil ())))]
+        , [pRec () (pExt () "x" (pVar () "x") (pExt () "y" (pAny ()) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = _ }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pAny ()) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { x = _, y = a }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pVar () "a") (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | { x = x, y = { a = _ } }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 5)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pVar () "x") (pExt () "y" (pRec () (pExt () "a" (pAny ()) (pNil ()))) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | { x = x, y = _ }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 5)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pVar () "x") (pExt () "y" (pAny ()) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | { x = x | q }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 5)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pVar () "x") (pVar () "q"))]
+        ]
+
+      runTestExhaustive
+        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | z"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
+        , [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 5)) (pNil ()))) (pNil ())))]
+        , [pVar () "z"]
+        ]
+
+      runTestExhaustive
+        "| { x = false, y = false | {} } | { x = false, y = true | {} } | { x = true, y = false | {} } | { x = true, y = true | {} }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool True)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pLit () (IBool True)) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = false, y = false | {} } | { x = true, y = false }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = false, y = false | {} } | { x = true, y = _ }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pAny ()) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = _, y = false | {} } | { x = true, y = _ }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pAny ()) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| {}"
+        True -- exhaustive
+        [ [pRec () (pNil ())]
+        ]
+
+      -- ---------------------------------------
+      -- Extremely slow:
+      -- ---------------------------------------
+      runTestExhaustive
+        "| { x = false, y = { z = false, a = false } } | { x = false, y = { z = false, a = true } } | { x = false, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } } | { x = true, y = { z = false, a = false } } | { x = true, y = { z = false, a = true } } | { x = true, y = { z = true , a = false } } | { x = true, y = { z = true , a = true } }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = x | r }"
+        True -- exhaustive
+        [ [pRec () (pExt () "x" (pVar () "x") (pVar () "r"))]
+        ]
+
+      runTestExhaustive
+        "| { x = 'a' | r }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IChar 'a')) (pVar () "r"))]
+        ]
+
+      runTestExhaustive
+        "| { x = 'a' or 'b' | r }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r"))]
+        ]
+
+    describe "Combined patterns" $ do
+      runTestExhaustive
+        "| (1 or 2) as x"
+        False -- not exhaustive
+        [ [pAs () "x" (pOr () (pLit () (IInt 1)) (pLit () (IInt 2)))]
+        ]
+
+      runTestExhaustive
+        "| (1 or 2) as x | _ as foo"
+        True -- exhaustive
+        [ [pAs () "x" (pOr () (pLit () (IInt 1)) (pLit () (IInt 2)))]
+        , [pAs () "foo" (pAny ())]
+        ]
+
+      runTestExhaustive
+        "| ({}, {})"
+        True -- exhaustive
+        [ [pTup () [pRec () (pNil ()), pRec () (pNil ())]]
+        ]
+
+      runTestExhaustive
+        "| { a = ({}, {}) }"
+        True -- exhaustive
+        [ [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pRec () (pNil ())]) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { a = ({}, true) }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool True)]) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { a = ({}, true) } | { a = ({}, false) }"
+        True -- exhaustive
+        [ [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool True)]) (pNil ()))]
+        , [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool False)]) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { a = ({}, true) } | { a = _ }"
+        True -- exhaustive
+        [ [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool True)]) (pNil ()))]
+        , [pRec () (pExt () "a" (pAny ()) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { a = x :: xs } | { a = [] }"
+        True -- exhaustive
+        [ [pRec () (pExt () "a" (pCon () "(::)" [pVar () "x", pVar () "xs"]) (pNil ()))]
+        , [pRec () (pExt () "a" (pCon () "[]" []) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| { a = x :: xs } | { a = x :: _ }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "a" (pCon () "(::)" [pVar () "x", pVar () "xs"]) (pNil ()))]
+        , [pRec () (pExt () "a" (pCon () "(::)" [pVar () "x", pAny ()]) (pNil ()))]
+        ]
+
+      runTestExhaustive
+        "| ({ x = 'a' or 'b' | r }, { x = 'a' or 'b' | r })"
+        False -- not exhaustive
+        [ [pTup () [pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r")), pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r"))]]
+        ]
+
+      runTestExhaustive
+        "| ({ x = 'a' or 'b' | r }, { x = 'a' or 'b' | r }) | (_, _)"
+        True -- exhaustive
+        [ [pTup () [pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r")), pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r"))]]
+        , [pTup () [pAny (), pAny ()]]
+        ]
+
+      runTestExhaustive
+        "| [()]"
+        False -- not exhaustive
+        [ [pList () [pLit () IUnit]]
+        ]
+
+      runTestExhaustive
+        "| [()] | []"
+        False -- not exhaustive
+        [ [pList () [pLit () IUnit]]
+        , [pList () []]
+        ]
+
+      runTestExhaustive
+        "| [()] | [] | _ :: _ :: _"
+        True -- exhaustive
+        [ [pList () [pLit () IUnit]]
+        , [pList () []]
+        , [pCon () "(::)" [pAny (), pCon () "(::)" [pAny (), pAny ()]]]
         ]
 
 runTestExhaustive :: (Row t) => String -> Bool -> PatternMatrix t -> SpecWith ()
