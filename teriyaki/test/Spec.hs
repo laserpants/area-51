@@ -460,12 +460,12 @@ testExhaustive =
       runTestExhaustive
         "| (false, false, false) | (false, false, true) | (false, true, false) | (false, true, true) | (true, false, false) | (true, false, true) | (true, true, false) | (true, true, true)"
         True -- exhaustive
-        [ [pTup () [pLit () (IBool False),pLit () (IBool False), pLit () (IBool False)]]
-        , [pTup () [pLit () (IBool False),pLit () (IBool False), pLit () (IBool True)]]
+        [ [pTup () [pLit () (IBool False), pLit () (IBool False), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool False), pLit () (IBool False), pLit () (IBool True)]]
         , [pTup () [pLit () (IBool False), pLit () (IBool True), pLit () (IBool False)]]
         , [pTup () [pLit () (IBool False), pLit () (IBool True), pLit () (IBool True)]]
-        , [pTup () [pLit () (IBool True),pLit () (IBool False), pLit () (IBool False)]]
-        , [pTup () [pLit () (IBool True),pLit () (IBool False), pLit () (IBool True)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool False), pLit () (IBool False)]]
+        , [pTup () [pLit () (IBool True), pLit () (IBool False), pLit () (IBool True)]]
         , [pTup () [pLit () (IBool True), pLit () (IBool True), pLit () (IBool False)]]
         , [pTup () [pLit () (IBool True), pLit () (IBool True), pLit () (IBool True)]]
         ]
