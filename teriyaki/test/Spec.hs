@@ -601,9 +601,6 @@ testExhaustive =
         [ [pRec () (pNil ())]
         ]
 
-      -- ---------------------------------------
-      -- Extremely slow:
-      -- ---------------------------------------
       runTestExhaustive
         "| { x = false, y = { z = false, a = false } } | { x = false, y = { z = false, a = true } } | { x = false, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } } | { x = true, y = { z = false, a = false } } | { x = true, y = { z = false, a = true } } | { x = true, y = { z = true , a = false } } | { x = true, y = { z = true , a = true } }"
         True -- exhaustive
@@ -615,6 +612,19 @@ testExhaustive =
         , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        ]
+
+      runTestExhaustive
+        "| { x = false, y = { z = false, a = false } } | { x = false, y = { z = false, a = true } } | { x = false, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } } | { x = true, y = { z = false, a = false } } | { x = true, y = { z = false, a = true } } | { x = true, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } }"
+        False -- not exhaustive
+        [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
+        , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool True)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
         ]
 
       runTestExhaustive
