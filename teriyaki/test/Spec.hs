@@ -177,7 +177,6 @@ testExhaustive =
         ]
 
     describe "Or-patterns" $ do
-
       runTestExhaustive
         "| False"
         False -- not exhaustive
