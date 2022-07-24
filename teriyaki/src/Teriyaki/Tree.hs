@@ -25,13 +25,13 @@ constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 {- ORMOLU_DISABLE -}
 
-exhaustive :: (Row t, MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
+exhaustive :: (Row t, Tuple t, MonadReader ConstructorEnv m) => PatternMatrix t -> m Bool
 exhaustive []        = pure False
 exhaustive px@(ps:_) = not <$> useful px (pAny . getTag <$> ps)
 
 {- ORMOLU_ENABLE -}
 
-useful :: (Row t, MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
+useful :: (Row t, Tuple t, MonadReader ConstructorEnv m) => PatternMatrix t -> [Pattern t] -> m Bool
 useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
   where
     go [] _ = pure True -- Zero rows (0x0 matrix)
@@ -60,24 +60,28 @@ useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
     go _ _ =
       error "Implementation error"
 
-preprocessRecords :: (Row t) => Pattern t -> Pattern t
+preprocessRecords :: (Row t, Tuple t) => Pattern t -> Pattern t
 preprocessRecords =
   cata $
     \case
-      PRec u a ->
-        -- Note: The type inserted here is incorrect. It is, however, never
-        -- used by the algorithm. Typically, this is going to be the unit value.
-        foldr (flip (foldr (\d e -> pTup u [d, e]))) leaf m
+      PRec _ a ->
+        foldr2
+          ( \d e ->
+              pTup (tup [getTag d, getTag e]) [d, e]
+          )
+          leaf
+          m
         where
           (m, r) = unwindRow a
           leaf =
             case project r of
-              PNil t ->
-                pLit t IUnit
-              PCon t "{}" [] ->
-                pLit t IUnit
+              PNil _ ->
+                pLit (tup []) IUnit
+              PCon _ "{}" [] ->
+                pLit (tup []) IUnit
               _ -> r
-      p -> embed p
+      p ->
+        embed p
 
 isComplete :: (MonadReader ConstructorEnv m) => [Name] -> m Bool
 isComplete [] = pure False

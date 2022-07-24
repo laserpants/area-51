@@ -22,6 +22,7 @@ module Teriyaki.Util
   , embed3
   , embed4
   , embed5
+  , foldr2
   )
 where
 
@@ -86,3 +87,6 @@ embed5 ::
   t5 ->
   t
 embed5 t a b c d e = embed (t a b c d e)
+
+foldr2 :: (Foldable f, Foldable g) => (a -> b -> b) -> b -> f (g a) -> b
+foldr2 = foldr . flip . foldr

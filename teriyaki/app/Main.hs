@@ -270,9 +270,18 @@ testConstructorEnv =
 --  ]
 
 -- { name = n, id = a }
-
 test1x :: Pattern (Type Int)
-test1x = pExt (tExt "name" tString (tExt "id" tInt tNil)) "name" (pVar tString "n") (pExt (tExt "id" tInt tNil) "id" (pVar tInt "a") (pNil tNil))
+test1x =
+  pExt
+    (tExt "name" tString (tExt "id" tInt tNil))
+    "name"
+    (pVar tString "n")
+    ( pExt
+        (tExt "id" tInt tNil)
+        "id"
+        (pVar tInt "a")
+        (pNil tNil)
+    )
 
 test2x :: Pattern (Type Int)
 test2x = pCon (tExt "id" tInt (tExt "name" tString tNil)) "{id}" [pVar tInt "a", pCon (tExt "name" tString tNil) "{name}" [pVar tString "n", pCon tNil "{}" []]]
@@ -280,6 +289,8 @@ test2x = pCon (tExt "id" tInt (tExt "name" tString tNil)) "{id}" [pVar tInt "a",
 test3x = rExt "baz" (eLit tInt (IInt 5)) rNil
 
 test4x = rExt "foo" (eLit tInt (IInt 4)) test3x
+
+test5x = pRec tInt test1x
 
 main :: IO ()
 main = print ("X" :: String) -- print kTyp

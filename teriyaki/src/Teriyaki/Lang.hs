@@ -94,6 +94,17 @@ unwindRow r = (fieldSet (rInit r), rLast r)
 
 -------------------------------------------------------------------------------
 
+class Tuple a where
+  tup :: [a] -> a
+
+instance Tuple () where
+  tup _ = ()
+
+instance Tuple (Type v) where
+  tup = tTup
+
+-------------------------------------------------------------------------------
+
 class Tagged t a | t -> a where
   getTag :: t -> a
   setTag :: a -> t -> t
