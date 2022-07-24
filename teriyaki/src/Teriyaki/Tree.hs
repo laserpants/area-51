@@ -66,7 +66,7 @@ preprocessRecords =
     \case
       PRec u a ->
         -- Note: The type inserted here is incorrect. It is, however, never
-        -- used by the algorithm. Typically, it is going to be the unit value.
+        -- used by the algorithm. Typically, this is going to be the unit value.
         foldr (flip (foldr (\d e -> pTup u [d, e]))) leaf m
         where
           (m, r) = unwindRow a
