@@ -264,7 +264,6 @@ instance Tagged (Expr t) t where
           EAnn  _ a1         -> eAnn  t a1
       )
 
-
 {- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
@@ -301,7 +300,8 @@ foldRow a = Map.foldrWithKey (flip . foldr . go) leaf m
         PNil t -> pCon t "{}" []
         _ -> r
     go n p q =
-      pCon (rExt n (getTag p) (getTag q)) ("{" <> n <> "}") [p, q]
+      let t = rExt n (getTag p) (getTag q)
+       in pCon t ("{" <> n <> "}") [p, q]
 
 foldRecord :: (Row t) => Pattern t -> Pattern t
 foldRecord =

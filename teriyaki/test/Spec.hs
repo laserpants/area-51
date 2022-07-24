@@ -135,6 +135,38 @@ testExhaustive =
         , [pAny ()]
         ]
 
+      runTestExhaustive
+        "| [1, 2]"
+        False -- not exhaustive
+        [ [pList () [pLit () (IInt 1), pLit () (IInt 2)]]
+        ]
+
+      runTestExhaustive
+        "| [x, 2]"
+        False -- not exhaustive
+        [ [pList () [pVar () "x", pLit () (IInt 2)]]
+        ]
+
+      runTestExhaustive
+        "| [x, 2] | _"
+        True -- exhaustive
+        [ [pList () [pVar () "x", pLit () (IInt 2)]]
+        , [pAny ()]
+        ]
+
+      runTestExhaustive
+        "| [x, y]"
+        False -- not exhaustive
+        [ [pList () [pVar () "x", pVar () "y"]]
+        ]
+
+      runTestExhaustive
+        "| x :: ys | []"
+        True -- exhaustive
+        [ [pCon () "(::)" [pVar () "x", pVar () "ys"]]
+        , [pList () []]
+        ]
+
     describe "Constructed value patterns" $ do
       runTestExhaustive
         "| _ :: _ :: _ :: []"
@@ -230,6 +262,29 @@ testExhaustive =
         , [pVar () "x"]
         ]
 
+      runTestExhaustive
+        "| x :: ys, 2 | [], _"
+        False -- not exhaustive
+        [ [pCon () "(::)" [pVar () "x", pVar () "ys", pLit () (IInt 2)]]
+        , [pCon () "[]" [], pAny ()]
+        ]
+
+      runTestExhaustive
+        "| x :: xs, true | x :: xs, false | [], _"
+        True -- exhaustive
+        [ [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]
+        , [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool False)]
+        , [pCon () "[]" [], pAny ()]
+        ]
+
+      runTestExhaustive
+        "| x :: xs, true | 3 :: xs, false | [], _"
+        False -- not exhaustive
+        [ [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]
+        , [pCon () "(::)" [pLit () (IInt 3), pVar () "xs"], pLit () (IBool False)]
+        , [pCon () "[]" [], pAny ()]
+        ]
+
     describe "Tuple patterns" $ do
       runTestExhaustive
         "| (1, 2)"
@@ -248,6 +303,76 @@ testExhaustive =
         True -- exhaustive
         [ [pTup () [pLit () (IInt 1), pLit () (IInt 2)]]
         , [pTup () [pAny (), pAny ()]]
+        ]
+
+      runTestExhaustive
+        "| ((), ())"
+        True -- exhaustive
+        [ [pTup () [pLit () IUnit, pLit () IUnit]]
+        ]
+
+      runTestExhaustive
+        "| ((), _)"
+        True -- exhaustive
+        [ [pTup () [pLit () IUnit, pAny ()]]
+        ]
+
+      runTestExhaustive
+        "| ((), 3)"
+        False -- not exhaustive
+        [ [pTup () [pLit () IUnit, pLit () (IInt 3)]]
+        ]
+
+      runTestExhaustive
+        "| (5, 5) | (x, y)"
+        True -- exhaustive
+        [ [pTup () [pLit () (IInt 5), pLit () (IInt 5)]]
+        , [pTup () [pVar () "x", pVar () "y"]]
+        ]
+
+      runTestExhaustive
+        "| (5, 5) | (x, 0)"
+        False -- not exhaustive
+        [ [pTup () [pLit () (IInt 5), pLit () (IInt 5)]]
+        , [pTup () [pVar () "x", pLit () (IInt 0)]]
+        ]
+
+      runTestExhaustive
+        "| (x :: ys, 2) | ([], _)"
+        False -- not exhaustive
+        [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "ys", pLit () (IInt 2)]]]
+        , [pTup () [pCon () "[]" [], pAny ()]]
+        ]
+
+      runTestExhaustive
+        "| (x :: xs, true) | (x :: xs, false) | ([], _)"
+        True -- exhaustive
+        [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]]
+        , [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool False)]]
+        , [pTup () [pCon () "[]" [], pAny ()]]
+        ]
+
+      runTestExhaustive
+        "| (x :: xs, true) | (3 :: xs, false) | ([], _)"
+        False -- not exhaustive
+        [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]]
+        , [pTup () [pCon () "(::)" [pLit () (IInt 3), pVar () "xs"], pLit () (IBool False)]]
+        , [pTup () [pCon () "[]" [], pAny ()]]
+        ]
+
+      runTestExhaustive
+        "| (x :: xs, true) | (3 :: xs, false) | ([], _) | _"
+        True -- exhaustive
+        [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]]
+        , [pTup () [pCon () "(::)" [pLit () (IInt 3), pVar () "xs"], pLit () (IBool False)]]
+        , [pTup () [pCon () "[]" [], pAny ()]]
+        , [pAny ()]
+        ]
+
+      runTestExhaustive
+        "| (x, (y, z))"
+        True -- exhaustive
+        [ [pTup () [pVar () "x", pTup () [pVar () "y", pVar () "z"]]]
         ]
 
     describe "Record patterns" $ do
