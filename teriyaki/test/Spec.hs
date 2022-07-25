@@ -23,7 +23,16 @@ testTApps =
     let ctor, ty :: Type Int
         ctor = tCon kFun2 "C2"
         ty = tApps ctor [tInt, tBool]
-     in it "C2 int bool ( C2 : * -> * -> * )" (tApp kTyp (tApp kFun1 ctor tInt) tBool == ty)
+     in it
+          "C2 int bool ( C2 : * -> * -> * )"
+          (tApp kTyp (tApp kFun1 ctor tInt) tBool == ty)
+
+    let ctor, ty :: Type Int
+        ctor = tCon kFun1 "List"
+        ty = tApps ctor [tInt]
+     in it
+          "List int ( List : * -> * )"
+          (tApp kTyp ctor tInt == ty)
 
 testTupleCon :: SpecWith ()
 testTupleCon = do
