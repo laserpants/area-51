@@ -8,6 +8,7 @@
 module Teriyaki.Data where
 
 import Teriyaki.Util
+import Teriyaki.Util.Env (Environment)
 
 -------------------------------------------------------------------------------
 
@@ -199,6 +200,11 @@ data PatternGroup t
   | WildcardPattern
 
 type PatternMatrix t = [[Pattern t]]
+
+-------------------------------------------------------------------------------
+
+type ConstructorEnv =
+  Environment (Set Name, Int)
 
 -------------------------------------------------------------------------------
 

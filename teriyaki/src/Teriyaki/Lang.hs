@@ -2,13 +2,16 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Teriyaki.Lang where
 
 import qualified Data.Map.Strict as Map
+import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
 import Teriyaki.Data
 import Teriyaki.Util
+import qualified Teriyaki.Util.Env as Env
 
 -------------------------------------------------------------------------------
 
@@ -89,8 +92,8 @@ instance Row () where
   rInit _ = []
   rLast _ = ()
 
-unwindRow :: (Row r) => r -> (FieldSet r, r)
-unwindRow r = (fieldSet (rInit r), rLast r)
+unpackRow :: (Row r) => r -> (FieldSet r, r)
+unpackRow r = (fieldSet (rInit r), rLast r)
 
 -------------------------------------------------------------------------------
 
@@ -101,12 +104,7 @@ instance Tuple () () where
   tup _ _ = ()
 
 instance Tuple (Type v) () where
-  tup () ts = foldl go (tCon (kFun n) (tupleCon n)) ts
-    where
-      n = length ts
-      go t =
-        let _ `KArr` k = project (kindOf t)
-         in tApp k t
+  tup () ts = tApps (tCon (kFun n) (tupleCon n)) ts where n = length ts
 
 instance Tuple (Expr t) t where
   tup = eTup
@@ -116,26 +114,17 @@ instance Tuple (Pattern t) t where
 
 -------------------------------------------------------------------------------
 
--- class Con a t | a -> t where
---  con :: t -> Name -> [a] -> a
---
--- instance Con (Type v) Kind where
---  con k n as = undefined
---  -- TODO
---
--- instance Con (Expr (Type v)) (Type v) where
---  con t n as = eApp t (eCon u n) as
---    where
---      u = foldr (\x y -> tApp kTyp (typeOf x) y) t as
-----    where
-----      n = length as
-----      go e =
-----        let _ `TArr` t = project (typeOf t)
-----         in tApp k t
---
---
--- instance Con (Pattern t) t where
---  con = pCon
+class Con a t | a -> t where
+  con :: t -> Name -> [a] -> a
+
+instance Con (Type v) Kind where
+  con k n ts = tApps (tCon (foldr kArr k (kindOf <$> ts)) n) ts
+
+instance Con (Expr (Type v)) (Type v) where
+  con t n as = eApp t (eCon (foldr (tArr . getTag) t as) n) as
+
+instance Con (Pattern t) t where
+  con = pCon
 
 -------------------------------------------------------------------------------
 
@@ -327,39 +316,86 @@ kindOf =
 
 -------------------------------------------------------------------------------
 
-pListNil :: t -> Pattern t
-pListNil t = pCon t "[]" []
+class Typed t v where
+  typeOf :: t -> Type v
 
-pListCons :: t -> Pattern t -> Pattern t -> Pattern t
-pListCons t head_ tail_ = pCon t "(::)" [head_, tail_]
+{- ORMOLU_DISABLE -}
+
+instance Typed (Type v) v where
+  typeOf =
+    cata
+      ( \case
+          TUnit        -> tUnit
+          TBool        -> tBool
+          TInt         -> tInt
+          TBig         -> tBig
+          TNat         -> tNat
+          TFloat       -> tFloat
+          TDouble      -> tDouble
+          TChar        -> tChar
+          TString      -> tString
+          TVoid        -> tVoid
+          TList t      -> tList t
+          TVar k v     -> tVar k v
+          TCon k n     -> tCon k n
+          TApp k t1 t2 -> tApp k t1 t2
+          TArr t1 t2   -> tArr t1 t2
+          TRec r       -> tRec r
+          TNil         -> tNil
+          TExt n a1 a2 -> tExt n a1 a2
+      )
+
+{- ORMOLU_ENABLE -}
+
+instance (Tagged a t, Typed t v) => Typed a v where
+  typeOf = typeOf . getTag
+
+-------------------------------------------------------------------------------
+
+tApps :: Type v -> [Type v] -> Type v
+tApps = foldl go
+  where
+    go t =
+      let _ `KArr` k = project (kindOf t)
+       in tApp k t
 
 tupleCon :: Int -> Name
 tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
 
-foldTuple :: t -> [Pattern t] -> Pattern t
-foldTuple t ps = pCon t (tupleCon (length ps)) ps
+listNil :: (Con a t) => t -> a
+listNil t = con t "[]" []
 
-foldList :: t -> [Pattern t] -> Pattern t
-foldList t = foldr (pListCons t) (pListNil t)
+listCons :: (Con a t) => t -> a -> a -> a
+listCons t head_ tail_ = con t "(::)" [head_, tail_]
 
-foldRow :: (Row t) => Pattern t -> Pattern t
-foldRow a = Map.foldrWithKey (flip . foldr . go) leaf m
+foldTuple :: (Con a t) => t -> [a] -> a
+foldTuple t ps = con t (tupleCon (length ps)) ps
+
+foldList :: (Con a t) => t -> [a] -> a
+foldList t = foldr (listCons t) (listNil t)
+
+foldRow :: (Con a t, Tagged a t, Row a, Row t, Eq a) => a -> a
+foldRow a = Map.foldrWithKey (flip . foldr . go) last_ m
   where
-    (m, r) = unwindRow a
-    leaf =
-      case project r of
-        PNil t -> pCon t "{}" []
-        _ -> r
+    (m, r) = unpackRow a
+    last_
+      | r == rNil = con rNil "{}" []
+      | otherwise = r
     go n p q =
       let t = rExt n (getTag p) (getTag q)
-       in pCon t ("{" <> n <> "}") [p, q]
+       in con t ("{" <> n <> "}") [p, q]
 
-foldRecord :: (Row t) => Pattern t -> Pattern t
+foldRecord :: (Row t, Eq t) => Pattern t -> Pattern t
 foldRecord =
   project
     >>> \case
       PRec t p -> pCon t "#{*}" [foldRow p]
       _ -> error "Implementation error"
+
+-------------------------------------------------------------------------------
+
+constructorEnv :: [(Name, ([Name], Int))] -> ConstructorEnv
+constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 -------------------------------------------------------------------------------
 
@@ -380,6 +416,14 @@ infixr 1 `kArr`
 {-# INLINE kFun #-}
 kFun :: Int -> Kind
 kFun n = foldr1 kArr (replicate (succ n) kTyp)
+
+{-# INLINE kFun1 #-}
+kFun1 :: Kind
+kFun1 = kFun 1
+
+{-# INLINE kFun2 #-}
+kFun2 :: Kind
+kFun2 = kFun 2
 
 {-# INLINE tUnit #-}
 tUnit :: Type v

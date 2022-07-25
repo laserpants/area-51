@@ -3,6 +3,7 @@ module Teriyaki.Util
   , module Data.Text
   , module Control.Arrow
   , module Data.Map.Strict
+  , module Data.Set.Monad
   , module Data.Eq.Deriving
   , module Data.Functor.Foldable
   , module Data.Ord.Deriving
@@ -35,6 +36,7 @@ import Data.Functor.Foldable (Base, Corecursive, cata, embed, para, project)
 import Data.List.Extra (singleton)
 import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
+import Data.Set.Monad (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (both, first, second)
 import Data.Typeable (Typeable)
@@ -88,5 +90,6 @@ embed5 ::
   t
 embed5 t a b c d e = embed (t a b c d e)
 
+{-# INLINE foldr2 #-}
 foldr2 :: (Foldable f, Foldable g) => (a -> b -> b) -> b -> f (g a) -> b
 foldr2 = foldr . flip . foldr

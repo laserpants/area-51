@@ -10,8 +10,67 @@ import Test.Hspec
 main :: IO ()
 main =
   hspec $ do
+    testTApps
+    testTupleCon
     testExhaustive
     testPreprocessRecords
+    testGenericRowOperations
+    testTApps
+
+testTApps :: SpecWith ()
+testTApps =
+  describe "tApps" $ do
+    let ctor, ty :: Type Int
+        ctor = tCon kFun2 "C2"
+        ty = tApps ctor [tInt, tBool]
+     in it "C2 int bool ( C2 : * -> * -> * )" (tApp kTyp (tApp kFun1 ctor tInt) tBool == ty)
+
+testTupleCon :: SpecWith ()
+testTupleCon = do
+  describe "tupleCon" $ do
+    it "()" (tupleCon 1 == "()")
+    it "(,)" (tupleCon 2 == "(,)")
+    it "(,,)" (tupleCon 3 == "(,,)")
+    it "(,,,)" (tupleCon 4 == "(,,,)")
+
+testGenericRowOperations :: SpecWith ()
+testGenericRowOperations = do
+  describe "Row" $ do
+    let expr :: Expr ()
+        expr = rExt "a" (eVar () "x") rNil
+     in it
+          "{ a = x }"
+          (expr == eExt () "a" (eVar () "x") (eNil ()))
+
+    let pat :: Pattern ()
+        pat = rExt "a" (pVar () "x") rNil
+     in it
+          "{ a = x }"
+          (pat == pExt () "a" (pVar () "x") (pNil ()))
+
+    let ty :: Type Int
+        ty = rExt "a" tInt rNil
+     in it
+          "{ a : int }"
+          (ty == tExt "a" tInt tNil)
+    ---------------------------------------------------------------------------
+    let expr :: Expr ()
+        expr = rExt "a" (eVar () "x") (eVar () "y")
+     in it
+          "{ a = x | y }"
+          (expr == eExt () "a" (eVar () "x") (eVar () "y"))
+
+    let pat :: Pattern ()
+        pat = rExt "a" (pVar () "x") (pVar () "y")
+     in it
+          "{ a = x | y }"
+          (pat == pExt () "a" (pVar () "x") (pVar () "y"))
+
+    let ty :: Type Int
+        ty = tExt "a" tInt (tVar kTyp 0)
+     in it
+          "{ a : int | '0 }"
+          (ty == tExt "a" tInt (tVar kTyp 0))
 
 testPreprocessRecords :: SpecWith ()
 testPreprocessRecords =
@@ -235,7 +294,24 @@ testExhaustive =
         [ [pOr () (pCon () "(::)" [pAny (), pAny ()]) (pCon () "[]" [])]
         ]
 
-    -- TODO: add more cases
+      runTestExhaustive
+        "| 1 or 2"
+        False -- not exhaustive
+        [ [pOr () (pLit () (IInt 1)) (pLit () (IInt 1))]
+        ]
+
+      runTestExhaustive
+        "| [_] or []"
+        False -- not exhaustive
+        [ [pOr () (pList () [pAny ()]) (pCon () "[]" [])]
+        ]
+
+      runTestExhaustive
+        "| [_] or [] | _ :: _"
+        True -- exhaustive
+        [ [pOr () (pList () [pAny ()]) (pCon () "[]" [])]
+        , [pCon () "(::)" [pAny (), pAny ()]]
+        ]
 
     describe "As-patterns" $ do
       runTestExhaustive
@@ -773,9 +849,10 @@ testExhaustive =
         , [pCon () "(::)" [pAny (), pCon () "(::)" [pAny (), pAny ()]]]
         ]
 
-runTestExhaustive :: (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
+runTestExhaustive ::
+  (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =
-  it (prefix <> " " <> msg) $ b == runReader (exhaustive px) testConstructorEnv
+  it (prefix <> " " <> msg) (b == runReader (exhaustive px) testConstructorEnv)
   where
     prefix = if b then "✔" else "✗"
 

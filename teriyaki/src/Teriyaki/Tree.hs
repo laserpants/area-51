@@ -6,20 +6,12 @@ module Teriyaki.Tree where
 
 import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
-import Data.Set.Monad (Set)
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
 import Teriyaki.Data
 import Teriyaki.Lang
 import Teriyaki.Util
-import Teriyaki.Util.Env (Environment)
 import qualified Teriyaki.Util.Env as Env
-
-type ConstructorEnv =
-  Environment (Set Name, Int)
-
-constructorEnv :: [(Name, ([Name], Int))] -> ConstructorEnv
-constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 -------------------------------------------------------------------------------
 
@@ -47,8 +39,8 @@ useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
       | null qs = error "Implementation error"
     go qx (q : qs) =
       case patternGroups q of
-        ConGroup con rs ->
-          let special = specialized con (getTag <$> rs)
+        ConGroup ctor rs ->
+          let special = specialized ctor (getTag <$> rs)
            in go (special qx) (head (special [q : qs]))
         WildcardPattern -> do
           let cs = headCons qx
@@ -57,8 +49,8 @@ useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
             then
               cs
                 & anyM
-                  ( \(con, rs) -> do
-                      let special = specialized con (getTag <$> rs)
+                  ( \(ctor, rs) -> do
+                      let special = specialized ctor (getTag <$> rs)
                        in go (special qx) (head (special [q : qs]))
                   )
             else go (defaultMatrix qx) qs
@@ -80,7 +72,7 @@ preprocessRecords =
           leaf
           m
         where
-          (m, r) = unwindRow a
+          (m, r) = unpackRow a
           leaf =
             case project r of
               PNil _ ->
@@ -98,14 +90,14 @@ isComplete names@(name : _) = do
   pure (lookupCon (defined <> builtIn) name == Set.fromList names)
 
 isTupleCon :: Name -> Bool
-isTupleCon con = Just True == (Text.all (== ',') <$> stripped con)
+isTupleCon ctor = Just True == (Text.all (== ',') <$> stripped ctor)
   where
     stripped = Text.stripPrefix "(" <=< Text.stripSuffix ")"
 
 lookupCon :: ConstructorEnv -> Name -> Set Name
-lookupCon constructors con
-  | isTupleCon con = Set.singleton con
-  | otherwise = maybe mempty fst (Env.lookup con constructors)
+lookupCon constructors ctor
+  | isTupleCon ctor = Set.singleton ctor
+  | otherwise = maybe mempty fst (Env.lookup ctor constructors)
 
 {- ORMOLU_DISABLE -}
 
@@ -131,8 +123,8 @@ specialized name ts = (go =<<)
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
-        PCon    _ con rs
-          | con == name         -> [rs <> ps]
+        PCon    _ ctor rs
+          | ctor == name        -> [rs <> ps]
           | otherwise           -> []
         PLit    t lit           -> go (pCon t (primCon lit) [] : ps)
         PList   t elms          -> go (foldList t elms : ps)
@@ -168,7 +160,7 @@ patternGroups :: (Row t) => Pattern t -> PatternGroup t
 patternGroups =
   project
     >>> \case
-      PCon      _ con ps        -> ConGroup con ps
+      PCon      _ ctor ps       -> ConGroup ctor ps
       PTup      t elms          -> patternGroups (foldTuple t elms)
       PList     t elms          -> patternGroups (foldList t elms)
       PLit      t lit           -> patternGroups (pCon t (primCon lit) [])
@@ -183,6 +175,7 @@ patternGroups =
 headCons :: (Row t) => PatternMatrix t -> [(Name, [Pattern t])]
 headCons = (>>= go)
   where
+    go :: (Row t) => [Pattern t] -> [(Name, [Pattern t])]
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
