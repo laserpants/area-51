@@ -116,14 +116,14 @@ instance Tuple (Pattern t) t where
 
 -------------------------------------------------------------------------------
 
---class Con a t | a -> t where
+-- class Con a t | a -> t where
 --  con :: t -> Name -> [a] -> a
 --
---instance Con (Type v) Kind where
+-- instance Con (Type v) Kind where
 --  con k n as = undefined
 --  -- TODO
 --
---instance Con (Expr (Type v)) (Type v) where
+-- instance Con (Expr (Type v)) (Type v) where
 --  con t n as = eApp t (eCon u n) as
 --    where
 --      u = foldr (\x y -> tApp kTyp (typeOf x) y) t as
@@ -134,7 +134,7 @@ instance Tuple (Pattern t) t where
 ----         in tApp k t
 --
 --
---instance Con (Pattern t) t where
+-- instance Con (Pattern t) t where
 --  con = pCon
 
 -------------------------------------------------------------------------------

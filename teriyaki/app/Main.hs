@@ -292,7 +292,7 @@ test4x = rExt "foo" (eLit tInt (IInt 4)) test3x
 
 test5x = pRec tInt test1x
 
---test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
+-- test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
 
 main :: IO ()
 main = print ("X" :: String) -- print kTyp
