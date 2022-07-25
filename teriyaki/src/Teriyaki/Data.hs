@@ -121,11 +121,7 @@ data Op1 t
   = ONot t
   | ONeg t
 
-{- ORMOLU_ENABLE -}
-
 -------------------------------------------------------------------------------
-
-{- ORMOLU_DISABLE -}
 
 data Op2 t
   = OEq   t
@@ -149,11 +145,7 @@ data Op2 t
   | ODot  t
   | OGet  t
 
-{- ORMOLU_ENABLE -}
-
 -------------------------------------------------------------------------------
-
-{- ORMOLU_DISABLE -}
 
 data ExprF t a
   = EVar  t Name
