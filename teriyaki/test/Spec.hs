@@ -11,6 +11,39 @@ main :: IO ()
 main =
   hspec $ do
     testExhaustive
+    testPreprocessRecords
+
+testPreprocessRecords :: SpecWith ()
+testPreprocessRecords =
+  describe "preprocessRecords" $ do
+    let r =
+          preprocessRecords
+            -- { name = n, id = a }
+            ( pRec
+                (tRec (tExt "name" tString (tExt "id" tInt tNil)))
+                ( pExt
+                    (tExt "name" tString (tExt "id" tInt tNil))
+                    "name"
+                    (pVar tString "n")
+                    ( pExt
+                        (tExt "id" tInt tNil)
+                        "id"
+                        (pVar tInt "a")
+                        (pNil tNil)
+                    )
+                )
+            )
+     in it "{ name = n, id = a } : { name : string, id : int }" $
+          (r :: Pattern (Type Int))
+            == pTup
+              (tup () [tInt, tup () [tString, tup () []]])
+              [ pVar tInt "a"
+              , pTup
+                  (tup () [tString, tup () []])
+                  [ pVar tString "n"
+                  , pLit (tup () []) IUnit
+                  ]
+              ]
 
 testExhaustive :: SpecWith ()
 testExhaustive =

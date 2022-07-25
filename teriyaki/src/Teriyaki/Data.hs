@@ -31,7 +31,6 @@ data TypeF v a
   | TChar
   | TString
   | TVoid
-  | TTup [a]
   | TList a
   | TVar Kind v
   | TCon Kind Name

@@ -94,14 +94,19 @@ unwindRow r = (fieldSet (rInit r), rLast r)
 
 -------------------------------------------------------------------------------
 
-class Tuple t a | t -> a where
-  tup :: a -> [t] -> t
+class Tuple a t | a -> t where
+  tup :: t -> [a] -> a
 
 instance Tuple () () where
   tup _ _ = ()
 
 instance Tuple (Type v) () where
-  tup = const tTup
+  tup () ts = foldl go (tCon (kFun n) (tupleCon n)) ts
+    where
+      n = length ts
+      go t =
+        let _ `KArr` k = project (kindOf t)
+         in tApp k t
 
 instance Tuple (Expr t) t where
   tup = eTup
@@ -111,9 +116,32 @@ instance Tuple (Pattern t) t where
 
 -------------------------------------------------------------------------------
 
-class Tagged t a | t -> a where
-  getTag :: t -> a
-  setTag :: a -> t -> t
+--class Con a t | a -> t where
+--  con :: t -> Name -> [a] -> a
+--
+--instance Con (Type v) Kind where
+--  con k n as = undefined
+--  -- TODO
+--
+--instance Con (Expr (Type v)) (Type v) where
+--  con t n as = eApp t (eCon u n) as
+--    where
+--      u = foldr (\x y -> tApp kTyp (typeOf x) y) t as
+----    where
+----      n = length as
+----      go e =
+----        let _ `TArr` t = project (typeOf t)
+----         in tApp k t
+--
+--
+--instance Con (Pattern t) t where
+--  con = pCon
+
+-------------------------------------------------------------------------------
+
+class Tagged a t | a -> t where
+  getTag :: a -> t
+  setTag :: t -> a -> a
 
 {- ORMOLU_DISABLE -}
 
@@ -281,15 +309,21 @@ instance Tagged (Expr t) t where
           EAnn  _ a1         -> eAnn  t a1
       )
 
-{- ORMOLU_ENABLE -}
-
 -------------------------------------------------------------------------------
 
--- class Typed a where
---  typeOf :: a -> MonoType
---
--- instance Typed MonoType where
---  typeOf = id
+kindOf :: Type v -> Kind
+kindOf =
+  cata
+    ( \case
+        TVar   k _     -> k
+        TCon   k _     -> k
+        TApp   k _ _   -> k
+        TNil           -> kRow
+        TExt   {}      -> kRow
+        _              -> kTyp
+    )
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 
@@ -343,6 +377,10 @@ kArr = embed2 KArr
 
 infixr 1 `kArr`
 
+{-# INLINE kFun #-}
+kFun :: Int -> Kind
+kFun n = foldr1 kArr (replicate (succ n) kTyp)
+
 {-# INLINE tUnit #-}
 tUnit :: Type v
 tUnit = embed TUnit
@@ -382,10 +420,6 @@ tString = embed TString
 {-# INLINE tVoid #-}
 tVoid :: Type v
 tVoid = embed TVoid
-
-{-# INLINE tTup #-}
-tTup :: [Type v] -> Type v
-tTup = embed1 TTup
 
 {-# INLINE tList #-}
 tList :: Type v -> Type v
