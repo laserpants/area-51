@@ -88,9 +88,6 @@ instance Row () where
   rInit _ = []
   rLast _ = ()
 
-unpackRow :: (Row r) => r -> (FieldSet r, r)
-unpackRow r = (fieldSet (rInit r), rLast r)
-
 -------------------------------------------------------------------------------
 
 class Tuple a t | a -> t where
@@ -356,6 +353,9 @@ constructorEnv :: [(Name, ([Name], Int))] -> ConstructorEnv
 constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
 ------------------------------------------------------------------------------
+
+unpackRow :: (Row r) => r -> (FieldSet r, r)
+unpackRow r = (fieldSet (rInit r), rLast r)
 
 tApps :: Type v -> [Type v] -> Type v
 tApps = foldl' go
