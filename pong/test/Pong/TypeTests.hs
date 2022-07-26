@@ -6,6 +6,7 @@ module Pong.TypeTests where
 -- import Pong.TestData.ThePanamaHat
 -- import qualified Data.Map.Strict as Map
 import Pong.Data
+import Pong.Data.Cons
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs

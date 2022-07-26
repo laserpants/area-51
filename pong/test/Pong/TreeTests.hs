@@ -4,7 +4,7 @@ module Pong.TreeTests where
 
 -- import Data.List.NonEmpty (fromList)
 import Pong.Data
-import Pong.Lang
+import Pong.Data.Cons
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.GeraniumPlant
 -- import Pong.TestData.GoAwayDixieGillian

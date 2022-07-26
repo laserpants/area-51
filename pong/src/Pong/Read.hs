@@ -15,6 +15,7 @@ import Data.Text (pack, unpack)
 import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Pong.Data
+import Pong.Data.Cons
 import Pong.Lang
 import Pong.Util (Name, Text, project, (<&>), (>>>))
 import Text.Megaparsec hiding (token)

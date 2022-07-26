@@ -5,7 +5,7 @@ module Pong.TestData.GoAwayDixieGillian where
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
 import Pong.Data
-import Pong.Lang
+import Pong.Data.Cons
 
 program1 :: ModuleDefs MonoType TypedExpr
 program1 =

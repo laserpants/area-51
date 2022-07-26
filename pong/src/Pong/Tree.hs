@@ -24,6 +24,7 @@ import qualified Data.Text as Text
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
 import Pong.Data
+import Pong.Data.Cons
 import Pong.Lang
 import Pong.Read (ParserError, parseModule)
 import Pong.Type

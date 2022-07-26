@@ -3,7 +3,7 @@
 module Pong.TestData.AnEnvelopeForJohnStJohn where
 
 import Pong.Data
-import Pong.Lang
+import Pong.Data.Cons
 
 expr0 :: SourceExpr
 expr0 =
