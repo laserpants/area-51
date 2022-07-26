@@ -9,6 +9,7 @@ import Control.Monad.Reader
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
 import Taiyaki.Data
+import Taiyaki.Data.Cons
 import Taiyaki.Lang
 import Taiyaki.Util
 import qualified Taiyaki.Util.Env as Env

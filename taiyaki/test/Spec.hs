@@ -3,6 +3,7 @@
 
 import Control.Monad.Reader
 import Taiyaki.Data
+import Taiyaki.Data.Cons
 import Taiyaki.Lang
 import Taiyaki.Tree
 import Taiyaki.Util
