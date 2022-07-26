@@ -5,8 +5,20 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE CPP #-}
 
-module Pong.Eval where
+{- ORMOLU_DISABLE -}
+
+module Pong.Eval
+#ifndef test
+  ( Value
+  , runEval
+  , evalModule
+  )
+#endif
+where
+
+{- ORMOLU_ENABLE -}
 
 import Control.Monad.Reader
 import Control.Monad.Writer
