@@ -50,12 +50,6 @@ type MonoType = Type Int
 -- | Polymorphic type scheme
 newtype Scheme = Scheme (Type Name)
 
--- | Head construtor variety of a Type
-data HeadT
-  = VarT                           -- ^ Type is a TVar
-  | ArrT                           -- ^ Type is a TArr
-  | RecT                           -- ^ Type is a TRec
-
 -- | Built-in language primitives
 data Prim
   = PBool Bool                     -- ^ Booleans
@@ -129,11 +123,17 @@ type PreAst = Expr MonoType MonoType Void Void
 -- | Translated expression
 type Ast = Expr MonoType Void Void ()
 
+-- | Head construtor variety of a Type
+data HeadT
+  = VarT                                     -- ^ Type is a TVar
+  | ArrT                                     -- ^ Type is a TArr
+  | RecT                                     -- ^ Type is a TRec
+
 -- | Head construtor variety of an Expr
 data HeadE
-  = VarE                           -- ^ Expression is an EVar
-  | LitE                           -- ^ Expression is an ELit
-  | LamE                           -- ^ Expression is an ELam
+  = VarE                                     -- ^ Expression is an EVar
+  | LitE                                     -- ^ Expression is an ELit
+  | LamE                                     -- ^ Expression is an ELam
 
 data Definition t a
   = Function (List1 (Label t)) (t, a)        -- ^ Function definition
@@ -190,20 +190,6 @@ deriving instance Ord Scheme
 deriving instance Generic Scheme
 
 instance Newtype Scheme
-
--- HeadT
-deriving instance Show HeadT
-
-deriving instance Eq HeadT
-
-deriving instance Ord HeadT
-
--- Con
-deriving instance Show HeadE
-
-deriving instance Eq HeadE
-
-deriving instance Ord HeadE
 
 -- Prim
 deriving instance Show Prim
@@ -268,6 +254,20 @@ deriving instance Functor (ExprF t a0 a1 a2)
 deriving instance Foldable (ExprF t a0 a1 a2)
 
 deriving instance Traversable (ExprF t a0 a1 a2)
+
+-- HeadT
+deriving instance Show HeadT
+
+deriving instance Eq HeadT
+
+deriving instance Ord HeadT
+
+-- HeadE
+deriving instance Show HeadE
+
+deriving instance Eq HeadE
+
+deriving instance Ord HeadE
 
 -- Definition
 deriving instance (Show t, Show a) =>
