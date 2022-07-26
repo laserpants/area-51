@@ -1,5 +1,5 @@
 # taiyaki
 
 <center>
-![Taiyaki](docs/taiyaki.png)
+![Taiyaki](taiyaki/docs/taiyaki.png)
 </center>
