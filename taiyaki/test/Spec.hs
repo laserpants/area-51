@@ -162,12 +162,15 @@ main =
     ---------------------------------------------------------------------------
     describe "foldTuple" $ do
       let expr :: Expr (Type Int)
-          expr = foldTuple (tup () [tInt, tBool]) [eVar tInt "a", eVar tBool "b"]
+          expr =
+            foldTuple
+              (tup () [tInt, tBool])
+              [eVar tInt "a", eVar tBool "b"]
        in it
             "(a, b)"
             ( eApp
-                (tup () [tInt, tBool])
-                (eCon (tInt ~> tBool ~> tup () [tInt, tBool]) (tupleCon 2))
+                (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
+                (eCon (tInt ~> tBool ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool) (tupleCon 2))
                 [eVar tInt "a", eVar tBool "b"]
                 == expr
             )
