@@ -5,6 +5,7 @@ import Control.Monad.Reader
 import Teriyaki.Data
 import Teriyaki.Lang
 import Teriyaki.Tree
+import Teriyaki.Util
 import Test.Hspec
 
 main :: IO ()
@@ -15,19 +16,21 @@ main =
     testExhaustive
     testPreprocessRecords
     testGenericRowOperations
+    testGenericTuples
+    testGenericCons
     testTApps
 
 testTApps :: SpecWith ()
 testTApps =
   describe "tApps" $ do
-    let ctor, ty :: Type Int
+    let ctor, ty :: Type ()
         ctor = tCon kFun2 "C2"
         ty = tApps ctor [tInt, tBool]
      in it
           "C2 int bool ( C2 : * -> * -> * )"
           (tApp kTyp (tApp kFun1 ctor tInt) tBool == ty)
 
-    let ctor, ty :: Type Int
+    let ctor, ty :: Type ()
         ctor = tCon kFun1 "List"
         ty = tApps ctor [tInt]
      in it
@@ -42,6 +45,42 @@ testTupleCon = do
     it "(,,)" (tupleCon 3 == "(,,)")
     it "(,,,)" (tupleCon 4 == "(,,,)")
 
+testGenericCons :: SpecWith ()
+testGenericCons = do
+  describe "Con" $ do
+    let ty :: Type ()
+        ty = con kTyp (tupleCon 2) [tInt, tInt]
+     in it
+          "(int, int)"
+          (tApp kTyp (tApp kFun1 (tCon kFun2 (tupleCon 2)) tInt) tInt == ty)
+
+    let ty :: Type Name
+        ty = con kTyp "List" [tVar kTyp "a"]
+     in it
+          "List a"
+          (tApp kTyp (tCon kFun1 "List") (tVar kTyp "a") == ty)
+
+testGenericTuples :: SpecWith ()
+testGenericTuples = do
+  describe "Tuple" $ do
+    let ty :: Type ()
+        ty = tup () [tInt, tInt]
+     in it
+          "(int, int)"
+          (tApp kTyp (tApp kFun1 (tCon kFun2 (tupleCon 2)) tInt) tInt == ty)
+
+    let ty :: Type ()
+        ty = tup () [tInt, tInt, tBool]
+     in it
+          "(int, int, bool)"
+          (tApp kTyp (tApp kFun1 (tApp kFun2 (tCon (kFun 3) (tupleCon 3)) tInt) tInt) tBool == ty)
+
+    let expr :: Expr ()
+        expr = tup () [eLit () (IInt 1), eLit () (IInt 2)]
+     in it
+          "(1, 2)"
+          (eTup () [eLit () (IInt 1), eLit () (IInt 2)] == expr)
+
 testGenericRowOperations :: SpecWith ()
 testGenericRowOperations = do
   describe "Row" $ do
@@ -54,10 +93,10 @@ testGenericRowOperations = do
     let pat :: Pattern ()
         pat = rExt "a" (pVar () "x") rNil
      in it
-          "{ a = x }"
+          "| { a = x }"
           (pat == pExt () "a" (pVar () "x") (pNil ()))
 
-    let ty :: Type Int
+    let ty :: Type ()
         ty = rExt "a" tInt rNil
      in it
           "{ a : int }"
@@ -72,7 +111,7 @@ testGenericRowOperations = do
     let pat :: Pattern ()
         pat = rExt "a" (pVar () "x") (pVar () "y")
      in it
-          "{ a = x | y }"
+          "| { a = x | y }"
           (pat == pExt () "a" (pVar () "x") (pVar () "y"))
 
     let ty :: Type Int
@@ -101,7 +140,7 @@ testPreprocessRecords =
                     )
                 )
             )
-     in it "{ name = n, id = a } : { name : string, id : int }" $
+     in it "| { name = n, id = a } : { name : string, id : int }" $
           (r :: Pattern (Type Int))
             == pTup
               (tup () [tInt, tup () [tString, tup () []]])
@@ -124,7 +163,8 @@ testExhaustive =
 
     describe "Literal patterns" $ do
       runTestExhaustive
-        "| True | False"
+        "| True \
+        \| False"
         True -- exhaustive
         [ [pLit () (IBool True)]
         , [pLit () (IBool False)]
@@ -137,7 +177,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| True | _"
+        "| True \
+        \| _"
         True -- exhaustive
         [ [pLit () (IBool True)]
         , [pAny ()]
@@ -174,42 +215,49 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| 5 | 4"
+        "| 5 \
+        \| 4"
         False -- not exhaustive
         [ [pLit () (IInt 5)]
         , [pLit () (IInt 4)]
         ]
 
       runTestExhaustive
-        "| 5 | x"
+        "| 5 \
+        \| x"
         True -- exhaustive
         [ [pLit () (IInt 5)]
         , [pVar () "x"]
         ]
 
       runTestExhaustive
-        "| 5, 5 | x, y"
+        "| 5, 5 \
+        \| x, y"
         True -- exhaustive
         [ [pLit () (IInt 5), pLit () (IInt 5)]
         , [pVar () "x", pVar () "y"]
         ]
 
       runTestExhaustive
-        "| 5, 5 | x, 0"
+        "| 5, 5 \
+        \| x, 0"
         False -- not exhaustive
         [ [pLit () (IInt 5), pLit () (IInt 5)]
         , [pVar () "x", pLit () (IInt 0)]
         ]
 
       runTestExhaustive
-        "| \"x\" | \"y\""
+        "| \"x\" \
+        \| \"y\""
         False -- not exhaustive
         [ [pLit () (IString "x")]
         , [pLit () (IString "y")]
         ]
 
       runTestExhaustive
-        "| \"x\" | \"y\" | _"
+        "| \"x\" \
+        \| \"y\" \
+        \| _"
         True -- exhaustive
         [ [pLit () (IString "x")]
         , [pLit () (IString "y")]
@@ -224,14 +272,16 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [_, _, _] | []"
+        "| [_, _, _] \
+        \| []"
         False -- not exhaustive
         [ [pList () [pAny (), pAny (), pAny ()]]
         , [pList () []]
         ]
 
       runTestExhaustive
-        "| [_, _, _] | _"
+        "| [_, _, _] \
+        \| _"
         True -- exhaustive
         [ [pList () [pAny (), pAny (), pAny ()]]
         , [pAny ()]
@@ -250,7 +300,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [x, 2] | _"
+        "| [x, 2] \
+        \| _"
         True -- exhaustive
         [ [pList () [pVar () "x", pLit () (IInt 2)]]
         , [pAny ()]
@@ -263,14 +314,18 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: ys | []"
+        "| x :: ys \
+        \| []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "ys"]]
         , [pList () []]
         ]
 
       runTestExhaustive
-        "| [] | [x] | [x, y] | x :: y :: ys"
+        "| [] \
+        \| [x] \
+        \| [x, y] \
+        \| x :: y :: ys"
         True -- exhaustive
         [ [pList () []]
         , [pList () [pVar () "x"]]
@@ -316,7 +371,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [_] or [] | _ :: _"
+        "| [_] or [] \
+        \| _ :: _"
         True -- exhaustive
         [ [pOr () (pList () [pAny ()]) (pCon () "[]" [])]
         , [pCon () "(::)" [pAny (), pAny ()]]
@@ -324,7 +380,8 @@ testExhaustive =
 
     describe "As-patterns" $ do
       runTestExhaustive
-        "| (x :: ys) as xs | []"
+        "| (x :: ys) as xs \
+        \| []"
         True -- exhaustive
         [ [pAs () "xs" (pCon () "(::)" [pVar () "x", pVar () "ys"])]
         , [pList () []]
@@ -343,7 +400,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [] | [x] as xs | [x, y] as xs | (x :: y :: ys) as xs"
+        "| [] \
+        \| [x] as xs \
+        \| [x, y] as xs \
+        \| (x :: y :: ys) as xs"
         True -- exhaustive
         [ [pList () []]
         , [pAs () "xs" (pList () [pVar () "x"])]
@@ -359,7 +419,9 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [] | x :: y :: ys | z :: zs"
+        "| [] \
+        \| x :: y :: ys \
+        \| z :: zs"
         True -- exhaustive
         [ [pCon () "[]" []]
         , [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
@@ -367,7 +429,9 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: y :: ys | [] | z :: zs"
+        "| x :: y :: ys \
+        \| [] \
+        \| z :: zs"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "[]" []]
@@ -375,14 +439,17 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: y :: ys | z :: zs"
+        "| x :: y :: ys \
+        \| z :: zs"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
         ]
 
       runTestExhaustive
-        "| x :: y :: ys | z :: zs | _ :: _"
+        "| x :: y :: ys \
+        \| z :: zs \
+        \| _ :: _"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
@@ -390,7 +457,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: y :: ys | z :: zs | _ :: _ | []"
+        "| x :: y :: ys \
+        \| z :: zs \
+        \| _ :: _ \
+        \| []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "(::)" [pVar () "z", pVar () "zs"]]
@@ -399,7 +469,9 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: y :: ys | [] | z :: []"
+        "| x :: y :: ys \
+        \| [] \
+        \| z :: []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "[]" []]
@@ -407,7 +479,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: y :: ys | []"
+        "| x :: y :: ys \
+        \| []"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pCon () "(::)" [pVar () "y", pVar () "ys"]]]
         , [pCon () "[]" []]
@@ -426,35 +499,41 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [] | _"
+        "| [] \
+        \| _"
         True -- exhaustive
         [ [pCon () "[]" []]
         , [pAny ()]
         ]
 
       runTestExhaustive
-        "| x :: ys | []"
+        "| x :: ys \
+        \| []"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "ys"]]
         , [pCon () "[]" []]
         ]
 
       runTestExhaustive
-        "| x :: ys | x"
+        "| x :: ys \
+        \| x"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "ys"]]
         , [pVar () "x"]
         ]
 
       runTestExhaustive
-        "| x :: ys, 2 | [], _"
+        "| x :: ys, 2 \
+        \| [], _"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "ys", pLit () (IInt 2)]]
         , [pCon () "[]" [], pAny ()]
         ]
 
       runTestExhaustive
-        "| x :: xs, true | x :: xs, false | [], _"
+        "| x :: xs, true \
+        \| x :: xs, false \
+        \| [], _"
         True -- exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]
         , [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool False)]
@@ -462,7 +541,9 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| x :: xs, true | 3 :: xs, false | [], _"
+        "| x :: xs, true \
+        \| 3 :: xs, false \
+        \| [], _"
         False -- not exhaustive
         [ [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]
         , [pCon () "(::)" [pLit () (IInt 3), pVar () "xs"], pLit () (IBool False)]
@@ -483,7 +564,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (1, 2) | (_, _)"
+        "| (1, 2) \
+        \| (_, _)"
         True -- exhaustive
         [ [pTup () [pLit () (IInt 1), pLit () (IInt 2)]]
         , [pTup () [pAny (), pAny ()]]
@@ -508,28 +590,33 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (5, 5) | (x, y)"
+        "| (5, 5) \
+        \| (x, y)"
         True -- exhaustive
         [ [pTup () [pLit () (IInt 5), pLit () (IInt 5)]]
         , [pTup () [pVar () "x", pVar () "y"]]
         ]
 
       runTestExhaustive
-        "| (5, 5) | (x, 0)"
+        "| (5, 5) \
+        \| (x, 0)"
         False -- not exhaustive
         [ [pTup () [pLit () (IInt 5), pLit () (IInt 5)]]
         , [pTup () [pVar () "x", pLit () (IInt 0)]]
         ]
 
       runTestExhaustive
-        "| (x :: ys, 2) | ([], _)"
+        "| (x :: ys, 2) \
+        \| ([], _)"
         False -- not exhaustive
         [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "ys", pLit () (IInt 2)]]]
         , [pTup () [pCon () "[]" [], pAny ()]]
         ]
 
       runTestExhaustive
-        "| (x :: xs, true) | (x :: xs, false) | ([], _)"
+        "| (x :: xs, true) \
+        \| (x :: xs, false) \
+        \| ([], _)"
         True -- exhaustive
         [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]]
         , [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool False)]]
@@ -537,7 +624,9 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (x :: xs, true) | (3 :: xs, false) | ([], _)"
+        "| (x :: xs, true) \
+        \| (3 :: xs, false) \
+        \| ([], _)"
         False -- not exhaustive
         [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]]
         , [pTup () [pCon () "(::)" [pLit () (IInt 3), pVar () "xs"], pLit () (IBool False)]]
@@ -545,7 +634,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (x :: xs, true) | (3 :: xs, false) | ([], _) | _"
+        "| (x :: xs, true) \
+        \| (3 :: xs, false) \
+        \| ([], _) \
+        \| _"
         True -- exhaustive
         [ [pTup () [pCon () "(::)" [pVar () "x", pVar () "xs"], pLit () (IBool True)]]
         , [pTup () [pCon () "(::)" [pLit () (IInt 3), pVar () "xs"], pLit () (IBool False)]]
@@ -560,7 +652,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (false, false) | (false, true) | (true, false) | (true, true)"
+        "| (false, false) \
+        \| (false, true) \
+        \| (true, false) \
+        \| (true, true)"
         True -- exhaustive
         [ [pTup () [pLit () (IBool False), pLit () (IBool False)]]
         , [pTup () [pLit () (IBool False), pLit () (IBool True)]]
@@ -569,7 +664,9 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (false, false) | (false, true) | (true, false)"
+        "| (false, false) \
+        \| (false, true) \
+        \| (true, false)"
         False -- not exhaustive
         [ [pTup () [pLit () (IBool False), pLit () (IBool False)]]
         , [pTup () [pLit () (IBool False), pLit () (IBool True)]]
@@ -577,7 +674,14 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (false, false, false) | (false, false, true) | (false, true, false) | (false, true, true) | (true, false, false) | (true, false, true) | (true, true, false) | (true, true, true)"
+        "| (false, false, false) \
+        \| (false, false, true) \
+        \| (false, true, false) \
+        \| (false, true, true) \
+        \| (true, false, false) \
+        \| (true, false, true) \
+        \| (true, true, false) \
+        \| (true, true, true)"
         True -- exhaustive
         [ [pTup () [pLit () (IBool False), pLit () (IBool False), pLit () (IBool False)]]
         , [pTup () [pLit () (IBool False), pLit () (IBool False), pLit () (IBool True)]]
@@ -603,7 +707,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = 3, y = 4 } | { x = 6, y = 7 }"
+        "| { x = 3, y = 4 } \
+        \| { x = 6, y = 7 }"
         False -- not exhaustive
         [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pLit () (IInt 4)) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pLit () (IInt 7)) (pNil ())))]
@@ -628,7 +733,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = 3, y = 4 } | { x = 6, y = 7 } | { x = _, y = 7 } | { x = x, y = _ }"
+        "| { x = 3, y = 4 } \
+        \| { x = 6, y = 7 } \
+        \| { x = _, y = 7 } \
+        \| { x = x, y = _ }"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pLit () (IInt 4)) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pLit () (IInt 7)) (pNil ())))]
@@ -649,7 +757,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | { x = x, y = { a = _ } }"
+        "| { x = 3, y = { a = 3 } } \
+        \| { x = 6, y = { a = 4 } } \
+        \| { x = _, y = { a = 5 } } \
+        \| { x = x, y = { a = _ } }"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
@@ -658,7 +769,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | { x = x, y = _ }"
+        "| { x = 3, y = { a = 3 } } \
+        \| { x = 6, y = { a = 4 } } \
+        \| { x = _, y = { a = 5 } } \
+        \| { x = x, y = _ }"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
@@ -667,7 +781,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | { x = x | q }"
+        "| { x = 3, y = { a = 3 } } \
+        \| { x = 6, y = { a = 4 } } \
+        \| { x = _, y = { a = 5 } } \
+        \| { x = x | q }"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
@@ -676,7 +793,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = 3, y = { a = 3 } } | { x = 6, y = { a = 4 } } | { x = _, y = { a = 5 } } | z"
+        "| { x = 3, y = { a = 3 } } \
+        \| { x = 6, y = { a = 4 } } \
+        \| { x = _, y = { a = 5 } } \
+        \| z"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IInt 3)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 3)) (pNil ()))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IInt 6)) (pExt () "y" (pRec () (pExt () "a" (pLit () (IInt 4)) (pNil ()))) (pNil ())))]
@@ -685,7 +805,10 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = false, y = false | {} } | { x = false, y = true | {} } | { x = true, y = false | {} } | { x = true, y = true | {} }"
+        "| { x = false, y = false } \
+        \| { x = false, y = true } \
+        \| { x = true, y = false } \
+        \| { x = true, y = true }"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool True)) (pNil ())))]
@@ -694,21 +817,24 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = false, y = false | {} } | { x = true, y = false }"
+        "| { x = false, y = false } \
+        \| { x = true, y = false }"
         False -- not exhaustive
         [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
         ]
 
       runTestExhaustive
-        "| { x = false, y = false | {} } | { x = true, y = _ }"
+        "| { x = false, y = false } \
+        \| { x = true, y = _ }"
         False -- not exhaustive
         [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pAny ()) (pNil ())))]
         ]
 
       runTestExhaustive
-        "| { x = _, y = false | {} } | { x = true, y = _ }"
+        "| { x = _, y = false } \
+        \| { x = true, y = _ }"
         False -- not exhaustive
         [ [pRec () (pExt () "x" (pAny ()) (pExt () "y" (pLit () (IBool False)) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool True)) (pExt () "y" (pAny ()) (pNil ())))]
@@ -721,7 +847,14 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = false, y = { z = false, a = false } } | { x = false, y = { z = false, a = true } } | { x = false, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } } | { x = true, y = { z = false, a = false } } | { x = true, y = { z = false, a = true } } | { x = true, y = { z = true , a = false } } | { x = true, y = { z = true , a = true } }"
+        "| { x = false, y = { z = false, a = false } } \
+        \| { x = false, y = { z = false, a = true } } \
+        \| { x = false, y = { z = true , a = false } } \
+        \| { x = false, y = { z = true , a = true } } \
+        \| { x = true, y = { z = false, a = false } } \
+        \| { x = true, y = { z = false, a = true } } \
+        \| { x = true, y = { z = true , a = false } } \
+        \| { x = true, y = { z = true , a = true } }"
         True -- exhaustive
         [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
@@ -734,7 +867,14 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { x = false, y = { z = false, a = false } } | { x = false, y = { z = false, a = true } } | { x = false, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } } | { x = true, y = { z = false, a = false } } | { x = true, y = { z = false, a = true } } | { x = true, y = { z = true , a = false } } | { x = false, y = { z = true , a = true } }"
+        "| { x = false, y = { z = false, a = false } } \
+        \| { x = false, y = { z = false, a = true } } \
+        \| { x = false, y = { z = true , a = false } } \
+        \| { x = false, y = { z = true , a = true } } \
+        \| { x = true, y = { z = false, a = false } } \
+        \| { x = true, y = { z = false, a = true } } \
+        \| { x = true, y = { z = true , a = false } } \
+        \| { x = false, y = { z = true , a = true } }"
         False -- not exhaustive
         [ [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool False)) (pNil ())))) (pNil ())))]
         , [pRec () (pExt () "x" (pLit () (IBool False)) (pExt () "y" (pRec () (pExt () "z" (pLit () (IBool False)) (pExt () "a" (pLit () (IBool True)) (pNil ())))) (pNil ())))]
@@ -772,7 +912,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| (1 or 2) as x | _ as foo"
+        "| (1 or 2) as x \
+        \| _ as foo"
         True -- exhaustive
         [ [pAs () "x" (pOr () (pLit () (IInt 1)) (pLit () (IInt 2)))]
         , [pAs () "foo" (pAny ())]
@@ -797,28 +938,32 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| { a = ({}, true) } | { a = ({}, false) }"
+        "| { a = ({}, true) }\
+        \| { a = ({}, false) }"
         True -- exhaustive
         [ [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool True)]) (pNil ()))]
         , [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool False)]) (pNil ()))]
         ]
 
       runTestExhaustive
-        "| { a = ({}, true) } | { a = _ }"
+        "| { a = ({}, true) } \
+        \| { a = _ }"
         True -- exhaustive
         [ [pRec () (pExt () "a" (pTup () [pRec () (pNil ()), pLit () (IBool True)]) (pNil ()))]
         , [pRec () (pExt () "a" (pAny ()) (pNil ()))]
         ]
 
       runTestExhaustive
-        "| { a = x :: xs } | { a = [] }"
+        "| { a = x :: xs } \
+        \| { a = [] }"
         True -- exhaustive
         [ [pRec () (pExt () "a" (pCon () "(::)" [pVar () "x", pVar () "xs"]) (pNil ()))]
         , [pRec () (pExt () "a" (pCon () "[]" []) (pNil ()))]
         ]
 
       runTestExhaustive
-        "| { a = x :: xs } | { a = x :: _ }"
+        "| { a = x :: xs } \
+        \| { a = x :: _ }"
         False -- not exhaustive
         [ [pRec () (pExt () "a" (pCon () "(::)" [pVar () "x", pVar () "xs"]) (pNil ()))]
         , [pRec () (pExt () "a" (pCon () "(::)" [pVar () "x", pAny ()]) (pNil ()))]
@@ -831,7 +976,8 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| ({ x = 'a' or 'b' | r }, { x = 'a' or 'b' | r }) | (_, _)"
+        "| ({ x = 'a' or 'b' | r }, { x = 'a' or 'b' | r }) \
+        \| (_, _)"
         True -- exhaustive
         [ [pTup () [pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r")), pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r"))]]
         , [pTup () [pAny (), pAny ()]]
@@ -844,14 +990,17 @@ testExhaustive =
         ]
 
       runTestExhaustive
-        "| [()] | []"
+        "| [()] \
+        \| []"
         False -- not exhaustive
         [ [pList () [pLit () IUnit]]
         , [pList () []]
         ]
 
       runTestExhaustive
-        "| [()] | [] | _ :: _ :: _"
+        "| [()] \
+        \| [] \
+        \| _ :: _ :: _"
         True -- exhaustive
         [ [pList () [pLit () IUnit]]
         , [pList () []]
