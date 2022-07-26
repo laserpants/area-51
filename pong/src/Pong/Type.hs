@@ -22,8 +22,6 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Data.Tuple.Extra (first, firstM, second, secondM)
 import GHC.Generics (Generic)
-import Pong.Data
-import Pong.Data.Cons
 import Pong.Lang
 import Pong.Util
   ( Fix (..)

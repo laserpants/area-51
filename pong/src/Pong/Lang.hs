@@ -4,7 +4,39 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Pong.Lang where
+module Pong.Lang
+  ( module Pong.Data
+  , module Pong.Data.Cons
+  , Free
+  , argTypes
+  , arity
+  , boundVars
+  , foldRow
+  , foldRow1
+  , foldType
+  , foldType1
+  , forEachDef
+  , free
+  , freeIndex
+  , freeVars
+  , hasHeadE
+  , hasHeadT
+  , insertArgs
+  , mapTypes
+  , normalizeRows
+  , renameDef
+  , restrictRow
+  , returnType
+  , rowEq
+  , substituteVar
+  , toMonoType
+  , toScheme
+  , typeOf
+  , untag
+  , unwindRow
+  , unwindType
+  )
+where
 
 import Control.Monad.State
 import Data.List (nub)

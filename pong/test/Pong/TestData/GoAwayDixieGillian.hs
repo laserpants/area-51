@@ -4,8 +4,7 @@ module Pong.TestData.GoAwayDixieGillian where
 
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
-import Pong.Data
-import Pong.Data.Cons
+import Pong.Lang
 
 program1 :: ModuleDefs MonoType TypedExpr
 program1 =
@@ -32,19 +31,18 @@ program1 =
                   )
               , "r"
               )
-              ( ( eExt
-                    "a"
-                    (eLit (PInt 100))
-                    ( eExt
-                        "b"
-                        (eLit (PBool True))
-                        ( eExt
-                            "c"
-                            (eLit (PInt 3))
-                            eNil
-                        )
-                    )
-                )
+              ( eExt
+                  "a"
+                  (eLit (PInt 100))
+                  ( eExt
+                      "b"
+                      (eLit (PBool True))
+                      ( eExt
+                          "c"
+                          (eLit (PInt 3))
+                          eNil
+                      )
+                  )
               )
               ( eRes
                   [

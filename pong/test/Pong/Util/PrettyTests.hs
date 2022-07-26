@@ -2,8 +2,7 @@
 
 module Pong.Util.PrettyTests where
 
-import Pong.Data
-import Pong.Data.Cons
+import Pong.Lang
 import Pong.Util
 import Pong.Util.Pretty ()
 import Prettyprinter

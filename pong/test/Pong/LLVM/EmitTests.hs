@@ -2,7 +2,7 @@
 
 module Pong.LLVM.EmitTests where
 
-import Pong.Data
+import Pong.Lang
 import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.TheFatalAuction

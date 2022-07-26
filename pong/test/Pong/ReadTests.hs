@@ -4,8 +4,7 @@ module Pong.ReadTests where
 
 import Data.Either.Extra (isLeft)
 import Data.List.NonEmpty (fromList)
-import Pong.Data
-import Pong.Data.Cons
+import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
 -- import Pong.TestData.MysteriousSetOfBooks

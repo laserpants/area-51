@@ -4,8 +4,7 @@ module Pong.TestData.MysteriousSetOfBooks where
 
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
-import Pong.Data
-import Pong.Data.Cons
+import Pong.Lang
 -- import Pong.Type
 import Pong.Util
 

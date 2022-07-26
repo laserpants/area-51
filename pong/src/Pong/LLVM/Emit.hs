@@ -24,9 +24,7 @@ import qualified LLVM.AST.FloatingPointPredicate as Float
 import qualified LLVM.AST.IntegerPredicate as Int
 import qualified LLVM.AST.Type as LLVM
 import qualified LLVM.AST.Typed as LLVM
-import Pong.Data
 import qualified Pong.Data as Pong
-import Pong.Data.Cons
 import Pong.LLVM hiding (Typed, name, typeOf, var, void)
 import Pong.Lang
 import Pong.Util

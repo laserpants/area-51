@@ -15,7 +15,6 @@ import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import Data.Tuple.Extra (first)
-import Pong.Data
 import Pong.Lang
 import Pong.Util
 import Pong.Util.Env (Environment)

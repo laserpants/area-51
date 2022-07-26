@@ -6,7 +6,6 @@
 
 module Pong.Util.Pretty where
 
-import Pong.Data
 import Pong.Lang
 import Pong.Util
 import Prettyprinter

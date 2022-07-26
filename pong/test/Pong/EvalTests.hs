@@ -3,8 +3,9 @@
 module Pong.EvalTests where
 
 -- import Data.Either.Extra (fromRight)
-import Pong.Data
+
 import Pong.Eval
+import Pong.Lang
 -- import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks

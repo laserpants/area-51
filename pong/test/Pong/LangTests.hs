@@ -6,8 +6,6 @@ module Pong.LangTests where
 import Data.Function ((&))
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
-import Pong.Data
-import Pong.Data.Cons
 import Pong.Lang
 -- import qualified Pong.Read as Pong
 -- import Pong.TestData.AnEnvelopeForJohnStJohn

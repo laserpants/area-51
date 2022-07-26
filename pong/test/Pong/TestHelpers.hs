@@ -8,8 +8,6 @@ module Pong.TestHelpers where
 import qualified Data.Text.Lazy as TextLazy
 import GHC.IO.Handle
 import LLVM.Pretty
-import Pong.Data
-import Pong.Data.Cons
 import Pong.LLVM.Emit
 import Pong.Lang
 import Pong.Read
