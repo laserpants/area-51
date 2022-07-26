@@ -2,10 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Control.Monad.Reader
-import Teriyaki.Data
-import Teriyaki.Lang
-import Teriyaki.Tree
-import Teriyaki.Util
+import Taiyaki.Data
+import Taiyaki.Lang
+import Taiyaki.Tree
+import Taiyaki.Util
 import Test.Hspec
 
 main :: IO ()

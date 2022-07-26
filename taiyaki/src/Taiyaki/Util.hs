@@ -1,4 +1,4 @@
-module Teriyaki.Util
+module Taiyaki.Util
   ( module Data.Fix
   , module Data.Text
   , module Control.Arrow

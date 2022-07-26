@@ -4,7 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Teriyaki.Util.Env
+module Taiyaki.Util.Env
   ( empty
   , insert
   , inserts
@@ -33,7 +33,7 @@ import Control.Newtype.Generics (Newtype, over, pack, unpack)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
-import Teriyaki.Util (Name, (<$$>))
+import Taiyaki.Util (Name, (<$$>))
 import Prelude hiding (lookup, map)
 
 newtype Environment a

@@ -2,16 +2,16 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StrictData #-}
 
-module Teriyaki.Tree where
+module Taiyaki.Tree where
 
 import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
-import Teriyaki.Data
-import Teriyaki.Lang
-import Teriyaki.Util
-import qualified Teriyaki.Util.Env as Env
+import Taiyaki.Data
+import Taiyaki.Lang
+import Taiyaki.Util
+import qualified Taiyaki.Util.Env as Env
 
 -------------------------------------------------------------------------------
 

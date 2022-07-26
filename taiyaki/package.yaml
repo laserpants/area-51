@@ -1,6 +1,6 @@
-name:                teriyaki
+name:                taiyaki
 version:             0.1.0.0
-homepage:            https://github.com/githubuser/teriyaki#readme
+homepage:            https://github.com/githubuser/taiyaki#readme
 license:             BSD3
 author:              Heikki Johannes Hildén
 maintainer:          hildenjohannes@gmail.com
@@ -30,13 +30,13 @@ library:
   - -Werror
 
 executables:
-  teriyaki:
+  taiyaki:
     main: Main.hs
     source-dirs:
     - app
 
 tests:
-  teriyaki-test:
+  taiyaki-test:
     main: Spec.hs
     source-dirs:
     - test
@@ -47,6 +47,6 @@ tests:
     - -Wall
     - -Werror
     dependencies:
-    - teriyaki
+    - taiyaki
     - hspec
     - template-haskell

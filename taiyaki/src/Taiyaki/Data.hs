@@ -5,10 +5,10 @@
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Teriyaki.Data where
+module Taiyaki.Data where
 
-import Teriyaki.Util
-import Teriyaki.Util.Env (Environment)
+import Taiyaki.Util
+import Taiyaki.Util.Env (Environment)
 
 -------------------------------------------------------------------------------
 

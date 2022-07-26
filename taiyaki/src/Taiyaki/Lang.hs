@@ -4,15 +4,15 @@
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Teriyaki.Lang where
+module Taiyaki.Lang where
 
 import Data.Foldable (foldl')
 import qualified Data.Map.Strict as Map
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
-import Teriyaki.Data
-import Teriyaki.Util
-import qualified Teriyaki.Util.Env as Env
+import Taiyaki.Data
+import Taiyaki.Util
+import qualified Taiyaki.Util.Env as Env
 
 -------------------------------------------------------------------------------
 
