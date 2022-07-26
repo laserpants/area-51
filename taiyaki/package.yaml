@@ -50,3 +50,5 @@ tests:
     - taiyaki
     - hspec
     - template-haskell
+    cpp-flags:
+    - Dtest

@@ -60,3 +60,5 @@ tests:
     - hspec
     - directory
     - template-haskell
+    cpp-flags:
+    - Dtest
