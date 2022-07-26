@@ -19,6 +19,7 @@ extra-source-files:
 library
   exposed-modules:
       Pong.Data
+      Pong.Data.Cons
       Pong.Eval
       Pong.Lang
       Pong.LLVM
