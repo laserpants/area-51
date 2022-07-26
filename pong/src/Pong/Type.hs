@@ -7,8 +7,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE CPP #-}
 
-module Pong.Type where
+{- ORMOLU_DISABLE -}
+
+module Pong.Type
+#ifndef test
+  ( TypeError
+  , TypeEnv
+  , Substitutable
+  , Substitution (..)
+  , apply
+  , evalTypeChecker
+  , moduleEnv
+  , runInferModule
+  , unifyTypes
+  )
+#endif
+where
+
+{- ORMOLU_ENABLE -}
 
 import Control.Monad.Except
 import Control.Monad.Reader
