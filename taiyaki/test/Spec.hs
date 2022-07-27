@@ -187,7 +187,10 @@ main =
           expr =
             rawList
               (tList tInt)
-              [eLit tInt (IInt 1), eLit tInt (IInt 2), eLit tInt (IInt 3)]
+              [ eLit tInt (IInt 1)
+              , eLit tInt (IInt 2)
+              , eLit tInt (IInt 3)
+              ]
        in it
             "[1, 2, 3]"
             ( eApp
