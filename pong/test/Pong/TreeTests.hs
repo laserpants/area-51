@@ -5,7 +5,7 @@ module Pong.TreeTests where
 import Data.List.NonEmpty (fromList)
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
--- import Pong.TestData.GeraniumPlant
+import Pong.TestData.GeraniumPlant
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
 ---- import Pong.TestData.TheFatalAuction
@@ -175,26 +175,26 @@ treeTests =
           -------------------------------------------------------------------------
           it "3" (transform1 program205 == program207)
 
-    --    describe "- transform2" $ do
+        describe "- transform2" $ do
+          -------------------------------------------------------------------------
+          it "1" (transform2 program303 == program304)
+
+        describe "- compileProgram" $ do
+          -- TODO
+          -- -------------------------------------------------------------------------
+          -- it "1" (compileDefs program8 == program10)
+          -------------------------------------------------------------------------
+          it "2" (compileDefs fragment6 == fragment7)
     --      -------------------------------------------------------------------------
-    --      it "1" (transform2 program303 == program304)
-    --
-    --    describe "- compileProgram" $ do
-    --      -- TODO
-    --      -- -------------------------------------------------------------------------
-    --      -- it "1" (compileProgram program8 == program10)
+    --      it "3" (compileDefs fragment4 == fragment5)
     --      -------------------------------------------------------------------------
-    --      it "2" (compileProgram fragment6 == fragment7)
+    --      it "4" (compileDefs fragment3 == fragment9)
     --      -------------------------------------------------------------------------
-    --      it "3" (compileProgram fragment4 == fragment5)
+    --      it "5" (compileDefs fragment1 == fragment2)
     --      -------------------------------------------------------------------------
-    --      it "4" (compileProgram fragment3 == fragment9)
+    --      it "6" (compileDefs program206 == program217)
     --      -------------------------------------------------------------------------
-    --      it "5" (compileProgram fragment1 == fragment2)
-    --      -------------------------------------------------------------------------
-    --      it "6" (compileProgram program206 == program217)
-    --      -------------------------------------------------------------------------
-    --      it "7" (compileProgram program210 == program271)
+    --      it "7" (compileDefs program210 == program271)
     --
     --    describe "- normalizeDef" $ do
     --      -------------------------------------------------------------------------
