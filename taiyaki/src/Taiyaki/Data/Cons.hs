@@ -1,7 +1,7 @@
 module Taiyaki.Data.Cons where
 
 import Taiyaki.Data
-import Taiyaki.Util 
+import Taiyaki.Util
   ( Name
   , embed
   , embed1

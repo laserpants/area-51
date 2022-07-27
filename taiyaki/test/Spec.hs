@@ -44,7 +44,7 @@ main =
           ty2 :: Type Name
           ty2 = tArr (tVar kTyp "a") (tArr (tVar kTyp "b") (tVar kTyp "c"))
       it
-        "a ~> b ~> c"
+        "a ~> b ~> c == a -> (b -> c)"
         (ty1 == ty2)
     ---------------------------------------------------------------------------
     describe "tApps" $ do
@@ -161,10 +161,10 @@ main =
                     ]
                 ]
     ---------------------------------------------------------------------------
-    describe "compileTuple" $ do
+    describe "rawTuple" $ do
       let expr :: Expr (Type Int)
           expr =
-            compileTuple
+            rawTuple
               (tup () [tInt, tBool])
               [eVar tInt "a", eVar tBool "b"]
        in it
@@ -173,6 +173,41 @@ main =
                 (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
                 (eCon (tInt ~> tBool ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool) (tupleCon 2))
                 [eVar tInt "a", eVar tBool "b"]
+                == expr
+            )
+    ---------------------------------------------------------------------------
+    describe "rawTuple" $ do
+      let expr :: Expr (Type Int)
+          expr =
+            rawList
+              (tList tInt)
+              [eLit tInt (IInt 1), eLit tInt (IInt 2), eLit tInt (IInt 3)]
+       in it
+            "[1, 2, 3]"
+            ( eApp
+                (tList tInt)
+                (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                [ eLit
+                    tInt
+                    (IInt 1)
+                , eApp
+                    (tList tInt)
+                    (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                    [ eLit
+                        tInt
+                        (IInt 2)
+                    , eApp
+                        (tList tInt)
+                        (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                        [ eLit
+                            tInt
+                            (IInt 3)
+                        , eCon
+                            (tList tInt)
+                            "[]"
+                        ]
+                    ]
+                ]
                 == expr
             )
     ---------------------------------------------------------------------------
