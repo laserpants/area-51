@@ -688,169 +688,165 @@ program6 =
 --          )
 --        ]
 --    )
---
--- program8 :: Module MonoType TypedExpr
--- program8 =
---  Module
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "a")])
---              ( tInt
---              , eLet
---                  ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
---                  (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
---                  ( eLet
---                      (tInt ~> tInt, "id-4")
---                      (eLam () [(tInt, "x")] (eVar (tInt, "x")))
---                      ( eLet
---                          (tVar 0 ~> tVar 0, "id")
---                          (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
---                          ( eLet
---                              (tInt ~> tInt ~> tInt, "add-1")
---                              ( eLam
---                                  ()
---                                  [(tInt, "x")]
---                                  ( eLam
---                                      ()
---                                      [(tInt, "y")]
---                                      ( eOp2
---                                          oAddInt
---                                          (eVar (tInt, "x"))
---                                          (eVar (tInt, "y"))
---                                      )
---                                  )
---                              )
---                              ( eLet
---                                  (tInt ~> tInt ~> tInt, "add-2")
---                                  ( eLam
---                                      ()
---                                      [(tInt, "x")]
---                                      ( eLam
---                                          ()
---                                          [(tInt, "y")]
---                                          ( eOp2
---                                              oAddInt
---                                              (eVar (tInt, "x"))
---                                              (eVar (tInt, "y"))
---                                          )
---                                      )
---                                  )
---                                  ( eLet
---                                      (tVar 1 ~> tVar 1 ~> tVar 1, "add")
---                                      ( eLam
---                                          ()
---                                          [(tVar 1, "x")]
---                                          ( eLam
---                                              ()
---                                              [(tVar 1, "y")]
---                                              ( eOp2
---                                                  (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
---                                                  (eVar (tVar 1, "x"))
---                                                  (eVar (tVar 1, "y"))
---                                              )
---                                          )
---                                      )
---                                      ( eLet
---                                          (tInt ~> tInt, "add2")
---                                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add-1")) [eLit (PInt 2)])
---                                          ( eOp2
---                                              oAddInt
---                                              ( eApp
---                                                  tInt
---                                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")) [eVar (tInt ~> tInt, "add2")])
---                                                  [ eApp tInt (eVar (tInt ~> tInt, "id-4")) [eLit (PInt 3)]
---                                                  ]
---                                              )
---                                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add-2")) [eLit (PInt 4), eLit (PInt 5)])
---                                          )
---                                      )
---                                  )
---                              )
---                          )
---                      )
---                  )
---              )
---          )
---        ]
---    )
---
--- program9 :: Module MonoType TypedExpr
--- program9 =
---  Module
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "a")])
---              ( tInt
---              , eLet
---                  ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
---                  (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
---                  ( eLet
---                      (tInt ~> tInt, "id-4")
---                      (eLam () [(tInt, "x")] (eVar (tInt, "x")))
---                      ( eLet
---                          (tVar 0 ~> tVar 0, "id")
---                          (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
---                          ( eLet
---                              (tInt ~> tInt ~> tInt, "add-1")
---                              ( eLam
---                                  ()
---                                  [(tInt, "x"), (tInt, "y")]
---                                  ( eOp2
---                                      oAddInt
---                                      (eVar (tInt, "x"))
---                                      (eVar (tInt, "y"))
---                                  )
---                              )
---                              ( eLet
---                                  (tInt ~> tInt ~> tInt, "add-2")
---                                  ( eLam
---                                      ()
---                                      [(tInt, "x"), (tInt, "y")]
---                                      ( eOp2
---                                          oAddInt
---                                          (eVar (tInt, "x"))
---                                          (eVar (tInt, "y"))
---                                      )
---                                  )
---                                  ( eLet
---                                      (tVar 1 ~> tVar 1 ~> tVar 1, "add")
---                                      ( eLam
---                                          ()
---                                          [(tVar 1, "x"), (tVar 1, "y")]
---                                          ( eOp2
---                                              (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
---                                              (eVar (tVar 1, "x"))
---                                              (eVar (tVar 1, "y"))
---                                          )
---                                      )
---                                      ( eLet
---                                          (tInt ~> tInt, "add2")
---                                          (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add-1")) [eLit (PInt 2)])
---                                          ( eOp2
---                                              oAddInt
---                                              ( eApp
---                                                  tInt
---                                                  (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")) [eVar (tInt ~> tInt, "add2")])
---                                                  [ eApp tInt (eVar (tInt ~> tInt, "id-4")) [eLit (PInt 3)]
---                                                  ]
---                                              )
---                                              (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add-2")) [eLit (PInt 4), eLit (PInt 5)])
---                                          )
---                                      )
---                                  )
---                              )
---                          )
---                      )
---                  )
---              )
---          )
---        ]
---    )
---
+
+program8 :: ModuleDefs MonoType TypedExpr
+program8 =
+  Map.fromList
+    [
+      ( (Scheme (tUnit ~> tInt), "main")
+      , Function
+          (fromList [(tUnit, "a")])
+          ( tInt
+          , eLet
+              ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
+              (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
+              ( eLet
+                  (tInt ~> tInt, "id-4")
+                  (eLam () [(tInt, "x")] (eVar (tInt, "x")))
+                  ( eLet
+                      (tVar 0 ~> tVar 0, "id")
+                      (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+                      ( eLet
+                          (tInt ~> tInt ~> tInt, "add-1")
+                          ( eLam
+                              ()
+                              [(tInt, "x")]
+                              ( eLam
+                                  ()
+                                  [(tInt, "y")]
+                                  ( eOp2
+                                      oAddInt
+                                      (eVar (tInt, "x"))
+                                      (eVar (tInt, "y"))
+                                  )
+                              )
+                          )
+                          ( eLet
+                              (tInt ~> tInt ~> tInt, "add-2")
+                              ( eLam
+                                  ()
+                                  [(tInt, "x")]
+                                  ( eLam
+                                      ()
+                                      [(tInt, "y")]
+                                      ( eOp2
+                                          oAddInt
+                                          (eVar (tInt, "x"))
+                                          (eVar (tInt, "y"))
+                                      )
+                                  )
+                              )
+                              ( eLet
+                                  (tVar 1 ~> tVar 1 ~> tVar 1, "add")
+                                  ( eLam
+                                      ()
+                                      [(tVar 1, "x")]
+                                      ( eLam
+                                          ()
+                                          [(tVar 1, "y")]
+                                          ( eOp2
+                                              (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                                              (eVar (tVar 1, "x"))
+                                              (eVar (tVar 1, "y"))
+                                          )
+                                      )
+                                  )
+                                  ( eLet
+                                      (tInt ~> tInt, "add2")
+                                      (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add-1")) [eLit (PInt 2)])
+                                      ( eOp2
+                                          oAddInt
+                                          ( eApp
+                                              tInt
+                                              (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")) [eVar (tInt ~> tInt, "add2")])
+                                              [ eApp tInt (eVar (tInt ~> tInt, "id-4")) [eLit (PInt 3)]
+                                              ]
+                                          )
+                                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add-2")) [eLit (PInt 4), eLit (PInt 5)])
+                                      )
+                                  )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    ]
+
+program9 :: ModuleDefs MonoType TypedExpr
+program9 =
+  Map.fromList
+    [
+      ( (Scheme (tUnit ~> tInt), "main")
+      , Function
+          (fromList [(tUnit, "a")])
+          ( tInt
+          , eLet
+              ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
+              (eLam () [(tInt ~> tInt, "x")] (eVar (tInt ~> tInt, "x")))
+              ( eLet
+                  (tInt ~> tInt, "id-4")
+                  (eLam () [(tInt, "x")] (eVar (tInt, "x")))
+                  ( eLet
+                      (tVar 0 ~> tVar 0, "id")
+                      (eLam () [(tVar 0, "x")] (eVar (tVar 0, "x")))
+                      ( eLet
+                          (tInt ~> tInt ~> tInt, "add-1")
+                          ( eLam
+                              ()
+                              [(tInt, "x"), (tInt, "y")]
+                              ( eOp2
+                                  oAddInt
+                                  (eVar (tInt, "x"))
+                                  (eVar (tInt, "y"))
+                              )
+                          )
+                          ( eLet
+                              (tInt ~> tInt ~> tInt, "add-2")
+                              ( eLam
+                                  ()
+                                  [(tInt, "x"), (tInt, "y")]
+                                  ( eOp2
+                                      oAddInt
+                                      (eVar (tInt, "x"))
+                                      (eVar (tInt, "y"))
+                                  )
+                              )
+                              ( eLet
+                                  (tVar 1 ~> tVar 1 ~> tVar 1, "add")
+                                  ( eLam
+                                      ()
+                                      [(tVar 1, "x"), (tVar 1, "y")]
+                                      ( eOp2
+                                          (tVar 1 ~> tVar 1 ~> tVar 1, OAdd)
+                                          (eVar (tVar 1, "x"))
+                                          (eVar (tVar 1, "y"))
+                                      )
+                                  )
+                                  ( eLet
+                                      (tInt ~> tInt, "add2")
+                                      (eApp (tInt ~> tInt) (eVar (tInt ~> tInt ~> tInt, "add-1")) [eLit (PInt 2)])
+                                      ( eOp2
+                                          oAddInt
+                                          ( eApp
+                                              tInt
+                                              (eApp (tInt ~> tInt) (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")) [eVar (tInt ~> tInt, "add2")])
+                                              [ eApp tInt (eVar (tInt ~> tInt, "id-4")) [eLit (PInt 3)]
+                                              ]
+                                          )
+                                          (eApp tInt (eVar (tInt ~> tInt ~> tInt, "add-2")) [eLit (PInt 4), eLit (PInt 5)])
+                                      )
+                                  )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    ]
+
 ----  def main(a : unit) : int =
 ----    let
 ----      id =

@@ -60,8 +60,10 @@ testHoistModule (Module n p) =
   Module n (hoistTopLambdas <$> p)
 
 testMonomorphizeModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
-testMonomorphizeModule (Module n p) =
-  Module n (runTransform (traverse (traverse monomorphizeLets) p))
+testMonomorphizeModule (Module n p) = Module n (testMonomorphizeModuleDefs p)
+
+testMonomorphizeModuleDefs :: ModuleDefs MonoType TypedExpr -> ModuleDefs MonoType TypedExpr
+testMonomorphizeModuleDefs = runTransform . traverse (traverse monomorphizeLets)
 
 {-# NOINLINE projectDir #-}
 projectDir :: String

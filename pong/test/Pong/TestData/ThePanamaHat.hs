@@ -2,10 +2,10 @@
 
 module Pong.TestData.ThePanamaHat where
 
--- import Data.List.NonEmpty (fromList)
--- import qualified Data.Map.Strict as Map
+import Data.List.NonEmpty (fromList)
+import qualified Data.Map.Strict as Map
 -- import Pong.Data
--- import Pong.Lang
+import Pong.Lang
 import Pong.Util
 
 --
@@ -224,101 +224,95 @@ import Pong.Util
 --          )
 --        ]
 --    )
---
--- program205 :: Program MonoType TypedExpr
--- program205 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "_")])
---              ( tInt
---              , eLet
---                  (tCon "List" [tVar 0], "xs")
---                  (eCon (tCon "List" [tVar 0], "Nil"))
---                  ( ePat
---                      (eVar (tCon "List" [tInt], "xs"))
---                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
---                      ,
---                        (
---                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---                          , (tInt, "y")
---                          , (tCon "List" [tInt], "ys")
---                          ]
---                        , eVar (tInt, "y")
---                        )
---                      ]
---                  )
---              )
---          )
---        ]
---    )
---
--- program206 :: Program MonoType TypedExpr
--- program206 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "_")])
---              ( tInt
---              , eLet
---                  (tCon "List" [tInt], "xs-1")
---                  (eCon (tCon "List" [tInt], "Nil"))
---                  ( ePat
---                      (eVar (tCon "List" [tInt], "xs-1"))
---                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
---                      ,
---                        (
---                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---                          , (tInt, "y")
---                          , (tCon "List" [tInt], "ys")
---                          ]
---                        , eVar (tInt, "y")
---                        )
---                      ]
---                  )
---              )
---          )
---        ]
---    )
---
--- program207 :: Program MonoType TypedExpr
--- program207 =
---  Program
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "_")])
---              ( tInt
---              , eLet
---                  (tCon "List" [tInt], "xs-1")
---                  (eCon (tCon "List" [tInt], "Nil"))
---                  ( eLet
---                      (tCon "List" [tVar 0], "xs")
---                      (eCon (tCon "List" [tVar 0], "Nil"))
---                      ( ePat
---                          (eVar (tCon "List" [tInt], "xs-1"))
---                          [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
---                          ,
---                            (
---                              [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
---                              , (tInt, "y")
---                              , (tCon "List" [tInt], "ys")
---                              ]
---                            , eVar (tInt, "y")
---                            )
---                          ]
---                      )
---                  )
---              )
---          )
---        ]
---    )
---
+
+program205 :: ModuleDefs MonoType TypedExpr
+program205 =
+  Map.fromList
+    [
+      ( (Scheme (tUnit ~> tInt), "main")
+      , Function
+          (fromList [(tUnit, "_")])
+          ( tInt
+          , eLet
+              (tCon "List" [tVar 0], "xs")
+              (eCon (tCon "List" [tVar 0], "Nil"))
+              ( ePat
+                  (eVar (tCon "List" [tInt], "xs"))
+                  [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                  ,
+                    (
+                      [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                      , (tInt, "y")
+                      , (tCon "List" [tInt], "ys")
+                      ]
+                    , eVar (tInt, "y")
+                    )
+                  ]
+              )
+          )
+      )
+    ]
+
+program206 :: ModuleDefs MonoType TypedExpr
+program206 =
+  Map.fromList
+    [
+      ( (Scheme (tUnit ~> tInt), "main")
+      , Function
+          (fromList [(tUnit, "_")])
+          ( tInt
+          , eLet
+              (tCon "List" [tInt], "xs-1")
+              (eCon (tCon "List" [tInt], "Nil"))
+              ( ePat
+                  (eVar (tCon "List" [tInt], "xs-1"))
+                  [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                  ,
+                    (
+                      [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                      , (tInt, "y")
+                      , (tCon "List" [tInt], "ys")
+                      ]
+                    , eVar (tInt, "y")
+                    )
+                  ]
+              )
+          )
+      )
+    ]
+
+program207 :: ModuleDefs MonoType TypedExpr
+program207 =
+  Map.fromList
+    [
+      ( (Scheme (tUnit ~> tInt), "main")
+      , Function
+          (fromList [(tUnit, "_")])
+          ( tInt
+          , eLet
+              (tCon "List" [tInt], "xs-1")
+              (eCon (tCon "List" [tInt], "Nil"))
+              ( eLet
+                  (tCon "List" [tVar 0], "xs")
+                  (eCon (tCon "List" [tVar 0], "Nil"))
+                  ( ePat
+                      (eVar (tCon "List" [tInt], "xs-1"))
+                      [ ([(tCon "List" [tInt], "Nil")], eLit (PInt 401))
+                      ,
+                        (
+                          [ (tInt ~> tCon "List" [tInt] ~> tCon "List" [tInt], "Cons")
+                          , (tInt, "y")
+                          , (tCon "List" [tInt], "ys")
+                          ]
+                        , eVar (tInt, "y")
+                        )
+                      ]
+                  )
+              )
+          )
+      )
+    ]
+
 -- program217 :: Program MonoType Ast
 -- program217 =
 --  Program

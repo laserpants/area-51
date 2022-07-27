@@ -4,12 +4,13 @@ module Pong.TreeTests where
 
 import Data.List.NonEmpty (fromList)
 import Pong.Lang
--- import Pong.TestData.AnEnvelopeForJohnStJohn
+import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.GeraniumPlant
 import Pong.TestData.GoAwayDixieGillian
--- import Pong.TestData.JackOfClubs
+import Pong.TestData.JackOfClubs
 ---- import Pong.TestData.TheFatalAuction
--- import Pong.TestData.ThePanamaHat
+import Pong.TestData.ThePanamaHat
+import Pong.TestHelpers
 import Pong.Tree
 import Pong.Util
 import Test.Hspec hiding (after, before)
@@ -132,7 +133,8 @@ treeTests =
           -------------------------------------------------------------------------
           let input :: Text
               input =
-                "module Main\
+                "\
+                \module Main\
                 \\r\n\
                 \func main(a : unit) : int =\
                 \  let\
@@ -149,29 +151,30 @@ treeTests =
                 \          x\
                 \"
               -- "
-
               program :: ModuleDefs MonoType TypedExpr
               program = program1
-           in it "1" (parseAndAnnotate input == Right (Module "Main" program))
+           in it
+                "1"
+                (parseAndAnnotate input == Right (Module "Main" program))
 
-    --    describe "- canonical" $ do
-    --      -------------------------------------------------------------------------
-    --      it "1" (expr1 /= expr2)
-    --      -------------------------------------------------------------------------
-    --      it "2" (canonical expr1 == expr2)
-    --      -------------------------------------------------------------------------
-    --      it "3" (canonical expr1 == canonical expr2)
-    --      -------------------------------------------------------------------------
-    --      it "4" (expr1 `isIsomorphicTo` expr2)
-    --
-    --    describe "- monomorphizeLets" $ do
-    --      -------------------------------------------------------------------------
-    --      it "1" (testMonomorphizeProgram program6 == program8)
-    --      -------------------------------------------------------------------------
-    --      it "2" (transform1 program6 == program9)
-    --      -------------------------------------------------------------------------
-    --      it "3" (transform1 program205 == program207)
-    --
+        describe "- canonical" $ do
+          -------------------------------------------------------------------------
+          it "1" (expr1 /= expr2)
+          -------------------------------------------------------------------------
+          it "2" (canonical expr1 == expr2)
+          -------------------------------------------------------------------------
+          it "3" (canonical expr1 == canonical expr2)
+          -------------------------------------------------------------------------
+          it "4" (expr1 `isIsomorphicTo` expr2)
+
+        describe "- monomorphizeLets" $ do
+          -------------------------------------------------------------------------
+          it "1" (testMonomorphizeModuleDefs program6 == program8)
+          -------------------------------------------------------------------------
+          it "2" (transform1 program6 == program9)
+          -------------------------------------------------------------------------
+          it "3" (transform1 program205 == program207)
+
     --    describe "- transform2" $ do
     --      -------------------------------------------------------------------------
     --      it "1" (transform2 program303 == program304)
