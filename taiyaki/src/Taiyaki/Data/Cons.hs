@@ -243,5 +243,3 @@ eSub = embed1 ESub
 {-# INLINE eCo #-}
 eCo :: t -> Expr t -> Expr t
 eCo = embed2 ECo
-
-

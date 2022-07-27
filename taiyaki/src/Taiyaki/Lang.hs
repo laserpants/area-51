@@ -353,8 +353,6 @@ fieldSet = foldr (uncurry (Map.insertWith (<>))) mempty . (singleton <$$>)
 constructorEnv :: [(Name, ([Name], Int))] -> ConstructorEnv
 constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 
-------------------------------------------------------------------------------
-
 unpackRow :: (Row r) => r -> (FieldSet r, r)
 unpackRow r = (fieldSet (rInit r), rLast r)
 
