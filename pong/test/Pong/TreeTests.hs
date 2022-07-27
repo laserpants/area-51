@@ -8,7 +8,7 @@ import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.GeraniumPlant
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
----- import Pong.TestData.TheFatalAuction
+-- import Pong.TestData.TheFatalAuction
 import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
@@ -182,68 +182,68 @@ treeTests =
         describe "- compileProgram" $ do
           -- TODO
           -- -------------------------------------------------------------------------
-          -- it "1" (compileDefs program8 == program10)
+          --      it "1" (compileDefs program8 == program10)
           -------------------------------------------------------------------------
           it "2" (compileDefs fragment6 == fragment7)
-    --      -------------------------------------------------------------------------
-    --      it "3" (compileDefs fragment4 == fragment5)
-    --      -------------------------------------------------------------------------
-    --      it "4" (compileDefs fragment3 == fragment9)
-    --      -------------------------------------------------------------------------
-    --      it "5" (compileDefs fragment1 == fragment2)
-    --      -------------------------------------------------------------------------
-    --      it "6" (compileDefs program206 == program217)
-    --      -------------------------------------------------------------------------
-    --      it "7" (compileDefs program210 == program271)
-    --
-    --    describe "- normalizeDef" $ do
-    --      -------------------------------------------------------------------------
-    --      let before :: Definition MonoType Ast
-    --          before =
-    --            Function
-    --              (fromList [(tInt, "x")])
-    --              (tInt ~> tInt, eVar (tInt ~> tInt, "foo"))
-    --
-    --      let after :: Definition MonoType Ast
-    --          after =
-    --            Function
-    --              (fromList [(tInt, "x"), (tInt, "$v0")])
-    --              (tInt, eCall (tInt ~> tInt, "foo") [eVar (tInt, "$v0")])
-    --
-    --      passIt "1" (normalizeDef before == after)
-    --
-    --    describe "- normalizeProgramDefs" $ do
-    --      -------------------------------------------------------------------------
-    --      it "1" (normalizeProgramDefs fragment7 == fragment8)
-    --
-    --    describe "- compileSource" $ do
-    --      it "TODO" True
-    --    -------------------------------------------------------------------------
-    --    -- TODO
-    --    --  passIt "1" (compileSource program4 == program11)
-    --    -------------------------------------------------------------------------
-    --    -- TODO
-    --    --      passIt "2" (canonical (compileSource program44) == program45)
-    --    -------------------------------------------------------------------------
-    --    -- TODO
-    --    --      passIt "3" (canonical (compileSource program46) == program47)
-    --    -------------------------------------------------------------------------
-    --    -- TODO
-    --    --      passIt "4" (canonical (compileSource program48) == program49)
-    --
-    --    describe "- isPolymorphic" $ do
-    --      describe "- Pass" $ do
-    --        passIt "int -> int -> '0" (isPolymorphic (tInt ~> tInt ~> tVar 0 :: MonoType))
-    --        passIt "'0" (isPolymorphic (tVar 0 :: MonoType))
-    --        passIt "(int -> int -> '0) -> int -> int -> '0" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0 :: MonoType))
-    --        passIt "(int -> int -> '0) -> int -> int -> int" (isPolymorphic ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt :: MonoType))
-    --
-    --      describe "- Fail" $ do
-    --        failIt "int -> int -> bool" (not $ isPolymorphic (tInt ~> tInt ~> tBool))
-    --        failIt "bool" (not $ isPolymorphic tBool)
-    --
-    --    describe "- appArgs" $ do
-    --      it "TODO" True
+          -------------------------------------------------------------------------
+          it "3" (compileDefs fragment4 == fragment5)
+          -------------------------------------------------------------------------
+          it "4" (compileDefs fragment3 == fragment9)
+          -------------------------------------------------------------------------
+          it "5" (compileDefs fragment1 == fragment2)
+          -------------------------------------------------------------------------
+          it "6" (compileDefs program206 == program217)
+          -------------------------------------------------------------------------
+          it "7" (compileDefs program210 == program271)
+
+        describe "- normalizeDef" $ do
+          -------------------------------------------------------------------------
+          let before :: Definition MonoType Ast
+              before =
+                Function
+                  (fromList [(tInt, "x")])
+                  (tInt ~> tInt, eVar (tInt ~> tInt, "foo"))
+
+          let after :: Definition MonoType Ast
+              after =
+                Function
+                  (fromList [(tInt, "x"), (tInt, "$v0")])
+                  (tInt, eCall () (tInt ~> tInt, "foo") [eVar (tInt, "$v0")])
+
+          passIt "1" (normalizeDef before == after)
+
+        describe "- normalizeDef" $ do
+          -------------------------------------------------------------------------
+          it "1" ((normalizeDef <$> fragment7) == fragment8)
+
+        --    describe "- compileSource" $ do
+        --      it "TODO" True
+        --    -------------------------------------------------------------------------
+        --    -- TODO
+        --    --  passIt "1" (compileSource program4 == program11)
+        --    -------------------------------------------------------------------------
+        --    -- TODO
+        --    --      passIt "2" (canonical (compileSource program44) == program45)
+        --    -------------------------------------------------------------------------
+        --    -- TODO
+        --    --      passIt "3" (canonical (compileSource program46) == program47)
+        --    -------------------------------------------------------------------------
+        --    -- TODO
+        --    --      passIt "4" (canonical (compileSource program48) == program49)
+
+        describe "- containsTVar" $ do
+          describe "- Pass" $ do
+            passIt "int -> int -> '0" (containsTVar (tInt ~> tInt ~> tVar 0 :: MonoType))
+            passIt "'0" (containsTVar (tVar 0 :: MonoType))
+            passIt "(int -> int -> '0) -> int -> int -> '0" (containsTVar ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tVar 0 :: MonoType))
+            passIt "(int -> int -> '0) -> int -> int -> int" (containsTVar ((tInt ~> tInt ~> tVar 0) ~> tInt ~> tInt ~> tInt :: MonoType))
+
+          describe "- Fail" $ do
+            failIt "int -> int -> bool" (not $ containsTVar (tInt ~> tInt ~> tBool))
+            failIt "bool" (not $ containsTVar tBool)
+
+    -- describe "- appArgs" $ do
+    --  it "TODO" True
 
     describe "- exclude" $ do
       -------------------------------------------------------------------------

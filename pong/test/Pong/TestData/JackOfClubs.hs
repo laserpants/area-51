@@ -965,98 +965,96 @@ program9 =
 ----                add(2)
 ----              in
 ----                (id(add2))(id(3)) + add(4, 5)\
---
--- program10 :: Module MonoType Ast
+
+-- program10 :: ModuleDefs MonoType Ast
 -- program10 =
---  Module
---    ( Map.fromList
---        [
---          ( (Scheme (tUnit ~> tInt), "main")
---          , Function
---              (fromList [(tUnit, "a")])
---              ( tInt
---              , eLet
---                  ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
---                  (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1"))
---                  ( eLet
---                      (tInt ~> tInt, "id-4")
---                      (eVar (tInt ~> tInt, "$lam2"))
---                      ( eLet
---                          (tInt ~> tInt ~> tInt, "add-1")
---                          (eVar (tInt ~> tInt ~> tInt, "$lam4"))
---                          ( eLet
---                              (tInt ~> tInt ~> tInt, "add-2")
---                              (eVar (tInt ~> tInt ~> tInt, "$lam6"))
---                              ( eLet
---                                  (tInt ~> tInt, "add2")
---                                  (eCall (tInt ~> tInt ~> tInt, "add-1") [eLit (PInt 2)])
---                                  ( eOp2
---                                      oAddInt
---                                      ( eCall
---                                          ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
---                                          [ eVar (tInt ~> tInt, "add2")
---                                          , eCall (tInt ~> tInt, "id-4") [eLit (PInt 3)]
---                                          ]
---                                      )
---                                      (eCall (tInt ~> tInt ~> tInt, "add-2") [eLit (PInt 4), eLit (PInt 5)])
---                                  )
---                              )
---                          )
---                      )
---                  )
---              )
---          )
---        ,
---          ( (Scheme ((tInt ~> tInt) ~> tInt ~> tInt), "$lam1")
---          , Function
---              (fromList [(tInt ~> tInt, "x"), (tInt, "$v0")])
---              ( tInt
---              , eCall (tInt ~> tInt, "x") [eVar (tInt, "$v0")]
---              )
---          )
---        ,
---          ( (Scheme (tInt ~> tInt), "$lam2")
---          , Function
---              (fromList [(tInt, "x")])
---              ( tInt
---              , eVar (tInt, "x")
---              )
---          )
---        ,
---          ( (Scheme (tInt ~> tInt ~> tInt), "$lam3")
---          , Function
---              (fromList [(tInt, "x"), (tInt, "y")])
---              ( tInt
---              , eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))
---              )
---          )
---        ,
---          ( (Scheme (tInt ~> tInt ~> tInt), "$lam4")
---          , Function
---              (fromList [(tInt, "x"), (tInt, "$v0")])
---              ( tInt
---              , eCall (tInt ~> tInt ~> tInt, "$lam3") [eVar (tInt, "x"), eVar (tInt, "$v0")]
---              )
---          )
---        ,
---          ( (Scheme (tInt ~> tInt ~> tInt), "$lam5")
---          , Function
---              (fromList [(tInt, "x"), (tInt, "y")])
---              ( tInt
---              , eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))
---              )
---          )
---        ,
---          ( (Scheme (tInt ~> tInt ~> tInt), "$lam6")
---          , Function
---              (fromList [(tInt, "x"), (tInt, "$v0")])
---              ( tInt
---              , eCall (tInt ~> tInt ~> tInt, "$lam5") [eVar (tInt, "x"), eVar (tInt, "$v0")]
---              )
---          )
---        ]
---    )
---
+--   Map.fromList
+--       [
+--         ( (Scheme (tUnit ~> tInt), "main")
+--         , Function
+--             (fromList [(tUnit, "a")])
+--             ( tInt
+--             , eLet
+--                 ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
+--                 (eVar ((tInt ~> tInt) ~> tInt ~> tInt, "$lam1"))
+--                 ( eLet
+--                     (tInt ~> tInt, "id-4")
+--                     (eVar (tInt ~> tInt, "$lam2"))
+--                     ( eLet
+--                         (tInt ~> tInt ~> tInt, "add-1")
+--                         (eVar (tInt ~> tInt ~> tInt, "$lam4"))
+--                         ( eLet
+--                             (tInt ~> tInt ~> tInt, "add-2")
+--                             (eVar (tInt ~> tInt ~> tInt, "$lam6"))
+--                             ( eLet
+--                                 (tInt ~> tInt, "add2")
+--                                 (eCall () (tInt ~> tInt ~> tInt, "add-1") [eLit (PInt 2)])
+--                                 ( eOp2
+--                                     oAddInt
+--                                     ( eCall ()
+--                                         ((tInt ~> tInt) ~> tInt ~> tInt, "id-3")
+--                                         [ eVar (tInt ~> tInt, "add2")
+--                                         , eCall () (tInt ~> tInt, "id-4") [eLit (PInt 3)]
+--                                         ]
+--                                     )
+--                                     (eCall () (tInt ~> tInt ~> tInt, "add-2") [eLit (PInt 4), eLit (PInt 5)])
+--                                 )
+--                             )
+--                         )
+--                     )
+--                 )
+--             )
+--         )
+--       ,
+--         ( (Scheme ((tInt ~> tInt) ~> tInt ~> tInt), "$lam1")
+--         , Function
+--             (fromList [(tInt ~> tInt, "x"), (tInt, "$v0")])
+--             ( tInt
+--             , eCall () (tInt ~> tInt, "x") [eVar (tInt, "$v0")]
+--             )
+--         )
+--       ,
+--         ( (Scheme (tInt ~> tInt), "$lam2")
+--         , Function
+--             (fromList [(tInt, "x")])
+--             ( tInt
+--             , eVar (tInt, "x")
+--             )
+--         )
+--       ,
+--         ( (Scheme (tInt ~> tInt ~> tInt), "$lam3")
+--         , Function
+--             (fromList [(tInt, "x"), (tInt, "y")])
+--             ( tInt
+--             , eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))
+--             )
+--         )
+--       ,
+--         ( (Scheme (tInt ~> tInt ~> tInt), "$lam4")
+--         , Function
+--             (fromList [(tInt, "x"), (tInt, "$v0")])
+--             ( tInt
+--             , eCall () (tInt ~> tInt ~> tInt, "$lam3") [eVar (tInt, "x"), eVar (tInt, "$v0")]
+--             )
+--         )
+--       ,
+--         ( (Scheme (tInt ~> tInt ~> tInt), "$lam5")
+--         , Function
+--             (fromList [(tInt, "x"), (tInt, "y")])
+--             ( tInt
+--             , eOp2 oAddInt (eVar (tInt, "x")) (eVar (tInt, "y"))
+--             )
+--         )
+--       ,
+--         ( (Scheme (tInt ~> tInt ~> tInt), "$lam6")
+--         , Function
+--             (fromList [(tInt, "x"), (tInt, "$v0")])
+--             ( tInt
+--             , eCall () (tInt ~> tInt ~> tInt, "$lam5") [eVar (tInt, "x"), eVar (tInt, "$v0")]
+--             )
+--         )
+--       ]
+
 ----
 ---- def main(a : unit) : int =
 ----   let

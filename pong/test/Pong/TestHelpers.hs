@@ -94,6 +94,9 @@ passIt = it . ("OK ✔ " <>)
 failIt :: Example a => String -> a -> SpecWith (Arg a)
 failIt = it . ("OK ✗ " <>)
 
+withDefs :: (ModuleDefs t a -> ModuleDefs t b) -> Module t a -> Module t b
+withDefs f (Module n p) = Module n (f p)
+
 emitModule :: Module MonoType Ast -> IO (ExitCode, String)
 emitModule prog = compileBinary >> exec
   where

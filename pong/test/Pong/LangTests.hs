@@ -2,19 +2,18 @@
 
 module Pong.LangTests where
 
--- import Data.Either.Extra (fromRight')
+import Data.Either.Extra (fromRight')
 import Data.Function ((&))
 import Data.List.NonEmpty (fromList)
 import qualified Data.Map.Strict as Map
 import Pong.Lang
--- import qualified Pong.Read as Pong
+import qualified Pong.Read as Pong
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
--- import Pong.TestData.JackOfClubs
--- import Pong.TestData.ThePanamaHat
+import Pong.TestData.JackOfClubs
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Test.Hspec
-
--- import Text.Megaparsec (runParser)
+import Text.Megaparsec (runParser)
 
 langTests :: SpecWith ()
 langTests =
@@ -212,7 +211,7 @@ langTests =
                   )
            in it "1" (free expr == [3, 7])
         -------------------------------------------------------------------------
-        --      it "2" (free program6 == [0, 1])
+        it "2" (free program6 == [0, 1])
         --
         --    describe "- freeIndex" $ do
         --      it "TODO" True
@@ -258,33 +257,33 @@ langTests =
                 (eVar (tInt, "b"))
          in passIt "if x then a else b" (untag expr == [tBool, tInt])
 
---    describe "- substituteVar" $ do
---      -------------------------------------------------------------------------
---      let from :: SourceExpr
---          from = fromRight' (runParser Pong.expr "" expr101)
---
---          to :: SourceExpr
---          to = fromRight' (runParser Pong.expr "" expr102)
---       in it "1" (substituteVar "y" "z" from == to)
---      -------------------------------------------------------------------------
---      let expr :: SourceExpr
---          expr = fromRight' (runParser Pong.expr "" expr103)
---       in it "2" (substituteVar "y" "z" expr == expr)
---      -------------------------------------------------------------------------
---      let from :: SourceExpr
---          from = fromRight' (runParser Pong.expr "" expr104)
---
---          to :: SourceExpr
---          to = fromRight' (runParser Pong.expr "" expr105)
---       in it "3" (substituteVar "y" "z" from == to)
---      -------------------------------------------------------------------------
---      let from :: SourceExpr
---          from = fromRight' (runParser Pong.expr "" expr113)
---
---          to :: SourceExpr
---          to = fromRight' (runParser Pong.expr "" expr114)
---       in it "4" (substituteVar "y" "z" from == to)
---      -------------------------------------------------------------------------
---      let expr :: SourceExpr
---          expr = fromRight' (runParser Pong.expr "" expr106)
---       in it "5" (substituteVar "y" "z" expr == expr)
+      describe "- substituteVar" $ do
+        -------------------------------------------------------------------------
+        let from :: SourceExpr
+            from = fromRight' (runParser Pong.expr "" expr101)
+
+            to :: SourceExpr
+            to = fromRight' (runParser Pong.expr "" expr102)
+         in it "1" (substituteVar "y" "z" from == to)
+        -------------------------------------------------------------------------
+        let expr :: SourceExpr
+            expr = fromRight' (runParser Pong.expr "" expr103)
+         in it "2" (substituteVar "y" "z" expr == expr)
+        -------------------------------------------------------------------------
+        let from :: SourceExpr
+            from = fromRight' (runParser Pong.expr "" expr104)
+
+            to :: SourceExpr
+            to = fromRight' (runParser Pong.expr "" expr105)
+         in it "3" (substituteVar "y" "z" from == to)
+
+        let from :: SourceExpr
+            from = fromRight' (runParser Pong.expr "" expr113)
+
+            to :: SourceExpr
+            to = fromRight' (runParser Pong.expr "" expr114)
+         in it "4" (substituteVar "y" "z" from == to)
+        -------------------------------------------------------------------------
+        let expr :: SourceExpr
+            expr = fromRight' (runParser Pong.expr "" expr106)
+         in it "5" (substituteVar "y" "z" expr == expr)

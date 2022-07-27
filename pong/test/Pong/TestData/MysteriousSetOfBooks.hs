@@ -39,37 +39,40 @@ program20 =
 
 -- "
 
--- program21 :: Text
--- program21 =
---  "def baz(a : unit) : { a : int, b : bool } =\
---  \  { a = 5, b = true }\
---  \\r\n\
---  \def foo(a : unit) : int =\
---  \  5\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  let\
---  \    r =\
---  \      baz(())\
---  \    in\
---  \      let\
---  \        q =\
---  \          { c = 1 | r }\
---  \        in\
---  \          letr\
---  \            { a = x | s } =\
---  \              q\
---  \            in\
---  \              if\
---  \                x == foo(())\
---  \                then\
---  \                  101\
---  \                else\
---  \                  200\
---  \"
---
----- "
---
+program21 :: Text
+program21 =
+  "\
+  \module Main\
+  \\r\n\
+  \func baz(a : unit) : { a : int, b : bool } =\
+  \  { a = 5, b = true }\
+  \\r\n\
+  \func foo(a : unit) : int =\
+  \  5\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      baz(())\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          field\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              if\
+  \                x == foo(())\
+  \                then\
+  \                  101\
+  \                else\
+  \                  200\
+  \"
+
+-- "
+
 -- program22 :: Text
 -- program22 =
 --  "const foo : int =\
@@ -124,22 +127,25 @@ program20 =
 --  \"
 --
 ---- "
---
--- program24 :: Text
--- program24 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    r =\
---  \      { a = 5 }\
---  \    in\
---  \      letr\
---  \        { a = x | s } =\
---  \          r\
---  \        in\
---  \          x\
---  \"
---
----- "
+
+program24 :: Text
+program24 =
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5 }\
+  \    in\
+  \      field\
+  \        { a = x | s } =\
+  \          r\
+  \        in\
+  \          x\
+  \"
+
+-- "
 
 program25 :: Text
 program25 =
@@ -186,23 +192,26 @@ program26 =
 
 -- "
 
--- program27 :: Text
--- program27 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    b =\
---  \      5\
---  \    in\
---  \      let\
---  \        a =\
---  \          true\
---  \        in\
---  \          if not a\
---  \            then 1\
---  \            else 2\
---  \"
---
----- "
+program27 :: Text
+program27 =
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          true\
+  \        in\
+  \          if not a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
 
 program28 :: Text
 program28 =
@@ -225,41 +234,47 @@ program28 =
 
 -- "
 
--- program29 :: Text
--- program29 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    b =\
---  \      5\
---  \    in\
---  \      let\
---  \        a =\
---  \          b == 5 || b == -5\
---  \        in\
---  \          if a\
---  \            then 1\
---  \            else 2\
---  \"
---
----- "
---
--- program30 :: Text
--- program30 =
---  "def main(_ : unit) : int =\
---  \  let\
---  \    b =\
---  \      5\
---  \    in\
---  \      let\
---  \        a =\
---  \          b == 5 && 3 > 2\
---  \        in\
---  \          if a\
---  \            then 1\
---  \            else 2\
---  \"
---
----- "
+program29 :: Text
+program29 =
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == 5 || b == -5\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
+
+program30 :: Text
+program30 =
+  "\
+  \module Main\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    b =\
+  \      5\
+  \    in\
+  \      let\
+  \        a =\
+  \          b == 5 && 3 > 2\
+  \        in\
+  \          if a\
+  \            then 1\
+  \            else 2\
+  \"
+
+-- "
 
 program31 :: Text
 program31 =
@@ -317,7 +332,7 @@ program33 =
   \       q =\
   \         f({ y = 2 })\
   \       in\
-  \         letr\
+  \         field\
   \           { x = a | s } =\
   \             q\
   \           in\

@@ -2,15 +2,15 @@
 
 module Pong.EvalTests where
 
--- import Data.Either.Extra (fromRight)
-
+import Data.Either.Extra (fromRight)
 import Pong.Eval
+-- import Pong.LLVM.Emit
 import Pong.Lang
--- import Pong.TestData.GoAwayDixieGillian
+import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.MysteriousSetOfBooks
--- import Pong.TestData.ShirtMixUpAtTheLaundry
+import Pong.TestData.ShirtMixUpAtTheLaundry
 -- import Pong.TestData.TheFatalAuction
 -- import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
@@ -50,43 +50,43 @@ evalTests =
         v <- runIO $ evalModule (compileSource program55zx) mainSig
         it "5" (Just (exitSuccessValue, "300") == v)
 
-----     -------------------------------------------------------------------------
-----     do
-----       v <- runIO $ evalModule (transformModule program1) mainSig
-----       it "1" (Just (PrimValue (PInt 100)) == v)
-----      -------------------------------------------------------------------------
-----      let program :: Module MonoType Ast
-----          program =
-----            transformModule (fromRight emptyModule (parseAndAnnotate program2))
-----       in do
-----            v <- runIO $ evalModule program mainSig
-----            it "2" (Just (PrimValue (PInt 5)) == v)
-----      -------------------------------------------------------------------------
-----      let program :: Module MonoType Ast
-----          program =
-----            transformModule (fromRight emptyModule (parseAndAnnotate program3))
-----       in do
-----            v <- runIO $ evalModule program mainSig
-----            it "3" (Just (PrimValue (PInt 1)) == v)
-----      -------------------------------------------------------------------------
-----      let program :: Module MonoType Ast
-----          program = compileSource program4
-----       in do
-----            v <- runIO $ evalModule program mainSig
-----            it "4" (Just (PrimValue (PInt 14)) == v)
-----      -------------------------------------------------------------------------
-----      let program :: Module MonoType Ast
-----          program = compileSource program20
-----       in do
-----            v <- runIO $ evalModule program mainSig
-----            it "5" (Just (PrimValue (PInt 100)) == v)
-----      -------------------------------------------------------------------------
-----      let program :: Module MonoType Ast
-----          program = compileSource program21
-----       in do
-----            v <- runIO $ evalModule program mainSig
-----            it "6" (Just (PrimValue (PInt 101)) == v)
-----      -------------------------------------------------------------------------
+      -------------------------------------------------------------------------
+      do
+        let zz = transformDefs program1
+        v <- runIO $ evalModule (Module "Main" zz) mainSig
+        it "1" (Just (PrimValue (PInt 100)) == (fst <$> v))
+
+      -------------------------------------------------------------------------
+      let m = fromRight (Module "" mempty) (parseAndAnnotate program2)
+       in do
+            v <- runIO $ evalModule (withDefs transformDefs m) mainSig
+            it "2" (Just (PrimValue (PInt 5)) == (fst <$> v))
+
+      -------------------------------------------------------------------------
+      let m = fromRight (Module "" mempty) (parseAndAnnotate program3)
+       in do
+            v <- runIO $ evalModule (withDefs transformDefs m) mainSig
+            it "3" (Just (PrimValue (PInt 1)) == (fst <$> v))
+      -------------------------------------------------------------------------
+      let program :: Module MonoType Ast
+          program = compileSource program4
+       in do
+            v <- runIO $ evalModule program mainSig
+            it "4" (Just (PrimValue (PInt 14)) == (fst <$> v))
+      -------------------------------------------------------------------------
+      let program :: Module MonoType Ast
+          program = compileSource program20
+       in do
+            v <- runIO $ evalModule program mainSig
+            it "5" (Just (PrimValue (PInt 100)) == (fst <$> v))
+      -------------------------------------------------------------------------
+      let program :: Module MonoType Ast
+          program = compileSource program21
+       in do
+            v <- runIO $ evalModule program mainSig
+            it "6" (Just (PrimValue (PInt 101)) == (fst <$> v))
+
+-------------------------------------------------------------------------
 ----      let program :: Module MonoType Ast
 ----          program = compileSource program22
 ----       in do
