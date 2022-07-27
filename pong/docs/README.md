@@ -287,6 +287,8 @@ $$
 
 ##### Restriction
 
+### Patterns
+
 ## Footnotes
 
 <ol>
