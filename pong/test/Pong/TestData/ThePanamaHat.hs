@@ -1220,3 +1220,109 @@ program604 =
   \"
 
 -- "
+
+program605 :: Text
+program605 =
+  "\
+  \module Main\
+  \\r\n\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \const succ : int -> int =\
+  \  lam(x) =>\
+  \    x + 1\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    a =\
+  \      This(122)\
+  \    in\
+  \      match a {\
+  \        | This(x) => x + 1\
+  \        | That(y) => y + 1\
+  \      }\
+  \"
+
+-- "
+
+program615 :: Text
+program615 =
+  "\
+  \module Main\
+  \\r\n\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \func succ(x : int) : int =\
+  \  x + 1\
+  \\r\n\
+  \func mapEither(f : int -> int, th : Either int int) : int =\
+  \  match th {\
+  \    | This(l) => f(l)\
+  \    | That(r) => f(r)\
+  \  }\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    a =\
+  \      This(120)\
+  \    in\
+  \      mapEither(succ, a)\
+  \"
+
+-- "
+
+program616 :: Text
+program616 =
+  "\
+  \module Main\
+  \\r\n\
+  \extern print_int : int -> int\
+  \\r\n\
+  \type Either a b\
+  \  = This a\
+  \  | That b\
+  \\r\n\
+  \func main(_ : unit) : int =\
+  \  let\
+  \    res =\
+  \      runner()\
+  \    in\
+  \      print_int(res)\
+  \\r\n\
+  \func mapEither(f : int -> int, th : Either int int) : int =\
+  \  match th {\
+  \    | This(l) => f(l)\
+  \    | That(r) => f(r)\
+  \  }\
+  \\r\n\
+  \func runner(_ : unit) : int =\
+  \  let\
+  \    a =\
+  \      This(120)\
+  \    in\
+  \      mapEither(lam(x) => x * 2, a)\
+  \"
+
+-- "
