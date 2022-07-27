@@ -1,4 +1,4 @@
-# pong
+# Pong
 
 ## Language implementation
 
