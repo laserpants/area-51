@@ -96,7 +96,7 @@ emitModule :: Module MonoType Ast -> IO (ExitCode, String)
 emitModule prog = compileBinary >> exec
   where
     compileBinary = do
-      let mdul = ppll (buildModule_ prog)
+      let mdul = ppll (compileModule prog)
           echo = proc "echo" [TextLazy.unpack mdul]
       (_, Just stdoutHandle, _, _) <- createProcess echo{std_out = CreatePipe}
       (_, _, _, procHandle) <-

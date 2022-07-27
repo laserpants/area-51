@@ -114,8 +114,8 @@ forEachIn ::
   m [a]
 forEachIn p f = forEachDef p (\(_, n) def -> f n (typeOf def) def)
 
-buildModule_ :: Pong.Module MonoType Ast -> LLVM.Module
-buildModule_ (Pong.Module modname p) =
+compileModule :: Pong.Module MonoType Ast -> LLVM.Module
+compileModule (Pong.Module modname p) =
   buildModule (llvmRep modname) $ do
     void (extern "gc_malloc" [i64] charPtr)
     void (extern "hashmap_init" [] charPtr)
