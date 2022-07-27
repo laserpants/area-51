@@ -128,8 +128,8 @@ specialized name ts = (go =<<)
           | ctor == name        -> [rs <> ps]
           | otherwise           -> []
         PLit    t lit           -> go (pCon t (primCon lit) [] : ps)
-        PList   t elms          -> go (foldList t elms : ps)
-        PTup    t elms          -> go (foldTuple t elms : ps)
+        PList   t elms          -> go (compileList t elms : ps)
+        PTup    t elms          -> go (compileTuple t elms : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
         PAs     _ _ q           -> go (q : ps)
         PAnn    _ q             -> go (q : ps)
@@ -162,8 +162,8 @@ patternGroups =
   project
     >>> \case
       PCon      _ ctor ps       -> ConGroup ctor ps
-      PTup      t elms          -> patternGroups (foldTuple t elms)
-      PList     t elms          -> patternGroups (foldList t elms)
+      PTup      t elms          -> patternGroups (compileTuple t elms)
+      PList     t elms          -> patternGroups (compileList t elms)
       PLit      t lit           -> patternGroups (pCon t (primCon lit) [])
       PAnn      _ p             -> patternGroups p
       PAs       _ _ p           -> patternGroups p
@@ -182,8 +182,8 @@ headCons = (>>= go)
       case project p of
         PCon    _ name rs       -> [(name, rs)]
         PLit    _ q             -> [(primCon q, [])]
-        PTup    t elms          -> go (foldTuple t elms : ps)
-        PList   t elms          -> go (foldList t elms : ps)
+        PTup    t elms          -> go (compileTuple t elms : ps)
+        PList   t elms          -> go (compileList t elms : ps)
         POr     _ q r           -> go (q : ps) <> go (r : ps)
         PAs     _ _ q           -> go (q : ps)
         PAnn    _ q             -> go (q : ps)

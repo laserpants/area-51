@@ -366,8 +366,8 @@ tApps = foldl' go
 tupleCon :: Int -> Name
 tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
 
-foldTuple :: (Con a t) => t -> [a] -> a
-foldTuple t ps = con t (tupleCon (length ps)) ps
+compileTuple :: (Con a t) => t -> [a] -> a
+compileTuple t ps = con t (tupleCon (length ps)) ps
 
 listNil :: (Con a t) => t -> a
 listNil t = con t "[]" []
@@ -375,8 +375,8 @@ listNil t = con t "[]" []
 listCons :: (Con a t) => t -> a -> a -> a
 listCons t head_ tail_ = con t "(::)" [head_, tail_]
 
-foldList :: (Con a t) => t -> [a] -> a
-foldList t = foldr (listCons t) (listNil t)
+compileList :: (Con a t) => t -> [a] -> a
+compileList t = foldr (listCons t) (listNil t)
 
 -- foldRow :: (Con a t, Tagged a t, Row a, Row t, Eq a) => a -> a
 -- foldRow a = Map.foldrWithKey (flip . foldr . go) last_ m

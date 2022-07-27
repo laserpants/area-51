@@ -161,10 +161,10 @@ main =
                     ]
                 ]
     ---------------------------------------------------------------------------
-    describe "foldTuple" $ do
+    describe "compileTuple" $ do
       let expr :: Expr (Type Int)
           expr =
-            foldTuple
+            compileTuple
               (tup () [tInt, tBool])
               [eVar tInt "a", eVar tBool "b"]
        in it
