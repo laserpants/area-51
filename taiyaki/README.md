@@ -1,4 +1,4 @@
-# taiyaki
+# Taiyaki
 
 <p>&nbsp;</p>
 <p align="center">
