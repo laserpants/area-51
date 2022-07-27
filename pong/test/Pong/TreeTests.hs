@@ -2,16 +2,16 @@
 
 module Pong.TreeTests where
 
--- import Data.List.NonEmpty (fromList)
+import Data.List.NonEmpty (fromList)
 import Pong.Lang
 -- import Pong.TestData.AnEnvelopeForJohnStJohn
 -- import Pong.TestData.GeraniumPlant
--- import Pong.TestData.GoAwayDixieGillian
+import Pong.TestData.GoAwayDixieGillian
 -- import Pong.TestData.JackOfClubs
 ---- import Pong.TestData.TheFatalAuction
 -- import Pong.TestData.ThePanamaHat
 import Pong.Tree
--- import Pong.Util
+import Pong.Util
 import Test.Hspec hiding (after, before)
 
 {- HLINT ignore "Use null" -}
@@ -19,139 +19,141 @@ import Test.Hspec hiding (after, before)
 treeTests :: SpecWith ()
 treeTests =
   describe "Pong.Tree" $ do
-    --    describe "- hoistTopLambdas" $ do
-    --      -------------------------------------------------------------------------
-    --      let def :: Definition MonoType TypedExpr
-    --          def =
-    --            Function
-    --              (fromList [(tInt, "x")])
-    --              (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
-    --
-    --          result :: Definition MonoType TypedExpr
-    --          result =
-    --            Function
-    --              (fromList [(tInt, "x"), (tInt, "y")])
-    --              (tInt, eVar (tInt, "y"))
-    --       in it "1" (hoistTopLambdas def == result)
-    --      -------------------------------------------------------------------------
-    --      it "2" (testHoistProgram program6 == program7)
-    --
-    --    describe "- combineLambdas" $ do
-    --      -------------------------------------------------------------------------
-    --      let before :: TypedExpr
-    --          before =
-    --            eLam
-    --              ()
-    --              [(tInt, "a")]
-    --              ( eLam
-    --                  ()
-    --                  [(tInt, "b")]
-    --                  (eVar (tInt, "b"))
-    --              )
-    --
-    --          after :: TypedExpr
-    --          after =
-    --            eLam
-    --              ()
-    --              [(tInt, "a"), (tInt, "b")]
-    --              (eVar (tInt, "b"))
-    --       in it "1" (combineLambdas before == after)
-    --      -------------------------------------------------------------------------
-    --      let before :: TypedExpr
-    --          before =
-    --            eLam
-    --              ()
-    --              [(tInt, "x")]
-    --              ( eLam
-    --                  ()
-    --                  [(tInt, "y")]
-    --                  ( eLam
-    --                      ()
-    --                      [(tInt, "z")]
-    --                      (eLit (PInt 5))
-    --                  )
-    --              )
-    --
-    --          after :: TypedExpr
-    --          after =
-    --            eLam
-    --              ()
-    --              [(tInt, "x"), (tInt, "y"), (tInt, "z")]
-    --              (eLit (PInt 5))
-    --       in it "2" (combineLambdas before == after)
-    --      -------------------------------------------------------------------------
-    --      let before :: TypedExpr
-    --          before =
-    --            eLam
-    --              ()
-    --              [(tInt, "a")]
-    --              ( eLam
-    --                  ()
-    --                  [(tInt, "b")]
-    --                  ( eLam
-    --                      ()
-    --                      [(tInt, "c")]
-    --                      ( eLet
-    --                          (tInt ~> tInt ~> tInt, "f")
-    --                          ( eLam
-    --                              ()
-    --                              [(tInt, "a")]
-    --                              ( eLam
-    --                                  ()
-    --                                  [(tInt, "b")]
-    --                                  (eVar (tInt, "a"))
-    --                              )
-    --                          )
-    --                          ( eLam
-    --                              ()
-    --                              [(tInt, "a")]
-    --                              ( eLam
-    --                                  ()
-    --                                  [(tInt, "b")]
-    --                                  (eVar (tInt, "a"))
-    --                              )
-    --                          )
-    --                      )
-    --                  )
-    --              )
-    --
-    --          after :: TypedExpr
-    --          after =
-    --            eLam
-    --              ()
-    --              [(tInt, "a"), (tInt, "b"), (tInt, "c")]
-    --              ( eLet
-    --                  (tInt ~> tInt ~> tInt, "f")
-    --                  (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
-    --                  (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
-    --              )
-    --       in it "3" (combineLambdas before == after)
-    --
-    --    describe "- parseAndAnnotate" $ do
-    --      -------------------------------------------------------------------------
-    --      let input :: Text
-    --          input =
-    --            "def main(a : unit) : int =\
-    --            \  let\
-    --            \    r =\
-    --            \      { a = 100\
-    --            \      , b = true\
-    --            \      , c = 3\
-    --            \      }\
-    --            \    in\
-    --            \      letr\
-    --            \        { a = x | q } =\
-    --            \          r\
-    --            \        in\
-    --            \          x\
-    --            \"
-    --          -- "
-    --
-    --          program :: Program MonoType TypedExpr
-    --          program =
-    --            program1
-    --       in it "1" (parseAndAnnotate input == Right program)
-    --
+    describe "- hoistTopLambdas" $ do
+      -------------------------------------------------------------------------
+      let def :: Definition MonoType TypedExpr
+          def =
+            Function
+              (fromList [(tInt, "x")])
+              (tInt ~> tInt, eLam () [(tInt, "y")] (eVar (tInt, "y")))
+
+          result :: Definition MonoType TypedExpr
+          result =
+            Function
+              (fromList [(tInt, "x"), (tInt, "y")])
+              (tInt, eVar (tInt, "y"))
+       in it "1" (hoistTopLambdas def == result)
+      -------------------------------------------------------------------------
+      -- TODO
+      --      it "2" (testHoistProgram program6 == program7)
+      --
+      describe "- combineLambdas" $ do
+        -------------------------------------------------------------------------
+        let before :: TypedExpr
+            before =
+              eLam
+                ()
+                [(tInt, "a")]
+                ( eLam
+                    ()
+                    [(tInt, "b")]
+                    (eVar (tInt, "b"))
+                )
+
+            after :: TypedExpr
+            after =
+              eLam
+                ()
+                [(tInt, "a"), (tInt, "b")]
+                (eVar (tInt, "b"))
+         in it "1" (combineLambdas before == after)
+        -------------------------------------------------------------------------
+        let before :: TypedExpr
+            before =
+              eLam
+                ()
+                [(tInt, "x")]
+                ( eLam
+                    ()
+                    [(tInt, "y")]
+                    ( eLam
+                        ()
+                        [(tInt, "z")]
+                        (eLit (PInt 5))
+                    )
+                )
+
+            after :: TypedExpr
+            after =
+              eLam
+                ()
+                [(tInt, "x"), (tInt, "y"), (tInt, "z")]
+                (eLit (PInt 5))
+         in it "2" (combineLambdas before == after)
+        -------------------------------------------------------------------------
+        let before :: TypedExpr
+            before =
+              eLam
+                ()
+                [(tInt, "a")]
+                ( eLam
+                    ()
+                    [(tInt, "b")]
+                    ( eLam
+                        ()
+                        [(tInt, "c")]
+                        ( eLet
+                            (tInt ~> tInt ~> tInt, "f")
+                            ( eLam
+                                ()
+                                [(tInt, "a")]
+                                ( eLam
+                                    ()
+                                    [(tInt, "b")]
+                                    (eVar (tInt, "a"))
+                                )
+                            )
+                            ( eLam
+                                ()
+                                [(tInt, "a")]
+                                ( eLam
+                                    ()
+                                    [(tInt, "b")]
+                                    (eVar (tInt, "a"))
+                                )
+                            )
+                        )
+                    )
+                )
+
+            after :: TypedExpr
+            after =
+              eLam
+                ()
+                [(tInt, "a"), (tInt, "b"), (tInt, "c")]
+                ( eLet
+                    (tInt ~> tInt ~> tInt, "f")
+                    (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
+                    (eLam () [(tInt, "a"), (tInt, "b")] (eVar (tInt, "a")))
+                )
+         in it "3" (combineLambdas before == after)
+        -------------------------------------------------------------------------
+        describe "- parseAndAnnotate" $ do
+          -------------------------------------------------------------------------
+          let input :: Text
+              input =
+                "module Main\
+                \\r\n\
+                \func main(a : unit) : int =\
+                \  let\
+                \    r =\
+                \      { a = 100\
+                \      , b = true\
+                \      , c = 3\
+                \      }\
+                \    in\
+                \      field\
+                \        { a = x | q } =\
+                \          r\
+                \        in\
+                \          x\
+                \"
+              -- "
+
+              program :: ModuleDefs MonoType TypedExpr
+              program = program1
+           in it "1" (parseAndAnnotate input == Right (Module "Main" program))
+
     --    describe "- canonical" $ do
     --      -------------------------------------------------------------------------
     --      it "1" (expr1 /= expr2)
