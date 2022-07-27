@@ -171,7 +171,13 @@ main =
             "(a, b)"
             ( eApp
                 (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
-                (eCon (tInt ~> tBool ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool) (tupleCon 2))
+                ( eCon
+                    ( tInt
+                        ~> tBool
+                        ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool
+                    )
+                    (tupleCon 2)
+                )
                 [eVar tInt "a", eVar tBool "b"]
                 == expr
             )
@@ -1085,7 +1091,27 @@ main =
         runTestExhaustive
           "| ({ x = 'a' or 'b' | r }, { x = 'a' or 'b' | r })"
           False -- not exhaustive
-          [ [pTup () [pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r")), pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r"))]]
+          [
+            [ pTup
+                ()
+                [ pRec
+                    ()
+                    ( pExt
+                        ()
+                        "x"
+                        (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b')))
+                        (pVar () "r")
+                    )
+                , pRec
+                    ()
+                    ( pExt
+                        ()
+                        "x"
+                        (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b')))
+                        (pVar () "r")
+                    )
+                ]
+            ]
           ]
 
         runTestExhaustive
@@ -1093,7 +1119,27 @@ main =
           \| (_, _)"
           -- "
           True -- exhaustive
-          [ [pTup () [pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r")), pRec () (pExt () "x" (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b'))) (pVar () "r"))]]
+          [
+            [ pTup
+                ()
+                [ pRec
+                    ()
+                    ( pExt
+                        ()
+                        "x"
+                        (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b')))
+                        (pVar () "r")
+                    )
+                , pRec
+                    ()
+                    ( pExt
+                        ()
+                        "x"
+                        (pOr () (pLit () (IChar 'a')) (pLit () (IChar 'b')))
+                        (pVar () "r")
+                    )
+                ]
+            ]
           , [pTup () [pAny (), pAny ()]]
           ]
 
