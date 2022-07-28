@@ -382,7 +382,7 @@ listNil :: (Con a t) => t -> a
 listNil t = con t "[]" []
 
 listCons :: (Con a t) => t -> a -> a -> a
-listCons t head_ tail_ = con t "(::)" [head_, tail_]
+listCons t hd tl = con t "(::)" [hd, tl]
 
 rawTuple :: (Con a t) => t -> [a] -> a
 rawTuple t ps = con t (tupleCon (length ps)) ps

@@ -63,26 +63,27 @@ useful px ps = go (preprocessRecords <$$> px) (preprocessRecords <$> ps)
 -- Translate records to tuples for better performance
 preprocessRecords :: (Row t, Tuple t ()) => Pattern t -> Pattern t
 preprocessRecords =
-  cata $
-    \case
-      PRec _ a ->
-        foldr2
-          ( \d e ->
-              pTup (tup () [getTag d, getTag e]) [d, e]
-          )
-          leaf
-          m
-        where
-          (m, r) = unpackRow a
-          leaf =
-            case project r of
-              PNil _ ->
-                pLit (tup () []) IUnit
-              PCon _ "{}" [] ->
-                pLit (tup () []) IUnit
-              _ -> r
-      p ->
-        embed p
+  cata
+    ( \case
+        PRec _ a ->
+          foldr2
+            ( \d e ->
+                pTup (tup () [getTag d, getTag e]) [d, e]
+            )
+            leaf
+            m
+          where
+            (m, r) = unpackRow a
+            leaf =
+              case project r of
+                PNil _ ->
+                  pLit (tup () []) IUnit
+                PCon _ "{}" [] ->
+                  pLit (tup () []) IUnit
+                _ -> r
+        p ->
+          embed p
+    )
 
 isComplete :: (MonadReader ConstructorEnv m) => [Name] -> m Bool
 isComplete [] = pure False
