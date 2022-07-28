@@ -311,7 +311,7 @@ kindOf =
 
 -------------------------------------------------------------------------------
 
-class Typed t v where
+class Typed t v | t -> v where
   typeOf :: t -> Type v
 
 {- ORMOLU_DISABLE -}
@@ -345,6 +345,12 @@ instance Typed (Type v) v where
 instance (Tagged a t, Typed t v) => Typed a v where
   typeOf = typeOf . getTag
 
+-- instance Typed t v => Typed (Expr t) v where
+--  typeOf = typeOf . getTag
+--
+-- instance Typed t v => Typed (Pattern t) v where
+--  typeOf = typeOf . getTag
+
 --------------------------------------------------------------------------------
 
 fieldSet :: [(Name, a)] -> FieldSet a
@@ -356,6 +362,12 @@ constructorEnv = Env.fromList <<< (first Set.fromList <$$>)
 unpackRow :: (Row r) => r -> (FieldSet r, r)
 unpackRow r = (fieldSet (rInit r), rLast r)
 
+packRow :: (Row r) => (FieldSet r, r) -> r
+packRow (m, r) = Map.foldrWithKey (flip . foldr . rExt) r m
+
+normalizeRow :: (Row r) => r -> r
+normalizeRow = packRow . unpackRow
+
 tApps :: Type v -> [Type v] -> Type v
 tApps = foldl' go
   where
@@ -366,14 +378,14 @@ tApps = foldl' go
 tupleCon :: Int -> Name
 tupleCon size = "(" <> Text.replicate (pred size) "," <> ")"
 
-rawTuple :: (Con a t) => t -> [a] -> a
-rawTuple t ps = con t (tupleCon (length ps)) ps
-
 listNil :: (Con a t) => t -> a
 listNil t = con t "[]" []
 
 listCons :: (Con a t) => t -> a -> a -> a
 listCons t head_ tail_ = con t "(::)" [head_, tail_]
+
+rawTuple :: (Con a t) => t -> [a] -> a
+rawTuple t ps = con t (tupleCon (length ps)) ps
 
 rawList :: (Con a t) => t -> [a] -> a
 rawList t = foldr (listCons t) (listNil t)

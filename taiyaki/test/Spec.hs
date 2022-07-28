@@ -36,7 +36,12 @@ main =
           expr = con (tList tInt) "(::)" [eVar tInt "x", con (tList tInt) "[]" []]
        in it
             "x :: []"
-            (eApp (tList tInt) (eCon (tInt ~> tList tInt ~> tList tInt) "(::)") [eVar tInt "x", eCon (tList tInt) "[]"] == expr)
+            ( eApp
+                (tList tInt)
+                (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                [eVar tInt "x", eCon (tList tInt) "[]"]
+                == expr
+            )
     ---------------------------------------------------------------------------
     describe "(~>)" $ do
       let ty1 :: Type Name
@@ -86,7 +91,12 @@ main =
           ty = tup () [tInt, tInt, tBool]
        in it
             "(int, int, bool)"
-            (tApp kTyp (tApp kFun1 (tApp kFun2 (tCon (kFun 3) (tupleCon 3)) tInt) tInt) tBool == ty)
+            ( tApp
+                kTyp
+                (tApp kFun1 (tApp kFun2 (tCon (kFun 3) (tupleCon 3)) tInt) tInt)
+                tBool
+                == ty
+            )
 
       let expr :: Expr ()
           expr = tup () [eLit () (IInt 1), eLit () (IInt 2)]
@@ -1194,7 +1204,111 @@ main =
                 [ eLit tInt (IInt 1)
                 , eLit tBool (IBool True)
                 ]
-         in it "(1, true)" (stage1 expr1 == expr2)
+         in it "(1, true)  ==>  ((,) 1) true" (stage1 expr1 == expr2)
+
+        let expr1 :: Expr (Type Int)
+            expr1 =
+              eList
+                (tList tInt)
+                [ eLit tInt (IInt 1)
+                , eLit tInt (IInt 2)
+                , eLit tInt (IInt 3)
+                ]
+            expr2 :: Expr (Type Int)
+            expr2 =
+              eApp
+                (tList tInt)
+                (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                [ eLit tInt (IInt 1)
+                , eApp
+                    (tList tInt)
+                    (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                    [ eLit tInt (IInt 2)
+                    , eApp
+                        (tList tInt)
+                        (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                        [ eLit tInt (IInt 3)
+                        , eCon
+                            (tList tInt)
+                            "[]"
+                        ]
+                    ]
+                ]
+         in it
+              "[1, 2, 3]  ==>  (::) 1 ((::) 2 ((::) 3 []))"
+              (stage1 expr1 == expr2)
+
+        let expr1 :: Expr (Type Int)
+            expr1 =
+              eRec
+                (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                ( eExt
+                    (tExt "a" tInt (tExt "b" tBool tNil))
+                    "a"
+                    (eLit tInt (IInt 1))
+                    ( eExt
+                        (tExt "b" tBool tNil)
+                        "b"
+                        (eLit tBool (IBool True))
+                        (eNil rNil)
+                    )
+                )
+            expr2 :: Expr (Type Int)
+            expr2 =
+              eApp
+                (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#{*}")
+                [ eApp
+                    (tExt "a" tInt (tExt "b" tBool tNil))
+                    (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
+                    [ eLit tInt (IInt 1)
+                    , eApp
+                        (tExt "b" tBool tNil)
+                        (eCon (tBool ~> tNil ~> tExt "b" tBool tNil) "{b}")
+                        [ eLit tBool (IBool True)
+                        , eCon tNil "{}"
+                        ]
+                    ]
+                ]
+         in it
+              "{ a = 1, b = true }  ==>  #{*} ({a} 1 ({b} true {}))"
+              (stage1 expr1 == expr2)
+
+        let expr1 :: Expr (Type Int)
+            expr1 =
+              eRec
+                (tRec (tExt "b" tBool (tExt "a" tInt tNil)))
+                ( eExt
+                    (tExt "b" tBool (tExt "a" tInt tNil))
+                    "b"
+                    (eLit tBool (IBool True))
+                    ( eExt
+                        (tExt "a" tInt tNil)
+                        "a"
+                        (eLit tInt (IInt 1))
+                        (eNil rNil)
+                    )
+                )
+            expr2 :: Expr (Type Int)
+            expr2 =
+              eApp
+                (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#{*}")
+                [ eApp
+                    (tExt "a" tInt (tExt "b" tBool tNil))
+                    (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
+                    [ eLit tInt (IInt 1)
+                    , eApp
+                        (tExt "b" tBool tNil)
+                        (eCon (tBool ~> tNil ~> tExt "b" tBool tNil) "{b}")
+                        [ eLit tBool (IBool True)
+                        , eCon tNil "{}"
+                        ]
+                    ]
+                ]
+         in it
+              "{ b = true, a = 1 }  ==>  #{*} ({a} 1 ({b} true {}))"
+              (stage1 expr1 == expr2)
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()

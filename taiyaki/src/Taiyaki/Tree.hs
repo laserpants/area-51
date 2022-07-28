@@ -211,17 +211,20 @@ primCon IString{}       = "#String"
 
 {- ORMOLU_DISABLE -}
 
--- Translate tuples, lists, records, rows, and codata expressions
+-- Unpack tuples, lists, records, rows, and codata expressions
 --
-stage1 :: (Con (Expr t) t, Row t, Eq t) => Expr t -> Expr t
+stage1 :: (Eq v) => Expr (Type v) -> Expr (Type v)
 stage1 =
-  cata $
-    \case
-      ETup  t es -> rawTuple t es
-      EList t es -> rawList t es
-      ERec  t r  -> con t "#{*}" [rawRow r]
-      --      ECo   t e -> undefined
-      e -> embed e
+  cata
+    ( \case
+        ETup  t es -> rawTuple t es
+        EList t es -> rawList t es
+        ERec  t r  -> con (tRec (normalizeRow u)) "#{*}" [rawRow r]
+          where
+            TRec u = project t
+        --      ECo   t e -> undefined
+        e -> embed e
+    )
 
 {- ORMOLU_ENABLE -}
 
