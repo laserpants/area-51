@@ -1172,6 +1172,30 @@ main =
           , [pCon () "(::)" [pAny (), pCon () "(::)" [pAny (), pAny ()]]]
           ]
 
+      describe "stage1" $ do
+        let expr1 :: Expr (Type Int)
+            expr1 =
+              tup
+                (tup () [tInt, tBool])
+                [ eLit tInt (IInt 1)
+                , eLit tBool (IBool True)
+                ]
+            expr2 :: Expr (Type Int)
+            expr2 =
+              eApp
+                (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
+                ( eCon
+                    ( tInt
+                        ~> tBool
+                        ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool
+                    )
+                    "(,)"
+                )
+                [ eLit tInt (IInt 1)
+                , eLit tBool (IBool True)
+                ]
+         in it "(1, true)" (stage1 expr1 == expr2)
+
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =

@@ -378,20 +378,13 @@ listCons t head_ tail_ = con t "(::)" [head_, tail_]
 rawList :: (Con a t) => t -> [a] -> a
 rawList t = foldr (listCons t) (listNil t)
 
--- foldRow :: (Con a t, Tagged a t, Row a, Row t, Eq a) => a -> a
--- foldRow a = Map.foldrWithKey (flip . foldr . go) last_ m
---  where
---    (m, r) = unpackRow a
---    last_
---      | r == rNil = con rNil "{}" []
---      | otherwise = r
---    go n p q =
---      let t = rExt n (getTag p) (getTag q)
---       in con t ("{" <> n <> "}") [p, q]
---
--- foldRecord :: (Row t, Eq t) => Pattern t -> Pattern t
--- foldRecord =
---  project
---    >>> \case
---      PRec t p -> pCon t "#{*}" [foldRow p]
---      _ -> error "Not a record"
+rawRow :: (Con a t, Tagged a t, Row a, Row t, Eq a) => a -> a
+rawRow a = Map.foldrWithKey (flip . foldr . go) final m
+  where
+    (m, r) = unpackRow a
+    final
+      | r == rNil = con rNil "{}" []
+      | otherwise = r
+    go n p q =
+      let t = rExt n (getTag p) (getTag q)
+       in con t ("{" <> n <> "}") [p, q]
