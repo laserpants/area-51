@@ -323,12 +323,12 @@ kindOf =
 
 -------------------------------------------------------------------------------
 
-class Typed t where
+class Typed t v where
   typeOf :: t -> Type v
 
 {- ORMOLU_DISABLE -}
 
-instance Typed (Type v) where
+instance Typed (Type v) v where
   typeOf =
     cata
       ( \case
@@ -343,7 +343,7 @@ instance Typed (Type v) where
           TString      -> tString
           TVoid        -> tVoid
           TList t      -> tList t
---          TVar k v     -> tVar k v
+          TVar k v     -> tVar k v
           TCon k n     -> tCon k n
           TApp k t1 t2 -> tApp k t1 t2
           TArr t1 t2   -> tArr t1 t2
@@ -354,7 +354,7 @@ instance Typed (Type v) where
 
 {- ORMOLU_ENABLE -}
 
-instance (Tagged a t, Typed t) => Typed a where
+instance (Tagged a t, Typed t v) => Typed a v where
   typeOf = typeOf . getTag
 
 --------------------------------------------------------------------------------

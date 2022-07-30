@@ -21,7 +21,8 @@ type Kind = Fix KindF
 
 -------------------------------------------------------------------------------
 
--- newtype MonoIndex = MonoIndex Int
+newtype MonoIndex = MonoIndex Int
+
 -- newtype PolyIndex = PolyIndex Int
 
 -------------------------------------------------------------------------------
@@ -50,10 +51,8 @@ type Type v = Fix (TypeF v)
 
 -------------------------------------------------------------------------------
 
--- newtype MonoIndex = MonoIndex Int
--- newtype PolyIndex = PolyIndex Int
---
--- newtype MonoType = MonoType (Type MonoIndex)
+type MonoType = Type MonoIndex
+
 -- newtype Generic = Generic (Type PolyIndex)
 
 -------------------------------------------------------------------------------
