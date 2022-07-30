@@ -135,6 +135,7 @@ data HeadE
   | LitE                                     -- ^ Expression is an ELit
   | LamE                                     -- ^ Expression is an ELam
 
+-- | Data constructor
 type Constructor
   = (Name, [Type Name])
 
@@ -149,7 +150,10 @@ type ModuleDefs t a
 
 -- Program module
 data Module t a
-  = Module Name (ModuleDefs t a)
+  = Module
+    { moduleName :: Name
+    , moduleDefs :: ModuleDefs t a
+    }
 
 -------------------------------------------------------------------------------
 -- Typeclass instances

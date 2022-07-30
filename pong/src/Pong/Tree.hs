@@ -143,8 +143,8 @@ extra t
   where
     ts = argTypes t
 
-moduleDefs :: Transform [Name]
-moduleDefs = do
+moduleNames :: Transform [Name]
+moduleNames = do
   ns <- gets (Map.keys . Map.mapKeys snd . snd)
   env <- ask
   pure (ns <> (fst <$> Env.toList env))
@@ -170,7 +170,7 @@ makeDef :: Name -> Ast -> ((Ast -> Ast) -> Ast) -> Transform Ast
 makeDef name expr f =
   if hasHeadT ArrT t
     then do
-      defs <- moduleDefs
+      defs <- moduleNames
       ndef <- uniqueName name
       let vs = freeVars expr `exclude` defs
           ys = extra t
@@ -184,7 +184,7 @@ compile =
   cata $ \case
     ELam _ args expr1 -> do
       e1 <- expr1
-      defs <- moduleDefs
+      defs <- moduleNames
       ndef <- uniqueName "$lam"
       let vs = freeVars e1 `exclude` ((snd <$> args) <> defs)
           ys = extra (typeOf e1)
