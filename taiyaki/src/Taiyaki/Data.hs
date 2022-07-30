@@ -21,6 +21,11 @@ type Kind = Fix KindF
 
 -------------------------------------------------------------------------------
 
+-- newtype MonoIndex = MonoIndex Int
+-- newtype PolyIndex = PolyIndex Int
+
+-------------------------------------------------------------------------------
+
 data TypeF v a
   = TUnit
   | TBool
