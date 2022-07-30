@@ -1309,6 +1309,23 @@ main =
          in it
               "{ b = true, a = 1 }  ==>  #{*} ({a} 1 ({b} true {}))"
               (stage1 expr1 == expr2)
+    ---------------------------------------------------------------------------
+    describe "clauseGroups" $ do
+      it "" $ do
+        True
+    ---------------------------------------------------------------------------
+    describe "labeledClause" $ do
+      let clause =
+            Clause () [pCon () "(::)" [pVar () "x", pVar () "xs"]] []
+       in it
+            "| x :: xs"
+            (LConstructor clause == labeledClause clause)
+
+      let clause =
+            Clause () [pVar () "x", pVar () "xs"] []
+       in it
+            "| x :: xs"
+            (LVariable clause == labeledClause clause)
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
