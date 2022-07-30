@@ -5,6 +5,14 @@
   <img src="https://raw.githubusercontent.com/laserpants/area-51/dev/taiyaki/docs/taiyaki.png" width="250" />
 </p>
 
+## Language implementation
+
+### Patterns
+
+#### Exhaustiveness checking
+
+#### Compilation
+
 ## Etymology
 
 Taiyaki (鯛焼き) is a Japanese fish-shaped cake, commonly sold as street food. 
