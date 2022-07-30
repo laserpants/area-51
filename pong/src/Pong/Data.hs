@@ -135,11 +135,14 @@ data HeadE
   | LitE                                     -- ^ Expression is an ELit
   | LamE                                     -- ^ Expression is an ELam
 
+type Constructor
+  = (Name, [Type Name])
+
 data Definition t a
   = Function (List1 (Label t)) (t, a)        -- ^ Function definition
   | Constant (t, a)                          -- ^ Constant expression
   | Extern [MonoType] MonoType               -- ^ External function
-  | Data Name [(Name, [Type Name])]          -- ^ Data type declaration
+  | Data Name [Constructor]                  -- ^ Data type declaration
 
 type ModuleDefs t a
   = Map (Label Scheme) (Definition t a)
