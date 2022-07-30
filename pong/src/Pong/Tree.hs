@@ -15,20 +15,17 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Newtype.Generics (Newtype)
-import Data.Char (isUpper)
 import Data.Either.Extra (mapLeft)
 import Data.List.NonEmpty (fromList, toList)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
-import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
 import Pong.Lang
 import Pong.Read (ParserError, parseModule)
 import Pong.Type
 import Pong.Util hiding (unpack)
 import qualified Pong.Util.Env as Env
-import TextShow (showt)
 
 newtype Transform a
   = Transform (ReaderT TypeEnv (State (Int, ModuleDefs MonoType Ast)) a)

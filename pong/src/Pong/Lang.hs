@@ -44,8 +44,6 @@ import Data.List.NonEmpty (toList)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Tuple (swap)
-import Data.Tuple.Extra (first)
 import Pong.Data
 import Pong.Data.Cons
 import Pong.Util
@@ -54,8 +52,10 @@ import Pong.Util
   , Void
   , cata
   , embed
+  , first
   , para
   , project
+  , swap
   , varSequence
   , withoutLabels
   , (!)

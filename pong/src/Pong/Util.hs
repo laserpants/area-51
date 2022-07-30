@@ -3,7 +3,10 @@
 module Pong.Util
   ( module Control.Arrow
   , module Data.Functor.Foldable
+  , module Data.Char
   , module Data.Fix
+  , module Data.Tuple
+  , module Data.Tuple.Extra
   , module Data.Void
   , module Data.Eq.Deriving
   , module Data.Functor
@@ -11,6 +14,7 @@ module Pong.Util
   , module Text.Show.Deriving
   , module Data.Map.Strict
   , module Data.Text
+  , module TextShow
   , (<$$>)
   , Name
   , Algebra
@@ -36,6 +40,7 @@ where
 import Control.Arrow ((***), (<<<), (>>>))
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Char (isUpper)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
 import Data.Foldable (foldrM)
@@ -47,6 +52,7 @@ import qualified Data.Map.Strict as Map
 import Data.Ord.Deriving (deriveOrd1)
 import qualified Data.Set as Set
 import Data.Text (Text, pack, unpack)
+import Data.Tuple (swap)
 import Data.Tuple.Extra (first, second)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
