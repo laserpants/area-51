@@ -529,8 +529,8 @@ program302 =
       ( (Scheme (tCon "List" [tVar "a"]), "List")
       , Data
           "List"
-          [ tCon "Nil" []
-          , tCon "Cons" [tVar "a", tCon "List" [tVar "a"]]
+          [ ("Nil", [])
+          , ("Cons", [tVar "a", tCon "List" [tVar "a"]])
           ]
       )
     ,
@@ -881,8 +881,8 @@ program306 =
       ( (Scheme (tCon "List" [tVar "a"]), "List")
       , Data
           "List"
-          [ tCon "Nil" []
-          , tCon "Cons" [tVar "a", tCon "List" [tVar "a"]]
+          [ ("Nil", [])
+          , ("Cons", [tVar "a", tCon "List" [tVar "a"]])
           ]
       )
     ,
@@ -959,7 +959,7 @@ program400 =
   \\r\n\
   \type List a\
   \  = Nil\
-  \  | Cons a (List a)\
+  \  | Cons(a, List a)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  print_int(runner())\
@@ -986,7 +986,7 @@ program500 =
   \\r\n\
   \type List a\
   \  = Nil\
-  \  | Cons a (List a)\
+  \  | Cons(a, List a)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  print_int(runner())\
@@ -1013,7 +1013,7 @@ program501 =
   \\r\n\
   \type List a\
   \  = Nil\
-  \  | Cons a (List a)\
+  \  | Cons(a, List a)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  print_int(runner())\
@@ -1039,8 +1039,8 @@ program600 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = Left a\
-  \  | Right b\
+  \  = Left(a)\
+  \  | Right(b)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  print_int(runner())\
@@ -1066,8 +1066,8 @@ program601 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = Left a\
-  \  | Right b\
+  \  = Left(a)\
+  \  | Right(b)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  print_int(runner())\
@@ -1093,8 +1093,8 @@ program602 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = Left a\
-  \  | Right b\
+  \  = Left(a)\
+  \  | Right(b)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  let\
@@ -1132,8 +1132,8 @@ program603 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = This a\
-  \  | That b\
+  \  = This(a)\
+  \  | That(b)\
   \\r\n\
   \const num : int =\
   \  5\
@@ -1181,8 +1181,8 @@ program604 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = This a\
-  \  | That b\
+  \  = This(a)\
+  \  | That(b)\
   \\r\n\
   \const succ : int -> int =\
   \  lam(x) =>\
@@ -1209,8 +1209,8 @@ program605 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = This a\
-  \  | That b\
+  \  = This(a)\
+  \  | That(b)\
   \\r\n\
   \const succ : int -> int =\
   \  lam(x) =>\
@@ -1244,8 +1244,8 @@ program615 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = This a\
-  \  | That b\
+  \  = This(a)\
+  \  | That(b)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  let\
@@ -1281,8 +1281,8 @@ program616 =
   \extern print_int : int -> int\
   \\r\n\
   \type Either a b\
-  \  = This a\
-  \  | That b\
+  \  = This(a)\
+  \  | That(b)\
   \\r\n\
   \func main(_ : unit) : int =\
   \  let\

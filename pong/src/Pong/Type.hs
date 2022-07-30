@@ -91,7 +91,7 @@ moduleEnv = Env.fromList . concatMap go . Map.toList
     go = \case
       ((Scheme s, _), Data _ cons) ->
         cons
-          <&> ( \(Fix (TCon con fs)) ->
+          <&> ( \(con, fs) ->
                   (con, Right (Scheme (foldType s fs)))
               )
       ((scheme, defn), _) ->

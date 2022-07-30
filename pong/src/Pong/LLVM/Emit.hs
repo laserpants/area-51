@@ -238,7 +238,7 @@ compileModule (Pong.Module modname p) =
         & concatMap
           ( \case
               (_, Data _ cs) ->
-                sort (consName <$> cs) `zip` [0 :: Integer ..]
+                sort (fst <$> cs) `zip` [0 :: Integer ..]
               _ ->
                 []
           )
@@ -246,8 +246,6 @@ compileModule (Pong.Module modname p) =
       case Text.splitOn "-" con of
         [c, _] -> c
         _ -> con
-    consName (Fix (TCon con _)) = con
-    consName _ = error "Implementation error"
 
 emitBody :: Ast -> CodeGen OpInfo
 emitBody =

@@ -15,7 +15,7 @@ import Data.Text (pack, unpack)
 import Data.Tuple.Extra (first)
 import Data.Void (Void)
 import Pong.Lang
-import Pong.Util (Name, Text, project, (<&>), (>>>))
+import Pong.Util (Name, Text, (<&>))
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
@@ -370,12 +370,9 @@ definition = functionDef <|> constantDef <|> externalDef <|> typeDef
       pure ((Scheme t, name), Data name cons)
 
     dataCon = do
-      polyType
-        >>= ( project
-                >>> \case
-                  TCon con ts -> pure (tCon con ts)
-                  _ -> fail "Not a constructor"
-            )
+      con <- constructor
+      ts <- optional (parens (commaSep1 polyType))
+      pure (con, fromMaybe [] ts)
 
 module_ :: Parser (Module () SourceExpr)
 module_ = do

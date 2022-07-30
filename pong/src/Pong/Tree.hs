@@ -321,7 +321,7 @@ insertConstructors defs = defs <> Map.fromList (Map.toList defs >>= uncurry go)
     go (Scheme s, _) =
       \case
         Data _ cons ->
-          cons <&> \(Fix (TCon con fs)) ->
+          cons <&> \(con, fs) ->
             let t = foldType s fs
                 names = Map.fromList (Set.toList (boundVars t) `zip` [0 ..])
                 t0 = toMonoType names t

@@ -139,7 +139,7 @@ data Definition t a
   = Function (List1 (Label t)) (t, a)        -- ^ Function definition
   | Constant (t, a)                          -- ^ Constant expression
   | Extern [MonoType] MonoType               -- ^ External function
-  | Data Name [Type Name]                    -- ^ Data type declaration
+  | Data Name [(Name, [Type Name])]          -- ^ Data type declaration
 
 type ModuleDefs t a
   = Map (Label Scheme) (Definition t a)
