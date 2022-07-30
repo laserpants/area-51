@@ -1,11 +1,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 
 module Taiyaki.Tree where
 
 import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
+import Data.Foldable (foldrM)
+import Data.Functor.Foldable (ListF (..))
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
 import Taiyaki.Data
@@ -233,3 +236,82 @@ stage1 =
 --        undefined
 --      EExt  t n e r ->
 --        undefined
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+stage2 :: (Monad m) => Expr (Type v) -> m (Expr (Type v))
+stage2 =
+  undefined
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+data Labeled a
+  = LConstructor a
+  | LVariable a
+
+compilePatterns ::
+  (Monad m) =>
+  Expr (Type v) ->
+  [Clause (Type v) (Expr (Type v))] ->
+  m (Expr (Type v))
+compilePatterns u qs =
+  compileMatch [u] qs (eVar tUnit "<FAIL>")
+  where
+    compileMatch [] [] c =
+      pure c
+    compileMatch [] (Clause _ [] [Choice [] e] : _) _ =
+      pure e
+    compileMatch [] _ _ =
+      undefined
+    compileMatch (u : us) qs c =
+      case clauseGroups qs of
+        [LVariable eqs] ->
+          undefined
+        [LConstructor eqs@(Clause t _ [Choice _ e] : _)] -> do
+          undefined
+        mixed ->
+          foldrM (compileMatch (u : us)) c (clauses <$> mixed)
+
+    clauses :: Labeled a -> a
+    clauses (LConstructor eqs) = eqs
+    clauses (LVariable eqs) = eqs
+
+{- ORMOLU_DISABLE -}
+
+clauseGroups ::
+  [Clause t (Expr (Type v))] ->
+  [Labeled [Clause t (Expr (Type v))]]
+clauseGroups = cata alg . (labeledClause <$>)
+  where
+    alg Nil                                            = []
+    alg (Cons (LConstructor e) (LConstructor es : ts)) = LConstructor (e : es) : ts
+    alg (Cons (LVariable e) (LVariable es : ts))       = LVariable (e : es) : ts
+    alg (Cons (LConstructor e) ts)                     = LConstructor [e] : ts
+    alg (Cons (LVariable e) ts)                        = LVariable [e] : ts
+
+labeledClause ::
+  Clause t (Expr (Type v)) ->
+  Labeled (Clause t (Expr (Type v)))
+labeledClause eq@(Clause _ (p : _) _) = p
+    & cata
+      ( \case
+          PCon{}    -> LConstructor eq
+          PVar{}    -> LVariable eq
+          PAs _ _ q -> q
+      )
+
+{- ORMOLU_ENABLE -}
+
+deriving instance
+  Show a =>
+  Show (Labeled a)
+
+deriving instance
+  Eq a =>
+  Eq (Labeled a)
+
+deriving instance
+  Ord a =>
+  Ord (Labeled a)
