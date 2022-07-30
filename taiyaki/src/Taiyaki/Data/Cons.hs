@@ -189,7 +189,7 @@ eIf :: t -> Expr t -> Expr t -> Expr t -> Expr t
 eIf = embed4 EIf
 
 {-# INLINE ePat #-}
-ePat :: t -> Expr t -> [Clause t] -> Expr t
+ePat :: t -> Expr t -> [Clause t (Expr t)] -> Expr t
 ePat = embed3 EPat
 
 {-# INLINE eLet #-}
@@ -201,7 +201,7 @@ eFix :: t -> Name -> Expr t -> Expr t -> Expr t
 eFix = embed4 EFix
 
 {-# INLINE eFun #-}
-eFun :: t -> [Clause t] -> Expr t
+eFun :: t -> [Clause t (Expr t)] -> Expr t
 eFun = embed2 EFun
 
 {-# INLINE eOp1 #-}

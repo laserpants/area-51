@@ -127,12 +127,12 @@ instance Con (Pattern t) t where
 {- ORMOLU_DISABLE -}
 
 type family Tag a t where
-  Tag (Pattern _) t = Pattern t
-  Tag (Binding _) t = Binding t
-  Tag (Clause _)  t = Clause t
-  Tag (Op1 _)     t = Op1 t
-  Tag (Op2 _)     t = Op2 t
-  Tag (Expr _)    t = Expr t
+  Tag (Pattern _)  t = Pattern t
+  Tag (Binding _)  t = Binding t
+  Tag (Clause _ a) t = Clause t a
+  Tag (Op1 _)      t = Op1 t
+  Tag (Op2 _)      t = Op2 t
+  Tag (Expr _)     t = Expr t
 
 class Tagged a t | a -> t where
   getTag :: a -> t
@@ -184,7 +184,7 @@ instance Tagged (Binding t) t where
       BPat t a1              -> BPat (f t) (mapTag f a1)
       BFun t a1 a2           -> BFun (f t) a1 (mapTag f <$> a2)
 
-instance Tagged (Clause t) t where
+instance Tagged (Clause t a) t where
   getTag =
     \case
       Clause t _ _           -> t

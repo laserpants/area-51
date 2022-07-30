@@ -109,13 +109,16 @@ data Binding t
 
 -------------------------------------------------------------------------------
 
-data Choice
-  = Choice
+-- | Pattern clause choice: A pattern matching clause consists of one or more
+-- choices, each accompanied by a (possibly empty) list of predicates, also
+-- known as pattern guards, and a target expression.
+data Choice a
+  = Choice [a] a
 
 -------------------------------------------------------------------------------
 
-data Clause t
-  = Clause t [Pattern t] [Choice]
+data Clause t a
+  = Clause t [Pattern t] [Choice a]
 
 -------------------------------------------------------------------------------
 
@@ -158,10 +161,10 @@ data ExprF t a
   | EApp  t a [a]
   | ELam  t [Pattern t] a
   | EIf   t a a a
-  | EPat  t a [Clause t]
+  | EPat  t a [Clause t a]
   | ELet  t (Binding t) a a
   | EFix  t Name a a
-  | EFun  t [Clause t]
+  | EFun  t [Clause t a]
   | EOp1  t (Op1 t) a
   | EOp2  t (Op2 t) a a
   | ETup  t [a]
@@ -318,31 +321,60 @@ deriving instance (Typeable t) =>
   Typeable (Binding t)
 
 -- Choice
-deriving instance Show Choice
+deriving instance (Show a) =>
+  Show (Choice a)
 
-deriving instance Eq Choice
+deriving instance (Eq a) =>
+  Eq (Choice a)
 
-deriving instance Ord Choice
+deriving instance (Ord a) =>
+  Ord (Choice a)
 
-deriving instance Data Choice
+deriving instance (Data a) =>
+  Data (Choice a)
 
-deriving instance Typeable Choice
+deriving instance (Typeable a) =>
+  Typeable (Choice a)
+
+deriveShow1 ''Choice
+
+deriveEq1 ''Choice
+
+deriveOrd1 ''Choice
+
+deriving instance Functor Choice
+
+deriving instance Foldable Choice
+
+deriving instance Traversable Choice
 
 -- Clause
-deriving instance (Show t) =>
-  Show (Clause t)
+deriving instance (Show t, Show a) =>
+  Show (Clause t a)
 
-deriving instance (Eq t) =>
-  Eq (Clause t)
+deriving instance (Eq t, Eq a) =>
+  Eq (Clause t a)
 
-deriving instance (Ord t) =>
-  Ord (Clause t)
+deriving instance (Ord t, Ord a) =>
+  Ord (Clause t a)
 
-deriving instance (Data t) =>
-  Data (Clause t)
+deriving instance (Data t, Data a) =>
+  Data (Clause t a)
 
-deriving instance (Typeable t) =>
-  Typeable Clause
+deriving instance (Typeable t, Typeable a) =>
+  Typeable (Clause t a)
+
+deriveShow1 ''Clause
+
+deriveEq1 ''Clause
+
+deriveOrd1 ''Clause
+
+deriving instance Functor (Clause t)
+
+deriving instance Foldable (Clause t)
+
+deriving instance Traversable (Clause t)
 
 -- Op1
 deriving instance (Show t) =>
