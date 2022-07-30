@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Taiyaki.Lang where
@@ -123,11 +124,19 @@ instance Con (Pattern t) t where
 
 -------------------------------------------------------------------------------
 
+{- ORMOLU_DISABLE -}
+
+type family Tag a t where
+  Tag (Pattern _) t = Pattern t
+  Tag (Binding _) t = Binding t
+  Tag (Clause _)  t = Clause t
+  Tag (Op1 _)     t = Op1 t
+  Tag (Op2 _)     t = Op2 t
+  Tag (Expr _)    t = Expr t
+
 class Tagged a t | a -> t where
   getTag :: a -> t
-  setTag :: t -> a -> a
-
-{- ORMOLU_DISABLE -}
+  mapTag :: (Tag a t ~ a) => (t -> u) -> a -> Tag a u
 
 instance Tagged (Pattern t) t where
   getTag =
@@ -147,21 +156,21 @@ instance Tagged (Pattern t) t where
           PAnn  t _          -> t
       )
 
-  setTag t =
+  mapTag f =
     cata
       ( \case
-          PVar  _ a1         -> pVar  t a1
-          PLit  _ a1         -> pLit  t a1
-          PAs   _ a1 a2      -> pAs   t a1 a2
-          POr   _ a1 a2      -> pOr   t a1 a2
-          PAny  _            -> pAny  t
-          PCon  _ a1 a2      -> pCon  t a1 a2
-          PTup  _ a1         -> pTup  t a1
-          PList _ a1         -> pList t a1
-          PRec  _ a1         -> pRec  t a1
-          PNil  _            -> pNil  t
-          PExt  _ a1 a2 a3   -> pExt  t a1 a2 a3
-          PAnn  _ a1         -> pAnn  t a1
+          PVar  t a1         -> pVar  (f t) a1
+          PLit  t a1         -> pLit  (f t) a1
+          PAs   t a1 a2      -> pAs   (f t) a1 a2
+          POr   t a1 a2      -> pOr   (f t) a1 a2
+          PAny  t            -> pAny  (f t)
+          PCon  t a1 a2      -> pCon  (f t) a1 a2
+          PTup  t a1         -> pTup  (f t) a1
+          PList t a1         -> pList (f t) a1
+          PRec  t a1         -> pRec  (f t) a1
+          PNil  t            -> pNil  (f t)
+          PExt  t a1 a2 a3   -> pExt  (f t) a1 a2 a3
+          PAnn  t a1         -> pAnn  (f t) a1
       )
 
 instance Tagged (Binding t) t where
@@ -170,19 +179,19 @@ instance Tagged (Binding t) t where
       BPat t _               -> t
       BFun t _ _             -> t
 
-  setTag t =
+  mapTag f =
     \case
-      BPat _ a1              -> BPat t a1
-      BFun _ a1 a2           -> BFun t a1 a2
+      BPat t a1              -> BPat (f t) (mapTag f a1)
+      BFun t a1 a2           -> BFun (f t) a1 (mapTag f <$> a2)
 
 instance Tagged (Clause t) t where
   getTag =
     \case
       Clause t _ _           -> t
 
-  setTag t =
+  mapTag f =
     \case
-      Clause _ a1 a2         -> Clause t a1 a2
+      Clause t a1 a2         -> Clause (f t) (mapTag f <$> a1) a2
 
 instance Tagged (Op1 t) t where
   getTag =
@@ -190,10 +199,10 @@ instance Tagged (Op1 t) t where
       ONot t                 -> t
       ONeg t                 -> t
 
-  setTag t =
+  mapTag f =
     \case
-      ONot _                 -> ONot t
-      ONeg _                 -> ONeg t
+      ONot t                 -> ONot (f t)
+      ONeg t                 -> ONeg (f t)
 
 instance Tagged (Op2 t) t where
   getTag =
@@ -219,28 +228,28 @@ instance Tagged (Op2 t) t where
       ODot  t                -> t
       OGet  t                -> t
 
-  setTag t =
+  mapTag f =
     \case
-      OEq   _                -> OEq   t
-      ONEq  _                -> ONEq  t
-      OLt   _                -> OLt   t
-      OGt   _                -> OGt   t
-      OLtE  _                -> OLtE  t
-      OGtE  _                -> OGtE  t
-      OAdd  _                -> OAdd  t
-      OSub  _                -> OSub  t
-      OMul  _                -> OMul  t
-      ODiv  _                -> ODiv  t
-      OPow  _                -> OPow  t
-      OMod  _                -> OMod  t
-      OOr   _                -> OOr   t
-      OAnd  _                -> OAnd  t
-      OLArr _                -> OLArr t
-      ORarr _                -> ORarr t
-      OFPip _                -> OFPip t
-      OBPip _                -> OBPip t
-      ODot  _                -> ODot  t
-      OGet  _                -> OGet  t
+      OEq   t                -> OEq   (f t)
+      ONEq  t                -> ONEq  (f t)
+      OLt   t                -> OLt   (f t)
+      OGt   t                -> OGt   (f t)
+      OLtE  t                -> OLtE  (f t)
+      OGtE  t                -> OGtE  (f t)
+      OAdd  t                -> OAdd  (f t)
+      OSub  t                -> OSub  (f t)
+      OMul  t                -> OMul  (f t)
+      ODiv  t                -> ODiv  (f t)
+      OPow  t                -> OPow  (f t)
+      OMod  t                -> OMod  (f t)
+      OOr   t                -> OOr   (f t)
+      OAnd  t                -> OAnd  (f t)
+      OLArr t                -> OLArr (f t)
+      ORarr t                -> ORarr (f t)
+      OFPip t                -> OFPip (f t)
+      OBPip t                -> OBPip (f t)
+      ODot  t                -> ODot  (f t)
+      OGet  t                -> OGet  (f t)
 
 instance Tagged (Expr t) t where
   getTag =
@@ -268,30 +277,33 @@ instance Tagged (Expr t) t where
           EAnn  t _          -> t
       )
 
-  setTag t =
+  mapTag f =
     cata
       ( \case
-          EVar  _ a1         -> eVar  t a1
-          ECon  _ a1         -> eCon  t a1
-          ELit  _ a1         -> eLit  t a1
-          EApp  _ a1 a2      -> eApp  t a1 a2
-          ELam  _ a1 a2      -> eLam  t a1 a2
-          EIf   _ a1 a2 a3   -> eIf   t a1 a2 a3
-          EPat  _ a1 a2      -> ePat  t a1 a2
-          ELet  _ a1 a2 a3   -> eLet  t a1 a2 a3
-          EFix  _ a1 a2 a3   -> eFix  t a1 a2 a3
-          EFun  _ a1         -> eFun  t a1
-          EOp1  _ a1 a2      -> eOp1  t a1 a2
-          EOp2  _ a1 a2 a3   -> eOp2  t a1 a2 a3
-          ETup  _ a1         -> eTup  t a1
-          EList _ a1         -> eList t a1
-          ERec  _ a1         -> eRec  t a1
-          ENil  _            -> eNil  t
-          EExt  _ a1 a2 a3   -> eExt  t a1 a2 a3
-          ESub  _            -> eSub  t
-          ECo   _ a1         -> eCo   t a1
-          EAnn  _ a1         -> eAnn  t a1
+          EVar  t a1         -> eVar  (f t) a1
+          ECon  t a1         -> eCon  (f t) a1
+          ELit  t a1         -> eLit  (f t) a1
+          EApp  t a1 a2      -> eApp  (f t) a1 a2
+          ELam  t a1 a2      -> eLam  (f t) (mapTag f <$> a1) a2
+          EIf   t a1 a2 a3   -> eIf   (f t) a1 a2 a3
+          EPat  t a1 a2      -> ePat  (f t) a1 (mapTag f <$> a2)
+          ELet  t a1 a2 a3   -> eLet  (f t) (mapTag f a1) a2 a3
+          EFix  t a1 a2 a3   -> eFix  (f t) a1 a2 a3
+          EFun  t a1         -> eFun  (f t) (mapTag f <$> a1)
+          EOp1  t a1 a2      -> eOp1  (f t) (mapTag f a1) a2
+          EOp2  t a1 a2 a3   -> eOp2  (f t) (mapTag f a1) a2 a3
+          ETup  t a1         -> eTup  (f t) a1
+          EList t a1         -> eList (f t) a1
+          ERec  t a1         -> eRec  (f t) a1
+          ENil  t            -> eNil  (f t)
+          EExt  t a1 a2 a3   -> eExt  (f t) a1 a2 a3
+          ESub  t            -> eSub  (f t)
+          ECo   t a1         -> eCo   (f t) a1
+          EAnn  t a1         -> eAnn  (f t) a1
       )
+
+setTag :: (Tagged a t, a ~ Tag a t) => t -> a -> a
+setTag = mapTag . const
 
 -------------------------------------------------------------------------------
 
