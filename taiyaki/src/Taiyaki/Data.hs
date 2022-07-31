@@ -117,8 +117,8 @@ data Choice a
 
 -------------------------------------------------------------------------------
 
-data Clause t a
-  = Clause t [Pattern t] [Choice a]
+data Clause t p a
+  = Clause t p [Choice a]
 
 -------------------------------------------------------------------------------
 
@@ -349,20 +349,20 @@ deriving instance Foldable Choice
 deriving instance Traversable Choice
 
 -- Clause
-deriving instance (Show t, Show a) =>
-  Show (Clause t a)
+deriving instance (Show t, Show p, Show a) =>
+  Show (Clause t p a)
 
-deriving instance (Eq t, Eq a) =>
-  Eq (Clause t a)
+deriving instance (Eq t, Eq p, Eq a) =>
+  Eq (Clause t p a)
 
-deriving instance (Ord t, Ord a) =>
-  Ord (Clause t a)
+deriving instance (Ord t, Ord p, Ord a) =>
+  Ord (Clause t p a)
 
-deriving instance (Data t, Data a) =>
-  Data (Clause t a)
+deriving instance (Data t, Data p, Data a) =>
+  Data (Clause t p a)
 
-deriving instance (Typeable t, Typeable a) =>
-  Typeable (Clause t a)
+deriving instance (Typeable t, Typeable p, Typeable a) =>
+  Typeable (Clause t p a)
 
 deriveShow1 ''Clause
 
@@ -370,11 +370,11 @@ deriveEq1 ''Clause
 
 deriveOrd1 ''Clause
 
-deriving instance Functor (Clause t)
+deriving instance Functor (Clause t p)
 
-deriving instance Foldable (Clause t)
+deriving instance Foldable (Clause t p)
 
-deriving instance Traversable (Clause t)
+deriving instance Traversable (Clause t p)
 
 -- Op1
 deriving instance (Show t) =>

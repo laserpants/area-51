@@ -155,7 +155,7 @@ instance Tagged (Binding t) t where
       BPat t _               -> t
       BFun t _ _             -> t
 
-instance Tagged (Clause t a) t where
+instance Tagged (Clause t p a) t where
   getTag =
     \case
       Clause t _ _           -> t
@@ -245,10 +245,12 @@ instance TaggedMappable (Binding t) (Binding u) t u where
       BPat t a1              -> BPat (f t) (mapTag f a1)
       BFun t a1 a2           -> BFun (f t) a1 (mapTag f <$> a2)
 
-instance TaggedMappable (Clause t a) (Clause u a) t u where
+instance (TaggedMappable p p t u) =>
+  TaggedMappable (Clause t p a) (Clause u p a) t u
+  where
   mapTag f =
     \case
-      Clause t a1 a2         -> Clause (f t) (mapTag f <$> a1) a2
+      Clause t a1 a2         -> Clause (f t) (mapTag f a1) a2
 
 instance TaggedMappable (Op1 t) (Op1 u) t u where
   mapTag f = 
