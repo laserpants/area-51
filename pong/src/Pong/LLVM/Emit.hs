@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
@@ -6,7 +7,17 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Pong.LLVM.Emit where
+{- ORMOLU_DISABLE -}
+
+module Pong.LLVM.Emit
+#ifndef test
+  ( compileModule
+  , ppllModule
+  )
+#endif
+where
+
+{- ORMOLU_ENABLE -}
 
 import Control.Monad.Reader
 import Control.Monad.State
@@ -663,5 +674,5 @@ uniqueName prefix = do
   (n, _) <- getAndModify (first succ)
   pure (prefix <> showt n)
 
-printModule :: LLVM.Module -> IO ()
-printModule = Text.putStrLn . ppll
+ppllModule :: LLVM.Module -> IO ()
+ppllModule = Text.putStrLn . ppll
