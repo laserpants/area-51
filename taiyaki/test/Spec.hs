@@ -1315,17 +1315,19 @@ main =
         True
     ---------------------------------------------------------------------------
     describe "labeledClause" $ do
-      let clause =
+      let clause :: Clause () (Expr (Type ()))
+          clause =
             Clause () [pCon () "(::)" [pVar () "x", pVar () "xs"]] []
        in it
             "| x :: xs"
-            (LConstructor clause == labeledClause clause)
+            (LCon clause == labeledClause clause)
 
-      let clause =
+      let clause :: Clause () (Expr (Type ()))
+          clause =
             Clause () [pVar () "x", pVar () "xs"] []
        in it
             "| x :: xs"
-            (LVariable clause == labeledClause clause)
+            (LVar clause == labeledClause clause)
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()

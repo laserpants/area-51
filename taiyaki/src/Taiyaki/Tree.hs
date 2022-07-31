@@ -248,35 +248,85 @@ stage2 =
 -------------------------------------------------------------------------------
 
 data Labeled a
-  = LConstructor a
-  | LVariable a
+  = LCon a
+  | LVar a
 
 compilePatterns ::
   (Monad m) =>
   Expr (Type v) ->
   [Clause (Type v) (Expr (Type v))] ->
   m (Expr (Type v))
-compilePatterns u qs =
-  compileMatch [u] qs (eVar tUnit "<FAIL>")
+compilePatterns ex cs =
+  compileMatch [ex] cs (eVar (tCon kTyp "<FAIL>") "<FAIL>")
   where
     compileMatch [] [] c =
       pure c
     compileMatch [] (Clause _ [] [Choice [] e] : _) _ =
       pure e
-    compileMatch [] _ _ =
-      undefined
+    compileMatch [] (Clause _ [] [Choice exs e] : qs) c =
+      eIf (getTag e) (foldr1 undefined exs) e <$> compileMatch [] qs c
     compileMatch (u : us) qs c =
       case clauseGroups qs of
-        [LVariable eqs] ->
+        [LVar eqs] ->
+          compileMatch us (runSubst <$> eqs) c
+          where
+            runSubst (Clause t (p : ps) g) =
+              let clause = Clause t ps g
+               in case project p of
+                    PVar t1 name ->
+                      substitute name u <$> clause
+                    PAs _ as (Fix (PVar t1 name)) ->
+                      substitute name u . substitute as (eVar t1 name) <$> clause
+                    PAs _ as (Fix (PAny t)) ->
+                      substitute as u <$> clause
+                    -- The remaining case is for wildcards and literal patterns
+                    _ -> clause
+            runSubst _ =
+              error "Implementation error"
+        --
+        [LCon eqs@(Clause t _ [Choice _ e] : _)] -> do
           undefined
-        [LConstructor eqs@(Clause t _ [Choice _ e] : _)] -> do
-          undefined
+        --
         mixed ->
           foldrM (compileMatch (u : us)) c (clauses <$> mixed)
+    --
+    compileMatch _ _ _ =
+      error "Implementation error"
 
     clauses :: Labeled a -> a
-    clauses (LConstructor eqs) = eqs
-    clauses (LVariable eqs) = eqs
+    clauses (LCon eqs) = eqs
+    clauses (LVar eqs) = eqs
+
+substitute :: Name -> Expr t -> Expr t -> Expr t
+substitute name subst =
+  para
+    ( \case
+--        ELam t pat e1 -> eLam t pat e1'
+--          where
+--            e1'
+--              | name == pat = fst e1
+--              | otherwise = snd e1
+        EPat t ex eqs ->
+          ePat t (snd ex) (substEq <$> eqs)
+          where
+            substEq =
+              undefined
+
+              --        substEq
+              --          :: MonoClause t (PatternLight t) (Stage4Expr t, Stage4Expr t)
+              --          -> MonoClause t (PatternLight t) (Stage4Expr t)
+              --        substEq eq@(Clause _ ps _)
+              --            | name `elem` (pats =<< ps) = undefined -- fst <$> eq
+              --            | otherwise                 = undefined -- snd <$> eq
+              --        pats (PCon _ _ ps) = ps
+              --
+              --    expr -> snd <$> expr & \case
+              --        EVar t var
+              --            | name == var -> subst
+              --            | otherwise   -> varExpr t var
+              --
+              --        e -> embed e
+    )
 
 {- ORMOLU_DISABLE -}
 
@@ -285,11 +335,11 @@ clauseGroups ::
   [Labeled [Clause t (Expr (Type v))]]
 clauseGroups = cata alg . (labeledClause <$>)
   where
-    alg Nil                                            = []
-    alg (Cons (LConstructor e) (LConstructor es : ts)) = LConstructor (e : es) : ts
-    alg (Cons (LVariable e) (LVariable es : ts))       = LVariable (e : es) : ts
-    alg (Cons (LConstructor e) ts)                     = LConstructor [e] : ts
-    alg (Cons (LVariable e) ts)                        = LVariable [e] : ts
+    alg Nil                            = []
+    alg (Cons (LCon e) (LCon es : ts)) = LCon (e : es) : ts
+    alg (Cons (LVar e) (LVar es : ts)) = LVar (e : es) : ts
+    alg (Cons (LCon e) ts)             = LCon [e] : ts
+    alg (Cons (LVar e) ts)             = LVar [e] : ts
 
 labeledClause ::
   Clause t (Expr (Type v)) ->
@@ -297,21 +347,20 @@ labeledClause ::
 labeledClause eq@(Clause _ (p : _) _) = p
     & cata
       ( \case
-          PCon{}    -> LConstructor eq
-          PVar{}    -> LVariable eq
+          PCon{}    -> LCon eq
+          PVar{}    -> LVar eq
           PAs _ _ q -> q
       )
 
 {- ORMOLU_ENABLE -}
 
-deriving instance
-  Show a =>
+{- ORMOLU_DISABLE -}
+
+deriving instance Show a =>
   Show (Labeled a)
 
-deriving instance
-  Eq a =>
+deriving instance Eq a =>
   Eq (Labeled a)
 
-deriving instance
-  Ord a =>
+deriving instance Ord a =>
   Ord (Labeled a)
