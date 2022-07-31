@@ -122,6 +122,11 @@ data Clause t p a
 
 -------------------------------------------------------------------------------
 
+data CasePattern t
+  = Case t Name [Name]
+
+-------------------------------------------------------------------------------
+
 {- ORMOLU_DISABLE -}
 
 data Op1 t
@@ -375,6 +380,17 @@ deriving instance Functor (Clause t p)
 deriving instance Foldable (Clause t p)
 
 deriving instance Traversable (Clause t p)
+
+-- CasePattern
+deriving instance (Show t) => Show (CasePattern t)
+
+deriving instance (Eq t) => Eq (CasePattern t)
+
+deriving instance (Ord t) => Ord (CasePattern t)
+
+deriving instance (Data t) => Data (CasePattern t)
+
+deriving instance (Typeable t) => Typeable (CasePattern t)
 
 -- Op1
 deriving instance (Show t) =>

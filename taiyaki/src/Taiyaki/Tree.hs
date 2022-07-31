@@ -300,8 +300,6 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
-data CasePattern t = Case t Name [Name]
-
 substitute ::
   (Functor e3) =>
   Name ->
