@@ -154,12 +154,12 @@ data Op2 t
 
 -------------------------------------------------------------------------------
 
-data ExprF t a
+data ExprF t e1 a
   = EVar  t Name
   | ECon  t Name
   | ELit  t Prim
   | EApp  t a [a]
-  | ELam  t [Pattern t] a
+  | ELam  t e1 a
   | EIf   t a a a
   | EPat  t a [Clause t a]
   | ELet  t (Binding t) a a
@@ -178,7 +178,7 @@ data ExprF t a
 
 {- ORMOLU_ENABLE -}
 
-type Expr t = Fix (ExprF t)
+type Expr t e1 = Fix (ExprF t e1)
 
 -------------------------------------------------------------------------------
 
@@ -409,20 +409,20 @@ deriving instance (Typeable t) =>
   Typeable (Op2 t)
 
 -- Expr
-deriving instance (Show t, Show a) =>
-  Show (ExprF t a)
+deriving instance (Show t, Show e1, Show a) =>
+  Show (ExprF t e1 a)
 
-deriving instance (Eq t, Eq a) =>
-  Eq (ExprF t a)
+deriving instance (Eq t, Eq e1, Eq a) =>
+  Eq (ExprF t e1 a)
 
-deriving instance (Ord t, Ord a) =>
-  Ord (ExprF t a)
+deriving instance (Ord t, Ord e1, Ord a) =>
+  Ord (ExprF t e1 a)
 
-deriving instance (Data t, Data a) =>
-  Data (ExprF t a)
+deriving instance (Data t, Data e1, Data a) =>
+  Data (ExprF t e1 a)
 
-deriving instance (Typeable t, Typeable a) =>
-  Typeable (ExprF t a)
+deriving instance (Typeable t, Typeable e1, Typeable a) =>
+  Typeable (ExprF t e1 a)
 
 deriveShow1 ''ExprF
 
@@ -430,11 +430,11 @@ deriveEq1 ''ExprF
 
 deriveOrd1 ''ExprF
 
-deriving instance Functor (ExprF t)
+deriving instance Functor (ExprF t e1)
 
-deriving instance Foldable (ExprF t)
+deriving instance Foldable (ExprF t e1)
 
-deriving instance Traversable (ExprF t)
+deriving instance Traversable (ExprF t e1)
 
 -- Assoc
 deriving instance Show Assoc

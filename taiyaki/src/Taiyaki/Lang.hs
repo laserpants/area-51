@@ -44,7 +44,7 @@ instance Row (Type v) where
             embed r
       )
 
-instance (Row t) => Row (Expr t) where
+instance (Row t) => Row (Expr t e1) where
   rNil = eNil rNil
   rExt n p q = eExt (rExt n (getTag p) (getTag q)) n p q
   rInit =
@@ -101,7 +101,7 @@ instance Tuple () () where
 instance Tuple (Type v) () where
   tup () ts = tApps (tCon (kFun n) (tupleCon n)) ts where n = length ts
 
-instance Tuple (Expr t) t where
+instance Tuple (Expr t e1) t where
   tup = eTup
 
 instance Tuple (Pattern t) t where
@@ -115,7 +115,7 @@ class Con a t | a -> t where
 instance Con (Type v) Kind where
   con k n ts = tApps (tCon (foldr kArr k (kindOf <$> ts)) n) ts
 
-instance Con (Expr (Type v)) (Type v) where
+instance Con (Expr (Type v) e1) (Type v) where
   con t n [] = eCon t n
   con t n es = eApp t (eCon (foldr (tArr . getTag) t es) n) es
 
@@ -251,7 +251,7 @@ mapOp2Tag f =
     ODot  t                -> ODot  (f t)
     OGet  t                -> OGet  (f t)
 
-instance Tagged (Expr t) t where
+instance Tagged (Expr t e1) t where
   getTag =
     cata
       ( \case
@@ -277,7 +277,7 @@ instance Tagged (Expr t) t where
           EAnn  t _          -> t
       )
 
-mapExprTag :: (t -> u) -> Expr t -> Expr u
+mapExprTag :: (t -> u) -> Expr t e1 -> Expr u e1
 mapExprTag f =
   cata
     ( \case
@@ -285,7 +285,8 @@ mapExprTag f =
         ECon  t a1         -> eCon  (f t) a1
         ELit  t a1         -> eLit  (f t) a1
         EApp  t a1 a2      -> eApp  (f t) a1 a2
-        ELam  t a1 a2      -> eLam  (f t) (mapPatternTag f <$> a1) a2
+        -- TODO
+--        ELam  t a1 a2      -> eLam  (f t) (mapPatternTag f <$> a1) a2
         EIf   t a1 a2 a3   -> eIf   (f t) a1 a2 a3
         EPat  t a1 a2      -> ePat  (f t) a1 (mapClauseTag f <$> a2)
         ELet  t a1 a2 a3   -> eLet  (f t) (mapBindingTag f a1) a2 a3

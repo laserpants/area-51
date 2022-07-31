@@ -217,7 +217,7 @@ primCon IString{}       = "#String"
 
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
-stage1 :: (Eq v) => Expr (Type v) -> Expr (Type v)
+stage1 :: (Eq v, Eq e1) => Expr (Type v) e1 -> Expr (Type v) e1
 stage1 =
   cata
     ( \case
@@ -240,7 +240,7 @@ stage1 =
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
-stage2 :: (Monad m) => Expr (Type v) -> m (Expr (Type v))
+stage2 :: (Monad m) => Expr (Type v) e1 -> m (Expr (Type v) e1)
 stage2 =
   undefined
 
@@ -253,9 +253,9 @@ data Labeled a
 
 compilePatterns ::
   (Monad m) =>
-  Expr (Type v) ->
-  [Clause (Type v) (Expr (Type v))] ->
-  m (Expr (Type v))
+  Expr (Type v) e1 ->
+  [Clause (Type v) (Expr (Type v) e1)] ->
+  m (Expr (Type v) e1)
 compilePatterns ex cs =
   compileMatch [ex] cs (eVar (tCon kTyp "<FAIL>") "<FAIL>")
   where
@@ -297,7 +297,7 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
-substitute :: Name -> Expr t -> Expr t -> Expr t
+substitute :: Name -> Expr t e1 -> Expr t e1 -> Expr t e1
 substitute name subst =
   para
     ( \case
@@ -331,8 +331,8 @@ substitute name subst =
 {- ORMOLU_DISABLE -}
 
 clauseGroups ::
-  [Clause t (Expr (Type v))] ->
-  [Labeled [Clause t (Expr (Type v))]]
+  [Clause t (Expr (Type v) e1)] ->
+  [Labeled [Clause t (Expr (Type v) e1)]]
 clauseGroups = cata alg . (labeledClause <$>)
   where
     alg Nil                            = []
@@ -342,8 +342,8 @@ clauseGroups = cata alg . (labeledClause <$>)
     alg (Cons (LVar e) ts)             = LVar [e] : ts
 
 labeledClause ::
-  Clause t (Expr (Type v)) ->
-  Labeled (Clause t (Expr (Type v)))
+  Clause t (Expr (Type v) e1) ->
+  Labeled (Clause t (Expr (Type v) e1))
 labeledClause eq@(Clause _ (p : _) _) = p
     & cata
       ( \case

@@ -165,81 +165,81 @@ pAnn :: t -> Pattern t -> Pattern t
 pAnn = embed2 PAnn
 
 {-# INLINE eVar #-}
-eVar :: t -> Name -> Expr t
+eVar :: t -> Name -> Expr t e1
 eVar = embed2 EVar
 
 {-# INLINE eCon #-}
-eCon :: t -> Name -> Expr t
+eCon :: t -> Name -> Expr t e1
 eCon = embed2 ECon
 
 {-# INLINE eLit #-}
-eLit :: t -> Prim -> Expr t
+eLit :: t -> Prim -> Expr t e1
 eLit = embed2 ELit
 
 {-# INLINE eApp #-}
-eApp :: t -> Expr t -> [Expr t] -> Expr t
+eApp :: t -> Expr t e1 -> [Expr t e1] -> Expr t e1
 eApp = embed3 EApp
 
 {-# INLINE eLam #-}
-eLam :: t -> [Pattern t] -> Expr t -> Expr t
+eLam :: t -> e1 -> Expr t e1 -> Expr t e1
 eLam = embed3 ELam
 
 {-# INLINE eIf #-}
-eIf :: t -> Expr t -> Expr t -> Expr t -> Expr t
+eIf :: t -> Expr t e1 -> Expr t e1 -> Expr t e1 -> Expr t e1
 eIf = embed4 EIf
 
 {-# INLINE ePat #-}
-ePat :: t -> Expr t -> [Clause t (Expr t)] -> Expr t
+ePat :: t -> Expr t e1 -> [Clause t (Expr t e1)] -> Expr t e1
 ePat = embed3 EPat
 
 {-# INLINE eLet #-}
-eLet :: t -> Binding t -> Expr t -> Expr t -> Expr t
+eLet :: t -> Binding t -> Expr t e1 -> Expr t e1 -> Expr t e1
 eLet = embed4 ELet
 
 {-# INLINE eFix #-}
-eFix :: t -> Name -> Expr t -> Expr t -> Expr t
+eFix :: t -> Name -> Expr t e1 -> Expr t e1 -> Expr t e1
 eFix = embed4 EFix
 
 {-# INLINE eFun #-}
-eFun :: t -> [Clause t (Expr t)] -> Expr t
+eFun :: t -> [Clause t (Expr t e1)] -> Expr t e1
 eFun = embed2 EFun
 
 {-# INLINE eOp1 #-}
-eOp1 :: t -> Op1 t -> Expr t -> Expr t
+eOp1 :: t -> Op1 t -> Expr t e1 -> Expr t e1
 eOp1 = embed3 EOp1
 
 {-# INLINE eOp2 #-}
-eOp2 :: t -> Op2 t -> Expr t -> Expr t -> Expr t
+eOp2 :: t -> Op2 t -> Expr t e1 -> Expr t e1 -> Expr t e1
 eOp2 = embed4 EOp2
 
 {-# INLINE eTup #-}
-eTup :: t -> [Expr t] -> Expr t
+eTup :: t -> [Expr t e1] -> Expr t e1
 eTup = embed2 ETup
 
 {-# INLINE eList #-}
-eList :: t -> [Expr t] -> Expr t
+eList :: t -> [Expr t e1] -> Expr t e1
 eList = embed2 EList
 
 {-# INLINE eRec #-}
-eRec :: t -> Expr t -> Expr t
+eRec :: t -> Expr t e1 -> Expr t e1
 eRec = embed2 ERec
 
 {-# INLINE eNil #-}
-eNil :: t -> Expr t
+eNil :: t -> Expr t e1
 eNil = embed1 ENil
 
 {-# INLINE eExt #-}
-eExt :: t -> Name -> Expr t -> Expr t -> Expr t
+eExt :: t -> Name -> Expr t e1 -> Expr t e1 -> Expr t e1
 eExt = embed4 EExt
 
 {-# INLINE eAnn #-}
-eAnn :: t -> Expr t -> Expr t
+eAnn :: t -> Expr t e1 -> Expr t e1
 eAnn = embed2 EAnn
 
 {-# INLINE eSub #-}
-eSub :: t -> Expr t
+eSub :: t -> Expr t e1
 eSub = embed1 ESub
 
 {-# INLINE eCo #-}
-eCo :: t -> Expr t -> Expr t
+eCo :: t -> Expr t e1 -> Expr t e1
 eCo = embed2 ECo
