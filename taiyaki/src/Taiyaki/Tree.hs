@@ -335,8 +335,8 @@ substitute name subst =
 {- ORMOLU_DISABLE -}
 
 clauseGroups ::
-  [Clause t (Expr (Type v) e1 e2 e3 e4)] ->
-  [Labeled [Clause t (Expr (Type v) e1 e2 e3 e4)]]
+  [Clause t (Expr t e1 e2 e3 e4)] ->
+  [Labeled [Clause t (Expr t e1 e2 e3 e4)]]
 clauseGroups = cata alg . (labeledClause <$>)
   where
     alg Nil                            = []
@@ -346,8 +346,8 @@ clauseGroups = cata alg . (labeledClause <$>)
     alg (Cons (LVar e) ts)             = LVar [e] : ts
 
 labeledClause ::
-  Clause t (Expr (Type v) e1 e2 e3 e4) ->
-  Labeled (Clause t (Expr (Type v) e1 e2 e3 e4))
+  Clause t (Expr t e1 e2 e3 e4) ->
+  Labeled (Clause t (Expr t e1 e2 e3 e4))
 labeledClause eq@(Clause _ (p : _) _) = p
     & cata
       ( \case

@@ -1315,14 +1315,14 @@ main =
         True
     ---------------------------------------------------------------------------
     describe "labeledClause" $ do
-      let clause :: Clause () (Expr (Type ()) [Pattern ()] (Clause (Type ())) (Clause (Type ())) (Binding ()))
+      let clause :: Clause () (Expr () [Pattern ()] (Clause (Type ())) (Clause (Type ())) (Binding ()))
           clause =
             Clause () [pCon () "(::)" [pVar () "x", pVar () "xs"]] []
        in it
             "| x :: xs"
             (LCon clause == labeledClause clause)
 
-      let clause :: Clause () (Expr (Type ()) [Pattern ()] (Clause (Type ())) (Clause (Type ())) (Binding ()))
+      let clause :: Clause () (Expr () [Pattern ()] (Clause (Type ())) (Clause (Type ())) (Binding ()))
           clause =
             Clause () [pVar () "x", pVar () "xs"] []
        in it
