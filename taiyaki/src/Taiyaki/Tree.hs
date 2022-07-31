@@ -253,9 +253,9 @@ data Labeled a
 
 compilePatterns ::
   (Monad m) =>
-  Expr (Type v) e1 ->
-  [Clause (Type v) (Expr (Type v) e1)] ->
-  m (Expr (Type v) e1)
+  Expr (Type v) Name ->
+  [Clause (Type v) (Expr (Type v) Name)] ->
+  m (Expr (Type v) Name)
 compilePatterns ex cs =
   compileMatch [ex] cs (eVar (tCon kTyp "<FAIL>") "<FAIL>")
   where
@@ -297,35 +297,32 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
-substitute :: Name -> Expr t e1 -> Expr t e1 -> Expr t e1
+substitute :: Name -> Expr t Name -> Expr t Name -> Expr t Name
 substitute name subst =
   para
     ( \case
---        ELam t pat e1 -> eLam t pat e1'
---          where
---            e1'
---              | name == pat = fst e1
---              | otherwise = snd e1
+        ELam t pat e1 -> eLam t pat e1'
+          where
+            e1'
+              | name == pat = fst e1
+              | otherwise = snd e1
         EPat t ex eqs ->
           ePat t (snd ex) (substEq <$> eqs)
           where
-            substEq =
-              undefined
-
-              --        substEq
-              --          :: MonoClause t (PatternLight t) (Stage4Expr t, Stage4Expr t)
-              --          -> MonoClause t (PatternLight t) (Stage4Expr t)
-              --        substEq eq@(Clause _ ps _)
-              --            | name `elem` (pats =<< ps) = undefined -- fst <$> eq
-              --            | otherwise                 = undefined -- snd <$> eq
-              --        pats (PCon _ _ ps) = ps
-              --
-              --    expr -> snd <$> expr & \case
-              --        EVar t var
-              --            | name == var -> subst
-              --            | otherwise   -> varExpr t var
-              --
-              --        e -> embed e
+                      --substEq
+                      --  :: MonoClause t (PatternLight t) (Stage4Expr t, Stage4Expr t)
+                      --  -> MonoClause t (PatternLight t) (Stage4Expr t)
+                      substEq eq@(Clause _ ps _)
+                          -- | name `elem` (pats =<< ps) = undefined -- fst <$> eq
+                          | otherwise                 = undefined -- snd <$> eq
+                      pats (PCon _ _ ps) = ps
+              
+        expr -> snd <$> expr & \case
+                      EVar t var
+                          | name == var -> subst
+                          | otherwise   -> eVar t var
+              
+                      e -> embed e
     )
 
 {- ORMOLU_DISABLE -}

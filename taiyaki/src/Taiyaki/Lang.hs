@@ -216,10 +216,10 @@ instance Tagged (Expr t e1) t where
 
 -------------------------------------------------------------------------------
 
-class MapTagged a b t u | a -> t, b -> u where
+class TaggedMappable a b t u | a -> t, b -> u where
   mapTag :: (t -> u) -> a -> b
 
-instance MapTagged (Pattern t) (Pattern u) t u where
+instance TaggedMappable (Pattern t) (Pattern u) t u where
   mapTag f =
     cata
       ( \case
@@ -237,24 +237,24 @@ instance MapTagged (Pattern t) (Pattern u) t u where
           PAnn  t a1         -> pAnn  (f t) a1
       )
 
-instance MapTagged (Binding t) (Binding u) t u where
+instance TaggedMappable (Binding t) (Binding u) t u where
   mapTag f =
     \case
       BPat t a1              -> BPat (f t) (mapTag f a1)
       BFun t a1 a2           -> BFun (f t) a1 (mapTag f <$> a2)
 
-instance MapTagged (Clause t a) (Clause u a) t u where
+instance TaggedMappable (Clause t a) (Clause u a) t u where
   mapTag f =
     \case
       Clause t a1 a2         -> Clause (f t) (mapTag f <$> a1) a2
 
-instance MapTagged (Op1 t) (Op1 u) t u where
+instance TaggedMappable (Op1 t) (Op1 u) t u where
   mapTag f = 
     \case
       ONot t                 -> ONot (f t)
       ONeg t                 -> ONeg (f t)
 
-instance MapTagged (Op2 t) (Op2 u) t u where
+instance TaggedMappable (Op2 t) (Op2 u) t u where
   mapTag f =
     \case
       OEq   t                -> OEq   (f t)
@@ -278,7 +278,7 @@ instance MapTagged (Op2 t) (Op2 u) t u where
       ODot  t                -> ODot  (f t)
       OGet  t                -> OGet  (f t)
 
-instance (MapTagged e1 e1 t u) => MapTagged (Expr t e1) (Expr u e1) t u where
+instance (TaggedMappable e1 e1 t u) => TaggedMappable (Expr t e1) (Expr u e1) t u where
   mapTag f = 
     cata
       ( \case
@@ -304,7 +304,7 @@ instance (MapTagged e1 e1 t u) => MapTagged (Expr t e1) (Expr u e1) t u where
           EAnn  t a1         -> eAnn  (f t) a1
       )
 
-setTag :: (MapTagged a a t t) => t -> a -> a
+setTag :: (TaggedMappable a a t t) => t -> a -> a
 setTag = mapTag . const
 
 -------------------------------------------------------------------------------
