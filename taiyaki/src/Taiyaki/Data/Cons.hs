@@ -165,81 +165,155 @@ pAnn :: t -> Pattern t -> Pattern t
 pAnn = embed2 PAnn
 
 {-# INLINE eVar #-}
-eVar :: t -> Name -> Expr t e1
+eVar :: (Functor e2, Functor e3) => t -> Name -> Expr t e1 e2 e3 e4
 eVar = embed2 EVar
 
 {-# INLINE eCon #-}
-eCon :: t -> Name -> Expr t e1
+eCon :: (Functor e2, Functor e3) => t -> Name -> Expr t e1 e2 e3 e4
 eCon = embed2 ECon
 
 {-# INLINE eLit #-}
-eLit :: t -> Prim -> Expr t e1
+eLit :: (Functor e2, Functor e3) => t -> Prim -> Expr t e1 e2 e3 e4
 eLit = embed2 ELit
 
 {-# INLINE eApp #-}
-eApp :: t -> Expr t e1 -> [Expr t e1] -> Expr t e1
+eApp ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Expr t e1 e2 e3 e4 ->
+  [Expr t e1 e2 e3 e4] ->
+  Expr t e1 e2 e3 e4
 eApp = embed3 EApp
 
 {-# INLINE eLam #-}
-eLam :: t -> e1 -> Expr t e1 -> Expr t e1
+eLam ::
+  (Functor e2, Functor e3) =>
+  t ->
+  e1 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eLam = embed3 ELam
 
 {-# INLINE eIf #-}
-eIf :: t -> Expr t e1 -> Expr t e1 -> Expr t e1 -> Expr t e1
+eIf ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eIf = embed4 EIf
 
 {-# INLINE ePat #-}
-ePat :: t -> Expr t e1 -> [Clause t (Expr t e1)] -> Expr t e1
+ePat ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Expr t e1 e2 e3 e4 ->
+  [e2 (Expr t e1 e2 e3 e4)] ->
+  Expr t e1 e2 e3 e4
 ePat = embed3 EPat
 
 {-# INLINE eLet #-}
-eLet :: t -> Binding t -> Expr t e1 -> Expr t e1 -> Expr t e1
+eLet ::
+  (Functor e2, Functor e3) =>
+  t ->
+  e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eLet = embed4 ELet
 
 {-# INLINE eFix #-}
-eFix :: t -> Name -> Expr t e1 -> Expr t e1 -> Expr t e1
+eFix ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Name ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eFix = embed4 EFix
 
 {-# INLINE eFun #-}
-eFun :: t -> [Clause t (Expr t e1)] -> Expr t e1
+eFun ::
+  (Functor e2, Functor e3) =>
+  t ->
+  [e3 (Expr t e1 e2 e3 e4)] ->
+  Expr t e1 e2 e3 e4
 eFun = embed2 EFun
 
 {-# INLINE eOp1 #-}
-eOp1 :: t -> Op1 t -> Expr t e1 -> Expr t e1
+eOp1 ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Op1 t ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eOp1 = embed3 EOp1
 
 {-# INLINE eOp2 #-}
-eOp2 :: t -> Op2 t -> Expr t e1 -> Expr t e1 -> Expr t e1
+eOp2 ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Op2 t ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eOp2 = embed4 EOp2
 
 {-# INLINE eTup #-}
-eTup :: t -> [Expr t e1] -> Expr t e1
+eTup ::
+  (Functor e2, Functor e3) =>
+  t ->
+  [Expr t e1 e2 e3 e4] ->
+  Expr t e1 e2 e3 e4
 eTup = embed2 ETup
 
 {-# INLINE eList #-}
-eList :: t -> [Expr t e1] -> Expr t e1
+eList ::
+  (Functor e2, Functor e3) =>
+  t ->
+  [Expr t e1 e2 e3 e4] ->
+  Expr t e1 e2 e3 e4
 eList = embed2 EList
 
 {-# INLINE eRec #-}
-eRec :: t -> Expr t e1 -> Expr t e1
+eRec ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eRec = embed2 ERec
 
 {-# INLINE eNil #-}
-eNil :: t -> Expr t e1
+eNil :: (Functor e2, Functor e3) => t -> Expr t e1 e2 e3 e4
 eNil = embed1 ENil
 
 {-# INLINE eExt #-}
-eExt :: t -> Name -> Expr t e1 -> Expr t e1 -> Expr t e1
+eExt ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Name ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eExt = embed4 EExt
 
 {-# INLINE eAnn #-}
-eAnn :: t -> Expr t e1 -> Expr t e1
+eAnn ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eAnn = embed2 EAnn
 
 {-# INLINE eSub #-}
-eSub :: t -> Expr t e1
+eSub :: (Functor e2, Functor e3) => t -> Expr t e1 e2 e3 e4
 eSub = embed1 ESub
 
 {-# INLINE eCo #-}
-eCo :: t -> Expr t e1 -> Expr t e1
+eCo ::
+  (Functor e2, Functor e3) =>
+  t ->
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 eCo = embed2 ECo

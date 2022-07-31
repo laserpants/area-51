@@ -2,7 +2,6 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Taiyaki.Lang where
@@ -44,7 +43,7 @@ instance Row (Type v) where
             embed r
       )
 
-instance (Row t) => Row (Expr t e1) where
+instance (Row t, Functor e2, Functor e3) => Row (Expr t e1 e2 e3 e4) where
   rNil = eNil rNil
   rExt n p q = eExt (rExt n (getTag p) (getTag q)) n p q
   rInit =
@@ -101,7 +100,7 @@ instance Tuple () () where
 instance Tuple (Type v) () where
   tup () ts = tApps (tCon (kFun n) (tupleCon n)) ts where n = length ts
 
-instance Tuple (Expr t e1) t where
+instance (Functor e2, Functor e3) => Tuple (Expr t e1 e2 e3 e4) t where
   tup = eTup
 
 instance Tuple (Pattern t) t where
@@ -115,7 +114,10 @@ class Con a t | a -> t where
 instance Con (Type v) Kind where
   con k n ts = tApps (tCon (foldr kArr k (kindOf <$> ts)) n) ts
 
-instance Con (Expr (Type v) e1) (Type v) where
+instance
+  (Functor e2, Functor e3) =>
+  Con (Expr (Type v) e1 e2 e3 e4) (Type v)
+  where
   con t n [] = eCon t n
   con t n es = eApp t (eCon (foldr (tArr . getTag) t es) n) es
 
@@ -188,7 +190,7 @@ instance Tagged (Op2 t) t where
       ODot  t                -> t
       OGet  t                -> t
 
-instance Tagged (Expr t e1) t where
+instance (Functor e2, Functor e3) => Tagged (Expr t e1 e2 e3 e4) t where
   getTag =
     cata
       ( \case
@@ -278,7 +280,15 @@ instance TaggedMappable (Op2 t) (Op2 u) t u where
       ODot  t                -> ODot  (f t)
       OGet  t                -> OGet  (f t)
 
-instance (TaggedMappable e1 e1 t u) => TaggedMappable (Expr t e1) (Expr u e1) t u where
+instance
+  ( TaggedMappable e1 e1 t u
+  , TaggedMappable (e2 (Expr u e1 e2 e3 e4)) (e2 (Expr u e1 e2 e3 e4)) t u
+  , TaggedMappable (e3 (Expr u e1 e2 e3 e4)) (e3 (Expr u e1 e2 e3 e4)) t u
+  , TaggedMappable e4 e4 t u
+  , Functor e2
+  , Functor e3
+  ) => TaggedMappable (Expr t e1 e2 e3 e4) (Expr u e1 e2 e3 e4) t u
+  where
   mapTag f = 
     cata
       ( \case

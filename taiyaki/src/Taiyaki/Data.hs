@@ -154,17 +154,17 @@ data Op2 t
 
 -------------------------------------------------------------------------------
 
-data ExprF t e1 a
+data ExprF t e1 e2 e3 e4 a
   = EVar  t Name
   | ECon  t Name
   | ELit  t Prim
   | EApp  t a [a]
   | ELam  t e1 a
   | EIf   t a a a
-  | EPat  t a [Clause t a]
-  | ELet  t (Binding t) a a
+  | EPat  t a [e2 a]
+  | ELet  t e4 a a
   | EFix  t Name a a
-  | EFun  t [Clause t a]
+  | EFun  t [e3 a]
   | EOp1  t (Op1 t) a
   | EOp2  t (Op2 t) a a
   | ETup  t [a]
@@ -178,7 +178,7 @@ data ExprF t e1 a
 
 {- ORMOLU_ENABLE -}
 
-type Expr t e1 = Fix (ExprF t e1)
+type Expr t e1 e2 e3 e4 = Fix (ExprF t e1 e2 e3 e4)
 
 -------------------------------------------------------------------------------
 
@@ -409,20 +409,20 @@ deriving instance (Typeable t) =>
   Typeable (Op2 t)
 
 -- Expr
-deriving instance (Show t, Show e1, Show a) =>
-  Show (ExprF t e1 a)
+deriving instance (Show t, Show e1, Show (e2 a), Show (e3 a), Show e4, Show a) =>
+  Show (ExprF t e1 e2 e3 e4 a)
 
-deriving instance (Eq t, Eq e1, Eq a) =>
-  Eq (ExprF t e1 a)
+deriving instance (Eq t, Eq e1, Eq (e2 a), Eq (e3 a), Eq e4, Eq a) =>
+  Eq (ExprF t e1 e2 e3 e4 a)
 
-deriving instance (Ord t, Ord e1, Ord a) =>
-  Ord (ExprF t e1 a)
+deriving instance (Ord t, Ord e1, Ord (e2 a), Ord (e3 a), Ord e4, Ord a) =>
+  Ord (ExprF t e1 e2 e3 e4 a)
 
-deriving instance (Data t, Data e1, Data a) =>
-  Data (ExprF t e1 a)
+deriving instance (Typeable e2, Typeable e3, Data t, Data e1, Data (e2 a), Data (e3 a), Data e4, Data a) =>
+  Data (ExprF t e1 e2 e3 e4 a)
 
-deriving instance (Typeable t, Typeable e1, Typeable a) =>
-  Typeable (ExprF t e1 a)
+deriving instance (Typeable t, Typeable e1, Typeable e4, Typeable a) =>
+  Typeable (ExprF t e1 e2 e3 e4 a)
 
 deriveShow1 ''ExprF
 
@@ -430,11 +430,14 @@ deriveEq1 ''ExprF
 
 deriveOrd1 ''ExprF
 
-deriving instance Functor (ExprF t e1)
+deriving instance (Functor e2, Functor e3) =>
+  Functor (ExprF t e1 e2 e3 e4)
 
-deriving instance Foldable (ExprF t e1)
+deriving instance (Foldable e2, Foldable e3) =>
+  Foldable (ExprF t e1 e2 e3 e4)
 
-deriving instance Traversable (ExprF t e1)
+deriving instance (Traversable e2, Traversable e3) =>
+  Traversable (ExprF t e1 e2 e3 e4)
 
 -- Assoc
 deriving instance Show Assoc

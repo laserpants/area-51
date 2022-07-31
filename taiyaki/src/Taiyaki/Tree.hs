@@ -217,7 +217,10 @@ primCon IString{}       = "#String"
 
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
-stage1 :: (Eq v, Eq e1) => Expr (Type v) e1 -> Expr (Type v) e1
+stage1 ::
+  (Eq v, Eq e1, Eq e4) =>
+  Expr (Type v) e1 (Clause (Type v)) (Clause (Type v)) e4 ->
+  Expr (Type v) e1 (Clause (Type v)) (Clause (Type v)) e4
 stage1 =
   cata
     ( \case
@@ -240,7 +243,7 @@ stage1 =
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
-stage2 :: (Monad m) => Expr (Type v) e1 -> m (Expr (Type v) e1)
+stage2 :: (Monad m) => Expr (Type v) e1 e2 e3 e4 -> m (Expr (Type v) e1 e2 e3 e4)
 stage2 =
   undefined
 
@@ -252,10 +255,10 @@ data Labeled a
   | LVar a
 
 compilePatterns ::
-  (Monad m) =>
-  Expr (Type v) Name ->
-  [Clause (Type v) (Expr (Type v) Name)] ->
-  m (Expr (Type v) Name)
+  (Monad m, Functor e3) =>
+  Expr (Type v) Name (Clause (Type v)) e3 e4 ->
+  [Clause (Type v) (Expr (Type v) Name (Clause (Type v)) e3 e4)] ->
+  m (Expr (Type v) Name (Clause (Type v)) e3 e4)
 compilePatterns ex cs =
   compileMatch [ex] cs (eVar (tCon kTyp "<FAIL>") "<FAIL>")
   where
@@ -297,7 +300,12 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
-substitute :: Name -> Expr t Name -> Expr t Name -> Expr t Name
+substitute ::
+  (Functor e3) =>
+  Name ->
+  Expr t Name (Clause t) e3 e4 ->
+  Expr t Name (Clause t) e3 e4 ->
+  Expr t Name (Clause t) e3 e4
 substitute name subst =
   para
     ( \case
@@ -309,27 +317,26 @@ substitute name subst =
         EPat t ex eqs ->
           ePat t (snd ex) (substEq <$> eqs)
           where
-                      --substEq
-                      --  :: MonoClause t (PatternLight t) (Stage4Expr t, Stage4Expr t)
-                      --  -> MonoClause t (PatternLight t) (Stage4Expr t)
-                      substEq eq@(Clause _ ps _)
-                          -- | name `elem` (pats =<< ps) = undefined -- fst <$> eq
-                          | otherwise                 = undefined -- snd <$> eq
-                      pats (PCon _ _ ps) = ps
-              
-        expr -> snd <$> expr & \case
-                      EVar t var
-                          | name == var -> subst
-                          | otherwise   -> eVar t var
-              
-                      e -> embed e
+            -- substEq
+            --  :: MonoClause t (PatternLight t) (Stage4Expr t, Stage4Expr t)
+            --  -> MonoClause t (PatternLight t) (Stage4Expr t)
+            substEq eq@(Clause _ ps _)
+              -- \| name `elem` (pats =<< ps) = undefined -- fst <$> eq
+              | otherwise = undefined -- snd <$> eq
+            pats (PCon _ _ ps) = ps
+        expr ->
+          snd <$> expr & \case
+            EVar t var
+              | name == var -> subst
+              | otherwise -> eVar t var
+            e -> embed e
     )
 
 {- ORMOLU_DISABLE -}
 
 clauseGroups ::
-  [Clause t (Expr (Type v) e1)] ->
-  [Labeled [Clause t (Expr (Type v) e1)]]
+  [Clause t (Expr (Type v) e1 e2 e3 e4)] ->
+  [Labeled [Clause t (Expr (Type v) e1 e2 e3 e4)]]
 clauseGroups = cata alg . (labeledClause <$>)
   where
     alg Nil                            = []
@@ -339,8 +346,8 @@ clauseGroups = cata alg . (labeledClause <$>)
     alg (Cons (LVar e) ts)             = LVar [e] : ts
 
 labeledClause ::
-  Clause t (Expr (Type v) e1) ->
-  Labeled (Clause t (Expr (Type v) e1))
+  Clause t (Expr (Type v) e1 e2 e3 e4) ->
+  Labeled (Clause t (Expr (Type v) e1 e2 e3 e4))
 labeledClause eq@(Clause _ (p : _) _) = p
     & cata
       ( \case
