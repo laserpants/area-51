@@ -136,7 +136,7 @@ type family Tag a t where
 
 class Tagged a t | a -> t where
   getTag :: a -> t
-  mapTag :: (Tag a t ~ a) => (t -> u) -> a -> Tag a u
+  mapTag :: (b ~ Tag a u) => (t -> u) -> a -> b
 
 instance Tagged (Pattern t) t where
   getTag =
