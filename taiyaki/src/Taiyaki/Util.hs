@@ -12,6 +12,7 @@ module Taiyaki.Util
   , module Data.List.Extra
   , module Data.Void
   , module Data.Function
+  , module TextShow
   , (<$$>)
   , Name
   , Algebra
@@ -24,10 +25,12 @@ module Taiyaki.Util
   , embed4
   , embed5
   , foldr2
+  , getAndModify
   )
 where
 
 import Control.Arrow ((<<<), (>>>))
+import Control.Monad.State
 import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
@@ -38,10 +41,11 @@ import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)
 import Data.Set.Monad (Set)
 import Data.Text (Text)
-import Data.Tuple.Extra (both, first, second)
+import Data.Tuple.Extra (both, first, fst3, second, snd3, swap, thd3)
 import Data.Typeable (Typeable)
 import Data.Void (Void)
 import Text.Show.Deriving (deriveShow1)
+import TextShow (showt)
 
 {-# INLINE (<$$>) #-}
 (<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
@@ -93,3 +97,9 @@ embed5 t a b c d e = embed (t a b c d e)
 {-# INLINE foldr2 #-}
 foldr2 :: (Foldable f, Foldable g) => (a -> b -> b) -> b -> f (g a) -> b
 foldr2 = foldr . flip . foldr
+
+getAndModify :: (MonadState s m) => (s -> s) -> m s
+getAndModify f = do
+  s <- get
+  modify f
+  pure s

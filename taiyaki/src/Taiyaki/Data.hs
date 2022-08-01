@@ -109,7 +109,7 @@ data Binding t
 
 -------------------------------------------------------------------------------
 
--- | Pattern clause choice: A pattern matching clause consists of one or more
+-- | Pattern clause choice: A pattern match clause consists of one or more
 -- choices, each accompanied by a (possibly empty) list of predicates, referred
 -- to as pattern guards, and a target expression.
 data Choice a
@@ -205,10 +205,18 @@ data PatternGroup t
 
 type PatternMatrix t = [[Pattern t]]
 
+data Labeled a
+  = LCon a
+  | LVar a
+
 -------------------------------------------------------------------------------
 
 type ConstructorEnv =
   Environment (Set Name, Int)
+
+-------------------------------------------------------------------------------
+
+data Void1 a
 
 -------------------------------------------------------------------------------
 
@@ -481,3 +489,36 @@ deriving instance (Data t) =>
 
 deriving instance (Typeable t) =>
   Typeable (PatternGroup t)
+
+-- Labeled
+deriving instance (Show a) =>
+  Show (Labeled a)
+
+deriving instance (Eq a) =>
+  Eq (Labeled a)
+
+deriving instance (Ord a) =>
+  Ord (Labeled a)
+
+deriving instance (Data a) =>
+  Data (Labeled a)
+
+deriving instance (Typeable a) =>
+  Typeable (Labeled a)
+
+deriveShow1 ''Labeled
+
+deriveEq1 ''Labeled
+
+deriveOrd1 ''Labeled
+
+deriving instance Functor Labeled
+
+deriving instance Foldable Labeled
+
+deriving instance Traversable Labeled
+
+-- Void1
+deriving instance Functor Void1
+
+deriveShow1 ''Void1

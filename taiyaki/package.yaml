@@ -5,6 +5,7 @@ license:             BSD3
 author:              Heikki Johannes Hildén
 maintainer:          hildenjohannes@gmail.com
 copyright:           2022 Heikki Johannes Hildén
+build-type:          Simple
 extra-source-files:
 - README.md
 

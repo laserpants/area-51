@@ -1,14 +1,18 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StrictData #-}
 
 module Taiyaki.Tree where
 
 import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
+import Control.Monad.State
 import Data.Foldable (foldrM)
 import Data.Functor.Foldable (ListF (..))
+import Data.List.Extra (groupSortOn)
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
 import Taiyaki.Data
@@ -250,15 +254,11 @@ stage2 =
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
-data Labeled a
-  = LCon a
-  | LVar a
-
 compilePatterns ::
-  (Monad m, Functor e3) =>
-  Expr (Type v) Name (Clause (Type v) p) e3 e4 ->
-  [Clause (Type v) [Pattern (Type v)] (Expr (Type v) Name (Clause (Type v) p) e3 e4)] ->
-  m (Expr (Type v) Name (Clause (Type v) p) e3 e4)
+  (MonadState Int m, Functor e3) =>
+  Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4 ->
+  [Clause (Type v) [Pattern (Type v)] (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)] ->
+  m (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)
 compilePatterns ex cs =
   compileMatch [ex] cs (eVar (tCon kTyp "<FAIL>") "<FAIL>")
   where
@@ -267,6 +267,7 @@ compilePatterns ex cs =
     compileMatch [] (Clause _ [] [Choice [] e] : _) _ =
       pure e
     compileMatch [] (Clause _ [] [Choice exs e] : qs) c =
+      -- TODO
       eIf (getTag e) (foldr1 undefined exs) e <$> compileMatch [] qs c
     compileMatch (u : us) qs c =
       case clauseGroups qs of
@@ -288,7 +289,22 @@ compilePatterns ex cs =
               error "Implementation error"
         --
         [LCon eqs@(Clause t _ [Choice _ e] : _)] -> do
-          undefined
+          qs' <- traverse (toSimpleMatch t us c) (consGroups u eqs)
+          let rs = [Clause t [Case (getTag u) "$_" []] [Choice [] c] | not (isError c)]
+          pure
+            ( case qs' <> rs of
+                [] -> c
+                qs'' -> ePat (getTag e) u qs''
+            )
+          where
+            isError =
+              cata
+                ( \case
+                    EVar _ "FAIL" ->
+                      True
+                    _ ->
+                      False
+                )
         --
         mixed ->
           foldrM (compileMatch (u : us)) c (clauses <$> mixed)
@@ -300,12 +316,69 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
+    toSimpleMatch t us c ConsGroup{..} = do
+      (_, vars, pats) <- patternInfo (const id) consPatterns
+      expr <- compileMatch (vars <> us) consClauses c
+      pure (Clause t [Case consType consName pats] [Choice [] expr])
+
+uniqueName :: (MonadState Int m) => Name -> m Name
+uniqueName prefix = do
+  n <- getAndModify succ
+  pure (prefix <> showt n)
+
+patternInfo ::
+  (MonadState Int m, Functor e2, Functor e3) =>
+  (t -> Name -> a) ->
+  [Pattern t] ->
+  m ([(Name, t)], [Expr t e1 e2 e3 e4], [a])
+patternInfo con pats = do
+  vars <- replicateM (length pats) (uniqueName "$f")
+  let ts = getTag <$> pats
+      ps = zip ts vars
+  pure
+    ( swap <$> ps
+    , (fmap . uncurry) eVar ps
+    , (fmap . uncurry) con ps
+    )
+
+{- ORMOLU_DISABLE -}
+
+data ConsGroup t a = ConsGroup
+  { consName     :: Name
+  , consType     :: t
+  , consPatterns :: [Pattern t]
+  , consClauses  :: [Clause t [Pattern t] a]
+  }
+
+consGroups ::
+  (Functor e3) =>
+  Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4 ->
+  [Clause (Type v) [Pattern (Type v)] (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)] ->
+  [ConsGroup (Type v) (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)]
+consGroups u cs =
+  concatMap go (groupSortOn fst (info u <$> cs))
+  where
+    go all@((con, (t, ps, _)) : _) =
+      [ ConsGroup
+          { consName     = con
+          , consType     = t
+          , consPatterns = ps
+          , consClauses  = thd3 . snd <$> all
+          }
+      ]
+    info u (Clause t (p : qs) [Choice exs e]) =
+      case project p of
+        PCon _ con ps -> (con, (t, ps, Clause t (ps <> qs) [Choice exs e]))
+        PAs  _ as  q  -> info u (Clause t (q:qs) [Choice exs (substitute as u e)])
+
+{- ORMOLU_ENABLE -}
+
 substitute ::
   (Functor e3) =>
   Name ->
-  Expr t Name (Clause t p) e3 e4 ->
-  Expr t Name (Clause t p) e3 e4 ->
-  Expr t Name (Clause t p) e3 e4
+  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
+  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
+  Expr t Name (Clause t [CasePattern t]) e3 e4
 substitute name subst =
   para
     ( \case
@@ -318,9 +391,9 @@ substitute name subst =
           ePat t (snd ex) (substEq <$> eqs)
           where
             substEq eq@(Clause _ ps _)
-              -- \| name `elem` (pats =<< ps) = undefined -- fst <$> eq
+              | name `elem` (pats =<< ps) = fst <$> eq
               | otherwise = snd <$> eq
-            pats (PCon _ _ ps) = ps
+            pats (Case _ _ ps) = ps
         expr ->
           snd <$> expr & \case
             EVar t var
@@ -355,13 +428,10 @@ labeledClause eq@(Clause _ (p : _) _) = p
 
 {- ORMOLU_ENABLE -}
 
-{- ORMOLU_DISABLE -}
-
-deriving instance Show a =>
-  Show (Labeled a)
-
-deriving instance Eq a =>
-  Eq (Labeled a)
-
-deriving instance Ord a =>
-  Ord (Labeled a)
+-- isError ::
+--   (Functor e3) =>
+--   Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4 ->
+--   Bool
+--
+--
+-- n <- getAndModify (first succ) <&> fst
