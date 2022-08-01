@@ -209,12 +209,16 @@ data Labeled a
   = LCon a
   | LVar a
 
+{- ORMOLU_DISABLE -}
+
 data ConsGroup t a = ConsGroup
-  { consName :: Name
-  , consType :: t
+  { consName     :: Name
+  , consType     :: t
   , consPatterns :: [Pattern t]
-  , consClauses :: [Clause t [Pattern t] a]
+  , consClauses  :: [Clause t [Pattern t] a]
   }
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 
