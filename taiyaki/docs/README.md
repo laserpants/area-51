@@ -9,9 +9,29 @@
 
 ## Compilation strategy
 
-The compiler proceeds through a series of transformations applied to the syntax
-tree, the final goal of which is to arrive at a form suitable for code
-generation or evaluation.
+The compiler proceeds through a series of transformation steps applied to the 
+syntax tree, the final goal of which is to arrive at a form suitable for code
+generation and evaluation.
+
+##### Eliminate patterns from lambda abstractions
+
+TODO
+
+#### Translate non-trivial let-bindingings
+
+Let-bindings are still permitted, but only those that bind to a variable.
+
+##### Translate `match` expressions to simple `case` pattern matching
+
+TODO
+
+##### Unpack tuples, records, and list literals
+
+TODO
+
+##### Transform type class constraints to records
+
+TODO
 
 ### Patterns
 
