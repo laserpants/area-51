@@ -7,6 +7,12 @@
 
 ## Language implementation
 
+## Compilation strategy
+
+The compiler proceeds through a series of transformations applied to the syntax
+tree, the final goal of which is to arrive at a form suitable for code
+generation or evaluation.
+
 ### Patterns
 
 #### Exhaustiveness checking
