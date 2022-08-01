@@ -9,15 +9,16 @@
 
 ## Compilation strategy
 
-The compiler proceeds through a series of transformation steps applied to the 
-syntax tree, the final goal of which is to arrive at a form suitable for code
+The compiler proceeds through a series of transformation steps applied to the
+syntax tree. The final goal of this process is to arrive at a tree based on a
+much smaller and simpler grammar &mdash; one that is more suitable for code 
 generation and evaluation.
 
 ##### Eliminate patterns from lambda abstractions
 
 TODO
 
-#### Translate non-trivial let-bindingings
+#### Translate non-trivial let-bindings
 
 Let-bindings are still permitted, but only those that bind to a variable.
 
