@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -254,13 +255,37 @@ stage2 =
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
+class PatternTag t where
+  tcon :: Name -> t
+  bool :: t
+  tarr :: t -> t -> t
+
+instance PatternTag (Type v) where
+  tcon = tCon kTyp
+  bool = tBool
+  tarr = tArr
+
+instance PatternTag () where
+  tcon _ = ()
+  bool = ()
+  tarr _ _ = ()
+
+infixr 1 `tarr`
+
+andExprs ::
+  (PatternTag t, Functor e3) =>
+  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
+  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
+  Expr t Name (Clause t [CasePattern t]) e3 e4
+andExprs = eOp2 bool (OAnd (bool `tarr` bool `tarr` bool))
+
 compilePatterns ::
-  (MonadState Int m, Functor e3) =>
-  Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4 ->
-  [Clause (Type v) [Pattern (Type v)] (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)] ->
-  m (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)
+  (PatternTag t, MonadState Int m, Functor e3) =>
+  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
+  [Clause t [Pattern t] (Expr t Name (Clause t [CasePattern t]) e3 e4)] ->
+  m (Expr t Name (Clause t [CasePattern t]) e3 e4)
 compilePatterns ex cs =
-  compileMatch [ex] cs (eVar (tCon kTyp "<FAIL>") "<FAIL>")
+  compileMatch [ex] cs (eVar (tcon "<FAIL>") "<FAIL>")
   where
     compileMatch [] [] c =
       pure c
@@ -268,7 +293,7 @@ compilePatterns ex cs =
       pure e
     compileMatch [] (Clause _ [] [Choice exs e] : qs) c =
       -- TODO
-      eIf (getTag e) (foldr1 undefined exs) e <$> compileMatch [] qs c
+      eIf (getTag e) (foldr1 andExprs exs) e <$> compileMatch [] qs c
     compileMatch (u : us) qs c =
       case clauseGroups qs of
         [LVar eqs] ->
@@ -345,9 +370,9 @@ patternInfo con pats = do
 
 consGroups ::
   (Functor e3) =>
-  Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4 ->
-  [Clause (Type v) [Pattern (Type v)] (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)] ->
-  [ConsGroup (Type v) (Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4)]
+  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
+  [Clause t [Pattern t] (Expr t Name (Clause t [CasePattern t]) e3 e4)] ->
+  [ConsGroup t (Expr t Name (Clause t [CasePattern t]) e3 e4)]
 consGroups u cs =
   concatMap go (groupSortOn fst (info u <$> cs))
   where

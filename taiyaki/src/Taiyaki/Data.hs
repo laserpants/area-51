@@ -210,10 +210,10 @@ data Labeled a
   | LVar a
 
 data ConsGroup t a = ConsGroup
-  { consName     :: Name
-  , consType     :: t
+  { consName :: Name
+  , consType :: t
   , consPatterns :: [Pattern t]
-  , consClauses  :: [Clause t [Pattern t] a]
+  , consClauses :: [Clause t [Pattern t] a]
   }
 
 -------------------------------------------------------------------------------
@@ -554,6 +554,16 @@ deriving instance Foldable (ConsGroup t)
 deriving instance Traversable (ConsGroup t)
 
 -- Void1
+deriving instance Show (Void1 a)
+
+deriving instance Eq (Void1 a)
+
+deriving instance Ord (Void1 a)
+
 deriving instance Functor Void1
 
 deriveShow1 ''Void1
+
+deriveEq1 ''Void1
+
+deriveOrd1 ''Void1
