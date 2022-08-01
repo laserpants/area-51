@@ -332,7 +332,7 @@ patternInfo ::
   [Pattern t] ->
   m ([(Name, t)], [Expr t e1 e2 e3 e4], [a])
 patternInfo con pats = do
-  vars <- replicateM (length pats) (uniqueName "$f")
+  vars <- replicateM (length pats) (uniqueName "$p")
   let ts = getTag <$> pats
       ps = zip ts vars
   pure
@@ -342,13 +342,6 @@ patternInfo con pats = do
     )
 
 {- ORMOLU_DISABLE -}
-
-data ConsGroup t a = ConsGroup
-  { consName     :: Name
-  , consType     :: t
-  , consPatterns :: [Pattern t]
-  , consClauses  :: [Clause t [Pattern t] a]
-  }
 
 consGroups ::
   (Functor e3) =>

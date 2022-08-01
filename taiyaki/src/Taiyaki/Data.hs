@@ -198,16 +198,23 @@ data Assoc
 
 -------------------------------------------------------------------------------
 
+type PatternMatrix t = [[Pattern t]]
+
 data PatternGroup t
   = ConGroup Name [Pattern t]
   | OrPattern (Pattern t) (Pattern t)
   | WildcardPattern
 
-type PatternMatrix t = [[Pattern t]]
-
 data Labeled a
   = LCon a
   | LVar a
+
+data ConsGroup t a = ConsGroup
+  { consName     :: Name
+  , consType     :: t
+  , consPatterns :: [Pattern t]
+  , consClauses  :: [Clause t [Pattern t] a]
+  }
 
 -------------------------------------------------------------------------------
 
@@ -517,6 +524,34 @@ deriving instance Functor Labeled
 deriving instance Foldable Labeled
 
 deriving instance Traversable Labeled
+
+-- ConsGroup
+deriving instance (Show t, Show a) =>
+  Show (ConsGroup t a)
+
+deriving instance (Eq t, Eq a) =>
+  Eq (ConsGroup t a)
+
+deriving instance (Ord t, Ord a) =>
+  Ord (ConsGroup t a)
+
+deriving instance (Data t, Data a) =>
+  Data (ConsGroup t a)
+
+deriving instance (Typeable t, Typeable a) =>
+  Typeable (ConsGroup t a)
+
+deriveShow1 ''ConsGroup
+
+deriveEq1 ''ConsGroup
+
+deriveOrd1 ''ConsGroup
+
+deriving instance Functor (ConsGroup t)
+
+deriving instance Foldable (ConsGroup t)
+
+deriving instance Traversable (ConsGroup t)
 
 -- Void1
 deriving instance Functor Void1
