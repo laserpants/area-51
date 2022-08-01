@@ -39,7 +39,7 @@ data Type
 | `TChar`       | Char                                    | `char`   |
 | `TString`     | String                                  | `string` |
 
-These types correspond, in a one-to-one manner, to the built-in language primitives (detailed [here](#language-primitives)).
+These types correspond, in a one-to-one manner, to the built-in language primitives (described [here](#language-primitives)).
 
 #### Type variables
 
@@ -270,7 +270,7 @@ type Clause = ([Label], Expr)
 
 #### Records
 
-Records are usually described as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered *sequence* of values. The reasons for this are discussed in [<a href="#footnote-1">1</a>].
+Records are usually detailed as unordered containers of labeled *fields* (name-value pairs). Our implementation deviates slightly from this, in that the same label is allowed to appear more than once in a record. A field is therefore not just a key-value pair, but rather a key associated with an ordered *sequence* of values. The reasons for this are discussed in [<a href="#footnote-1">1</a>].
 
 $$
 \begin{align*}
