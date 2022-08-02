@@ -1,9 +1,9 @@
 module Main where
 
 import Control.Monad.Reader
-import Teriyaki.Data
-import Teriyaki.Lang
-import Teriyaki.Tree
+import Taiyaki.Data
+import Taiyaki.Lang
+import Taiyaki.Tree
 
 testConstructorEnv :: ConstructorEnv
 testConstructorEnv =
@@ -269,30 +269,30 @@ testConstructorEnv =
 --  , [pTup () [pAny (), pAny ()]]
 --  ]
 
--- { name = n, id = a }
-test1x :: Pattern (Type Int)
-test1x =
-  pExt
-    (tExt "name" tString (tExt "id" tInt tNil))
-    "name"
-    (pVar tString "n")
-    ( pExt
-        (tExt "id" tInt tNil)
-        "id"
-        (pVar tInt "a")
-        (pNil tNil)
-    )
-
-test2x :: Pattern (Type Int)
-test2x = pCon (tExt "id" tInt (tExt "name" tString tNil)) "{id}" [pVar tInt "a", pCon (tExt "name" tString tNil) "{name}" [pVar tString "n", pCon tNil "{}" []]]
-
-test3x = rExt "baz" (eLit tInt (IInt 5)) rNil
-
-test4x = rExt "foo" (eLit tInt (IInt 4)) test3x
-
-test5x = pRec tInt test1x
-
-test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
+---- { name = n, id = a }
+--test1x :: Pattern (Type Int)
+--test1x =
+--  pExt
+--    (tExt "name" tString (tExt "id" tInt tNil))
+--    "name"
+--    (pVar tString "n")
+--    ( pExt
+--        (tExt "id" tInt tNil)
+--        "id"
+--        (pVar tInt "a")
+--        (pNil tNil)
+--    )
+--
+--test2x :: Pattern (Type Int)
+--test2x = pCon (tExt "id" tInt (tExt "name" tString tNil)) "{id}" [pVar tInt "a", pCon (tExt "name" tString tNil) "{name}" [pVar tString "n", pCon tNil "{}" []]]
+--
+--test3x = rExt "baz" (eLit tInt (IInt 5)) rNil
+--
+--test4x = rExt "foo" (eLit tInt (IInt 4)) test3x
+--
+--test5x = pRec tInt test1x
+--
+--test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
 
 main :: IO ()
 main = print ("X" :: String) -- print kTyp
