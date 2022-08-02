@@ -255,6 +255,8 @@ stage2 =
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
+{- ORMOLU_DISABLE -}
+
 class PatternTag t where
   tcon :: Name -> t
   bool :: t
@@ -266,24 +268,26 @@ instance PatternTag (Type v) where
   tarr = tArr
 
 instance PatternTag () where
-  tcon _ = ()
-  bool = ()
+  tcon _   = ()
+  bool     = ()
   tarr _ _ = ()
+
+{- ORMOLU_ENABLE -}
 
 infixr 1 `tarr`
 
 andExprs ::
   (PatternTag t, Functor e3) =>
-  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
-  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
-  Expr t Name (Clause t [CasePattern t]) e3 e4
+  Expr t Name (CaseClause t) e3 e4 ->
+  Expr t Name (CaseClause t) e3 e4 ->
+  Expr t Name (CaseClause t) e3 e4
 andExprs = eOp2 bool (OAnd (bool `tarr` bool `tarr` bool))
 
 compilePatterns ::
   (PatternTag t, MonadState Int m, Functor e3) =>
-  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
-  [Clause t [Pattern t] (Expr t Name (Clause t [CasePattern t]) e3 e4)] ->
-  m (Expr t Name (Clause t [CasePattern t]) e3 e4)
+  Expr t Name (CaseClause t) e3 e4 ->
+  [Clause t [Pattern t] (Expr t Name (CaseClause t) e3 e4)] ->
+  m (Expr t Name (CaseClause t) e3 e4)
 compilePatterns ex cs =
   compileMatch [ex] cs (eVar (tcon "<FAIL>") "<FAIL>")
   where
@@ -315,7 +319,7 @@ compilePatterns ex cs =
         --
         [LCon eqs@(Clause t _ [Choice _ e] : _)] -> do
           qs' <- traverse (toSimpleMatch t us c) (consGroups u eqs)
-          let rs = [Clause t [Case (getTag u) "$_" []] [Choice [] c] | not (isError c)]
+          let rs = [Case (getTag u) "$_" [] c | not (isError c)]
           pure
             ( case qs' <> rs of
                 [] -> c
@@ -344,7 +348,7 @@ compilePatterns ex cs =
     toSimpleMatch t us c ConsGroup{..} = do
       (_, vars, pats) <- patternInfo (const id) consPatterns
       expr <- compileMatch (vars <> us) consClauses c
-      pure (Clause t [Case consType consName pats] [Choice [] expr])
+      pure (Case consType consName pats expr)
 
 uniqueName :: (MonadState Int m) => Name -> m Name
 uniqueName prefix = do
@@ -370,9 +374,9 @@ patternInfo con pats = do
 
 consGroups ::
   (Functor e3) =>
-  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
-  [Clause t [Pattern t] (Expr t Name (Clause t [CasePattern t]) e3 e4)] ->
-  [ConsGroup t (Expr t Name (Clause t [CasePattern t]) e3 e4)]
+  Expr t Name (CaseClause t) e3 e4 ->
+  [Clause t [Pattern t] (Expr t Name (CaseClause t) e3 e4)] ->
+  [ConsGroup t (Expr t Name (CaseClause t) e3 e4)]
 consGroups u cs =
   concatMap go (groupSortOn fst (info u <$> cs))
   where
@@ -394,9 +398,9 @@ consGroups u cs =
 substitute ::
   (Functor e3) =>
   Name ->
-  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
-  Expr t Name (Clause t [CasePattern t]) e3 e4 ->
-  Expr t Name (Clause t [CasePattern t]) e3 e4
+  Expr t Name (CaseClause t) e3 e4 ->
+  Expr t Name (CaseClause t) e3 e4 ->
+  Expr t Name (CaseClause t) e3 e4
 substitute name subst =
   para
     ( \case
@@ -408,10 +412,9 @@ substitute name subst =
         EPat t ex eqs ->
           ePat t (snd ex) (substEq <$> eqs)
           where
-            substEq eq@(Clause _ ps _)
-              | name `elem` (pats =<< ps) = fst <$> eq
+            substEq eq@(Case _ _ ps _)
+              | name `elem` ps = fst <$> eq
               | otherwise = snd <$> eq
-            pats (Case _ _ ps) = ps
         expr ->
           snd <$> expr & \case
             EVar t var

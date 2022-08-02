@@ -1443,21 +1443,21 @@ main =
     ---------------------------------------------------------------------------
     describe "compilePatterns" $ do
       it "match xs { y :: ys => 1 | [] => 2 }" $
-        let input :: State Int (Expr () Name (Clause () [CasePattern ()]) Void1 (Binding ()))
+        let input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
             input =
               compilePatterns
                 (eVar () "xs")
                 [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IInt 1))]
                 , Clause () [pCon () "[]" []] [Choice [] (eLit () (IInt 2))]
                 ]
-            expr :: Expr () Name (Clause () [CasePattern ()]) Void1 (Binding ())
+            expr :: Expr () Name (CaseClause ()) Void1 (Binding ())
             expr =
               ePat
                 ()
                 (eVar () "xs")
-                [ Clause () [Case () "(::)" ["$p1", "$p2"]] [Choice [] (eLit () (IInt 1))]
-                , Clause () [Case () "[]" []] [Choice [] (eLit () (IInt 2))]
-                , Clause () [Case () "$_" []] [Choice [] (eVar () "<FAIL>")]
+                [ Case () "(::)" ["$p1", "$p2"] (eLit () (IInt 1))
+                , Case () "[]" [] (eLit () (IInt 2))
+                , Case () "$_" [] (eVar () "<FAIL>")
                 ]
          in (expr == evalState input 1)
 
@@ -1479,18 +1479,18 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
--- foo :: State Int (Expr (Type Int) Name (Clause (Type Int) [CasePattern (Type Int)]) Void1 (Binding (Type Int)))
--- foo =
---  compilePatterns
---    (eVar (tList tInt) "xs")
---    [ Clause (tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tInt (IInt 1))]
---    , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tInt (IInt 2))]
---    ]
---
--- runFoo :: Expr (Type Int) Name (Clause (Type Int) [CasePattern (Type Int)]) Void1 (Binding (Type Int))
--- runFoo =
---  evalState foo 1
---
+foo :: State Int (Expr (Type Int) Name (CaseClause (Type Int)) Void1 (Binding (Type Int)))
+foo =
+  compilePatterns
+    (eVar (tList tInt) "xs")
+    [ Clause (tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tInt (IInt 1))]
+    , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tInt (IInt 2))]
+    ]
+
+runFoo :: Expr (Type Int) Name (CaseClause (Type Int)) Void1 (Binding (Type Int))
+runFoo =
+  evalState foo 1
+
 -- foo2 :: State Int (Expr () Name (Clause () [CasePattern ()]) Void1 (Binding ()))
 -- foo2 =
 --  compilePatterns

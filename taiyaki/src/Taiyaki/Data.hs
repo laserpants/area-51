@@ -120,10 +120,8 @@ data Choice a
 data Clause t p a
   = Clause t p [Choice a]
 
--------------------------------------------------------------------------------
-
-data CasePattern t
-  = Case t Name [Name]
+data CaseClause t a
+  = Case t Name [Name] a
 
 -------------------------------------------------------------------------------
 
@@ -400,16 +398,28 @@ deriving instance Foldable (Clause t p)
 
 deriving instance Traversable (Clause t p)
 
--- CasePattern
-deriving instance (Show t) => Show (CasePattern t)
+-- CaseClause
+deriving instance (Show t, Show a) => Show (CaseClause t a)
 
-deriving instance (Eq t) => Eq (CasePattern t)
+deriving instance (Eq t, Eq a) => Eq (CaseClause t a)
 
-deriving instance (Ord t) => Ord (CasePattern t)
+deriving instance (Ord t, Ord a) => Ord (CaseClause t a)
 
-deriving instance (Data t) => Data (CasePattern t)
+deriving instance (Data t, Data a) => Data (CaseClause t a)
 
-deriving instance (Typeable t) => Typeable (CasePattern t)
+deriving instance (Typeable t, Typeable a) => Typeable (CaseClause t a)
+
+deriveShow1 ''CaseClause
+
+deriveEq1 ''CaseClause
+
+deriveOrd1 ''CaseClause
+
+deriving instance Functor (CaseClause t)
+
+deriving instance Foldable (CaseClause t)
+
+deriving instance Traversable (CaseClause t)
 
 -- Op1
 deriving instance (Show t) =>
