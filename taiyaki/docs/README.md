@@ -15,6 +15,13 @@ reduced expression grammar. Compared to the source language, this target AST is
 a much smaller and simpler representation which is more suitable for code
 generation and evaluation.
 
+```mermaid
+flowchart TD;
+    A --> B;
+    B --> C;
+    C --> D;
+```
+
 ##### Normalize lambda abstractions
 
 ###### Expansion of multiple arguments
