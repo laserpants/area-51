@@ -270,8 +270,8 @@ testConstructorEnv =
 --  ]
 
 ---- { name = n, id = a }
---test1x :: Pattern (Type Int)
---test1x =
+-- test1x :: Pattern (Type Int)
+-- test1x =
 --  pExt
 --    (tExt "name" tString (tExt "id" tInt tNil))
 --    "name"
@@ -283,16 +283,16 @@ testConstructorEnv =
 --        (pNil tNil)
 --    )
 --
---test2x :: Pattern (Type Int)
---test2x = pCon (tExt "id" tInt (tExt "name" tString tNil)) "{id}" [pVar tInt "a", pCon (tExt "name" tString tNil) "{name}" [pVar tString "n", pCon tNil "{}" []]]
+-- test2x :: Pattern (Type Int)
+-- test2x = pCon (tExt "id" tInt (tExt "name" tString tNil)) "{id}" [pVar tInt "a", pCon (tExt "name" tString tNil) "{name}" [pVar tString "n", pCon tNil "{}" []]]
 --
---test3x = rExt "baz" (eLit tInt (IInt 5)) rNil
+-- test3x = rExt "baz" (eLit tInt (IInt 5)) rNil
 --
---test4x = rExt "foo" (eLit tInt (IInt 4)) test3x
+-- test4x = rExt "foo" (eLit tInt (IInt 4)) test3x
 --
---test5x = pRec tInt test1x
+-- test5x = pRec tInt test1x
 --
---test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
+-- test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
 
 main :: IO ()
 main = print ("X" :: String) -- print kTyp

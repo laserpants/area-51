@@ -296,7 +296,6 @@ compilePatterns ex cs =
     compileMatch [] (Clause _ [] [Choice [] e] : _) _ =
       pure e
     compileMatch [] (Clause _ [] [Choice exs e] : qs) c =
-      -- TODO
       eIf (getTag e) (foldr1 andExprs exs) e <$> compileMatch [] qs c
     compileMatch (u : us) qs c =
       case clauseGroups qs of
@@ -329,7 +328,7 @@ compilePatterns ex cs =
             isError =
               cata
                 ( \case
-                    EVar _ "FAIL" ->
+                    EVar _ "<FAIL>" ->
                       True
                     _ ->
                       False
