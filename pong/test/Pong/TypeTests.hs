@@ -377,6 +377,46 @@ typeTests =
 
           eq a b = Right True == (isIsomorphicTo <$> a <*> b)
        in it "6" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source = eLit (PInt 1)
+
+          typed :: TypedExpr
+          typed = eLit (PInt 1)
+
+          eq a b = Right True == (isIsomorphicTo <$> a <*> b)
+       in it "7" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
+      -------------------------------------------------------------------------
+      let source :: SourceExpr
+          source =
+            ePat
+              (eCon ((), "[]"))
+              [
+                (
+                  [ ((), "(::)")
+                  , ((), "x")
+                  , ((), "xs")
+                  ]
+                , eLit (PBool True)
+                )
+              ]
+
+          typed :: TypedExpr
+          typed =
+            ePat
+              (eCon (tCon "List" [tVar 0], "[]"))
+              [
+                (
+                  [ (tVar 0 ~> tCon "List" [tVar 0] ~> tCon "List" [tVar 0], "(::)")
+                  , (tVar 0, "x")
+                  , (tCon "List" [tVar 0], "xs")
+                  ]
+                , eLit (PBool True)
+                )
+              ]
+
+          eq a b = Right True == (isIsomorphicTo <$> a <*> b)
+       in it "8" (Right typed `eq` typeCheck (applySubstitution =<< inferExpr =<< tagExpr source))
 
     describe "- inferModule" $ do
       -------------------------------------------------------------------------

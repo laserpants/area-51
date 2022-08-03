@@ -14,6 +14,7 @@ import Pong.Read
 import Pong.Tree
 import Pong.Type
 import Pong.Util
+import qualified Pong.Util.Env as Env
 import System.Directory
 import System.Exit
 import System.IO.Unsafe
@@ -22,7 +23,14 @@ import Test.Hspec
 import Text.Megaparsec
 
 typeCheck :: TypeChecker a -> Either TypeError a
-typeCheck = evalTypeChecker 1 mempty
+typeCheck =
+  evalTypeChecker
+    1
+    ( Env.fromList
+        [ ("[]", Right (Scheme (tCon "List" [tVar "a"])))
+        , ("(::)", Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"])))
+        ]
+    )
 
 runUnify :: MonoType -> MonoType -> Either TypeError Substitution
 runUnify t1 t2 = evalTypeChecker (freeIndex [t1, t2]) mempty (unifyTypes t1 t2)
