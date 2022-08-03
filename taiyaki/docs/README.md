@@ -12,22 +12,47 @@
 The compiler proceeds through a series of transformation steps applied to the
 syntax tree. The final goal of this process is to arrive at a tree based on a
 reduced expression grammar. Compared to the source language, this target AST is
-a much smaller and simpler representation &mdash; one that is more suitable for
-code generation or evaluation.
+a much smaller and simpler representation which is more suitable for code
+generation and evaluation.
 
-##### Eliminate patterns from lambda abstractions
+##### Normalize lambda abstractions
 
-TODO
+###### Expansion of multiple arguments
+
+```
+(x, y, z) ⇒ e
+```
+
+```
+lam(x) ⇒
+  lam(y) ⇒
+    lam(z) ⇒
+      e
+```
+
+###### Pattern elimination
+
+```
+(P[...]) ⇒ e
+```
+
+```
+lam($v) ⇒
+  match $v {
+    P[...] ⇒ e
+  }
+```
 
 #### Translate non-trivial let-bindings
 
-Let-bindings are still permitted, but only those that bind to a variable.
+Let-bindings are still permitted, but only those that bind to a variable,
+that is, are of the form `let v = expr`, where `v` is a variable.
 
 ##### Translate `match` expressions to simple `case` pattern matching
 
 TODO
 
-##### Unpack tuples, records, and list literals
+##### Desugar tuples, records, and list literals
 
 TODO
 
