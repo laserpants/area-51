@@ -1337,7 +1337,7 @@ main =
             expr2 =
               eApp
                 (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
-                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#{*}")
+                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#Record")
                 [ eApp
                     (tExt "a" tInt (tExt "b" tBool tNil))
                     (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
@@ -1351,7 +1351,7 @@ main =
                     ]
                 ]
          in it
-              "{ a = 1, b = true }  ==>  #{*} ({a} 1 ({b} true {}))"
+              "{ a = 1, b = true }  ==>  #Record ({a} 1 ({b} true {}))"
               (stage1 expr1 == expr2)
 
         let expr1 ::
@@ -1385,7 +1385,7 @@ main =
             expr2 =
               eApp
                 (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
-                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#{*}")
+                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#Record")
                 [ eApp
                     (tExt "a" tInt (tExt "b" tBool tNil))
                     (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
@@ -1399,7 +1399,7 @@ main =
                     ]
                 ]
          in it
-              "{ b = true, a = 1 }  ==>  #{*} ({a} 1 ({b} true {}))"
+              "{ b = true, a = 1 }  ==>  #Record ({a} 1 ({b} true {}))"
               (stage1 expr1 == expr2)
     ---------------------------------------------------------------------------
     describe "clauseGroups" $ do

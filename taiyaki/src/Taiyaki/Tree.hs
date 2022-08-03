@@ -231,7 +231,7 @@ stage1 =
     ( \case
         ETup  t es -> rawTuple t es
         EList t es -> rawList t es
-        ERec  t r  -> con (tRec (normalizeRow u)) "#{*}" [rawRow r]
+        ERec  t r  -> con (tRec (normalizeRow u)) "#Record" [rawRow r]
           where
             TRec u = project t
         --      ECo   t e -> undefined

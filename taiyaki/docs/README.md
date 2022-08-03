@@ -54,7 +54,39 @@ TODO
 
 ##### Desugar tuples, records, and list literals
 
-TODO
+###### List literals
+
+```
+[1, 2, 3]
+```
+
+```
+1 :: 2 :: 3 :: []
+```
+
+```
+((::) 1 ((::) 2 ((::) 3 [])))
+```
+
+###### Tuples
+
+```
+('a', 1)
+```
+
+```
+(,) 'a' 1
+```
+
+###### Records
+
+```
+{ foo = "baz", bar = 1 }
+```
+
+```
+#Record ({foo} "baz" ({bar} 1 {}))
+```
 
 ##### Transform type class constraints to records
 
