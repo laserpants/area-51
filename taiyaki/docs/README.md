@@ -16,7 +16,7 @@ a much smaller and simpler representation which is more suitable for code
 generation and evaluation.
 
 ```mermaid
-flowchart TD;
+flowchart LR;
     A --> B;
     B --> C;
     C --> D;
