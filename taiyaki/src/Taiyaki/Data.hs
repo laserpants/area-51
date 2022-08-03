@@ -115,8 +115,6 @@ data Binding t
 data Choice a
   = Choice [a] a
 
--------------------------------------------------------------------------------
-
 data Clause t p a
   = Clause t p [Choice a]
 
