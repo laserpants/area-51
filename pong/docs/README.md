@@ -61,7 +61,7 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 | `List a → Int`                     | `a`             | `TCon "List" [TVar "a"] ~> Int`                                              |
 | `(a → b) → List a → List b`        | `a`, `b`        | `(TVar "a" ~> TVar "b") ~> TCon "List" [TVar "a"] ~> TCon "List" [TVar "b"]` |
 
-> The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that $v_0, v_1 \dots v_n$ is the set of variables which appear bound in $s$.
+> The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that $v_0, v_1 \dots v_n$ is the set of variables which appear bound in $s$. In code, the equivalent of this is the `forall` keyword available in some languages, including Haskell with the GHC `ExplicitForAll` extension enabled.
 
 #### Composite types
 

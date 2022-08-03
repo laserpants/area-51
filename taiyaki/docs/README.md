@@ -50,10 +50,30 @@ lam($v) ⇒
   }
 ```
 
-#### Translate non-trivial let-bindings
+##### Translate non-trivial let-bindings
 
 Let-bindings are still permitted, but only those that bind to a variable,
 that is, are of the form `let v = expr`, where `v` is a variable.
+
+###### Function bindings
+
+```
+let f(x, y) = expr
+```
+
+```
+let f =
+  lam(x) ⇒
+    lam(y) ⇒
+      expr
+```
+
+###### Pattern bindings
+
+```
+let P[...] = expr
+
+```
 
 ##### Translate `match` expressions to simple `case` pattern matching
 
