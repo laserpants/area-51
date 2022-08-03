@@ -13,7 +13,8 @@ The compiler proceeds through a series of transformation steps applied to the
 syntax tree. The final goal of this process is to arrive at a tree based on a
 reduced expression grammar. Compared to the source language, this target AST is
 a much smaller and simpler representation which is more suitable for code
-generation and evaluation.
+generation and evaluation. This separation is important enough that we treat
+the end-product of this translation stage as a separate language.
 
 ```mermaid
 flowchart LR;
