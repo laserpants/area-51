@@ -1405,22 +1405,52 @@ main =
 
         describe "desugarPattern" $ do
           let pattern1 :: Pattern (Type Int)
-              pattern1 = 
-                pTup 
-                  (tup () [tInt, tInt]) 
-                  [ pLit tInt (IInt 1) 
-                  , pLit tInt (IInt 2) 
+              pattern1 =
+                pTup
+                  (tup () [tInt, tInt])
+                  [ pLit tInt (IInt 1)
+                  , pLit tInt (IInt 2)
                   ]
               pattern2 :: Pattern (Type Int)
               pattern2 =
-                pCon 
+                pCon
                   (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tInt)
                   "(,)"
-                  [ pLit tInt (IInt 1) 
-                  , pLit tInt (IInt 2) 
+                  [ pLit tInt (IInt 1)
+                  , pLit tInt (IInt 2)
                   ]
-
            in it "| (1, 2)  ==>  | ((,) 1) 2" (desugarPattern pattern1 == pattern2)
+
+          let pattern1 :: Pattern (Type Int)
+              pattern1 =
+                pList
+                  (tList tInt)
+                  [ pLit tInt (IInt 1)
+                  , pLit tInt (IInt 2)
+                  , pLit tInt (IInt 3)
+                  ]
+              pattern2 :: Pattern (Type Int)
+              pattern2 =
+                pCon
+                  (tList tInt)
+                  "(::)"
+                  [ pLit tInt (IInt 1)
+                  , pCon
+                      (tList tInt)
+                      "(::)"
+                      [ pLit tInt (IInt 2)
+                      , pCon
+                          (tList tInt)
+                          "(::)"
+                          [ pLit tInt (IInt 3)
+                          , pCon
+                              (tList tInt)
+                              "[]"
+                              []
+                          ]
+                      ]
+                  ]
+           in it "| [1, 2, 3]  ==>  | ((::) 1 ((::) 2 ((::) 3 [])))" (desugarPattern pattern1 == pattern2)
     ---------------------------------------------------------------------------
     describe "clauseGroups" $ do
       it "" $ do
