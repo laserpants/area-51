@@ -1403,6 +1403,31 @@ main =
                 "{ b = true, a = 1 }  ==>  #Record ({a} 1 ({b} true {}))"
                 (desugarExpr expr1 == expr2)
 
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 = eRec (tRec tNil) (eNil rNil)
+              expr2 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eApp
+                  (tRec tNil)
+                  (eCon (tNil ~> tRec tNil) "#Record")
+                  [ eCon tNil "{}"
+                  ]
+           in it
+                "{}  ==>  #Record {}"
+                (desugarExpr expr1 == expr2)
+
         describe "desugarPattern" $ do
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1419,7 +1444,9 @@ main =
                   [ pLit tInt (IInt 1)
                   , pLit tInt (IInt 2)
                   ]
-           in it "| (1, 2)  ==>  | ((,) 1) 2" (desugarPattern pattern1 == pattern2)
+           in it
+                "| (1, 2)  ==>  | ((,) 1) 2"
+                (desugarPattern pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1450,7 +1477,90 @@ main =
                           ]
                       ]
                   ]
-           in it "| [1, 2, 3]  ==>  | ((::) 1 ((::) 2 ((::) 3 [])))" (desugarPattern pattern1 == pattern2)
+           in it
+                "| [1, 2, 3]  ==>  | ((::) 1 ((::) 2 ((::) 3 [])))"
+                (desugarPattern pattern1 == pattern2)
+
+          let pattern1 :: Pattern (Type Int)
+              pattern1 =
+                pRec
+                  (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                  ( pExt
+                      (tExt "a" tInt (tExt "b" tBool tNil))
+                      "a"
+                      (pLit tInt (IInt 1))
+                      ( pExt
+                          (tExt "b" tBool tNil)
+                          "b"
+                          (pLit tBool (IBool True))
+                          (pNil rNil)
+                      )
+                  )
+              pattern2 :: Pattern (Type Int)
+              pattern2 =
+                pCon
+                  (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                  "#Record"
+                  [ pCon
+                      (tExt "a" tInt (tExt "b" tBool tNil))
+                      "{a}"
+                      [ pLit tInt (IInt 1)
+                      , pCon
+                          (tExt "b" tBool tNil)
+                          "{b}"
+                          [ pLit tBool (IBool True)
+                          , pCon tNil "{}" []
+                          ]
+                      ]
+                  ]
+           in it
+                "| { a = 1, b = true }  ==>  | #Record ({a} 1 ({b} true {}))"
+                (desugarPattern pattern1 == pattern2)
+
+          let pattern1 :: Pattern (Type Int)
+              pattern1 =
+                pRec
+                  (tRec (tExt "b" tBool (tExt "a" tInt tNil)))
+                  ( pExt
+                      (tExt "b" tBool (tExt "a" tInt tNil))
+                      "b"
+                      (pLit tBool (IBool True))
+                      ( pExt
+                          (tExt "a" tInt tNil)
+                          "a"
+                          (pLit tInt (IInt 1))
+                          (pNil rNil)
+                      )
+                  )
+              pattern2 :: Pattern (Type Int)
+              pattern2 =
+                pCon
+                  (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                  "#Record"
+                  [ pCon
+                      (tExt "a" tInt (tExt "b" tBool tNil))
+                      "{a}"
+                      [ pLit tInt (IInt 1)
+                      , pCon
+                          (tExt "b" tBool tNil)
+                          "{b}"
+                          [ pLit tBool (IBool True)
+                          , pCon tNil "{}" []
+                          ]
+                      ]
+                  ]
+           in it
+                "| { b = true, a = 1 }  ==>  | #Record ({a} 1 ({b} true {}))"
+                (desugarPattern pattern1 == pattern2)
+
+          let pattern1 :: Pattern (Type Int)
+              pattern1 = pRec (tRec tNil) (pNil rNil)
+              pattern2 :: Pattern (Type Int)
+              pattern2 = pCon (tRec tNil) "#Record" [pCon tNil "{}" []]
+           in it
+                "| {}  ==>  | #Record {}"
+                (desugarPattern pattern1 == pattern2)
+
     ---------------------------------------------------------------------------
     describe "clauseGroups" $ do
       it "" $ do
@@ -1611,11 +1721,11 @@ testConstructorEnv =
 --    , Clause () [pVar () "x"] [Choice [] (eLit () (IBool False))]
 --    ]
 --
-
-input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
-input =
-  compilePatterns
-    (eCon () "[]")
-    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
-    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
-    ]
+--
+--input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+--input =
+--  compilePatterns
+--    (eCon () "[]")
+--    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
+--    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
+--    ]
