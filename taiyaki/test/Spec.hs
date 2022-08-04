@@ -1560,3 +1560,12 @@ testConstructorEnv =
 --    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
 --    , Clause () [pVar () "x"] [Choice [] (eLit () (IBool False))]
 --    ]
+--
+
+input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+input =
+  compilePatterns
+    (eCon () "[]")
+    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
+    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
+    ]
