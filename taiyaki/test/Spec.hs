@@ -1227,180 +1227,200 @@ main =
           ]
 
       describe "stage1" $ do
-        let expr1 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr1 =
-              tup
-                (tup () [tInt, tBool])
-                [ eLit tInt (IInt 1)
-                , eLit tBool (IBool True)
-                ]
-            expr2 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr2 =
-              eApp
-                (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
-                ( eCon
-                    ( tInt
-                        ~> tBool
-                        ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool
-                    )
-                    "(,)"
-                )
-                [ eLit tInt (IInt 1)
-                , eLit tBool (IBool True)
-                ]
-         in it "(1, true)  ==>  ((,) 1) true" (stage1 expr1 == expr2)
+        describe "desugarExpr" $ do
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                tup
+                  (tup () [tInt, tBool])
+                  [ eLit tInt (IInt 1)
+                  , eLit tBool (IBool True)
+                  ]
+              expr2 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eApp
+                  (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
+                  ( eCon
+                      ( tInt
+                          ~> tBool
+                          ~> tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool
+                      )
+                      "(,)"
+                  )
+                  [ eLit tInt (IInt 1)
+                  , eLit tBool (IBool True)
+                  ]
+           in it "(1, true)  ==>  ((,) 1) true" (desugarExpr expr1 == expr2)
 
-        let expr1 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr1 =
-              eList
-                (tList tInt)
-                [ eLit tInt (IInt 1)
-                , eLit tInt (IInt 2)
-                , eLit tInt (IInt 3)
-                ]
-            expr2 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr2 =
-              eApp
-                (tList tInt)
-                (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
-                [ eLit tInt (IInt 1)
-                , eApp
-                    (tList tInt)
-                    (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
-                    [ eLit tInt (IInt 2)
-                    , eApp
-                        (tList tInt)
-                        (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
-                        [ eLit tInt (IInt 3)
-                        , eCon
-                            (tList tInt)
-                            "[]"
-                        ]
-                    ]
-                ]
-         in it
-              "[1, 2, 3]  ==>  (::) 1 ((::) 2 ((::) 3 []))"
-              (stage1 expr1 == expr2)
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                eList
+                  (tList tInt)
+                  [ eLit tInt (IInt 1)
+                  , eLit tInt (IInt 2)
+                  , eLit tInt (IInt 3)
+                  ]
+              expr2 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eApp
+                  (tList tInt)
+                  (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                  [ eLit tInt (IInt 1)
+                  , eApp
+                      (tList tInt)
+                      (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                      [ eLit tInt (IInt 2)
+                      , eApp
+                          (tList tInt)
+                          (eCon (tInt ~> tList tInt ~> tList tInt) "(::)")
+                          [ eLit tInt (IInt 3)
+                          , eCon
+                              (tList tInt)
+                              "[]"
+                          ]
+                      ]
+                  ]
+           in it
+                "[1, 2, 3]  ==>  (::) 1 ((::) 2 ((::) 3 []))"
+                (desugarExpr expr1 == expr2)
 
-        let expr1 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr1 =
-              eRec
-                (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
-                ( eExt
-                    (tExt "a" tInt (tExt "b" tBool tNil))
-                    "a"
-                    (eLit tInt (IInt 1))
-                    ( eExt
-                        (tExt "b" tBool tNil)
-                        "b"
-                        (eLit tBool (IBool True))
-                        (eNil rNil)
-                    )
-                )
-            expr2 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr2 =
-              eApp
-                (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
-                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#Record")
-                [ eApp
-                    (tExt "a" tInt (tExt "b" tBool tNil))
-                    (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
-                    [ eLit tInt (IInt 1)
-                    , eApp
-                        (tExt "b" tBool tNil)
-                        (eCon (tBool ~> tNil ~> tExt "b" tBool tNil) "{b}")
-                        [ eLit tBool (IBool True)
-                        , eCon tNil "{}"
-                        ]
-                    ]
-                ]
-         in it
-              "{ a = 1, b = true }  ==>  #Record ({a} 1 ({b} true {}))"
-              (stage1 expr1 == expr2)
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                eRec
+                  (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                  ( eExt
+                      (tExt "a" tInt (tExt "b" tBool tNil))
+                      "a"
+                      (eLit tInt (IInt 1))
+                      ( eExt
+                          (tExt "b" tBool tNil)
+                          "b"
+                          (eLit tBool (IBool True))
+                          (eNil rNil)
+                      )
+                  )
+              expr2 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eApp
+                  (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                  (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#Record")
+                  [ eApp
+                      (tExt "a" tInt (tExt "b" tBool tNil))
+                      (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
+                      [ eLit tInt (IInt 1)
+                      , eApp
+                          (tExt "b" tBool tNil)
+                          (eCon (tBool ~> tNil ~> tExt "b" tBool tNil) "{b}")
+                          [ eLit tBool (IBool True)
+                          , eCon tNil "{}"
+                          ]
+                      ]
+                  ]
+           in it
+                "{ a = 1, b = true }  ==>  #Record ({a} 1 ({b} true {}))"
+                (desugarExpr expr1 == expr2)
 
-        let expr1 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr1 =
-              eRec
-                (tRec (tExt "b" tBool (tExt "a" tInt tNil)))
-                ( eExt
-                    (tExt "b" tBool (tExt "a" tInt tNil))
-                    "b"
-                    (eLit tBool (IBool True))
-                    ( eExt
-                        (tExt "a" tInt tNil)
-                        "a"
-                        (eLit tInt (IInt 1))
-                        (eNil rNil)
-                    )
-                )
-            expr2 ::
-              Expr
-                (Type Int)
-                ()
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Clause (Type Int) [Pattern (Type Int)])
-                (Binding (Type Int))
-            expr2 =
-              eApp
-                (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
-                (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#Record")
-                [ eApp
-                    (tExt "a" tInt (tExt "b" tBool tNil))
-                    (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
-                    [ eLit tInt (IInt 1)
-                    , eApp
-                        (tExt "b" tBool tNil)
-                        (eCon (tBool ~> tNil ~> tExt "b" tBool tNil) "{b}")
-                        [ eLit tBool (IBool True)
-                        , eCon tNil "{}"
-                        ]
-                    ]
-                ]
-         in it
-              "{ b = true, a = 1 }  ==>  #Record ({a} 1 ({b} true {}))"
-              (stage1 expr1 == expr2)
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                eRec
+                  (tRec (tExt "b" tBool (tExt "a" tInt tNil)))
+                  ( eExt
+                      (tExt "b" tBool (tExt "a" tInt tNil))
+                      "b"
+                      (eLit tBool (IBool True))
+                      ( eExt
+                          (tExt "a" tInt tNil)
+                          "a"
+                          (eLit tInt (IInt 1))
+                          (eNil rNil)
+                      )
+                  )
+              expr2 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eApp
+                  (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+                  (eCon (tExt "a" tInt (tExt "b" tBool tNil) ~> tRec (tExt "a" tInt (tExt "b" tBool tNil))) "#Record")
+                  [ eApp
+                      (tExt "a" tInt (tExt "b" tBool tNil))
+                      (eCon (tInt ~> tExt "b" tBool tNil ~> tExt "a" tInt (tExt "b" tBool tNil)) "{a}")
+                      [ eLit tInt (IInt 1)
+                      , eApp
+                          (tExt "b" tBool tNil)
+                          (eCon (tBool ~> tNil ~> tExt "b" tBool tNil) "{b}")
+                          [ eLit tBool (IBool True)
+                          , eCon tNil "{}"
+                          ]
+                      ]
+                  ]
+           in it
+                "{ b = true, a = 1 }  ==>  #Record ({a} 1 ({b} true {}))"
+                (desugarExpr expr1 == expr2)
+
+        describe "desugarPattern" $ do
+          let pattern1 :: Pattern (Type Int)
+              pattern1 = 
+                pTup 
+                  (tup () [tInt, tInt]) 
+                  [ pLit tInt (IInt 1) 
+                  , pLit tInt (IInt 2) 
+                  ]
+              pattern2 :: Pattern (Type Int)
+              pattern2 =
+                pCon 
+                  (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tInt)
+                  "(,)"
+                  [ pLit tInt (IInt 1) 
+                  , pLit tInt (IInt 2) 
+                  ]
+
+           in it "| (1, 2)  ==>  | ((,) 1) 2" (desugarPattern pattern1 == pattern2)
     ---------------------------------------------------------------------------
     describe "clauseGroups" $ do
       it "" $ do
@@ -1522,24 +1542,24 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
---input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
---input =
+-- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+-- input =
 --  compilePatterns
 --    (eCon () "[]") -- (eVar (tList tInt) "xs")
 --    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
 --    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
 --    ]
 --
---input2 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
---input2 =
+-- input2 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+-- input2 =
 --  compilePatterns
 --    (eLit () (IInt 123))
 --    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
 --    , Clause () [pVar () "_"] [Choice [] (eLit () (IBool False))]
 --    ]
 --
---input3 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
---input3 =
+-- input3 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+-- input3 =
 --  compilePatterns
 --    (eLit () (IInt 123))
 --    [ Clause
@@ -1553,8 +1573,8 @@ testConstructorEnv =
 --        [Choice [] (eLit () (IBool False))]
 --    ]
 --
---input4 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
---input4 =
+-- input4 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+-- input4 =
 --  compilePatterns
 --    (eLit () (IInt 123))
 --    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]

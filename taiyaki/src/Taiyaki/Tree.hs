@@ -218,15 +218,19 @@ primCon IString{}       = "#String"
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
+-- =============
+-- == Stage 1 ==
+-- =============
+
 {- ORMOLU_DISABLE -}
 
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
-stage1 ::
+desugarExpr ::
   (Eq v, Eq e1, Eq p, Eq e4) =>
   Expr (Type v) e1 (Clause (Type v) p) (Clause (Type v) p) e4 ->
   Expr (Type v) e1 (Clause (Type v) p) (Clause (Type v) p) e4
-stage1 =
+desugarExpr =
   cata
     ( \case
         ETup  t es -> rawTuple t es
@@ -238,15 +242,29 @@ stage1 =
         e -> embed e
     )
 
+desugarPattern ::
+  (Eq v) =>
+  Pattern (Type v) ->
+  Pattern (Type v)
+desugarPattern =
+  cata
+    ( \case
+        PTup  t ps -> rawTuple t ps
+        PList t ps -> rawList t ps
+        PRec  t r  -> con (tRec (normalizeRow u)) "#Record" [rawRow r]
+          where
+            TRec u = project t
+        p -> embed p
+    )
+
 {- ORMOLU_ENABLE -}
 
---      ENil  t ->
---        undefined
---      EExt  t n e r ->
---        undefined
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------
--------------------------------------------------------------------------------
+-- =============
+-- == Stage 2 ==
+-- =============
 
 stage2 :: (Monad m) => Expr (Type v) e1 e2 e3 e4 -> m (Expr (Type v) e1 e2 e3 e4)
 stage2 =
