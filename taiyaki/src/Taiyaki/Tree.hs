@@ -255,6 +255,9 @@ stage2 =
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
+expandClause :: Clause t p a -> [Clause t p a]
+expandClause (Clause t ps cs) = [Clause t ps [c] | c <- cs]
+
 {- ORMOLU_DISABLE -}
 
 class PatternTag t where
@@ -289,7 +292,7 @@ compilePatterns ::
   [Clause t [Pattern t] (Expr t Name (CaseClause t) e3 e4)] ->
   m (Expr t Name (CaseClause t) e3 e4)
 compilePatterns ex cs =
-  compileMatch [ex] cs (eVar (tcon "<FAIL>") "<FAIL>")
+  compileMatch [ex] (expandClause =<< cs) (eVar (tcon "<FAIL>") "<FAIL>")
   where
     compileMatch [] [] c =
       pure c

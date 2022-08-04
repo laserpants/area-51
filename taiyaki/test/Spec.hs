@@ -1478,6 +1478,32 @@ main =
                 ]
          in (expr == evalState input 1)
 
+      it "match 123 { x when x == 456 => true, when true => false }" $
+        let input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+            input =
+              compilePatterns
+                (eLit () (IInt 123))
+                [ Clause
+                    ()
+                    [pVar () "x"]
+                    [ Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))
+                    , Choice [eLit () (IBool True)] (eLit () (IBool False))
+                    ]
+                ]
+            expr :: Expr () Name (CaseClause ()) Void1 (Binding ())
+            expr =
+              eIf
+                ()
+                (eOp2 () (OEq ()) (eLit () (IInt 123)) (eLit () (IInt 456)))
+                (eLit () (IBool True))
+                ( eIf
+                    ()
+                    (eLit () (IBool True))
+                    (eLit () (IBool False))
+                    (eVar () "<FAIL>")
+                )
+         in (expr == evalState input 1)
+
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =
@@ -1496,32 +1522,41 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
-input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
-input =
-              compilePatterns
-                (eCon () "[]") -- (eVar (tList tInt) "xs")
-                [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
-                , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
-                ]
-
-
-input2 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
-input2 =
-              compilePatterns
-                (eLit () (IInt 123))
-                [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
-                , Clause () [pVar () "_"] [Choice [] (eLit () (IBool False))]
-                ]
-
-input3 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
-input3 =
-              compilePatterns
-                (eLit () (IInt 123))
-                [ Clause () [pVar () "x"] 
-                      [ Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True)) ]
-                      -- , Choice [eLit () (IBool True)] (eLit () (IBool False)) 
-                , Clause () [pVar () "x"] 
-                      [ Choice [] (eLit () (IBool False)) ]
-                ]
-
-
+--input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+--input =
+--  compilePatterns
+--    (eCon () "[]") -- (eVar (tList tInt) "xs")
+--    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
+--    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
+--    ]
+--
+--input2 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+--input2 =
+--  compilePatterns
+--    (eLit () (IInt 123))
+--    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
+--    , Clause () [pVar () "_"] [Choice [] (eLit () (IBool False))]
+--    ]
+--
+--input3 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+--input3 =
+--  compilePatterns
+--    (eLit () (IInt 123))
+--    [ Clause
+--        ()
+--        [pVar () "x"]
+--        [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
+--    , -- , Choice [eLit () (IBool True)] (eLit () (IBool False))
+--      Clause
+--        ()
+--        [pVar () "x"]
+--        [Choice [] (eLit () (IBool False))]
+--    ]
+--
+--input4 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+--input4 =
+--  compilePatterns
+--    (eLit () (IInt 123))
+--    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
+--    , Clause () [pVar () "x"] [Choice [] (eLit () (IBool False))]
+--    ]
