@@ -469,11 +469,3 @@ labeledClause eq@(Clause _ (p : _) _) = p
       )
 
 {- ORMOLU_ENABLE -}
-
--- isError ::
---   (Functor e3) =>
---   Expr (Type v) Name (Clause (Type v) [CasePattern (Type v)]) e3 e4 ->
---   Bool
---
---
--- n <- getAndModify (first succ) <&> fst
