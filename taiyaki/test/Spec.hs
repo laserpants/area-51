@@ -1495,3 +1495,33 @@ testConstructorEnv =
     ]
 
 {- ORMOLU_ENABLE -}
+
+input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+input =
+              compilePatterns
+                (eCon () "[]") -- (eVar (tList tInt) "xs")
+                [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
+                , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
+                ]
+
+
+input2 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+input2 =
+              compilePatterns
+                (eLit () (IInt 123))
+                [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
+                , Clause () [pVar () "_"] [Choice [] (eLit () (IBool False))]
+                ]
+
+input3 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+input3 =
+              compilePatterns
+                (eLit () (IInt 123))
+                [ Clause () [pVar () "x"] 
+                      [ Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True)) ]
+                      -- , Choice [eLit () (IBool True)] (eLit () (IBool False)) 
+                , Clause () [pVar () "x"] 
+                      [ Choice [] (eLit () (IBool False)) ]
+                ]
+
+
