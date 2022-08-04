@@ -14,7 +14,10 @@ syntax tree. The final goal of this process is to arrive at a tree based on a
 reduced expression grammar. Compared to the source language, this target AST is
 a much smaller and simpler representation which is more suitable for code
 generation and evaluation. This separation is important enough that we treat
-the end-product of this translation stage as a separate language.
+this grammar as its own language entirely. There are a number of benefits of
+doing so:
+
+- Less cognitive overhead
 
 ```mermaid
 flowchart LR;

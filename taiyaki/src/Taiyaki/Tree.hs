@@ -12,6 +12,7 @@ import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Foldable (foldrM)
+import Data.Functor.Classes (Eq1)
 import Data.Functor.Foldable (ListF (..))
 import Data.List.Extra (groupSortOn)
 import qualified Data.Set.Monad as Set
@@ -227,9 +228,9 @@ primCon IString{}       = "#String"
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
 desugarExpr ::
-  (Eq v, Eq e1, Eq p, Eq e4) =>
-  Expr (Type v) e1 (Clause (Type v) p) (Clause (Type v) p) e4 ->
-  Expr (Type v) e1 (Clause (Type v) p) (Clause (Type v) p) e4
+  (Eq v, Eq e1, Eq1 e2, Eq1 e3, Eq e4, Functor e2, Functor e3) =>
+  Expr (Type v) e1 e2 e3 e4 ->
+  Expr (Type v) e1 e2 e3 e4
 desugarExpr =
   cata
     ( \case

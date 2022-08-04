@@ -1722,8 +1722,8 @@ testConstructorEnv =
 --    ]
 --
 --
---input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
---input =
+-- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
+-- input =
 --  compilePatterns
 --    (eCon () "[]")
 --    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
