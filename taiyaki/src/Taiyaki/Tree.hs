@@ -305,20 +305,22 @@ translateFunExpr ::
 translateFunExpr cs@(Clause _ ps (Choice _ e : _) : _) =
   eLam
     (foldr tarr t ts)
-    [pVar (getTag p) v | (p, v) <- zip ps vars]
+    [pVar (getTag p) v | (p, v) <- vars]
     (ePat t expr (clause <$> cs))
   where
     t = getTag e
     ts = getTag <$> ps
     vars =
-      ["$v" <> showt n | n <- [1 .. length ps]]
+      ps `zip` ["$v" <> showt n | n <- [1 .. length ps]]
     expr =
-      case [eVar (getTag p) v | (p, v) <- zip ps vars] of
+      case [eVar (getTag p) v | (p, v) <- vars] of
         [e] -> e
         es -> tup (ttup ts) es
-    clause (Clause t ps gs)
-      | length ps > 1 = Clause t [pTup (ttup ts) ps] gs
-      | otherwise = Clause t ps gs
+    clause (Clause t qs cs) = Clause t rs cs
+      where
+        rs
+          | length qs > 1 = [pTup (ttup ts) qs]
+          | otherwise = qs
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------

@@ -1787,8 +1787,8 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
---test1 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
---test1 =
+-- test1 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
+-- test1 =
 --  translateFunExpr clauses
 --  where
 --    clauses =
@@ -1796,8 +1796,8 @@ testConstructorEnv =
 --      , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
 --      ]
 --
---test2 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
---test2 =
+-- test2 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
+-- test2 =
 --  translateFunExpr clauses
 --  where
 --    clauses =
@@ -1811,8 +1811,8 @@ testConstructorEnv =
 --          [Choice [] (eLit () (IInt 2))]
 --      ]
 --
---test3 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
---test3 =
+-- test3 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
+-- test3 =
 --  translateFunExpr clauses
 --  where
 --    clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
@@ -1821,8 +1821,8 @@ testConstructorEnv =
 --      , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
 --      ]
 --
---expr5 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
---expr5 =
+-- expr5 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
+-- expr5 =
 --  eLam
 --    (tList tInt ~> tBool)
 --    [pVar (tList tInt) "$v1"]
@@ -1834,8 +1834,8 @@ testConstructorEnv =
 --        ]
 --    )
 --
---test5 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
---test5 =
+-- test5 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
+-- test5 =
 --  let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
 --      clauses =
 --        [ Clause
