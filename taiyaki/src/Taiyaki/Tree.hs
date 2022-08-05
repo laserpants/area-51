@@ -30,6 +30,7 @@ class TypeTag t where
   bool :: t
   tarr :: t -> t -> t
   trec :: t -> t
+  ttup :: [t] -> t
   rmap :: (t -> t) -> t -> t
 
 instance TypeTag (Type v) where
@@ -37,6 +38,7 @@ instance TypeTag (Type v) where
   bool = tBool
   tarr = tArr
   trec = tRec
+  ttup = tup ()
   rmap f =
     project
       >>> \case
@@ -47,6 +49,7 @@ instance TypeTag () where
   bool     = ()
   tarr _ _ = ()
   trec _   = ()
+  ttup _   = ()
   rmap _ _ = ()
 
 {- ORMOLU_ENABLE -}
@@ -296,21 +299,26 @@ desugarPattern =
 {- ORMOLU_ENABLE -}
 
 translateFunExpr ::
-  (TypeTag t, Functor e2, Functor e3) =>
-  [Clause t p a] ->
-  Expr t e1 e2 e3 e4
-translateFunExpr cs =
+  (TypeTag t, Functor e3) =>
+  [Clause t [Pattern t] (Expr t [Pattern t] (Clause t [Pattern t]) e3 e4)] ->
+  Expr t [Pattern t] (Clause t [Pattern t]) e3 e4
+translateFunExpr cs@(Clause _ ps (Choice _ e : _) : _) =
   eLam
-    undefined
-    undefined -- []
-    ( ePat
-        undefined
-        undefined
-        (clause <$> cs)
-    )
+    (foldr tarr t ts)
+    [pVar (getTag p) v | (p, v) <- zip ps vars]
+    (ePat t expr (clause <$> cs))
   where
-    clause (Clause t ps gs) =
-      undefined
+    t = getTag e
+    ts = getTag <$> ps
+    vars =
+      ["$v" <> showt n | n <- [1 .. length ps]]
+    expr =
+      case [eVar (getTag p) v | (p, v) <- zip ps vars] of
+        [e] -> e
+        es -> tup (ttup ts) es
+    clause (Clause t ps gs)
+      | length ps > 1 = Clause t [pTup (ttup ts) ps] gs
+      | otherwise = Clause t ps gs
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
