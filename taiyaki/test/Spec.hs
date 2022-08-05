@@ -1682,6 +1682,16 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
+test1 :: (Expr () Name (CaseClause ()) Void1 (Binding ()))
+test1 =
+  translateFunExpr clauses
+  where
+    clauses :: [Clause () [Pattern ()] (Expr () Name (CaseClause ()) Void1 (Binding ()))]
+    clauses =
+      [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
+      , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
+      ]
+
 -- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
 -- input =
 --  compilePatterns
@@ -1729,3 +1739,26 @@ testConstructorEnv =
 --    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
 --    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
 --    ]
+--
+--
+-- expr1 ::
+--  Expr
+--    (Type Int)
+--    ()
+--    (Clause (Type Int) [Pattern (Type Int)])
+--    (Clause (Type Int) [Pattern (Type Int)])
+--    (Binding (Type Int))
+-- expr1 =
+--  eRec
+--    (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
+--    ( eExt
+--        (tExt "a" tInt (tExt "b" tBool tNil))
+--        "a"
+--        (eLit tInt (IInt 1))
+--        ( eExt
+--            (tExt "b" tBool tNil)
+--            "b"
+--            (eLit tBool (IBool True))
+--            (eNil rNil)
+--        )
+--    )

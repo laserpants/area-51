@@ -23,6 +23,36 @@ import Taiyaki.Lang
 import Taiyaki.Util
 import qualified Taiyaki.Util.Env as Env
 
+{- ORMOLU_DISABLE -}
+
+class TypeTag t where
+  tcon :: Name -> t
+  bool :: t
+  tarr :: t -> t -> t
+  trec :: t -> t
+  rmap :: (t -> t) -> t -> t
+
+instance TypeTag (Type v) where
+  tcon = tCon kTyp
+  bool = tBool
+  tarr = tArr
+  trec = tRec
+  rmap f =
+    project
+      >>> \case
+        TRec t -> tRec (f t)
+
+instance TypeTag () where
+  tcon _   = ()
+  bool     = ()
+  tarr _ _ = ()
+  trec _   = ()
+  rmap _ _ = ()
+
+{- ORMOLU_ENABLE -}
+
+infixr 1 `tarr`
+
 -------------------------------------------------------------------------------
 
 {- ORMOLU_DISABLE -}
@@ -228,37 +258,59 @@ primCon IString{}       = "#String"
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
 desugarExpr ::
-  (Eq v, Eq e1, Eq1 e2, Eq1 e3, Eq e4, Functor e2, Functor e3) =>
-  Expr (Type v) e1 e2 e3 e4 ->
-  Expr (Type v) e1 e2 e3 e4
+  ( TypeTag t
+  , Con (Expr t e1 e2 e3 e4) t
+  , Row t
+  , Eq t
+  , Eq e1
+  , Eq1 e2
+  , Eq1 e3
+  , Eq e4
+  , Functor e2
+  , Functor e3
+  ) =>
+  Expr t e1 e2 e3 e4 ->
+  Expr t e1 e2 e3 e4
 desugarExpr =
   cata
     ( \case
         ETup  t es -> rawTuple t es
         EList t es -> rawList t es
-        ERec  t r  -> con (tRec (normalizeRow u)) "#Record" [rawRow r]
-          where
-            TRec u = project t
-        --      ECo   t e -> undefined
+        ERec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
         e -> embed e
     )
 
 desugarPattern ::
-  (Eq v) =>
-  Pattern (Type v) ->
-  Pattern (Type v)
+  (TypeTag t, Row t, Eq t) =>
+  Pattern t ->
+  Pattern t
 desugarPattern =
   cata
     ( \case
         PTup  t ps -> rawTuple t ps
         PList t ps -> rawList t ps
-        PRec  t r  -> con (tRec (normalizeRow u)) "#Record" [rawRow r]
-          where
-            TRec u = project t
+        PRec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
         p -> embed p
     )
 
 {- ORMOLU_ENABLE -}
+
+translateFunExpr ::
+  (TypeTag t, Functor e2, Functor e3) =>
+  [Clause t p a] ->
+  Expr t e1 e2 e3 e4
+translateFunExpr cs =
+  eLam
+    undefined
+    undefined -- []
+    ( ePat
+        undefined
+        undefined
+        (clause <$> cs)
+    )
+  where
+    clause (Clause t ps gs) =
+      undefined
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -277,36 +329,15 @@ stage2 =
 expandClause :: Clause t p a -> [Clause t p a]
 expandClause (Clause t ps cs) = [Clause t ps [c] | c <- cs]
 
-{- ORMOLU_DISABLE -}
-
-class PatternTag t where
-  tcon :: Name -> t
-  bool :: t
-  tarr :: t -> t -> t
-
-instance PatternTag (Type v) where
-  tcon = tCon kTyp
-  bool = tBool
-  tarr = tArr
-
-instance PatternTag () where
-  tcon _   = ()
-  bool     = ()
-  tarr _ _ = ()
-
-{- ORMOLU_ENABLE -}
-
-infixr 1 `tarr`
-
 andExprs ::
-  (PatternTag t, Functor e3) =>
+  (TypeTag t, Functor e3) =>
   Expr t Name (CaseClause t) e3 e4 ->
   Expr t Name (CaseClause t) e3 e4 ->
   Expr t Name (CaseClause t) e3 e4
 andExprs = eOp2 bool (OAnd (bool `tarr` bool `tarr` bool))
 
 compilePatterns ::
-  (PatternTag t, MonadState Int m, Functor e3) =>
+  (TypeTag t, MonadState Int m, Functor e3) =>
   Expr t Name (CaseClause t) e3 e4 ->
   [Clause t [Pattern t] (Expr t Name (CaseClause t) e3 e4)] ->
   m (Expr t Name (CaseClause t) e3 e4)
