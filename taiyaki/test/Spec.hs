@@ -1428,7 +1428,58 @@ main =
                 "{}  ==>  #Record {}"
                 (desugarExpr expr1 == expr2)
 
-        describe "desugarPattern" $ do
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                ePat
+                  tInt
+                  (eVar (tup () [tInt, tBool]) "p")
+                  [ Clause tInt [tup (tup () [tInt, tBool]) [pLit tInt (IInt 1), pLit tBool (IBool True)]] [Choice [] (eLit tInt (IInt 1))]
+                  , Clause tInt [tup (tup () [tInt, tBool]) [pAny tInt, pAny tBool]] [Choice [] (eLit tInt (IInt 2))]
+                  ]
+
+              expr2 ::
+                Expr
+                  (Type Int)
+                  ()
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                ePat
+                  tInt
+                  (eVar (tup () [tInt, tBool]) "p")
+                  [ Clause
+                      tInt
+                      [ pCon
+                          (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
+                          "(,)"
+                          [ pLit tInt (IInt 1)
+                          , pLit tBool (IBool True)
+                          ]
+                      ]
+                      [Choice [] (eLit tInt (IInt 1))]
+                  , Clause
+                      tInt
+                      [ pCon
+                          (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
+                          "(,)"
+                          [ pAny tInt
+                          , pAny tBool
+                          ]
+                      ]
+                      [Choice [] (eLit tInt (IInt 2))]
+                  ]
+           in it
+                "match p { (1, true) => 1 | (_, _) => 2 }"
+                (desugarExpr expr1 == expr2)
+
+        describe "desugarPatterns" $ do
           let pattern1 :: Pattern (Type Int)
               pattern1 =
                 pTup
@@ -1446,7 +1497,7 @@ main =
                   ]
            in it
                 "| (1, 2)  ==>  | ((,) 1) 2"
-                (desugarPattern pattern1 == pattern2)
+                (desugarPatterns pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1479,7 +1530,7 @@ main =
                   ]
            in it
                 "| [1, 2, 3]  ==>  | ((::) 1 ((::) 2 ((::) 3 [])))"
-                (desugarPattern pattern1 == pattern2)
+                (desugarPatterns pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1515,7 +1566,7 @@ main =
                   ]
            in it
                 "| { a = 1, b = true }  ==>  | #Record ({a} 1 ({b} true {}))"
-                (desugarPattern pattern1 == pattern2)
+                (desugarPatterns pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1551,7 +1602,7 @@ main =
                   ]
            in it
                 "| { b = true, a = 1 }  ==>  | #Record ({a} 1 ({b} true {}))"
-                (desugarPattern pattern1 == pattern2)
+                (desugarPatterns pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 = pRec (tRec tNil) (pNil rNil)
@@ -1559,7 +1610,7 @@ main =
               pattern2 = pCon (tRec tNil) "#Record" [pCon tNil "{}" []]
            in it
                 "| {}  ==>  | #Record {}"
-                (desugarPattern pattern1 == pattern2)
+                (desugarPatterns pattern1 == pattern2)
 
     ---------------------------------------------------------------------------
     describe "clauseGroups" $ do

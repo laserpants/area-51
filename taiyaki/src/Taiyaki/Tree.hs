@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Taiyaki.Tree where
 
@@ -256,7 +257,79 @@ primCon IString{}       = "#String"
 -- == Stage 1 ==
 -- =============
 
+class HasPatterns e where
+  desugarPatterns :: e -> e
+
+instance HasPatterns e => HasPatterns [e] where
+  desugarPatterns = fmap desugarPatterns
+
+instance HasPatterns e => HasPatterns (Choice e) where
+  desugarPatterns =
+    \case
+      Choice es e ->
+        Choice (desugarPatterns es) (desugarPatterns e)
+
+instance
+  ( TypeTag t
+  , Row t
+  , Eq t
+  , HasPatterns (Choice e)
+  ) =>
+  HasPatterns (Clause t [Pattern t] e)
+  where
+  desugarPatterns =
+    \case
+      Clause t ps cs ->
+        Clause t (desugarPatterns <$> ps) (desugarPatterns cs)
+
 {- ORMOLU_DISABLE -}
+
+instance (TypeTag t, Row t, Eq t) => HasPatterns (Binding t) where
+  desugarPatterns =
+    \case
+      BPat t p    -> BPat t (desugarPatterns p)
+      BFun t n ps -> BFun t n (desugarPatterns <$> ps)
+
+instance HasPatterns () where
+  desugarPatterns _ = ()
+
+instance (TypeTag t, Row t, Eq t) => HasPatterns (Pattern t) where
+  desugarPatterns =
+    cata
+      ( \case
+          PTup  t ps -> rawTuple t ps
+          PList t ps -> rawList t ps
+          PRec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
+          p          -> embed p
+      )
+
+instance
+  ( TypeTag t
+  , Con (Expr t e1 e2 e3 e4) t
+  , Functor e2
+  , Functor e3
+  , Row t
+  , Eq t
+  , Eq e1
+  , Eq1 e2
+  , Eq1 e3
+  , Eq e4
+  , HasPatterns e1
+  , HasPatterns (e2 (Expr t e1 e2 e3 e4))
+  , HasPatterns (e3 (Expr t e1 e2 e3 e4))
+  , HasPatterns e4
+  ) =>
+  HasPatterns (Expr t e1 e2 e3 e4)
+  where
+  desugarPatterns =
+    cata
+      ( \case
+          EPat t a1 a2    -> ePat t a1 (desugarPatterns a2)
+          ELet t a1 a2 a3 -> eLet t (desugarPatterns a1) a2 a3
+          EFun t a1       -> eFun t (desugarPatterns a1)
+          ELam t a1 a2    -> eLam t (desugarPatterns a1) a2
+          e -> embed e
+      )
 
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
@@ -271,30 +344,22 @@ desugarExpr ::
   , Eq e4
   , Functor e2
   , Functor e3
+  , HasPatterns e1
+  , HasPatterns (e2 (Expr t e1 e2 e3 e4))
+  , HasPatterns (e3 (Expr t e1 e2 e3 e4))
+  , HasPatterns e4
   ) =>
   Expr t e1 e2 e3 e4 ->
   Expr t e1 e2 e3 e4
 desugarExpr =
-  cata
-    ( \case
-        ETup  t es -> rawTuple t es
-        EList t es -> rawList t es
-        ERec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
-        e -> embed e
-    )
-
-desugarPattern ::
-  (TypeTag t, Row t, Eq t) =>
-  Pattern t ->
-  Pattern t
-desugarPattern =
-  cata
-    ( \case
-        PTup  t ps -> rawTuple t ps
-        PList t ps -> rawList t ps
-        PRec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
-        p -> embed p
-    )
+  desugarPatterns
+    <<< cata
+      ( \case
+          ETup  t es -> rawTuple t es
+          EList t es -> rawList t es
+          ERec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
+          e -> embed e
+      )
 
 {- ORMOLU_ENABLE -}
 
@@ -342,9 +407,8 @@ stage2 =
           e1 <- expr1
           e2 <- expr2
           translateLet t bind e1 e2
-        ELam t a1 expr -> do
-          e <- expr
-          translateLam t a1 e
+        ELam t a1 expr ->
+          translateLam t a1 =<< expr
         EPat  t a1 a2    -> ePat t <$> a1 <*> traverse sequence a2
         EVar  t a1       -> pure (eVar t a1)
         ECon  t a1       -> pure (eCon t a1)
