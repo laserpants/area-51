@@ -1625,8 +1625,8 @@ main =
             input =
               compilePatterns
                 (eVar (tList tInt) "xs")
-                [ Clause (tInt ~> tList tInt ~> tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
-                , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
+                [ Clause tBool [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
+                , Clause tBool [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
                 ]
             expr :: Expr (Type Int) Name (CaseClause (Type Int)) Void1 (Binding (Type Int))
             expr =
@@ -1688,8 +1688,8 @@ main =
       it "" $ -- TODO
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
             clauses =
-              [ Clause (tInt ~> tList tInt ~> tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
-              , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
+              [ Clause tBool [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
+              , Clause tBool [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
               ]
             expr :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
             expr =
@@ -1699,8 +1699,8 @@ main =
                 ( ePat
                     tBool
                     (eVar (tList tInt) "$v1")
-                    [ Clause (tInt ~> tList tInt ~> tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
-                    , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
+                    [ Clause tBool [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
+                    , Clause tBool [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
                     ]
                 )
          in (expr == translateFunExpr clauses)

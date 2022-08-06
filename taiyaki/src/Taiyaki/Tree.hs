@@ -380,7 +380,7 @@ compilePatterns ex cs =
               error "Implementation error"
         --
         [LCon eqs@(Clause t _ [Choice _ e] : _)] -> do
-          qs' <- traverse (toSimpleMatch t us c) (consGroups u eqs)
+          qs' <- traverse (toSimpleMatch t u us c) (consGroups u eqs)
           let rs = [Case (getTag u) "$_" [] c | not (isError c)]
           pure
             ( case qs' <> rs of
@@ -407,10 +407,16 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
-    toSimpleMatch t us c ConsGroup{..} = do
+    toSimpleMatch t u us c ConsGroup{..} = do
       (_, vars, pats) <- patternInfo (const id) consPatterns
       expr <- compileMatch (vars <> us) consClauses c
-      pure (Case consType consName pats expr)
+      pure
+        ( Case
+            (foldr tarr (getTag u) (getTag <$> consPatterns))
+            consName
+            pats
+            expr
+        )
 
 uniqueName :: (MonadState Int m) => Name -> m Name
 uniqueName prefix = do
