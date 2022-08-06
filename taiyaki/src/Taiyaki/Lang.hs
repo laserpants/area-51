@@ -218,10 +218,10 @@ instance (Functor e2, Functor e3) => Tagged (Expr t e1 e2 e3 e4) t where
 
 -------------------------------------------------------------------------------
 
-class TaggedMappable a b t u | a -> t, b -> u where
+class Retaggable a b t u | a -> t, b -> u where
   mapTag :: (t -> u) -> a -> b
 
-instance TaggedMappable (Pattern t) (Pattern u) t u where
+instance Retaggable (Pattern t) (Pattern u) t u where
   mapTag f =
     cata
       ( \case
@@ -239,26 +239,26 @@ instance TaggedMappable (Pattern t) (Pattern u) t u where
           PAnn  t a1         -> pAnn  (f t) a1
       )
 
-instance TaggedMappable (Binding t) (Binding u) t u where
+instance Retaggable (Binding t) (Binding u) t u where
   mapTag f =
     \case
       BPat t a1              -> BPat (f t) (mapTag f a1)
       BFun t a1 a2           -> BFun (f t) a1 (mapTag f <$> a2)
 
-instance (TaggedMappable p p t u) =>
-  TaggedMappable (Clause t p a) (Clause u p a) t u
+instance (Retaggable p p t u) =>
+  Retaggable (Clause t p a) (Clause u p a) t u
   where
   mapTag f =
     \case
       Clause t a1 a2         -> Clause (f t) (mapTag f a1) a2
 
-instance TaggedMappable (Op1 t) (Op1 u) t u where
+instance Retaggable (Op1 t) (Op1 u) t u where
   mapTag f = 
     \case
       ONot t                 -> ONot (f t)
       ONeg t                 -> ONeg (f t)
 
-instance TaggedMappable (Op2 t) (Op2 u) t u where
+instance Retaggable (Op2 t) (Op2 u) t u where
   mapTag f =
     \case
       OEq   t                -> OEq   (f t)
@@ -283,13 +283,13 @@ instance TaggedMappable (Op2 t) (Op2 u) t u where
       OGet  t                -> OGet  (f t)
 
 instance
-  ( TaggedMappable e1 e1 t u
-  , TaggedMappable (e2 (Expr u e1 e2 e3 e4)) (e2 (Expr u e1 e2 e3 e4)) t u
-  , TaggedMappable (e3 (Expr u e1 e2 e3 e4)) (e3 (Expr u e1 e2 e3 e4)) t u
-  , TaggedMappable e4 e4 t u
+  ( Retaggable e1 e1 t u
+  , Retaggable (e2 (Expr u e1 e2 e3 e4)) (e2 (Expr u e1 e2 e3 e4)) t u
+  , Retaggable (e3 (Expr u e1 e2 e3 e4)) (e3 (Expr u e1 e2 e3 e4)) t u
+  , Retaggable e4 e4 t u
   , Functor e2
   , Functor e3
-  ) => TaggedMappable (Expr t e1 e2 e3 e4) (Expr u e1 e2 e3 e4) t u
+  ) => Retaggable (Expr t e1 e2 e3 e4) (Expr u e1 e2 e3 e4) t u
   where
   mapTag f = 
     cata
@@ -316,7 +316,7 @@ instance
           EAnn  t a1         -> eAnn  (f t) a1
       )
 
-setTag :: (TaggedMappable a a t t) => t -> a -> a
+setTag :: (Retaggable a a t t) => t -> a -> a
 setTag = mapTag . const
 
 -------------------------------------------------------------------------------

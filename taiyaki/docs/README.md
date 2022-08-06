@@ -9,13 +9,14 @@
 
 ## Compilation strategy
 
-The compiler proceeds through a series of transformation steps applied to the
-syntax tree. The final goal of this process is to arrive at a tree based on a
-reduced expression grammar. Compared to the source language, this target AST is
-a much smaller and simpler representation which is more suitable for code
-generation and evaluation. This separation is important enough that we treat
-this grammar as its own language entirely. There are a number of benefits of
-doing so:
+After parsing, type checking, and other preliminary steps, the compiler
+proceeds through a series of transformations applied to the syntax tree. The
+final goal of this process is to arrive at an adaptation of the input,
+semantically identical, but based on a much smaller expression grammar.
+Compared to the source language, this AST representation is more suitable for
+code generation and evaluation. The code generation stage is important enough
+that we treat this grammar as its own language entirely. There are a number of
+benefits of doing so:
 
 - Less cognitive overhead
 
@@ -75,8 +76,13 @@ let f =
 ###### Pattern bindings
 
 ```
-let P[...] = expr
+let P[...] = expr in body
+```
 
+```
+match expr {
+  | P[...] ⇒ body
+}
 ```
 
 ##### Translate `match` expressions to simple `case` pattern matching

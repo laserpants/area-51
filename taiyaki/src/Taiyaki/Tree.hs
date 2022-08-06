@@ -299,9 +299,9 @@ desugarPattern =
 {- ORMOLU_ENABLE -}
 
 translateFunExpr ::
-  (TypeTag t, Functor e3) =>
-  [Clause t [Pattern t] (Expr t [Pattern t] (Clause t [Pattern t]) e3 e4)] ->
-  Expr t [Pattern t] (Clause t [Pattern t]) e3 e4
+  (TypeTag t) =>
+  [Clause t [Pattern t] (Expr t [Pattern t] (Clause t [Pattern t]) Void1 e4)] ->
+  Expr t [Pattern t] (Clause t [Pattern t]) Void1 e4
 translateFunExpr cs@(Clause _ ps (Choice _ e : _) : _) =
   eLam
     (foldr tarr t ts)
@@ -329,9 +329,72 @@ translateFunExpr cs@(Clause _ ps (Choice _ e : _) : _) =
 -- == Stage 2 ==
 -- =============
 
-stage2 :: (Monad m) => Expr (Type v) e1 e2 e3 e4 -> m (Expr (Type v) e1 e2 e3 e4)
+{- ORMOLU_DISABLE -}
+
+stage2 ::
+  (Monad m) =>
+  Expr t [Pattern t] (CaseClause t) Void1 (Binding t) ->
+  m (Expr t Name (CaseClause t) Void1 Void)
 stage2 =
-  undefined
+  cata
+    ( \case
+        ELet t bind expr1 expr2 -> do
+          e1 <- expr1
+          e2 <- expr2
+          translateLet t bind e1 e2
+        ELam t a1 expr -> do
+          e <- expr
+          translateLam t a1 e
+        EPat  t a1 a2    -> ePat t <$> a1 <*> traverse sequence a2
+        EVar  t a1       -> pure (eVar t a1)
+        ECon  t a1       -> pure (eCon t a1)
+        ELit  t a1       -> pure (eLit t a1)
+        EApp  t a1 a2    -> eApp t <$> a1 <*> sequence a2
+        EIf   t a1 a2 a3 -> eIf t <$> a1 <*> a2 <*> a3
+        EFix  t a1 a2 a3 -> eFix t a1 <$> a2 <*> a3
+        EOp1  t a1 a2    -> eOp1 t a1 <$> a2
+        EOp2  t a1 a2 a3 -> eOp2 t a1 <$> a2 <*> a3
+        ETup  t a1       -> eTup t <$> sequence a1
+        EList t a1       -> eList t <$> sequence a1
+        ERec  t a1       -> eRec t <$> a1
+        ENil  t          -> pure (eNil t)
+        EExt  t a1 a2 a3 -> eExt t a1 <$> a2 <*> a3
+        ESub  t          -> pure (eSub t)
+        ECo   t a1       -> eCo t <$> a1
+        EAnn  t a1       -> eAnn t <$> a1
+    )
+
+{- ORMOLU_ENABLE -}
+
+translateLet ::
+  (Monad m, Functor e2, Functor e3) =>
+  t ->
+  Binding t ->
+  Expr t Name e2 e3 Void ->
+  Expr t Name e2 e3 Void ->
+  m (Expr t Name e2 e3 Void)
+translateLet t bind e1 e2 =
+  case bind of
+    BPat _ (Fix (PVar _ var)) ->
+      pure (eFix t var e1 e2)
+    BPat _ (Fix pat) ->
+      undefined
+    BFun t1 f ps -> do
+      e <- translateLam t1 ps e1
+      undefined
+
+translateLam ::
+  (Monad m, Functor e2, Functor e3) =>
+  t ->
+  [Pattern t] ->
+  Expr t Name e2 e3 e4 ->
+  m (Expr t Name e2 e3 e4)
+translateLam t pats expr =
+  case pats of
+    [Fix (PVar _ var)] ->
+      pure (eLam t var expr)
+    _ ->
+      undefined
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -430,8 +493,7 @@ patternInfo ::
   m ([(Name, t)], [Expr t e1 e2 e3 e4], [a])
 patternInfo con pats = do
   vars <- replicateM (length pats) (uniqueName "$p")
-  let ts = getTag <$> pats
-      ps = zip ts vars
+  let ps = zip (getTag <$> pats) vars
   pure
     ( swap <$> ps
     , (fmap . uncurry) eVar ps
@@ -516,3 +578,24 @@ labeledClause eq@(Clause _ (p : _) _) = p
       )
 
 {- ORMOLU_ENABLE -}
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+-- =============
+-- == Stage 3 ==
+-- =============
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+-- =============
+-- == Stage 4 ==
+-- =============
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+-- =============
+-- == Postpr. ==
+-- =============
