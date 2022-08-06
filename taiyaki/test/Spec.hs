@@ -1769,7 +1769,7 @@ main =
                 )
          in (expr == translateFunExpr clauses)
 
-      it "let f | (1, 1, a) = () | (_, _, _) = ()" $
+      it "let f | (1, true, a) = () | (_, _, _) = ()" $
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
             clauses =
               [ Clause
