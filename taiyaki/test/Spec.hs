@@ -1665,7 +1665,7 @@ main =
          in (expr == evalState input 1)
     ---------------------------------------------------------------------------
     describe "translateFunExpr" $ do
-      it "" $ -- TODO
+      it "let f | y :: ys = true | [] = false" $
         let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ()))]
             clauses =
               [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
@@ -1685,7 +1685,7 @@ main =
                 )
          in (expr == translateFunExpr clauses)
 
-      it "" $ -- TODO
+      it "let f | y :: ys = true | [] = false" $
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
             clauses =
               [ Clause tBool [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
@@ -1705,7 +1705,7 @@ main =
                 )
          in (expr == translateFunExpr clauses)
 
-      it "" $ -- TODO
+      it "let f | (1, a) = 1 | (_, _) = 2" $
         let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ()))]
             clauses =
               [ Clause
@@ -1737,7 +1737,7 @@ main =
                 )
          in (expr == translateFunExpr clauses)
 
-      it "" $ -- TODO
+      it "let f | (1, a) = 1 | (_, _) = 2" $
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
             clauses =
               [ Clause
@@ -1765,6 +1765,38 @@ main =
                         tInt
                         [pTup (tup () [tInt, tInt]) [pAny tInt, pAny tInt]]
                         [Choice [] (eLit tInt (IInt 2))]
+                    ]
+                )
+         in (expr == translateFunExpr clauses)
+
+      it "let f | (1, 1, a) = () | (_, _, _) = ()" $
+        let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
+            clauses =
+              [ Clause
+                  tUnit
+                  [pLit tFloat (IFloat 1), pLit tBool (IBool True), pVar tInt "a"]
+                  [Choice [] (eLit tUnit IUnit)]
+              , Clause
+                  tUnit
+                  [pAny tFloat, pAny tBool, pAny tInt]
+                  [Choice [] (eLit tUnit IUnit)]
+              ]
+            expr :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
+            expr =
+              eLam
+                (tFloat ~> tBool ~> tInt ~> tUnit)
+                [pVar tFloat "$v1", pVar tBool "$v2", pVar tInt "$v3"]
+                ( ePat
+                    tUnit
+                    (eTup (tup () [tFloat, tBool, tInt]) [eVar tFloat "$v1", eVar tBool "$v2", eVar tInt "$v3"])
+                    [ Clause
+                        tUnit
+                        [pTup (tup () [tFloat, tBool, tInt]) [pLit tFloat (IFloat 1), pLit tBool (IBool True), pVar tInt "a"]]
+                        [Choice [] (eLit tUnit IUnit)]
+                    , Clause
+                        tUnit
+                        [pTup (tup () [tFloat, tBool, tInt]) [pAny tFloat, pAny tBool, pAny tInt]]
+                        [Choice [] (eLit tUnit IUnit)]
                     ]
                 )
          in (expr == translateFunExpr clauses)
