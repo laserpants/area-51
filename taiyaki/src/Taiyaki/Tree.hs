@@ -257,44 +257,46 @@ primCon IString{}       = "#String"
 -- == Stage 1 ==
 -- =============
 
-class HasPatterns e where
-  desugarPatterns :: e -> e
+-- Unpack tuples, lists, records, rows, and codata expressions
+--
+class Desugars e where
+  desugar :: e -> e
 
-instance HasPatterns e => HasPatterns [e] where
-  desugarPatterns = fmap desugarPatterns
+instance Desugars e => Desugars [e] where
+  desugar = fmap desugar
 
-instance HasPatterns e => HasPatterns (Choice e) where
-  desugarPatterns =
+instance Desugars e => Desugars (Choice e) where
+  desugar =
     \case
       Choice es e ->
-        Choice (desugarPatterns es) (desugarPatterns e)
+        Choice (desugar es) (desugar e)
 
 instance
   ( TypeTag t
   , Row t
   , Eq t
-  , HasPatterns (Choice e)
+  , Desugars (Choice e)
   ) =>
-  HasPatterns (Clause t [Pattern t] e)
+  Desugars (Clause t [Pattern t] e)
   where
-  desugarPatterns =
+  desugar =
     \case
       Clause t ps cs ->
-        Clause t (desugarPatterns <$> ps) (desugarPatterns cs)
+        Clause t (desugar <$> ps) (desugar cs)
 
 {- ORMOLU_DISABLE -}
 
-instance (TypeTag t, Row t, Eq t) => HasPatterns (Binding t) where
-  desugarPatterns =
+instance (TypeTag t, Row t, Eq t) => Desugars (Binding t) where
+  desugar =
     \case
-      BPat t p    -> BPat t (desugarPatterns p)
-      BFun t n ps -> BFun t n (desugarPatterns <$> ps)
+      BPat t p    -> BPat t (desugar p)
+      BFun t n ps -> BFun t n (desugar <$> ps)
 
-instance HasPatterns () where
-  desugarPatterns _ = ()
+instance Desugars () where
+  desugar _ = ()
 
-instance (TypeTag t, Row t, Eq t) => HasPatterns (Pattern t) where
-  desugarPatterns =
+instance (TypeTag t, Row t, Eq t) => Desugars (Pattern t) where
+  desugar =
     cata
       ( \case
           PTup  t ps -> rawTuple t ps
@@ -314,50 +316,23 @@ instance
   , Eq1 e2
   , Eq1 e3
   , Eq e4
-  , HasPatterns e1
-  , HasPatterns (e2 (Expr t e1 e2 e3 e4))
-  , HasPatterns (e3 (Expr t e1 e2 e3 e4))
-  , HasPatterns e4
+  , Desugars e1
+  , Desugars (e2 (Expr t e1 e2 e3 e4))
+  , Desugars (e3 (Expr t e1 e2 e3 e4))
+  , Desugars e4
   ) =>
-  HasPatterns (Expr t e1 e2 e3 e4)
+  Desugars (Expr t e1 e2 e3 e4)
   where
-  desugarPatterns =
+  desugar =
     cata
       ( \case
-          EPat t a1 a2    -> ePat t a1 (desugarPatterns a2)
-          ELet t a1 a2 a3 -> eLet t (desugarPatterns a1) a2 a3
-          EFun t a1       -> eFun t (desugarPatterns a1)
-          ELam t a1 a2    -> eLam t (desugarPatterns a1) a2
-          e -> embed e
-      )
-
--- Unpack tuples, lists, records, rows, and codata expressions
---
-desugarExpr ::
-  ( TypeTag t
-  , Con (Expr t e1 e2 e3 e4) t
-  , Row t
-  , Eq t
-  , Eq e1
-  , Eq1 e2
-  , Eq1 e3
-  , Eq e4
-  , Functor e2
-  , Functor e3
-  , HasPatterns e1
-  , HasPatterns (e2 (Expr t e1 e2 e3 e4))
-  , HasPatterns (e3 (Expr t e1 e2 e3 e4))
-  , HasPatterns e4
-  ) =>
-  Expr t e1 e2 e3 e4 ->
-  Expr t e1 e2 e3 e4
-desugarExpr =
-  desugarPatterns
-    <<< cata
-      ( \case
-          ETup  t es -> rawTuple t es
-          EList t es -> rawList t es
-          ERec  t r  -> con (rmap normalizeRow t) "#Record" [rawRow r]
+          ETup  t es      -> rawTuple t es
+          EList t es      -> rawList t es
+          ERec  t r       -> con (rmap normalizeRow t) "#Record" [rawRow r]
+          EPat t a1 a2    -> ePat t a1 (desugar a2)
+          ELet t a1 a2 a3 -> eLet t (desugar a1) a2 a3
+          EFun t a1       -> eFun t (desugar a1)
+          ELam t a1 a2    -> eLam t (desugar a1) a2
           e -> embed e
       )
 

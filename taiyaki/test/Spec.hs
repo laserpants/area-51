@@ -1227,7 +1227,7 @@ main =
           ]
 
       describe "stage1" $ do
-        describe "desugarExpr" $ do
+        describe "Expr" $ do
           let expr1 ::
                 Expr
                   (Type Int)
@@ -1261,7 +1261,7 @@ main =
                   [ eLit tInt (IInt 1)
                   , eLit tBool (IBool True)
                   ]
-           in it "(1, true)  ==>  ((,) 1) true" (desugarExpr expr1 == expr2)
+           in it "(1, true)  ==>  ((,) 1) true" (desugar expr1 == expr2)
 
           let expr1 ::
                 Expr
@@ -1305,7 +1305,7 @@ main =
                   ]
            in it
                 "[1, 2, 3]  ==>  (::) 1 ((::) 2 ((::) 3 []))"
-                (desugarExpr expr1 == expr2)
+                (desugar expr1 == expr2)
 
           let expr1 ::
                 Expr
@@ -1353,7 +1353,7 @@ main =
                   ]
            in it
                 "{ a = 1, b = true }  ==>  #Record ({a} 1 ({b} true {}))"
-                (desugarExpr expr1 == expr2)
+                (desugar expr1 == expr2)
 
           let expr1 ::
                 Expr
@@ -1401,7 +1401,7 @@ main =
                   ]
            in it
                 "{ b = true, a = 1 }  ==>  #Record ({a} 1 ({b} true {}))"
-                (desugarExpr expr1 == expr2)
+                (desugar expr1 == expr2)
 
           let expr1 ::
                 Expr
@@ -1426,8 +1426,9 @@ main =
                   ]
            in it
                 "{}  ==>  #Record {}"
-                (desugarExpr expr1 == expr2)
+                (desugar expr1 == expr2)
 
+        describe "Nested patterns" $ do
           let expr1 ::
                 Expr
                   (Type Int)
@@ -1477,9 +1478,11 @@ main =
                   ]
            in it
                 "match p { (1, true) => 1 | (_, _) => 2 }"
-                (desugarExpr expr1 == expr2)
+                (desugar expr1 == expr2)
 
-        describe "desugarPatterns" $ do
+        -- TODO
+
+        describe "Pattern" $ do
           let pattern1 :: Pattern (Type Int)
               pattern1 =
                 pTup
@@ -1497,7 +1500,7 @@ main =
                   ]
            in it
                 "| (1, 2)  ==>  | ((,) 1) 2"
-                (desugarPatterns pattern1 == pattern2)
+                (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1530,7 +1533,7 @@ main =
                   ]
            in it
                 "| [1, 2, 3]  ==>  | ((::) 1 ((::) 2 ((::) 3 [])))"
-                (desugarPatterns pattern1 == pattern2)
+                (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1566,7 +1569,7 @@ main =
                   ]
            in it
                 "| { a = 1, b = true }  ==>  | #Record ({a} 1 ({b} true {}))"
-                (desugarPatterns pattern1 == pattern2)
+                (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 =
@@ -1602,7 +1605,7 @@ main =
                   ]
            in it
                 "| { b = true, a = 1 }  ==>  | #Record ({a} 1 ({b} true {}))"
-                (desugarPatterns pattern1 == pattern2)
+                (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
               pattern1 = pRec (tRec tNil) (pNil rNil)
@@ -1610,7 +1613,7 @@ main =
               pattern2 = pCon (tRec tNil) "#Record" [pCon tNil "{}" []]
            in it
                 "| {}  ==>  | #Record {}"
-                (desugarPatterns pattern1 == pattern2)
+                (desugar pattern1 == pattern2)
 
     ---------------------------------------------------------------------------
     describe "clauseGroups" $ do
