@@ -326,13 +326,13 @@ instance
   desugar =
     cata
       ( \case
-          ETup  t es      -> rawTuple t es
-          EList t es      -> rawList t es
-          ERec  t r       -> con (rmap normalizeRow t) "#Record" [rawRow r]
-          EPat t a1 a2    -> ePat t a1 (desugar a2)
-          ELet t a1 a2 a3 -> eLet t (desugar a1) a2 a3
-          EFun t a1       -> eFun t (desugar a1)
-          ELam t a1 a2    -> eLam t (desugar a1) a2
+          ETup  t es       -> rawTuple t es
+          EList t es       -> rawList t es
+          ERec  t r        -> con (rmap normalizeRow t) "#Record" [rawRow r]
+          EPat  t a1 a2    -> ePat t a1 (desugar a2)
+          ELet  t a1 a2 a3 -> eLet t (desugar a1) a2 a3
+          EFun  t a1       -> eFun t (desugar a1)
+          ELam  t a1 a2    -> eLam t (desugar a1) a2
           e -> embed e
       )
 
