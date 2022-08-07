@@ -2076,9 +2076,17 @@ main =
         it
           "lam(x) => e              -->  lam(x) => e"
           $ let expr :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
-                expr = translateLam (tInt ~> tInt) [pVar tInt "x"] (eVar tInt "e")
+                expr =
+                  translateLam
+                    (tInt ~> tInt)
+                    [pVar tInt "x"]
+                    (eVar tInt "e")
                 result :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
-                result = eLam (tInt ~> tInt) "x" (eVar tInt "e")
+                result =
+                  eLam
+                    (tInt ~> tInt)
+                    "x"
+                    (eVar tInt "e")
              in (result == expr)
 
         it
