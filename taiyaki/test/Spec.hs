@@ -1537,7 +1537,93 @@ main =
                 "lam([ x, 2, 3 ]) => x"
                 (desugar expr1 == expr2)
 
-        -- TODO
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  [Pattern (Type Int)]
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                eLet
+                  tBool
+                  (BPat (tup () [tInt, tInt]) (pTup (tup () [tInt, tInt]) [pVar tInt "a", pVar tInt "b"]))
+                  (eVar (tup () [tInt, tInt]) "e1")
+                  (eVar tBool "e2")
+
+              expr2 ::
+                Expr
+                  (Type Int)
+                  [Pattern (Type Int)]
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eLet
+                  tBool
+                  ( BPat
+                      (tup () [tInt, tInt])
+                      ( pCon
+                          (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tInt)
+                          "(,)"
+                          [ pVar tInt "a"
+                          , pVar tInt "b"
+                          ]
+                      )
+                  )
+                  (eVar (tup () [tInt, tInt]) "e1")
+                  (eVar tBool "e2")
+           in it
+                "let (a, b) = e1 in e2"
+                (desugar expr1 == expr2)
+
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  [Pattern (Type Int)]
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                eList
+                  (tList tBool)
+                  [ eLet
+                      tBool
+                      (BPat (tup () [tInt, tInt]) (pTup (tup () [tInt, tInt]) [pVar tInt "a", pVar tInt "b"]))
+                      (eVar (tup () [tInt, tInt]) "e1")
+                      (eVar tBool "e2")
+                  ]
+
+              expr2 ::
+                Expr
+                  (Type Int)
+                  [Pattern (Type Int)]
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eApp
+                  (tList tBool)
+                  (eCon (tBool ~> tList tBool ~> tList tBool) "(::)")
+                  [ eLet
+                      tBool
+                      ( BPat
+                          (tup () [tInt, tInt])
+                          ( pCon
+                              (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tInt)
+                              "(,)"
+                              [ pVar tInt "a"
+                              , pVar tInt "b"
+                              ]
+                          )
+                      )
+                      (eVar (tup () [tInt, tInt]) "e1")
+                      (eVar tBool "e2")
+                  , eCon (tList tBool) "[]"
+                  ]
+           in it
+                "[ let (a, b) = e1 in e2 ]"
+                (desugar expr1 == expr2)
 
         describe "Pattern" $ do
           let pattern1 :: Pattern (Type Int)
