@@ -44,6 +44,7 @@ instance TypeTag (Type v) where
     project
       >>> \case
         TRec t -> tRec (f t)
+        _ -> error "Implementation error"
 
 instance TypeTag () where
   tcon _   = ()
@@ -354,13 +355,14 @@ translateFun cs@(Clause _ ps (Choice _ e : _) : _) =
       ps `zip` ["$v" <> showt n | n <- [1 .. length ps]]
     expr =
       case [eVar (getTag p) v | (p, v) <- vars] of
-        [e] -> e
-        es -> tup (ttup ts) es
-    clause (Clause t qs cs) = Clause t rs cs
+        [v] -> v
+        vs -> tup (ttup ts) vs
+    clause (Clause t' qs cs') = Clause t' rs cs'
       where
         rs
           | length qs > 1 = [pTup (ttup ts) qs]
           | otherwise = qs
+translateFun _ = error "Implementation error"
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -399,6 +401,7 @@ stage2 =
         ESub  t          -> pure (eSub t)
         ECo   t a1       -> eCo t <$> a1
         EAnn  t a1       -> eAnn t <$> a1
+        EFun  _ _        -> error "Implementation error"
     )
 
 {- ORMOLU_ENABLE -}
@@ -429,7 +432,7 @@ translateLam ::
   [Pattern t] ->
   Expr t Name (Clause t [Pattern t]) e3 e4 ->
   Expr t Name (Clause t [Pattern t]) e3 e4
-translateLam t [] e = e
+translateLam _ [] e = e
 translateLam t (p : ps) expr = do
   case project p of
     PVar _ var ->
@@ -481,19 +484,19 @@ compilePatterns ex cs =
             runSubst (Clause t (p : ps) g) =
               let clause = Clause t ps g
                in case project p of
-                    PVar t1 name ->
+                    PVar _ name ->
                       substitute name u <$> clause
                     PAs _ as (Fix (PVar t1 name)) ->
                       substitute name u . substitute as (eVar t1 name) <$> clause
-                    PAs _ as (Fix (PAny t)) ->
+                    PAs _ as (Fix (PAny _)) ->
                       substitute as u <$> clause
                     -- The remaining case is for wildcards and literal patterns
                     _ -> clause
             runSubst _ =
               error "Implementation error"
         --
-        [LCon eqs@(Clause t _ [Choice _ e] : _)] -> do
-          qs' <- traverse (toSimpleMatch t u us c) (consGroups u eqs)
+        [LCon eqs@(Clause _ _ [Choice _ e] : _)] -> do
+          qs' <- traverse (toSimpleMatch u us c) (consGroups u eqs)
           let rs = [Case (getTag u) "$_" [] c | not (isError c)]
           pure
             ( case qs' <> rs of
@@ -520,7 +523,7 @@ compilePatterns ex cs =
     clauses (LCon eqs) = eqs
     clauses (LVar eqs) = eqs
 
-    toSimpleMatch t u us c ConsGroup{..} = do
+    toSimpleMatch u us c ConsGroup{..} = do
       (_, vars, pats) <- patternInfo (const id) consPatterns
       expr <- compileMatch (vars <> us) consClauses c
       pure
@@ -541,13 +544,13 @@ patternInfo ::
   (t -> Name -> a) ->
   [Pattern t] ->
   m ([(Name, t)], [Expr t e1 e2 e3 e4], [a])
-patternInfo con pats = do
+patternInfo ctor pats = do
   vars <- replicateM (length pats) (uniqueName "$p")
   let ps = zip (getTag <$> pats) vars
   pure
     ( swap <$> ps
     , (fmap . uncurry) eVar ps
-    , (fmap . uncurry) con ps
+    , (fmap . uncurry) ctor ps
     )
 
 {- ORMOLU_DISABLE -}
@@ -558,20 +561,23 @@ consGroups ::
   [Clause t [Pattern t] (Expr t Name (CaseClause t) e3 e4)] ->
   [ConsGroup t (Expr t Name (CaseClause t) e3 e4)]
 consGroups u cs =
-  concatMap go (groupSortOn fst (info u <$> cs))
+  concatMap go (groupSortOn fst (info <$> cs))
   where
-    go all@((con, (t, ps, _)) : _) =
+    go clss@((ctor, (t, ps, _)) : _) =
       [ ConsGroup
-          { consName     = con
+          { consName     = ctor
           , consType     = t
           , consPatterns = ps
-          , consClauses  = thd3 . snd <$> all
+          , consClauses  = thd3 . snd <$> clss
           }
       ]
-    info u (Clause t (p : qs) [Choice exs e]) =
+    go _ = error "Implementation error"
+    info (Clause t (p : qs) [Choice exs e]) =
       case project p of
-        PCon _ con ps -> (con, (t, ps, Clause t (ps <> qs) [Choice exs e]))
-        PAs  _ as  q  -> info u (Clause t (q:qs) [Choice exs (substitute as u e)])
+        PCon _ ctor ps -> (ctor, (t, ps, Clause t (ps <> qs) [Choice exs e]))
+        PAs  _ as  q   -> info (Clause t (q:qs) [Choice exs (substitute as u e)])
+        _              -> error "Implementation error"
+    info _ = error "Implementation error"
 
 {- ORMOLU_ENABLE -}
 
@@ -619,12 +625,14 @@ clauseGroups = cata alg . (labeledClause <$>)
 labeledClause ::
   Clause t [Pattern t] (Expr t e1 e2 e3 e4) ->
   Labeled (Clause t [Pattern t] (Expr t e1 e2 e3 e4))
+labeledClause (Clause _ [] _) = error "Implementation error"
 labeledClause eq@(Clause _ (p : _) _) = p
     & cata
       ( \case
           PCon{}    -> LCon eq
           PVar{}    -> LVar eq
           PAs _ _ q -> q
+          _         -> error "Implementation error"
       )
 
 {- ORMOLU_ENABLE -}
