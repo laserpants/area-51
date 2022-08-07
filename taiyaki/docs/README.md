@@ -13,9 +13,9 @@ After parsing, type checking, and other preliminary steps, the compiler
 proceeds through a series of transformations applied to the syntax tree. The
 final goal of this process is to arrive at an adaptation of the input,
 semantically identical, but based on a much smaller expression grammar.
-Compared to the source language, this AST representation is more suitable for
-code generation and evaluation. The code generation stage is important enough
-that we treat this grammar as its own language entirely. There are a number of
+Compared to the source language, this representation is more suitable for code
+generation and evaluation. The code generation stage is important enough that
+we treat this grammar as its own language entirely. There are a number of
 benefits of doing so:
 
 - Less cognitive overhead
@@ -55,10 +55,20 @@ lam($v) ⇒
   }
 ```
 
-##### Translate non-trivial let-bindings
+##### Translate let-bindings
 
 Let-bindings are still permitted, but only those that bind to a variable,
 that is, are of the form `let v = expr`, where `v` is a variable.
+
+###### Simple lets
+
+```
+let v = expr
+```
+
+```
+fix v = expr
+```
 
 ###### Function bindings
 
@@ -67,7 +77,7 @@ let f(x, y) = expr
 ```
 
 ```
-let f =
+fix f =
   lam(x) ⇒
     lam(y) ⇒
       expr
@@ -138,14 +148,81 @@ TODO
 ```
 
 ```
-  | v when v == 5 => true
+  | $a when $a == 5 => true
+```
+
+```
+  | [1, 2, 3] => true
+```
+
+```
+  | [$a, $b, $c]
+      when $a == 1 && $b == 2 && $c == 3 =>
+        true
 ```
 
 ###### Or-patterns
 
+```
+  | [x, _] or [x, _, _] => true
+```
+
+```
+  | [x, _]    => true
+  | [x, _, _] => true
+```
+
 ###### As-patterns
 
+```
+  match ys {
+    | [x, _, _] as xs => e1
+    | _               => e2
+  }
+```
+
+```
+  match ys {
+    | xs =>
+        match xs {
+          | [x, _, _] => e1
+          | _         => e2
+        }
+  }
+```
+
+A slightly more complex example
+
+```
+  match ys {
+    | ((1 :: 2 :: _) as xs, (1 :: 2 :: _) as ys) => xs <> ys
+    | _ => e2
+  }
+```
+
+```
+  match ys {
+    | (xs , ys) =>
+        match xs {
+          | 1 :: 2 :: _ =>
+              match ys {
+                | 1 :: 2 :: _ => xs <> ys
+                | _           => e2
+              }
+          | _ => e2
+        }
+  }
+```
+
 ###### Any-patterns
+
+```
+  | _ => true
+```
+
+```
+  | $_ => true
+```
 
 #### Exhaustiveness checking
 
