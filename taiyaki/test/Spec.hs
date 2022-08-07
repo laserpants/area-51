@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
 import Taiyaki.Data
