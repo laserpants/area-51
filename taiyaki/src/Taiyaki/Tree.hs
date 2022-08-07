@@ -183,7 +183,7 @@ specialized name ts = (go =<<)
         _                       -> [(pAny <$> ts) <> ps]
 
 defaultMatrix :: (Row t) => PatternMatrix t -> PatternMatrix t
-defaultMatrix = (go =<<)
+defaultMatrix = (>>= go)
   where
     go :: (Row t) => [Pattern t] -> PatternMatrix t
     go [] = error "Implementation error"
@@ -282,7 +282,7 @@ instance
   desugar =
     \case
       Clause t ps cs ->
-        Clause t (desugar <$> ps) (desugar cs)
+        Clause t (desugar ps) (desugar cs)
 
 {- ORMOLU_DISABLE -}
 
@@ -290,7 +290,7 @@ instance (TypeTag t, Row t, Eq t) => Desugars (Binding t) where
   desugar =
     \case
       BPat t p    -> BPat t (desugar p)
-      BFun t n ps -> BFun t n (desugar <$> ps)
+      BFun t n ps -> BFun t n (desugar ps)
 
 instance Desugars () where
   desugar _ = ()
