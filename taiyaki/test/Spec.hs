@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
+import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
 import Taiyaki.Data
@@ -1718,7 +1719,7 @@ main =
                 )
          in (expr == evalState input 1)
     ---------------------------------------------------------------------------
-    describe "translateFunExpr" $ do
+    describe "translateFun" $ do
       it "let f | y :: ys = true | [] = false" $
         let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ()))]
             clauses =
@@ -1737,7 +1738,7 @@ main =
                     , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
                     ]
                 )
-         in (expr == translateFunExpr clauses)
+         in (expr == translateFun clauses)
 
       it "let f | y :: ys = true | [] = false" $
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
@@ -1757,7 +1758,7 @@ main =
                     , Clause tBool [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
                     ]
                 )
-         in (expr == translateFunExpr clauses)
+         in (expr == translateFun clauses)
 
       it "let f | (1, a) = 1 | (_, _) = 2" $
         let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ()))]
@@ -1789,7 +1790,7 @@ main =
                         [Choice [] (eLit () (IInt 2))]
                     ]
                 )
-         in (expr == translateFunExpr clauses)
+         in (expr == translateFun clauses)
 
       it "let f | (1, a) = 1 | (_, _) = 2" $
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
@@ -1821,7 +1822,7 @@ main =
                         [Choice [] (eLit tInt (IInt 2))]
                     ]
                 )
-         in (expr == translateFunExpr clauses)
+         in (expr == translateFun clauses)
 
       it "let f | (1, true, a) = () | (_, _, _) = ()" $
         let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
@@ -1853,7 +1854,19 @@ main =
                         [Choice [] (eLit tUnit IUnit)]
                     ]
                 )
-         in (expr == translateFunExpr clauses)
+         in (expr == translateFun clauses)
+
+    ---------------------------------------------------------------------------
+    describe "translateLet" $ do
+      it
+        "TODO"
+        True
+
+    ---------------------------------------------------------------------------
+    describe "translateLam" $ do
+      it
+        "TODO"
+        True
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
@@ -1873,9 +1886,21 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
+test1 ::
+  Expr () Name (Clause () [Pattern ()]) Void1 Void
+test1 =
+  translateLam () [] (eVar () "e")
+
+rtest1 = eVar () "e" == test1
+
+-- eLam
+--  ()
+--  undefined
+--  undefined
+
 -- test1 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
 -- test1 =
---  translateFunExpr clauses
+--  translateFun clauses
 --  where
 --    clauses =
 --      [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
@@ -1884,7 +1909,7 @@ testConstructorEnv =
 --
 -- test2 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
 -- test2 =
---  translateFunExpr clauses
+--  translateFun clauses
 --  where
 --    clauses =
 --      [ Clause
@@ -1899,7 +1924,7 @@ testConstructorEnv =
 --
 -- test3 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
 -- test3 =
---  translateFunExpr clauses
+--  translateFun clauses
 --  where
 --    clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
 --    clauses =
@@ -1933,7 +1958,7 @@ testConstructorEnv =
 --            [pAny tInt, pAny tInt]
 --            [Choice [] (eLit tInt (IInt 2))]
 --        ]
---   in translateFunExpr clauses
+--   in translateFun clauses
 
 -- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
 -- input =

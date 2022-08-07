@@ -338,11 +338,11 @@ instance
 
 {- ORMOLU_ENABLE -}
 
-translateFunExpr ::
+translateFun ::
   (TypeTag t) =>
   [Clause t [Pattern t] (Expr t [Pattern t] (Clause t [Pattern t]) Void1 e4)] ->
   Expr t [Pattern t] (Clause t [Pattern t]) Void1 e4
-translateFunExpr cs@(Clause _ ps (Choice _ e : _) : _) =
+translateFun cs@(Clause _ ps (Choice _ e : _) : _) =
   eLam
     (foldr tarr t ts)
     [pVar (getTag p) v | (p, v) <- vars]
@@ -372,9 +372,9 @@ translateFunExpr cs@(Clause _ ps (Choice _ e : _) : _) =
 {- ORMOLU_DISABLE -}
 
 stage2 ::
-  (Monad m) =>
-  Expr t [Pattern t] (CaseClause t) Void1 (Binding t) ->
-  m (Expr t Name (CaseClause t) Void1 Void)
+  (TypeTag t, Monad m) =>
+  Expr t [Pattern t] (Clause t [Pattern t]) Void1 (Binding t) ->
+  m (Expr t Name (Clause t [Pattern t]) Void1 Void)
 stage2 =
   cata
     ( \case
@@ -383,7 +383,7 @@ stage2 =
           e2 <- expr2
           translateLet t bind e1 e2
         ELam t a1 expr ->
-          translateLam t a1 =<< expr
+          translateLam t a1 <$> expr
         EPat  t a1 a2    -> ePat t <$> a1 <*> traverse sequence a2
         EVar  t a1       -> pure (eVar t a1)
         ECon  t a1       -> pure (eCon t a1)
@@ -406,34 +406,49 @@ stage2 =
 {- ORMOLU_ENABLE -}
 
 translateLet ::
-  (Monad m, Functor e2, Functor e3) =>
+  (TypeTag t, Monad m, Functor e3) =>
   t ->
   Binding t ->
-  Expr t Name e2 e3 Void ->
-  Expr t Name e2 e3 Void ->
-  m (Expr t Name e2 e3 Void)
+  Expr t Name (Clause t [Pattern t]) e3 Void ->
+  Expr t Name (Clause t [Pattern t]) e3 Void ->
+  m (Expr t Name (Clause t [Pattern t]) e3 Void)
 translateLet t bind e1 e2 =
   case bind of
     BPat _ (Fix (PVar _ var)) ->
       pure (eFix t var e1 e2)
-    BPat _ (Fix pat) ->
-      undefined
-    BFun t1 f ps -> do
-      e <- translateLam t1 ps e1
-      undefined
+    BPat _ pat ->
+      pure
+        ( ePat
+            (getTag e2)
+            e1
+            [ Clause (getTag e2) [pat] [Choice [] e2]
+            ]
+        )
+    BFun t1 f ps ->
+      pure (eFix t f (translateLam t1 ps e1) e2)
 
 translateLam ::
-  (Monad m, Functor e2, Functor e3) =>
+  (TypeTag t, Functor e3) =>
   t ->
   [Pattern t] ->
-  Expr t Name e2 e3 e4 ->
-  m (Expr t Name e2 e3 e4)
-translateLam t pats expr =
-  case pats of
-    [Fix (PVar _ var)] ->
-      pure (eLam t var expr)
+  Expr t Name (Clause t [Pattern t]) e3 e4 ->
+  Expr t Name (Clause t [Pattern t]) e3 e4
+translateLam t [] e = e
+translateLam t (p : ps) expr = do
+  case project p of
+    PVar _ var ->
+      eLam t var e
     _ ->
-      undefined
+      eLam
+        t
+        "$p"
+        ( ePat
+            (getTag e)
+            (eVar (getTag p) "$p")
+            [Clause (getTag e) [p] [Choice [] e]]
+        )
+  where
+    e = translateLam bool ps expr -- TODO
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
