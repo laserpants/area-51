@@ -444,7 +444,7 @@ translateLam t (p : ps) expr = do
             [Clause (getTag e) [p] [Choice [] e]]
         )
   where
-    e = translateLam bool ps expr -- TODO
+    e = translateLam (foldr tarr (getTag expr) (getTag <$> ps)) ps expr
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
