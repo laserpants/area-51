@@ -131,6 +131,22 @@ TODO
 
 ### Patterns
 
+###### Literal patterns
+
+```
+  | 5 => true
+```
+
+```
+  | v when v == 5 => true
+```
+
+###### Or-patterns
+
+###### As-patterns
+
+###### Any-patterns
+
 #### Exhaustiveness checking
 
 #### Compilation
