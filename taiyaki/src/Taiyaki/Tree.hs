@@ -168,7 +168,7 @@ specialized name ts = (go =<<)
     go [] = error "Implementation error"
     go (p : ps) =
       case project p of
-        PCon    _ ctor rs
+        PCon _ ctor rs
           | ctor == name        -> [rs <> ps]
           | otherwise           -> []
         PLit    t lit           -> go (pCon t (primCon lit) [] : ps)

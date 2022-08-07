@@ -1262,7 +1262,9 @@ main =
                   [ eLit tInt (IInt 1)
                   , eLit tBool (IBool True)
                   ]
-           in it "(1, true)  -->  ((,) 1) true" (desugar expr1 == expr2)
+           in it
+                "(1, true)              -->  ((,) 1) true"
+                (desugar expr1 == expr2)
 
           let expr1 ::
                 Expr
@@ -1305,7 +1307,7 @@ main =
                       ]
                   ]
            in it
-                "[1, 2, 3]  -->  (::) 1 ((::) 2 ((::) 3 []))"
+                "[1, 2, 3]              -->  (::) 1 ((::) 2 ((::) 3 []))"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1353,7 +1355,7 @@ main =
                       ]
                   ]
            in it
-                "{ a = 1, b = true }  -->  #Record ({a} 1 ({b} true {}))"
+                "{ a = 1, b = true }    -->  #Record ({a} 1 ({b} true {}))"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1401,7 +1403,7 @@ main =
                       ]
                   ]
            in it
-                "{ b = true, a = 1 }  -->  #Record ({a} 1 ({b} true {}))"
+                "{ b = true, a = 1 }    -->  #Record ({a} 1 ({b} true {}))"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1426,7 +1428,7 @@ main =
                   [ eCon tNil "{}"
                   ]
            in it
-                "{}  -->  #Record {}"
+                "{}                     -->  #Record {}"
                 (desugar expr1 == expr2)
 
         describe "Nested patterns" $ do
@@ -1481,6 +1483,60 @@ main =
                 "match p { (1, true) => 1 | (_, _) => 2 }"
                 (desugar expr1 == expr2)
 
+          let expr1 ::
+                Expr
+                  (Type Int)
+                  [Pattern (Type Int)]
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr1 =
+                eLam
+                  tInt
+                  [ pList
+                      (tList tInt)
+                      [ pVar tInt "x"
+                      , pLit tInt (IInt 2)
+                      , pLit tInt (IInt 3)
+                      ]
+                  ]
+                  (eVar tInt "x")
+
+              expr2 ::
+                Expr
+                  (Type Int)
+                  [Pattern (Type Int)]
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Clause (Type Int) [Pattern (Type Int)])
+                  (Binding (Type Int))
+              expr2 =
+                eLam
+                  tInt
+                  [ pCon
+                      (tList tInt)
+                      "(::)"
+                      [ pVar tInt "x"
+                      , pCon
+                          (tList tInt)
+                          "(::)"
+                          [ pLit tInt (IInt 2)
+                          , pCon
+                              (tList tInt)
+                              "(::)"
+                              [ pLit tInt (IInt 3)
+                              , pCon
+                                  (tList tInt)
+                                  "[]"
+                                  []
+                              ]
+                          ]
+                      ]
+                  ]
+                  (eVar tInt "x")
+           in it
+                "lam([ x, 2, 3 ]) => x"
+                (desugar expr1 == expr2)
+
         -- TODO
 
         describe "Pattern" $ do
@@ -1500,7 +1556,7 @@ main =
                   , pLit tInt (IInt 2)
                   ]
            in it
-                "| (1, 2)  -->  | ((,) 1) 2"
+                "| (1, 2)               -->  | ((,) 1) 2"
                 (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
@@ -1533,7 +1589,7 @@ main =
                       ]
                   ]
            in it
-                "| [1, 2, 3]  -->  | ((::) 1 ((::) 2 ((::) 3 [])))"
+                "| [1, 2, 3]            -->  | ((::) 1 ((::) 2 ((::) 3 [])))"
                 (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
@@ -1613,7 +1669,7 @@ main =
               pattern2 :: Pattern (Type Int)
               pattern2 = pCon (tRec tNil) "#Record" [pCon tNil "{}" []]
            in it
-                "| {}  -->  | #Record {}"
+                "| {}                   -->  | #Record {}"
                 (desugar pattern1 == pattern2)
 
     ---------------------------------------------------------------------------
