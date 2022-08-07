@@ -72,10 +72,10 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 ##### Algebraic data types
 
-| Type                  | Type rep. (Haskell expression)            | 
-| --------------------- | ----------------------------------------- | 
-| `List int`            | `TCon "List" [TInt]`                      | 
-| `Either Error float`  | `TCon "Either" [TCon "Error" [], TFloat]` | 
+| Type                  | Type rep. (Haskell expression)            |
+| --------------------- | ----------------------------------------- |
+| `List int`            | `TCon "List" [TInt]`                      |
+| `Either Error float`  | `TCon "Either" [TCon "Error" [], TFloat]` |
 
 #### Record and row types
 
@@ -153,7 +153,7 @@ We then have $r = \wr \ g_1 \ | \ g_2 \ | \ \cdots \ | \ g_n \ | \ q \ \wr$. Def
 
 $$
   \nu(r) = \wr \ s_1 \ | \ s_2 \ | \ \cdots \ | \ s_n \ | \ q \ \wr
-$$ 
+$$
 
 One way to do this efficiently, in code, is to first convert the row into a hash map, and then transform this map back to a row again, this time with the keys ordered alphabetically.
 

@@ -378,10 +378,8 @@ stage2 ::
 stage2 =
   cata
     ( \case
-        ELet t bind expr1 expr2 -> do
-          e1 <- expr1
-          e2 <- expr2
-          translateLet t bind e1 e2
+        ELet t bind expr1 expr2 ->
+          translateLet t bind <$> expr1 <*> expr2
         ELam t a1 expr ->
           translateLam t a1 <$> expr
         EPat  t a1 a2    -> ePat t <$> a1 <*> traverse sequence a2
@@ -406,26 +404,24 @@ stage2 =
 {- ORMOLU_ENABLE -}
 
 translateLet ::
-  (TypeTag t, Monad m, Functor e3) =>
+  (TypeTag t, Functor e3) =>
   t ->
   Binding t ->
   Expr t Name (Clause t [Pattern t]) e3 Void ->
   Expr t Name (Clause t [Pattern t]) e3 Void ->
-  m (Expr t Name (Clause t [Pattern t]) e3 Void)
+  Expr t Name (Clause t [Pattern t]) e3 Void
 translateLet t bind e1 e2 =
   case bind of
     BPat _ (Fix (PVar _ var)) ->
-      pure (eFix t var e1 e2)
+      eFix t var e1 e2
     BPat _ pat ->
-      pure
-        ( ePat
-            (getTag e2)
-            e1
-            [ Clause (getTag e2) [pat] [Choice [] e2]
-            ]
-        )
+      ePat
+        (getTag e2)
+        e1
+        [ Clause (getTag e2) [pat] [Choice [] e2]
+        ]
     BFun t1 f ps ->
-      pure (eFix t f (translateLam t1 ps e1) e2)
+      eFix t f (translateLam t1 ps e1) e2
 
 translateLam ::
   (TypeTag t, Functor e3) =>

@@ -1262,7 +1262,7 @@ main =
                   [ eLit tInt (IInt 1)
                   , eLit tBool (IBool True)
                   ]
-           in it "(1, true)  ==>  ((,) 1) true" (desugar expr1 == expr2)
+           in it "(1, true)  -->  ((,) 1) true" (desugar expr1 == expr2)
 
           let expr1 ::
                 Expr
@@ -1305,7 +1305,7 @@ main =
                       ]
                   ]
            in it
-                "[1, 2, 3]  ==>  (::) 1 ((::) 2 ((::) 3 []))"
+                "[1, 2, 3]  -->  (::) 1 ((::) 2 ((::) 3 []))"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1353,7 +1353,7 @@ main =
                       ]
                   ]
            in it
-                "{ a = 1, b = true }  ==>  #Record ({a} 1 ({b} true {}))"
+                "{ a = 1, b = true }  -->  #Record ({a} 1 ({b} true {}))"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1401,7 +1401,7 @@ main =
                       ]
                   ]
            in it
-                "{ b = true, a = 1 }  ==>  #Record ({a} 1 ({b} true {}))"
+                "{ b = true, a = 1 }  -->  #Record ({a} 1 ({b} true {}))"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1426,7 +1426,7 @@ main =
                   [ eCon tNil "{}"
                   ]
            in it
-                "{}  ==>  #Record {}"
+                "{}  -->  #Record {}"
                 (desugar expr1 == expr2)
 
         describe "Nested patterns" $ do
@@ -1500,7 +1500,7 @@ main =
                   , pLit tInt (IInt 2)
                   ]
            in it
-                "| (1, 2)  ==>  | ((,) 1) 2"
+                "| (1, 2)  -->  | ((,) 1) 2"
                 (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
@@ -1533,7 +1533,7 @@ main =
                       ]
                   ]
            in it
-                "| [1, 2, 3]  ==>  | ((::) 1 ((::) 2 ((::) 3 [])))"
+                "| [1, 2, 3]  -->  | ((::) 1 ((::) 2 ((::) 3 [])))"
                 (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
@@ -1569,7 +1569,7 @@ main =
                       ]
                   ]
            in it
-                "| { a = 1, b = true }  ==>  | #Record ({a} 1 ({b} true {}))"
+                "| { a = 1, b = true }  -->  | #Record ({a} 1 ({b} true {}))"
                 (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
@@ -1605,7 +1605,7 @@ main =
                       ]
                   ]
            in it
-                "| { b = true, a = 1 }  ==>  | #Record ({a} 1 ({b} true {}))"
+                "| { b = true, a = 1 }  -->  | #Record ({a} 1 ({b} true {}))"
                 (desugar pattern1 == pattern2)
 
           let pattern1 :: Pattern (Type Int)
@@ -1613,7 +1613,7 @@ main =
               pattern2 :: Pattern (Type Int)
               pattern2 = pCon (tRec tNil) "#Record" [pCon tNil "{}" []]
            in it
-                "| {}  ==>  | #Record {}"
+                "| {}  -->  | #Record {}"
                 (desugar pattern1 == pattern2)
 
     ---------------------------------------------------------------------------
@@ -1865,8 +1865,141 @@ main =
     ---------------------------------------------------------------------------
     describe "translateLam" $ do
       it
-        "TODO"
-        True
+        "lam[] => e"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr = translateLam () [] (eVar () "e")
+           in (eVar () "e" == expr)
+      it
+        "lam(x) => e  -->  lam(x) => e"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr = translateLam () [pVar () "x"] (eVar () "e")
+              result :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              result = eLam () "x" (eVar () "e")
+           in (result == expr)
+      it
+        "lam(x, y) => e  -->  lam(x) => lam(y) => e"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr = translateLam () [pVar () "x", pVar () "y"] (eVar () "e")
+              result :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              result =
+                eLam
+                  ()
+                  "x"
+                  ( eLam
+                      ()
+                      "y"
+                      (eVar () "e")
+                  )
+           in (result == expr)
+      it
+        "lam(x, z :: zs, y) => e  -->  lam(x) => lam($p) => match $p { z :: zs => lam(y) => e }"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr =
+                translateLam
+                  ()
+                  [ pVar () "x"
+                  , pCon
+                      ()
+                      "(::)"
+                      [ pVar () "z"
+                      , pVar () "zs"
+                      ]
+                  , pVar () "y"
+                  ]
+                  (eVar () "e")
+              result :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              result =
+                eLam
+                  ()
+                  "x"
+                  ( eLam
+                      ()
+                      "$p"
+                      ( ePat
+                          ()
+                          (eVar () "$p")
+                          [ Clause
+                              ()
+                              [pCon () "(::)" [pVar () "z", pVar () "zs"]]
+                              [ Choice
+                                  []
+                                  (eLam () "y" (eVar () "e"))
+                              ]
+                          ]
+                      )
+                  )
+           in (result == expr)
+
+    describe "translateLet" $ do
+      it
+        "let v = e1 in e2  -->  fix v = e1 in e2"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr =
+                translateLet
+                  ()
+                  ( BPat
+                      ()
+                      (pVar () "v")
+                  )
+                  (eVar () "e1")
+                  (eVar () "e2")
+              result :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              result =
+                eFix () "v" (eVar () "e1") (eVar () "e2")
+           in (result == expr)
+
+      it
+        "let S(v) = e1 in e2  -->  match e1 { S(v) => e2 }"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr =
+                translateLet
+                  ()
+                  ( BPat
+                      ()
+                      (pCon () "S" [pVar () "v"])
+                  )
+                  (eVar () "e1")
+                  (eVar () "e2")
+              result :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              result =
+                ePat
+                  ()
+                  (eVar () "e1")
+                  [ Clause () [pCon () "S" [pVar () "v"]] [Choice [] (eVar () "e2")]
+                  ]
+           in (result == expr)
+
+      it
+        "let f(x, y) = e1 in e2"
+        $ let expr :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              expr =
+                translateLet
+                  ()
+                  ( BFun
+                      ()
+                      "f"
+                      [ pVar () "x"
+                      , pVar () "y"
+                      ]
+                  )
+                  (eVar () "e1")
+                  (eVar () "e2")
+              result :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+              result =
+                eFix
+                  ()
+                  "f"
+                  ( eLam
+                      ()
+                      "x"
+                      ( eLam
+                          ()
+                          "y"
+                          (eVar () "e1")
+                      )
+                  )
+                  (eVar () "e2")
+           in (result == expr)
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
@@ -1886,12 +2019,40 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
-test1 ::
-  Expr () Name (Clause () [Pattern ()]) Void1 Void
-test1 =
-  translateLam () [] (eVar () "e")
-
-rtest1 = eVar () "e" == test1
+-- test1 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+-- test1 = translateLam () [] (eVar () "e")
+--
+-- rtest1 = eVar () "e" == test1
+--
+-- test2 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+-- test2 = translateLam () [pVar () "x", pVar () "y"] (eVar () "e")
+--
+-- rtest2 = test2 == eLam () "x" (eLam () "y" (eVar () "e"))
+--
+-- test3 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
+-- test3 = translateLam () [pVar () "x", pCon () "(::)" [pVar () "z", pVar () "zs"], pVar () "z"] (eVar () "e")
+--
+-- rtest3 =
+--  test3
+--    == eLam
+--      ()
+--      "x"
+--      ( eLam
+--          ()
+--          "$p"
+--          ( ePat
+--              ()
+--              (eVar () "$p")
+--              [ Clause
+--                  ()
+--                  [pCon () "(::)" [pVar () "z", pVar () "zs"]]
+--                  [ Choice
+--                      []
+--                      (eLam () "z" (eVar () "e"))
+--                  ]
+--              ]
+--          )
+--      )
 
 -- eLam
 --  ()
