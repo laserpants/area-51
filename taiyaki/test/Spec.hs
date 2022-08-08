@@ -230,7 +230,7 @@ main =
                 == expr
             )
     ---------------------------------------------------------------------------
-    describe "rawTuple" $ do
+    describe "rawList" $ do
       let expr ::
             Expr
               (Type Int)
@@ -1479,7 +1479,7 @@ main =
                       [Choice [] (eLit tInt (IInt 2))]
                   ]
            in it
-                "match p { (1, true) => 1 | (_, _) => 2 }"
+                "match p { (1, true) => 1 | (_, _) => 2 }  -->  match p { ((,) 1) true => 1 | ((,) _) _ => 2 }"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1533,7 +1533,7 @@ main =
                   ]
                   (eVar tInt "x")
            in it
-                "lam([ x, 2, 3 ]) => x"
+                "lam([ x, 2, 3 ]) => x                     -->  lam((::) x ((::) 2 ((::) 3 []))) => x"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1573,7 +1573,7 @@ main =
                   (eVar (tup () [tInt, tInt]) "e1")
                   (eVar tBool "e2")
            in it
-                "let (a, b) = e1 in e2"
+                "let (a, b) = e1 in e2                     -->  let (((,) a) b) = e1 in e2"
                 (desugar expr1 == expr2)
 
           let expr1 ::
@@ -1621,7 +1621,7 @@ main =
                   , eCon (tList tBool) "[]"
                   ]
            in it
-                "[ let (a, b) = e1 in e2 ]"
+                "[ let (a, b) = e1 in e2 ]                 -->  [ let (((,) a) b) = e1 in e2 ]"
                 (desugar expr1 == expr2)
 
         describe "Pattern" $ do
@@ -2306,50 +2306,150 @@ main =
          in (dropOrPatterns clause == clauses)
 
     describe "dropAnyPatterns" $ do
+      -- TODO
       pure ()
 
     describe "dropLitPatterns" $ do
-      it "| [5, _] => e                  -->  | [$s1, _] when $s1 == 5 => e" $
+      it "| [5, _] => e                                         -->  | [$s1, _] when $s1 == 5 => e" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
-              undefined
-            -- Clause
-            --  ()
-            --  [ pOr
-            --      ()
-            --      (pList () [pVar () "x", pAny ()])
-            --      (pList () [pVar () "x", pAny (), pAny ()])
-            --  ]
-            --  [Choice [] (eLit () (IBool True))]
+              Clause
+                ()
+                [ pList
+                    ()
+                    [ pLit () (IInt 5)
+                    , pAny ()
+                    ]
+                ]
+                [Choice [] (eVar () "e")]
             result :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             result =
-              undefined
-         in -- [ Clause () [pList () [pVar () "x", pAny ()]] [Choice [] (eLit () (IBool True))]
-            -- , Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eLit () (IBool True))]
-            -- ]
-            (dropLitPatterns clause == result)
+              Clause
+                ()
+                [ pList
+                    ()
+                    [ pVar () "$s1"
+                    , pAny ()
+                    ]
+                ]
+                [Choice [eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e")]
+         in (dropLitPatterns clause == result)
 
-      it "| [5, _] when a => e1, otherwise => e2  -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 => e2" $
+      it "| [5, _] => e                                         -->  | [$s1, _] when $s1 == 5 => e" $
+        let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
+            clause =
+              Clause
+                tBool
+                [ pList
+                    (tList tInt)
+                    [ pLit tInt (IInt 5)
+                    , pAny tInt
+                    ]
+                ]
+                [Choice [] (eVar tBool "e")]
+            result :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
+            result =
+              Clause
+                tBool
+                [ pList
+                    (tList tInt)
+                    [ pVar tInt "$s1"
+                    , pAny tInt
+                    ]
+                ]
+                [Choice [eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e")]
+         in (dropLitPatterns clause == result)
+
+      it "| [5, _] when a => e1, otherwise => e2                -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 => e2" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
-              undefined
-            -- Clause
-            --  ()
-            --  [ pOr
-            --      ()
-            --      (pList () [pVar () "x", pAny ()])
-            --      (pList () [pVar () "x", pAny (), pAny ()])
-            --  ]
-            --  [Choice [] (eLit () (IBool True))]
+              Clause
+                ()
+                [ pList () [pLit () (IInt 5), pAny ()]
+                ]
+                [ Choice [eVar () "a"] (eVar () "e1")
+                , Choice [] (eVar () "e2")
+                ]
             result :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             result =
-              undefined
-         in -- [ Clause () [pList () [pVar () "x", pAny ()]] [Choice [] (eLit () (IBool True))]
-            -- , Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eLit () (IBool True))]
-            -- ]
-            (dropLitPatterns clause == result)
+              Clause
+                ()
+                [ pList () [pVar () "$s1", pAny ()]
+                ]
+                [ Choice [eVar () "a", eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e1")
+                , Choice [eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e2")
+                ]
+         in (dropLitPatterns clause == result)
+
+      it "| [5, _] when a => e1, otherwise => e2                -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 => e2" $
+        let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
+            clause =
+              Clause
+                tBool
+                [ pList (tList tInt) [pLit tInt (IInt 5), pAny tInt]
+                ]
+                [ Choice [eVar tBool "a"] (eVar tBool "e1")
+                , Choice [] (eVar tBool "e2")
+                ]
+            result :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
+            result =
+              Clause
+                tBool
+                [ pList (tList tInt) [pVar tInt "$s1", pAny tInt]
+                ]
+                [ Choice [eVar tBool "a", eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e1")
+                , Choice [eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e2")
+                ]
+         in (dropLitPatterns clause == result)
+
+      it "| [5, _] when a => e1, when b => e2, otherwise => e3  -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 && b => e2, when $s1 == 5 => e3" $
+        let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            clause =
+              Clause
+                ()
+                [ pList () [pLit () (IInt 5), pAny ()]
+                ]
+                [ Choice [eVar () "a"] (eVar () "e1")
+                , Choice [eVar () "b"] (eVar () "e2")
+                , Choice [] (eVar () "e3")
+                ]
+            result :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            result =
+              Clause
+                ()
+                [ pList () [pVar () "$s1", pAny ()]
+                ]
+                [ Choice [eVar () "a", eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e1")
+                , Choice [eVar () "b", eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e2")
+                , Choice [eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e3")
+                ]
+         in (dropLitPatterns clause == result)
+
+      it "| [5, _] when a => e1, when b => e2, otherwise => e3  -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 && b => e2, when $s1 == 5 => e3" $
+        let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
+            clause =
+              Clause
+                tBool
+                [ pList (tList tInt) [pLit tInt (IInt 5), pAny tInt]
+                ]
+                [ Choice [eVar tBool "a"] (eVar tBool "e1")
+                , Choice [eVar tBool "b"] (eVar tBool "e2")
+                , Choice [] (eVar tBool "e3")
+                ]
+            result :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
+            result =
+              Clause
+                tBool
+                [ pList (tList tInt) [pVar tInt "$s1", pAny tInt]
+                ]
+                [ Choice [eVar tBool "a", eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e1")
+                , Choice [eVar tBool "b", eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e2")
+                , Choice [eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e3")
+                ]
+         in (dropLitPatterns clause == result)
 
     describe "dropAsPatterns" $ do
+      -- TODO
       pure ()
 
 runTestExhaustive ::
