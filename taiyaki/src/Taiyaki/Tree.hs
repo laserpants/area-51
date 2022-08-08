@@ -12,6 +12,7 @@ module Taiyaki.Tree where
 import Control.Monad.Extra (anyM, (||^))
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Writer
 import Data.Foldable (foldrM)
 import Data.Functor.Classes (Eq1)
 import Data.Functor.Foldable (ListF (..))
@@ -452,7 +453,84 @@ translateLam t (p : ps) expr = do
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
---
+{- ORMOLU_DISABLE -}
+
+dropOrPatterns :: Clause t [Pattern t] a -> [Clause t [Pattern t] a]
+dropOrPatterns =
+  \case
+    Clause t [p] cs -> [Clause t [q] cs | q <- go p]
+    _               -> error "Implementation error"
+  where
+    go =
+      cata
+        ( \case
+            POr  _ p1 p2  -> p1 <> p2
+            PAnn _ p      -> p
+            p             -> embed <$> sequence p
+        )
+
+dropAnyPatterns :: Clause t [Pattern t] a -> Clause t [Pattern t] a
+dropAnyPatterns =
+  \case
+    Clause t [p] cs -> Clause t [go p] cs
+    _               -> error "Implementation error"
+  where
+    go :: Pattern t -> Pattern t
+    go =
+      cata
+        ( \case
+            PAny t        -> pVar t "$_"
+            PAnn _ p      -> p
+            p             -> embed p
+        )
+
+{- ORMOLU_ENABLE -}
+
+dropLitPatterns ::
+  (TypeTag t, Functor e2, Functor e3) =>
+  Clause t [Pattern t] (Expr t e1 e2 e3 e4) ->
+  Clause t [Pattern t] (Expr t e1 e2 e3 e4)
+dropLitPatterns =
+  \case
+    Clause t [p] cs -> do
+      let (q, vs) = runWriter (evalStateT (go p) 1)
+      let hs =
+            [ eOp2 bool (OEq (s `tarr` s `tarr` bool)) (eVar s v) (eLit s r)
+            | (v, s, r) <- vs
+            ]
+      Clause t [q] [Choice (gs <> hs) e | Choice gs e <- cs]
+    _ ->
+      error "Implementation error"
+  where
+    go =
+      cata
+        ( \case
+            PLit t p -> do
+              n <- uniqueName "$s"
+              tell [(n, t, p)]
+              pure (pVar t n)
+            p -> embed <$> sequence p
+        )
+
+dropAsPatterns :: Clause t [Pattern t] a -> Clause t [Pattern t] a
+dropAsPatterns =
+  undefined
+
+-- dropOrAndAnyPatterns2 :: Clause t [Pattern t] a -> [Clause t [Pattern t] a]
+-- dropOrAndAnyPatterns2 (Clause t [p] cs) = go p
+--  where
+--    go =
+--      cata
+--        ( \case
+--            PLit t p -> undefined
+--            --PAs t p1 p2 -> undefined
+--            POr _ p1 p2 -> do
+--              xx <- p1
+--              [Clause t xx cs]
+--            PAny t -> [Clause t [pVar t "$_"] cs]
+--            --PAnn _ p -> p
+--            --p -> embed <$> sequence p
+--        )
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------

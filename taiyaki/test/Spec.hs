@@ -2286,6 +2286,72 @@ main =
                     (eVar tUnit "e2")
              in (result == expr)
 
+    describe "dropOrPatterns" $ do
+      it "| [x, _] or [x, _, _] => true  -->  | [x, _] => true | [x, _, _] => true" $
+        let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            clause =
+              Clause
+                ()
+                [ pOr
+                    ()
+                    (pList () [pVar () "x", pAny ()])
+                    (pList () [pVar () "x", pAny (), pAny ()])
+                ]
+                [Choice [] (eLit () (IBool True))]
+            clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause () [pList () [pVar () "x", pAny ()]] [Choice [] (eLit () (IBool True))]
+              , Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eLit () (IBool True))]
+              ]
+         in (dropOrPatterns clause == clauses)
+
+    describe "dropAnyPatterns" $ do
+      pure ()
+
+    describe "dropLitPatterns" $ do
+      it "| [5, _] => e                  -->  | [$s1, _] when $s1 == 5 => e" $
+        let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            clause =
+              undefined
+            -- Clause
+            --  ()
+            --  [ pOr
+            --      ()
+            --      (pList () [pVar () "x", pAny ()])
+            --      (pList () [pVar () "x", pAny (), pAny ()])
+            --  ]
+            --  [Choice [] (eLit () (IBool True))]
+            result :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            result =
+              undefined
+         in -- [ Clause () [pList () [pVar () "x", pAny ()]] [Choice [] (eLit () (IBool True))]
+            -- , Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eLit () (IBool True))]
+            -- ]
+            (dropLitPatterns clause == result)
+
+      it "| [5, _] when a => e1, otherwise => e2  -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 => e2" $
+        let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            clause =
+              undefined
+            -- Clause
+            --  ()
+            --  [ pOr
+            --      ()
+            --      (pList () [pVar () "x", pAny ()])
+            --      (pList () [pVar () "x", pAny (), pAny ()])
+            --  ]
+            --  [Choice [] (eLit () (IBool True))]
+            result :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            result =
+              undefined
+         in -- [ Clause () [pList () [pVar () "x", pAny ()]] [Choice [] (eLit () (IBool True))]
+            -- , Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eLit () (IBool True))]
+            -- ]
+            (dropLitPatterns clause == result)
+
+    describe "dropAsPatterns" $ do
+      pure ()
+
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =
@@ -2303,6 +2369,34 @@ testConstructorEnv =
     ]
 
 {- ORMOLU_ENABLE -}
+
+-- p1 :: Pattern ()
+-- p1 =
+--  pOr
+--    ()
+--    (pList () [pVar () "x", pAny ()])
+--    (pList () [pVar () "x", pAny (), pAny ()])
+--
+-- clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+-- clause =
+--  Clause
+--    ()
+--    [ pOr
+--        ()
+--        (pList () [pVar () "x", pAny ()])
+--        (pList () [pVar () "x", pAny (), pAny ()])
+--    ]
+--    [Choice [] (eLit () (IBool True))]
+--
+-- clauses = dropOrPatterns clause
+--
+-- clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+-- clauses =
+--            [ Clause () [ pList () [pVar () "x", pAny ()] ] [Choice [] (eLit () (IBool True))]
+--            , Clause () [ pList () [pVar () "x", pAny (), pAny ()] ] [Choice [] (eLit () (IBool True))]
+--            ]
+--         in
+--            (dropOrPatterns clause == clauses)
 
 -- expr :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
 -- expr =
@@ -2343,7 +2437,6 @@ testConstructorEnv =
 --                  "y"
 --                  (eVar tBool "e")
 --              )
-
 -- test1 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
 -- test1 = translateLam () [] (eVar () "e")
 --
@@ -2378,12 +2471,10 @@ testConstructorEnv =
 --              ]
 --          )
 --      )
-
 -- eLam
 --  ()
 --  undefined
 --  undefined
-
 -- test1 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
 -- test1 =
 --  translateFun clauses
@@ -2445,7 +2536,6 @@ testConstructorEnv =
 --            [Choice [] (eLit tInt (IInt 2))]
 --        ]
 --   in translateFun clauses
-
 -- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
 -- input =
 --  compilePatterns
