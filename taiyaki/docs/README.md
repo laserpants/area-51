@@ -57,8 +57,9 @@ lam($v) ⇒
 
 ##### Translate let-bindings
 
-Let-bindings are still permitted, but only those that bind to a variable,
-that is, are of the form `let v = expr`, where `v` is a variable.
+Let-bindings are still permitted in our intermediate language, but only those
+that bind to a variable, that is, are of the form `let v = expr`, where `v` is
+a variable.
 
 ###### Simple lets
 
@@ -175,27 +176,83 @@ TODO
 ###### As-patterns
 
 ```
-  match ys {
+  match foo() {
     | [x, _, _] as xs => e1
     | _               => e2
   }
 ```
 
 ```
-  match ys {
+  match foo() {
     | xs =>
         match xs {
           | [x, _, _] => e1
           | _         => e2
         }
+    | _ => e2  -- (*)
   }
 ```
 
-A slightly more complex example
+The final clause (*) here is redundant, but this is not generally true.
+As a counter-example, consider for instance:
+
+```
+  match foo() {
+    | ([x, _, _] as xs, []) => e1
+    | _                     => e2
+  }
+```
+
+```
+  match foo() {
+    | (xs, []) =>
+        match xs {
+          | [x, _, _] => e1
+          | _         => e2  -- (a)
+        }
+    | _ => e2  -- (b)
+  }
+```
+
+Note that both (a) and (b) are needed here. Of course, there can also be more
+than one alias in a clause:
+
+```
+  match foo() {
+    | [(1 :: _) as xs, (2 :: _) as ys, (3 :: _) as zs] => e1
+    | _                                                => e2
+  }
+```
+
+These can all be bundled up neatly into a tuple:
+
+```
+  match foo() {
+    | [xs, ys, zs] =>
+        match (xs, ys, zs) {
+          | (1 :: _, 2 :: _, 3 :: _) => e1
+          | _                        => e2
+        }
+    | _ => e2
+  }
+```
+
+<!--
 
 ```
   match ys {
     | ((1 :: 2 :: _) as xs, (1 :: 2 :: _) as ys) => xs <> ys
+    | _ => e2
+  }
+```
+
+```
+  match ys {
+    | (xs , ys) =>
+        match (xs, ys) {
+          | (1 :: 2 :: _, 1 :: 2 :: _) => xs <> ys
+          | _                          => e2
+        }
     | _ => e2
   }
 ```
@@ -213,6 +270,8 @@ A slightly more complex example
         }
   }
 ```
+
+-->
 
 ###### Any-patterns
 

@@ -2306,8 +2306,28 @@ main =
          in (dropOrPatterns clause == clauses)
 
     describe "dropAnyPatterns" $ do
-      -- TODO
-      pure ()
+      it "| [x, _] or [x, _, _] => true  -->  | [x, $_] or [x, $_, $_] => true" $
+        let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            clause =
+              Clause
+                ()
+                [ pOr
+                    ()
+                    (pList () [pVar () "x", pAny ()])
+                    (pList () [pVar () "x", pAny (), pAny ()])
+                ]
+                [Choice [] (eLit () (IBool True))]
+            result :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            result =
+              Clause
+                ()
+                [ pOr
+                    ()
+                    (pList () [pVar () "x", pVar () "$_"])
+                    (pList () [pVar () "x", pVar () "$_", pVar () "$_"])
+                ]
+                [Choice [] (eLit () (IBool True))]
+         in (dropAnyPatterns clause == result)
 
     describe "dropLitPatterns" $ do
       it "| [5, _] => e                                         -->  | [$s1, _] when $s1 == 5 => e" $
@@ -2449,6 +2469,242 @@ main =
          in (dropLitPatterns clause == result)
 
     describe "dropAsPatterns" $ do
+      it "" $
+        --    | [x, _, _] => e1
+        --    | _         => e2
+        --
+        let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eVar () "e1")]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+         in (dropAsPatterns clauses == clauses)
+
+    describe "dropAsPatterns" $ do
+      it "" $
+        --    | [x, _, _] as xs => e1
+        --    | _               => e2
+        --
+        --    | xs =>
+        --        match xs {
+        --          | [x, _, _] => e1
+        --          | _         => e2
+        --        }
+        --    | _ => e2
+        --
+        let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause () [pAs () "xs" (pList () [pVar () "x", pAny (), pAny ()])] [Choice [] (eVar () "e1")]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+            result :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            result =
+              [ Clause
+                  ()
+                  [pVar () "xs"]
+                  [ Choice
+                      []
+                      ( ePat
+                          ()
+                          (eVar () "xs")
+                          [ Clause
+                              ()
+                              [pList () [pVar () "x", pAny (), pAny ()]]
+                              [Choice [] (eVar () "e1")]
+                          , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+                          ]
+                      )
+                  ]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+         in (dropAsPatterns clauses == result)
+
+      it "" $
+        --    | [x, _, _] as xs => e1
+        --    | _               => e2
+        --
+        --    | xs =>
+        --        match xs {
+        --          | [x, _, _] => e1
+        --          | _         => e2
+        --        }
+        --    | _ => e2
+        --
+        let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)]
+            clauses =
+              [ Clause tBool [pAs (tList tInt) "xs" (pList (tList tInt) [pVar tInt "x", pAny tInt, pAny tInt])] [Choice [] (eVar tBool "e1")]
+              , Clause tBool [pAny (tList tInt)] [Choice [] (eVar tBool "e2")]
+              ]
+            result :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)]
+            result =
+              [ Clause
+                  tBool
+                  [pVar (tList tInt) "xs"]
+                  [ Choice
+                      []
+                      ( ePat
+                          tBool
+                          (eVar (tList tInt) "xs")
+                          [ Clause
+                              tBool
+                              [pList (tList tInt) [pVar tInt "x", pAny tInt, pAny tInt]]
+                              [Choice [] (eVar tBool "e1")]
+                          , Clause tBool [pAny (tList tInt)] [Choice [] (eVar tBool "e2")]
+                          ]
+                      )
+                  ]
+              , Clause tBool [pAny (tList tInt)] [Choice [] (eVar tBool "e2")]
+              ]
+         in (dropAsPatterns clauses == result)
+
+      it "" $
+        --    | ([x, _, _] as xs, []) => e1
+        --    | _                     => e2
+        --
+        --    | (xs, []) =>
+        --        match xs {
+        --          | [x, _, _] => e1
+        --          | _         => e2
+        --        }
+        --    | _ => e2
+        --
+        let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause () [pTup () [pAs () "xs" (pList () [pVar () "x", pAny (), pAny ()]), pList () []]] [Choice [] (eVar () "e1")]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+            result :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            result =
+              [ Clause
+                  ()
+                  [pTup () [pVar () "xs", pList () []]]
+                  [ Choice
+                      []
+                      ( ePat
+                          ()
+                          (eVar () "xs")
+                          [ Clause
+                              ()
+                              [pList () [pVar () "x", pAny (), pAny ()]]
+                              [Choice [] (eVar () "e1")]
+                          , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+                          ]
+                      )
+                  ]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+         in (dropAsPatterns clauses == result)
+
+      -- TODO: same as above, typed
+
+      it "" $
+        --    | [(1 :: _) as xs, (2 :: _) as ys, (3 :: _) as zs] => e1
+        --    | _                                                => e2
+        --
+        --    | [xs, ys, zs] =>
+        --        match (xs, ys, zs) {
+        --          | (1 :: _, 2 :: _, 3 :: _) => e1
+        --          | _                        => e2
+        --        }
+        --    | _ => e2
+        --
+        let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause
+                  ()
+                  [ pList
+                      ()
+                      [ pAs () "xs" (pCon () "(::)" [pLit () (IInt 1), pAny ()])
+                      , pAs () "ys" (pCon () "(::)" [pLit () (IInt 2), pAny ()])
+                      , pAs () "zs" (pCon () "(::)" [pLit () (IInt 3), pAny ()])
+                      ]
+                  ]
+                  [Choice [] (eVar () "e1")]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+            result :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            result =
+              [ Clause
+                  ()
+                  [pList () [pVar () "xs", pVar () "ys", pVar () "zs"]]
+                  [ Choice
+                      []
+                      ( ePat
+                          ()
+                          (eTup () [eVar () "xs", eVar () "ys", eVar () "zs"])
+                          [ Clause
+                              ()
+                              [ pTup
+                                  ()
+                                  [ pCon () "(::)" [pLit () (IInt 1), pAny ()]
+                                  , pCon () "(::)" [pLit () (IInt 2), pAny ()]
+                                  , pCon () "(::)" [pLit () (IInt 3), pAny ()]
+                                  ]
+                              ]
+                              [ Choice [] (eVar () "e1")
+                              ]
+                          , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+                          ]
+                      )
+                  ]
+              , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+              ]
+         in (dropAsPatterns clauses == result)
+
+      -- TODO: same as above, typed
+
+      it "" $
+        --    | ([x, _, _] as xs, [])
+        --        when a => e1
+        --      , when b => e2
+        --    | _ => e3
+        --
+        --    | (xs, []) =>
+        --        match xs {
+        --          | [x, _, _]
+        --              when a => e1
+        --            , when b => e2
+        --          | _ => e3
+        --        }
+        --    | _ => e2
+        --
+        let clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause
+                  ()
+                  [pTup () [pAs () "xs" (pList () [pVar () "x", pAny (), pAny ()]), pList () []]]
+                  [ Choice [eVar () "a"] (eVar () "e1")
+                  , Choice [eVar () "b"] (eVar () "e2")
+                  ]
+              , Clause () [pAny ()] [Choice [] (eVar () "e3")]
+              ]
+            result :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            result =
+              [ Clause
+                  ()
+                  [pTup () [pVar () "xs", pList () []]]
+                  [ Choice
+                      []
+                      ( ePat
+                          ()
+                          (eVar () "xs")
+                          [ Clause
+                              ()
+                              [pList () [pVar () "x", pAny (), pAny ()]]
+                              [ Choice [eVar () "a"] (eVar () "e1")
+                              , Choice [eVar () "b"] (eVar () "e2")
+                              ]
+                          , Clause () [pAny ()] [Choice [] (eVar () "e3")]
+                          ]
+                      )
+                  ]
+              , Clause () [pAny ()] [Choice [] (eVar () "e3")]
+              ]
+         in (dropAsPatterns clauses == result)
+
+    -- TODO: same as above, typed
+
+    describe "extractAsPatterns" $ do
       -- TODO
       pure ()
 
@@ -2470,239 +2726,28 @@ testConstructorEnv =
 
 {- ORMOLU_ENABLE -}
 
--- p1 :: Pattern ()
--- p1 =
---  pOr
---    ()
---    (pList () [pVar () "x", pAny ()])
---    (pList () [pVar () "x", pAny (), pAny ()])
---
--- clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
--- clause =
---  Clause
---    ()
---    [ pOr
---        ()
---        (pList () [pVar () "x", pAny ()])
---        (pList () [pVar () "x", pAny (), pAny ()])
---    ]
---    [Choice [] (eLit () (IBool True))]
---
--- clauses = dropOrPatterns clause
---
--- clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
--- clauses =
---            [ Clause () [ pList () [pVar () "x", pAny ()] ] [Choice [] (eLit () (IBool True))]
---            , Clause () [ pList () [pVar () "x", pAny (), pAny ()] ] [Choice [] (eLit () (IBool True))]
---            ]
---         in
---            (dropOrPatterns clause == clauses)
+clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+clauses =
+  [ Clause
+      ()
+      [ pList
+          ()
+          [ pAs () "xs" (pCon () "(::)" [pLit () (IInt 1), pAny ()])
+          , pAs () "ys" (pCon () "(::)" [pLit () (IInt 2), pAny ()])
+          , pAs () "zs" (pCon () "(::)" [pLit () (IInt 3), pAny ()])
+          ]
+      ]
+      [Choice [] (eVar () "e1")]
+  , Clause () [pAny ()] [Choice [] (eVar () "e2")]
+  ]
 
--- expr :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
--- expr =
---                  translateLet
---                    tBool
---                    ( BPat
---                        (tApp kTyp (tCon kFun1 "S") tInt)
---                        (pCon (tApp kTyp (tCon kFun1 "S") tInt) "S" [pVar tInt "v"])
---                    )
---                    (eVar (tApp kTyp (tCon kFun1 "S") tInt) "e1")
---                    (eVar tBool "e2")
---
--- test1 :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
--- test1 =
---  translateLam
---    (tInt ~> tList tInt ~> tInt ~> tBool)
---    [ pVar tInt "x"
---    , pCon
---        (tList tInt)
---        "(::)"
---        [ pVar tInt "z"
---        , pVar (tList tInt) "zs"
---        ]
---    , pVar tInt "y"
---    ]
---    (eVar tBool "e")
---
--- test1 :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
--- test1 =
---      translateLam (tInt ~> tInt ~> tBool) [pVar tInt "x", pVar tInt "y"] (eVar tBool "e")
--- result :: Expr (Type ()) Name (Clause (Type ()) [Pattern (Type ())]) Void1 Void
--- result =
---            eLam
---              (tInt ~> tInt ~> tBool)
---              "x"
---              ( eLam
---                  (tInt ~> tBool)
---                  "y"
---                  (eVar tBool "e")
---              )
--- test1 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
--- test1 = translateLam () [] (eVar () "e")
---
--- rtest1 = eVar () "e" == test1
---
--- test2 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
--- test2 = translateLam () [pVar () "x", pVar () "y"] (eVar () "e")
---
--- rtest2 = test2 == eLam () "x" (eLam () "y" (eVar () "e"))
---
--- test3 :: Expr () Name (Clause () [Pattern ()]) Void1 Void
--- test3 = translateLam () [pVar () "x", pCon () "(::)" [pVar () "z", pVar () "zs"], pVar () "z"] (eVar () "e")
---
--- rtest3 =
---  test3
---    == eLam
---      ()
---      "x"
---      ( eLam
---          ()
---          "$p"
---          ( ePat
---              ()
---              (eVar () "$p")
---              [ Clause
---                  ()
---                  [pCon () "(::)" [pVar () "z", pVar () "zs"]]
---                  [ Choice
---                      []
---                      (eLam () "z" (eVar () "e"))
---                  ]
---              ]
---          )
---      )
--- eLam
---  ()
---  undefined
---  undefined
--- test1 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
--- test1 =
---  translateFun clauses
---  where
---    clauses =
---      [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
---      , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
---      ]
---
--- test2 :: Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 (Binding ())
--- test2 =
---  translateFun clauses
---  where
---    clauses =
---      [ Clause
---          ()
---          [pLit () (IInt 1), pVar () "a"]
---          [Choice [] (eLit () (IInt 1))]
---      , Clause
---          ()
---          [pAny (), pAny ()]
---          [Choice [] (eLit () (IInt 2))]
---      ]
---
--- test3 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
--- test3 =
---  translateFun clauses
---  where
---    clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
---    clauses =
---      [ Clause (tInt ~> tList tInt ~> tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
---      , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
---      ]
---
--- expr5 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
--- expr5 =
---  eLam
---    (tList tInt ~> tBool)
---    [pVar (tList tInt) "$v1"]
---    ( ePat
---        tBool
---        (eVar (tList tInt) "$v1")
---        [ Clause (tInt ~> tList tInt ~> tList tInt) [pCon (tList tInt) "(::)" [pVar tInt "y", pVar (tList tInt) "ys"]] [Choice [] (eLit tBool (IBool True))]
---        , Clause (tList tInt) [pCon (tList tInt) "[]" []] [Choice [] (eLit tBool (IBool False))]
---        ]
---    )
---
--- test5 :: Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ()))
--- test5 =
---  let clauses :: [Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 (Binding (Type ())))]
---      clauses =
---        [ Clause
---            tInt
---            [pLit tInt (IInt 1), pVar tInt "a"]
---            [Choice [] (eLit tInt (IInt 1))]
---        , Clause
---            tInt
---            [pAny tInt, pAny tInt]
---            [Choice [] (eLit tInt (IInt 2))]
---        ]
---   in translateFun clauses
--- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
--- input =
---  compilePatterns
---    (eCon () "[]") -- (eVar (tList tInt) "xs")
---    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
---    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
---    ]
---
--- input2 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
--- input2 =
---  compilePatterns
---    (eLit () (IInt 123))
---    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
---    , Clause () [pVar () "_"] [Choice [] (eLit () (IBool False))]
---    ]
---
--- input3 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
--- input3 =
---  compilePatterns
---    (eLit () (IInt 123))
---    [ Clause
---        ()
---        [pVar () "x"]
---        [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
---    , -- , Choice [eLit () (IBool True)] (eLit () (IBool False))
---      Clause
---        ()
---        [pVar () "x"]
---        [Choice [] (eLit () (IBool False))]
---    ]
---
--- input4 :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
--- input4 =
---  compilePatterns
---    (eLit () (IInt 123))
---    [ Clause () [pVar () "x"] [Choice [eOp2 () (OEq ()) (eVar () "x") (eLit () (IInt 456))] (eLit () (IBool True))]
---    , Clause () [pVar () "x"] [Choice [] (eLit () (IBool False))]
---    ]
+-- clause :: Clause () [Pattern ()] (Expr () e1 (Clause () [Pattern ()]) Void1 Void)
+-- clause =
+--  Clause () [pTup () [pAs () "xs" (pList () [pVar () "x", pAny (), pAny ()]), pList () []]] [ Choice [] (eVar () "e1") ]
 --
 --
--- input :: State Int (Expr () Name (CaseClause ()) Void1 (Binding ()))
--- input =
---  compilePatterns
---    (eCon () "[]")
---    [ Clause () [pCon () "(::)" [pVar () "y", pVar () "ys"]] [Choice [] (eLit () (IBool True))]
---    , Clause () [pCon () "[]" []] [Choice [] (eLit () (IBool False))]
---    ]
---
---
--- expr1 ::
---  Expr
---    (Type Int)
---    ()
---    (Clause (Type Int) [Pattern (Type Int)])
---    (Clause (Type Int) [Pattern (Type Int)])
---    (Binding (Type Int))
--- expr1 =
---  eRec
---    (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
---    ( eExt
---        (tExt "a" tInt (tExt "b" tBool tNil))
---        "a"
---        (eLit tInt (IInt 1))
---        ( eExt
---            (tExt "b" tBool tNil)
---            "b"
---            (eLit tBool (IBool True))
---            (eNil rNil)
---        )
---    )
+-- clauses :: [Clause () [Pattern ()] (Expr () e1 (Clause () [Pattern ()]) Void1 Void)]
+-- clauses =
+--  [ Clause () [pTup () [pAs () "xs" (pList () [pVar () "x", pAny (), pAny ()]), pList () []]] [ Choice [] (eVar () "e1") ]
+--  , Clause () [pAny ()] [ Choice [] (eVar () "e2") ]
+--  ]

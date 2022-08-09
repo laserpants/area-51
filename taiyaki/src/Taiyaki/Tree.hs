@@ -479,7 +479,7 @@ dropAnyPatterns =
     go =
       cata
         ( \case
-            PAny t        -> pVar t "$_"
+            PAny t        -> pVar t "$_"  -- TODO: Add unique index?
             PAnn _ p      -> p
             p             -> embed p
         )
@@ -512,25 +512,56 @@ dropLitPatterns =
             p -> embed <$> sequence p
         )
 
-dropAsPatterns :: Clause t [Pattern t] a -> Clause t [Pattern t] a
+dropAsPatterns ::
+  (TypeTag t, Tuple t (), Functor e3) =>
+  [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)] ->
+  [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)]
 dropAsPatterns =
-  undefined
+  cata
+    ( \case
+        Cons c cs ->
+          case extractAsPatterns c of
+            ([], _) ->
+              c : cs
+            (pats, Clause t ps gs) ->
+              let tags = getTag . fst <$> pats
+               in [ Clause
+                      t
+                      ps
+                      [ Choice
+                          []
+                          ( ePat
+                              t
+                              (toTup tags [eVar (getTag p) n | (p, n) <- pats])
+                              (Clause t [toTup tags (fst <$> pats)] gs : cs)
+                          )
+                      ]
+                  ]
+                    <> cs
+        Nil ->
+          []
+    )
 
--- dropOrAndAnyPatterns2 :: Clause t [Pattern t] a -> [Clause t [Pattern t] a]
--- dropOrAndAnyPatterns2 (Clause t [p] cs) = go p
---  where
---    go =
---      cata
---        ( \case
---            PLit t p -> undefined
---            --PAs t p1 p2 -> undefined
---            POr _ p1 p2 -> do
---              xx <- p1
---              [Clause t xx cs]
---            PAny t -> [Clause t [pVar t "$_"] cs]
---            --PAnn _ p -> p
---            --p -> embed <$> sequence p
---        )
+toTup :: (Tuple a t, Tuple t ()) => [t] -> [a] -> a
+toTup ts =
+  \case
+    [e] -> e
+    els -> tup (tup () ts) els
+
+extractAsPatterns :: Clause t [Pattern t] a -> ([(Pattern t, Name)], Clause t [Pattern t] a)
+extractAsPatterns (Clause t [p] cs) = (ps, Clause t [r] cs)
+  where
+    (r, ps) =
+      runWriter $
+        p
+          & para
+            ( \case
+                PAs u n (q, _) -> do
+                  tell [(q, n)]
+                  pure (pVar u n)
+                q -> embed <$> sequence (snd <$> q)
+            )
+extractAsPatterns _ = error "Implementation error"
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
