@@ -224,10 +224,6 @@ type ConstructorEnv =
 
 -------------------------------------------------------------------------------
 
-data Void1 a
-
--------------------------------------------------------------------------------
-
 {- ORMOLU_DISABLE -}
 
 -- Kind
@@ -565,18 +561,3 @@ deriving instance Functor (ConsGroup t)
 deriving instance Foldable (ConsGroup t)
 
 deriving instance Traversable (ConsGroup t)
-
--- Void1
-deriving instance Show (Void1 a)
-
-deriving instance Eq (Void1 a)
-
-deriving instance Ord (Void1 a)
-
-deriving instance Functor Void1
-
-deriveShow1 ''Void1
-
-deriveEq1 ''Void1
-
-deriveOrd1 ''Void1

@@ -1,3 +1,7 @@
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveTraversable #-}
+
 module Taiyaki.Util
   ( module Data.Fix
   , module Data.Text
@@ -19,6 +23,7 @@ module Taiyaki.Util
   , Coalgebra
   , Data
   , Typeable
+  , Void1
   , embed1
   , embed2
   , embed3
@@ -58,6 +63,8 @@ type Name = Text
 type Algebra f a = f a -> a
 
 type Coalgebra f a = a -> f a
+
+data Void1 a
 
 {-# INLINE embed1 #-}
 embed1 :: (Corecursive t) => (t1 -> Base t t) -> t1 -> t
@@ -103,3 +110,17 @@ getAndModify f = do
   s <- get
   modify f
   pure s
+
+deriving instance Show (Void1 a)
+
+deriving instance Eq (Void1 a)
+
+deriving instance Ord (Void1 a)
+
+deriving instance Functor Void1
+
+deriveShow1 ''Void1
+
+deriveEq1 ''Void1
+
+deriveOrd1 ''Void1
