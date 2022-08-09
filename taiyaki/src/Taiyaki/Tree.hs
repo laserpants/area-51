@@ -453,6 +453,16 @@ translateLam t (p : ps) expr = do
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
+simplifyPatterns ::
+  (TypeTag t, Tuple t (), Functor e3) =>
+  [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)] ->
+  [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)]
+simplifyPatterns =
+  concatMap dropOrPatterns
+    >>> fmap dropAnyPatterns
+    >>> fmap dropLitPatterns
+    >>> dropAsPatterns
+
 {- ORMOLU_DISABLE -}
 
 dropOrPatterns :: Clause t [Pattern t] a -> [Clause t [Pattern t] a]
