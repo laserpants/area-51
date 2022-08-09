@@ -2480,7 +2480,6 @@ main =
               ]
          in (dropAsPatterns clauses == clauses)
 
-    describe "dropAsPatterns" $ do
       it "" $
         --    | [x, _, _] as xs => e1
         --    | _               => e2
