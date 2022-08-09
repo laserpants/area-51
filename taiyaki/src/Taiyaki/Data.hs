@@ -109,12 +109,13 @@ data Binding t
 
 -------------------------------------------------------------------------------
 
--- | Pattern clause choice: A pattern match clause consists of one or more
--- choices, each accompanied by a (possibly empty) list of predicates, referred
+-- | A pattern clause choice is a (possibly empty) list of predicates, referred
 -- to as pattern guards, and a target expression.
 data Choice a
   = Choice [a] a
 
+-- | A pattern match clause consists of a list of patterns, and one or more
+-- choices.
 data Clause t p a
   = Clause t p [Choice a]
 

@@ -1,6 +1,8 @@
 # Pong
 
-## Language implementation
+# Language implementation
+
+## Data structures
 
 ### Identifiers
 
@@ -27,7 +29,7 @@ data Type
   | RExt Name Type Type
 ```
 
-#### Primitive types
+### Primitive types
 
 | Constructor   | Type                                    | Keyword  |
 | ------------- | --------------------------------------- | -------- |
@@ -41,14 +43,14 @@ data Type
 
 These types correspond, in a one-to-one manner, to the built-in language primitives (described [here](#language-primitives)).
 
-#### Type variables
+### Type variables
 
 | Constructor   | Type                                    | Notation                |
 | ------------- | --------------------------------------- | ----------------------- |
 | `TVar`        | Type variable                           | `'0`                    |
 | `TVar`        | Polymorphic type variable               | `a`                     |
 
-##### Type schemes
+#### Type schemes
 
 ```
 newtype Scheme = Scheme (Type Name)
@@ -63,14 +65,14 @@ Type schemes encode polymorphic types &mdash; types parameterized by some number
 
 > The notation $\forall[v_0 \ v_1 \dots v_n] . s$ is sometimes used to say that $v_0, v_1 \dots v_n$ is the set of variables which appear bound in $s$. Analogous to this is the `forall` keyword available in some languages, including Haskell with the GHC `ExplicitForAll` extension enabled.
 
-#### Composite types
+### Composite types
 
 | Constructor   | Type                                    | Notation                |
 | ------------- | --------------------------------------- | ----------------------- |
 | `TCon`        | Algebraic data type                     | `Con s t r u ...`       |
 | `TArr`        | Function type                           | `s → t`                 |
 
-##### Algebraic data types
+#### Algebraic data types
 
 | Type                  | Type rep. (Haskell expression)            |
 | --------------------- | ----------------------------------------- |
@@ -289,7 +291,7 @@ $$
 
 ### Patterns
 
-## Footnotes
+# Footnotes
 
 <ol>
   <li id="footnote-1">

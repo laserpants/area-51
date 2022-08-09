@@ -5,9 +5,9 @@
   <img src="https://raw.githubusercontent.com/laserpants/area-51/dev/taiyaki/docs/taiyaki.png" width="250" />
 </p>
 
-## Language implementation
+# Language implementation
 
-## Compilation strategy
+# Compilation strategy
 
 After parsing, type checking, and other preliminary steps, the compiler
 proceeds through a series of transformations applied to the syntax tree. The
@@ -27,9 +27,9 @@ flowchart LR;
     C --> D;
 ```
 
-##### Normalize lambda abstractions
+#### Normalize lambda abstractions
 
-###### Expansion of multiple arguments
+##### Expansion of multiple arguments
 
 ```
 (x, y, z) ⇒ e
@@ -42,7 +42,7 @@ lam(x) ⇒
       e
 ```
 
-###### Pattern elimination
+##### Pattern elimination
 
 ```
 (P[...]) ⇒ e
@@ -55,13 +55,13 @@ lam($v) ⇒
   }
 ```
 
-##### Translate let-bindings
+#### Translate let-bindings
 
 Let-bindings are still permitted in our intermediate language, but only those
 that bind to a variable, that is, are of the form `let v = expr`, where `v` is
 a variable.
 
-###### Simple lets
+##### Simple lets
 
 ```
 let v = expr
@@ -71,7 +71,7 @@ let v = expr
 fix v = expr
 ```
 
-###### Function bindings
+##### Function bindings
 
 ```
 let f(x, y) = expr
@@ -84,7 +84,7 @@ fix f =
       expr
 ```
 
-###### Pattern bindings
+##### Pattern bindings
 
 ```
 let P[...] = expr in body
@@ -96,13 +96,13 @@ match expr {
 }
 ```
 
-##### Translate `match` expressions to simple `case` pattern matching
+#### Translate `match` expressions to simple `case` pattern matching
 
 TODO
 
-##### Desugar tuples, records, and list literals
+#### Desugar tuples, records, and list literals
 
-###### List literals
+##### List literals
 
 ```
 [1, 2, 3]
@@ -116,7 +116,7 @@ TODO
 ((::) 1 ((::) 2 ((::) 3 [])))
 ```
 
-###### Tuples
+##### Tuples
 
 ```
 ('a', 1)
@@ -126,7 +126,7 @@ TODO
 (,) 'a' 1
 ```
 
-###### Records
+##### Records
 
 ```
 { foo = "baz", bar = 1 }
@@ -136,13 +136,13 @@ TODO
 #Record ({foo} "baz" ({bar} 1 {}))
 ```
 
-##### Transform type class constraints to records
+#### Transform type class constraints to records
 
 TODO
 
-### Patterns
+## Patterns
 
-###### Literal patterns
+##### Literal patterns
 
 ```
   | 5 => true
@@ -162,7 +162,7 @@ TODO
         true
 ```
 
-###### Or-patterns
+##### Or-patterns
 
 ```
   | [x, _] or [x, _, _] => true
@@ -173,7 +173,7 @@ TODO
   | [x, _, _] => true
 ```
 
-###### As-patterns
+##### As-patterns
 
 ```
   match foo() {
@@ -273,7 +273,7 @@ These can all be bundled up neatly into a tuple:
 
 -->
 
-###### Any-patterns
+##### Any-patterns
 
 ```
   | _ => true
@@ -283,15 +283,15 @@ These can all be bundled up neatly into a tuple:
   | $_ => true
 ```
 
-#### Exhaustiveness checking
+### Exhaustiveness checking
 
-#### Compilation
+### Compilation
 
-## Etymology
+# Etymology
 
 Taiyaki (鯛焼き) is a Japanese fish-shaped cake, commonly sold as street food.
 
-### Attribution
+## Attribution
 
 <small>
   <a href="https://www.flaticon.com/free-icons/taiyaki" title="taiyaki icons">Taiyaki icons created by Freepik - Flaticon</a>
