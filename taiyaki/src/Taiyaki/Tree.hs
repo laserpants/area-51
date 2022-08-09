@@ -482,16 +482,18 @@ dropOrPatterns =
 dropAnyPatterns :: Clause t [Pattern t] a -> Clause t [Pattern t] a
 dropAnyPatterns =
   \case
-    Clause t [p] cs -> Clause t [go p] cs
+    Clause t [p] cs -> Clause t [evalState (go p) 1] cs
     _               -> error "Implementation error"
   where
-    go :: Pattern t -> Pattern t
+    go :: (MonadState Int m) => Pattern t -> m (Pattern t)
     go =
       cata
         ( \case
-            PAny t        -> pVar t "$_"  -- TODO: Add unique index?
-            PAnn _ p      -> p
-            p             -> embed p
+            PAny t -> do
+              n <- getAndModify succ
+              pure (pVar t ("$_" <> showt n))
+            PAnn _ p -> p
+            p        -> embed <$> sequence p
         )
 
 {- ORMOLU_ENABLE -}
