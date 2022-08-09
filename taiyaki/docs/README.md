@@ -280,7 +280,7 @@ These can all be bundled up neatly into a tuple:
 ```
 
 ```
-  | $_ => true
+  | $_1 => true
 ```
 
 ### Exhaustiveness checking

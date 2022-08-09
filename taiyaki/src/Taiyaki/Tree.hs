@@ -261,13 +261,13 @@ primCon IString{}       = "#String"
 
 -- Unpack tuples, lists, records, rows, and codata expressions
 --
-class Desugars e where
+class Sugared e where
   desugar :: e -> e
 
-instance Desugars e => Desugars [e] where
+instance Sugared e => Sugared [e] where
   desugar = fmap desugar
 
-instance Desugars e => Desugars (Choice e) where
+instance Sugared e => Sugared (Choice e) where
   desugar =
     \case
       Choice es e ->
@@ -277,9 +277,9 @@ instance
   ( TypeTag t
   , Row t
   , Eq t
-  , Desugars (Choice e)
+  , Sugared (Choice e)
   ) =>
-  Desugars (Clause t [Pattern t] e)
+  Sugared (Clause t [Pattern t] e)
   where
   desugar =
     \case
@@ -288,16 +288,16 @@ instance
 
 {- ORMOLU_DISABLE -}
 
-instance (TypeTag t, Row t, Eq t) => Desugars (Binding t) where
+instance (TypeTag t, Row t, Eq t) => Sugared (Binding t) where
   desugar =
     \case
       BPat t p    -> BPat t (desugar p)
       BFun t n ps -> BFun t n (desugar ps)
 
-instance Desugars () where
+instance Sugared () where
   desugar _ = ()
 
-instance (TypeTag t, Row t, Eq t) => Desugars (Pattern t) where
+instance (TypeTag t, Row t, Eq t) => Sugared (Pattern t) where
   desugar =
     cata
       ( \case
@@ -318,12 +318,12 @@ instance
   , Eq1 e2
   , Eq1 e3
   , Eq e4
-  , Desugars e1
-  , Desugars (e2 (Expr t e1 e2 e3 e4))
-  , Desugars (e3 (Expr t e1 e2 e3 e4))
-  , Desugars e4
+  , Sugared e1
+  , Sugared (e2 (Expr t e1 e2 e3 e4))
+  , Sugared (e3 (Expr t e1 e2 e3 e4))
+  , Sugared e4
   ) =>
-  Desugars (Expr t e1 e2 e3 e4)
+  Sugared (Expr t e1 e2 e3 e4)
   where
   desugar =
     cata
