@@ -2288,7 +2288,7 @@ main =
              in (result == expr)
 
     describe "dropOrPatterns" $ do
-      it "| [x, _] or [x, _, _] => true  -->  | [x, _] => true | [x, _, _] => true" $
+      it "| [x, _] or [x, _, _] => true       -->  | [x, _] => true | [x, _, _] => true" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
               Clause
@@ -2306,8 +2306,30 @@ main =
               ]
          in (dropOrPatterns clause == clauses)
 
+      it "| ([x, _] or [x, _, _], 1) => true  -->  | ([x, _], 1) => true | ([x, _, _], 1) => true" $
+        let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
+            clause =
+              Clause
+                ()
+                [ pTup
+                    ()
+                    [ pOr
+                        ()
+                        (pList () [pVar () "x", pAny ()])
+                        (pList () [pVar () "x", pAny (), pAny ()])
+                    , pLit () (IInt 1)
+                    ]
+                ]
+                [Choice [] (eLit () (IBool True))]
+            clauses :: [Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)]
+            clauses =
+              [ Clause () [pTup () [pList () [pVar () "x", pAny ()], pLit () (IInt 1)]] [Choice [] (eLit () (IBool True))]
+              , Clause () [pTup () [pList () [pVar () "x", pAny (), pAny ()], pLit () (IInt 1)]] [Choice [] (eLit () (IBool True))]
+              ]
+         in (dropOrPatterns clause == clauses)
+
     describe "dropAnyPatterns" $ do
-      it "| [x, _] or [x, _, _] => true  -->  | [x, $_1] or [x, $_2, $_3] => true" $
+      it "| [x, _] or [x, _, _] => true       -->  | [x, $_1] or [x, $_2, $_3] => true" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
               Clause
@@ -2511,7 +2533,7 @@ main =
               ]
          in (dropAsPatterns clauses == clauses)
 
-      it "| [x, _, _] as xs => e1 | | _ => e2" $
+      it "| [x, _, _] as xs => e1 | _ => e2" $
         --    | [x, _, _] as xs => e1
         --    | _               => e2
         --
