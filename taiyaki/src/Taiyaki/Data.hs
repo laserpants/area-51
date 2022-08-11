@@ -109,8 +109,8 @@ data Binding t
 
 -------------------------------------------------------------------------------
 
--- | A pattern clause choice is a (possibly empty) list of predicates, referred
--- to as pattern guards, and a target expression.
+-- | A pattern clause choice is a (possibly empty) list of pattern guards, and
+-- a target expression.
 data Choice a
   = Choice [a] a
 
@@ -184,6 +184,12 @@ type Expr t e1 e2 e3 e4 = Fix (ExprF t e1 e2 e3 e4)
 
 -------------------------------------------------------------------------------
 
+type ProgExpr t = Expr t [Pattern t] (Clause t [Pattern t]) (Clause t [Pattern t]) (Binding t)
+
+newtype Ast t = Ast (ProgExpr t)
+
+-------------------------------------------------------------------------------
+
 type FieldSet a = Map Name [a]
 
 -------------------------------------------------------------------------------
@@ -209,11 +215,25 @@ data Labeled a
 {- ORMOLU_DISABLE -}
 
 data ConsGroup t a = ConsGroup
-  { consName     :: Name
-  , consType     :: t
-  , consPatterns :: [Pattern t]
-  , consClauses  :: [Clause t [Pattern t] a]
+  { consGroupName     :: Name
+  , consGroupType     :: t
+  , consGroupPatterns :: [Pattern t]
+  , consGroupClauses  :: [Clause t [Pattern t] a]
   }
+
+---- | A standalone type class constraint
+--data Predicate a = InClass
+--  { predicateName :: Name
+--  , predicateType :: a
+--  }
+
+data ClassInfo a s = ClassInfo
+  { classInfoPredicates :: [a]
+  , classInfoSignature  :: a
+  , classInfoMethods    :: [(Name, s)]
+  }
+
+--type ClassInstance v a = ClassInfo (Type v) a
 
 {- ORMOLU_ENABLE -}
 
@@ -221,6 +241,12 @@ data ConsGroup t a = ConsGroup
 
 type ConstructorEnv =
   Environment (Set Name, Int)
+
+type ClassEnv t =
+  Environment
+    ( ClassInfo Name t -- \^ Class interface
+    , [ClassInfo t (ProgExpr t)] -- \^ Instances
+    )
 
 -------------------------------------------------------------------------------
 

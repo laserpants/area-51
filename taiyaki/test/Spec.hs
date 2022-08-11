@@ -9,6 +9,7 @@ import Taiyaki.Data.Cons
 import Taiyaki.Lang
 import Taiyaki.Tree
 import Taiyaki.Util
+import qualified Taiyaki.Util.Env as Env
 import Test.Hspec
 
 main :: IO ()
@@ -28,25 +29,13 @@ main =
             "List a"
             (tApp kTyp (tCon kFun1 "List") (tVar kTyp "a") == ty)
 
-      let expr ::
-            Expr
-              (Type ())
-              [Pattern ()]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr (Type ())
           expr = con (tList tInt) "[]" []
        in it
             "[]"
             (eCon (tList tInt) "[]" == expr)
 
-      let expr ::
-            Expr
-              (Type ())
-              [Pattern ()]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr (Type ())
           expr = con (tList tInt) "(::)" [eVar tInt "x", con (tList tInt) "[]" []]
        in it
             "x :: []"
@@ -113,26 +102,14 @@ main =
                 == ty
             )
 
-      let expr ::
-            Expr
-              ()
-              [Pattern ()]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr ()
           expr = tup () [eLit () (IInt 1), eLit () (IInt 2)]
        in it
             "(1, 2)"
             (eTup () [eLit () (IInt 1), eLit () (IInt 2)] == expr)
     ---------------------------------------------------------------------------
     describe "Row" $ do
-      let expr ::
-            Expr
-              ()
-              [Pattern ()]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr ()
           expr = rExt "a" (eVar () "x") rNil
        in it
             "{ a = x }"
@@ -150,13 +127,7 @@ main =
             "{ a : int }"
             (ty == tExt "a" tInt tNil)
       ---------------------------------------------------------------------------
-      let expr ::
-            Expr
-              ()
-              [Pattern ()]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr ()
           expr = rExt "a" (eVar () "x") (eVar () "y")
        in it
             "{ a = x | y }"
@@ -205,13 +176,7 @@ main =
                 ]
     ---------------------------------------------------------------------------
     describe "rawTuple" $ do
-      let expr ::
-            Expr
-              (Type Int)
-              [Pattern (Type Int)]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr (Type Int)
           expr =
             rawTuple
               (tup () [tInt, tBool])
@@ -232,13 +197,7 @@ main =
             )
     ---------------------------------------------------------------------------
     describe "rawList" $ do
-      let expr ::
-            Expr
-              (Type Int)
-              [Pattern (Type Int)]
-              (Clause (Type ()) [Pattern (Type ())])
-              (Clause (Type ()) [Pattern (Type ())])
-              (Binding ())
+      let expr :: ProgExpr (Type Int)
           expr =
             rawList
               (tList tInt)
@@ -1229,26 +1188,14 @@ main =
 
       describe "stage1" $ do
         describe "Expr" $ do
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 tup
                   (tup () [tInt, tBool])
                   [ eLit tInt (IInt 1)
                   , eLit tBool (IBool True)
                   ]
-              expr2 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eApp
                   (tApp kTyp (tApp kFun1 (tCon kFun2 "(,)") tInt) tBool)
@@ -1266,13 +1213,7 @@ main =
                 "(1, true)              -->  ((,) 1) true"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 eList
                   (tList tInt)
@@ -1280,13 +1221,7 @@ main =
                   , eLit tInt (IInt 2)
                   , eLit tInt (IInt 3)
                   ]
-              expr2 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eApp
                   (tList tInt)
@@ -1310,13 +1245,7 @@ main =
                 "[1, 2, 3]              -->  (::) 1 ((::) 2 ((::) 3 []))"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 eRec
                   (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
@@ -1331,13 +1260,7 @@ main =
                           (eNil rNil)
                       )
                   )
-              expr2 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eApp
                   (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
@@ -1358,13 +1281,7 @@ main =
                 "{ a = 1, b = true }    -->  #Record ({a} 1 ({b} true {}))"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 eRec
                   (tRec (tExt "b" tBool (tExt "a" tInt tNil)))
@@ -1379,13 +1296,7 @@ main =
                           (eNil rNil)
                       )
                   )
-              expr2 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eApp
                   (tRec (tExt "a" tInt (tExt "b" tBool tNil)))
@@ -1406,21 +1317,9 @@ main =
                 "{ b = true, a = 1 }    -->  #Record ({a} 1 ({b} true {}))"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 = eRec (tRec tNil) (eNil rNil)
-              expr2 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eApp
                   (tRec tNil)
@@ -1432,13 +1331,7 @@ main =
                 (desugar expr1 == expr2)
 
         describe "Nested patterns" $ do
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 ePat
                   tInt
@@ -1447,13 +1340,7 @@ main =
                   , Clause tInt [tup (tup () [tInt, tBool]) [pAny tInt, pAny tBool]] [Choice [] (eLit tInt (IInt 2))]
                   ]
 
-              expr2 ::
-                Expr
-                  (Type Int)
-                  ()
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 ePat
                   tInt
@@ -1483,13 +1370,7 @@ main =
                 "match p { (1, true) => 1 | (_, _) => 2 }  -->  match p { ((,) 1) true => 1 | ((,) _) _ => 2 }"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  [Pattern (Type Int)]
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 eLam
                   tInt
@@ -1502,13 +1383,7 @@ main =
                   ]
                   (eVar tInt "x")
 
-              expr2 ::
-                Expr
-                  (Type Int)
-                  [Pattern (Type Int)]
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eLam
                   tInt
@@ -1537,13 +1412,7 @@ main =
                 "lam([ x, 2, 3 ]) => x                     -->  lam((::) x ((::) 2 ((::) 3 []))) => x"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  [Pattern (Type Int)]
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 eLet
                   tBool
@@ -1551,13 +1420,7 @@ main =
                   (eVar (tup () [tInt, tInt]) "e1")
                   (eVar tBool "e2")
 
-              expr2 ::
-                Expr
-                  (Type Int)
-                  [Pattern (Type Int)]
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eLet
                   tBool
@@ -1577,13 +1440,7 @@ main =
                 "let (a, b) = e1 in e2                     -->  let (((,) a) b) = e1 in e2"
                 (desugar expr1 == expr2)
 
-          let expr1 ::
-                Expr
-                  (Type Int)
-                  [Pattern (Type Int)]
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+          let expr1 :: ProgExpr (Type Int)
               expr1 =
                 eList
                   (tList tBool)
@@ -1594,13 +1451,7 @@ main =
                       (eVar tBool "e2")
                   ]
 
-              expr2 ::
-                Expr
-                  (Type Int)
-                  [Pattern (Type Int)]
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Clause (Type Int) [Pattern (Type Int)])
-                  (Binding (Type Int))
+              expr2 :: ProgExpr (Type Int)
               expr2 =
                 eApp
                   (tList tBool)
@@ -1764,34 +1615,14 @@ main =
         True
     ---------------------------------------------------------------------------
     describe "labeledClause" $ do
-      let clause ::
-            Clause
-              ()
-              [Pattern ()]
-              ( Expr
-                  ()
-                  [Pattern ()]
-                  (Clause () [Pattern ()])
-                  (Clause () [Pattern ()])
-                  (Binding ())
-              )
+      let clause :: Clause () [Pattern ()] (ProgExpr ())
           clause =
             Clause () [pCon () "(::)" [pVar () "x", pVar () "xs"]] []
        in it
             "| x :: xs"
             (LCon clause == labeledClause clause)
 
-      let clause ::
-            Clause
-              ()
-              [Pattern ()]
-              ( Expr
-                  ()
-                  [Pattern ()]
-                  (Clause () [Pattern ()])
-                  (Clause () [Pattern ()])
-                  (Binding ())
-              )
+      let clause :: Clause () [Pattern ()] (ProgExpr ())
           clause =
             Clause () [pVar () "x", pVar () "xs"] []
        in it
@@ -2912,3 +2743,31 @@ testConstructorEnv =
     ]
 
 {- ORMOLU_ENABLE -}
+
+testClassEnv :: ClassEnv (Type Name)
+testClassEnv =
+  Env.fromList
+    [
+      ( "ToString"
+      , -- Interface
+
+        ( ClassInfo [] "a" 
+            [
+              ( "toString"
+              , tVar kTyp "a" ~> tString
+              )
+            ]
+        , -- Instances
+
+          [ ClassInfo [] tInt
+              [
+                ( "toString"
+                , undefined -- eVar undefined "TODO"
+                )
+              ]
+          , ClassInfo [tVar kTyp "a"] (tList (tVar kTyp "a")) 
+              []
+          ]
+        )
+      )
+    ]

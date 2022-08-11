@@ -1,6 +1,6 @@
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveTraversable #-}
 
 module Taiyaki.Util
   ( module Data.Fix

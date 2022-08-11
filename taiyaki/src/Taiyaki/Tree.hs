@@ -650,12 +650,12 @@ compilePatterns ex cs =
     clauses (LVar eqs) = eqs
 
     toSimpleMatch u us c ConsGroup{..} = do
-      (_, vars, pats) <- patternInfo (const id) consPatterns
-      expr <- compileMatch (vars <> us) consClauses c
+      (_, vars, pats) <- patternInfo (const id) consGroupPatterns
+      expr <- compileMatch (vars <> us) consGroupClauses c
       pure
         ( Case
-            (foldr tarr (getTag u) (getTag <$> consPatterns))
-            consName
+            (foldr tarr (getTag u) (getTag <$> consGroupPatterns))
+            consGroupName
             pats
             expr
         )
@@ -691,10 +691,10 @@ consGroups u cs =
   where
     go clss@((ctor, (t, ps, _)) : _) =
       [ ConsGroup
-          { consName     = ctor
-          , consType     = t
-          , consPatterns = ps
-          , consClauses  = thd3 . snd <$> clss
+          { consGroupName     = ctor
+          , consGroupType     = t
+          , consGroupPatterns = ps
+          , consGroupClauses  = thd3 . snd <$> clss
           }
       ]
     go _ = error "Implementation error"
