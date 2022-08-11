@@ -2751,7 +2751,9 @@ testClassEnv =
       ( "ToString"
       , -- Interface
 
-        ( ClassInfo [] "a" 
+        ( ClassInfo
+            []
+            "a"
             [
               ( "toString"
               , tVar kTyp "a" ~> tString
@@ -2759,14 +2761,22 @@ testClassEnv =
             ]
         , -- Instances
 
-          [ ClassInfo [] tInt
+          [ ClassInfo
+              []
+              tInt
               [
                 ( "toString"
-                , undefined -- eVar undefined "TODO"
+                , eVar (tInt ~> tString) "TODO"
                 )
               ]
-          , ClassInfo [tVar kTyp "a"] (tList (tVar kTyp "a")) 
-              []
+          , ClassInfo
+              [tVar kTyp "a"]
+              (tList (tVar kTyp "a"))
+              [
+                ( "toString"
+                , eVar (tList (tVar kTyp "a") ~> tString) "TODO"
+                )
+              ]
           ]
         )
       )
