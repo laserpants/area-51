@@ -420,3 +420,8 @@ rawRow a = Map.foldrWithKey (flip . foldr . go) final m
     go n p q =
       let t = rExt n (getTag p) (getTag q)
        in con t ("{" <> n <> "}") [p, q]
+
+--------------------------------------------------------------------------------
+
+super :: ClassEnv t -> Name -> [Name]
+super env name = maybe [] (classInfoPredicates . fst) (Env.lookup name env)

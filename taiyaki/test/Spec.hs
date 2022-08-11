@@ -2748,6 +2748,22 @@ testClassEnv :: ClassEnv (Type Name)
 testClassEnv =
   Env.fromList
     [
+      ( "Integral"
+      , -- Interface
+
+        ( ClassInfo
+            ["Num"]
+            "a"
+            [
+              ( "toInteger"
+              , tVar kTyp "a" ~> tInt
+              )
+            ]
+        , -- Instances
+          []
+        )
+      )
+    ,
       ( "ToString"
       , -- Interface
 
