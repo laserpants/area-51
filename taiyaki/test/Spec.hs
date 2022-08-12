@@ -2748,28 +2748,12 @@ testClassEnv :: ClassEnv (Type Name)
 testClassEnv =
   Env.fromList
     [
-      ( "Integral"
-      , -- Interface
-
-        ( ClassInfo
-            ["Num"]
-            "a"
-            [
-              ( "toInteger"
-              , tVar kTyp "a" ~> tInt
-              )
-            ]
-        , -- Instances
-          []
-        )
-      )
-    ,
       ( "ToString"
       , -- Interface
 
         ( ClassInfo
             []
-            "a"
+            (tVar kTyp "a")
             [
               ( "toString"
               , tVar kTyp "a" ~> tString
@@ -2777,7 +2761,7 @@ testClassEnv =
             ]
         , -- Instances
 
-          [ ClassInfo
+          [ ClassInstance
               []
               tInt
               [
@@ -2785,12 +2769,37 @@ testClassEnv =
                 , eVar (tInt ~> tString) "TODO"
                 )
               ]
-          , ClassInfo
-              [tVar kTyp "a"]
+          , ClassInstance
+              [InClass "ToString" (tVar kTyp "a")]
               (tList (tVar kTyp "a"))
               [
                 ( "toString"
                 , eVar (tList (tVar kTyp "a") ~> tString) "TODO"
+                )
+              ]
+          ]
+        )
+      )
+    ,
+      ( "Integral"
+      , -- Interface
+
+        ( ClassInfo
+            ["Num"]
+            (tVar kTyp "a")
+            [
+              ( "toInt"
+              , tVar kTyp "a" ~> tInt
+              )
+            ]
+        , -- Instances
+
+          [ ClassInstance
+              []
+              tInt
+              [
+                ( "toInt"
+                , eVar (tInt ~> tInt) "TODO"
                 )
               ]
           ]

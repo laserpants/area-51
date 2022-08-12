@@ -57,8 +57,9 @@ type MonoType = Type MonoIndex
 
 -------------------------------------------------------------------------------
 
--- data Predicate a = InClass Name a
---
+-- | A standalone type class constraint
+data Predicate a = InClass Name a
+
 -- data Scheme
 --  = Forall [Kind] [Predicate Generic] Generic
 
@@ -221,19 +222,17 @@ data ConsGroup t a = ConsGroup
   , consGroupClauses  :: [Clause t [Pattern t] a]
   }
 
----- | A standalone type class constraint
---data Predicate a = InClass
---  { predicateName :: Name
---  , predicateType :: a
---  }
-
-data ClassInfo a s = ClassInfo
-  { classInfoPredicates :: [a]
-  , classInfoSignature  :: a
-  , classInfoMethods    :: [(Name, s)]
+data ClassInfo t = ClassInfo
+  { classInfoSuperClasses :: [Name]
+  , classInfoParameter    :: t
+  , classInfoInterface    :: [(Name, t)]
   }
 
---type ClassInstance v a = ClassInfo (Type v) a
+data ClassInstance t = ClassInstance
+  { classInstancePredicates :: [Predicate t]
+  , classInstanceSignature  :: t
+  , classInstanceMethods    :: [(Name, ProgExpr t)]
+  }
 
 {- ORMOLU_ENABLE -}
 
@@ -243,10 +242,7 @@ type ConstructorEnv =
   Environment (Set Name, Int)
 
 type ClassEnv t =
-  Environment
-    ( ClassInfo Name t -- \^ Class interface
-    , [ClassInfo t (ProgExpr t)] -- \^ Instances
-    )
+  Environment (ClassInfo t, [ClassInstance t])
 
 -------------------------------------------------------------------------------
 
@@ -307,6 +303,22 @@ deriving instance Functor (TypeF v)
 deriving instance Foldable (TypeF v)
 
 deriving instance Traversable (TypeF v)
+
+-- Predicate
+deriving instance (Show t) =>
+  Show (Predicate t)
+
+deriving instance (Eq t) =>
+  Eq (Predicate t)
+
+deriving instance (Ord t) =>
+  Ord (Predicate t)
+
+deriving instance (Data t) =>
+  Data (Predicate t)
+
+deriving instance (Typeable t) =>
+  Typeable (Predicate t)
 
 -- Prim
 deriving instance Show Prim
@@ -587,3 +599,23 @@ deriving instance Functor (ConsGroup t)
 deriving instance Foldable (ConsGroup t)
 
 deriving instance Traversable (ConsGroup t)
+
+-- ClassInfo
+deriving instance (Show t) =>
+  Show (ClassInfo t)
+
+deriving instance (Eq t) =>
+  Eq (ClassInfo t)
+
+deriving instance (Ord t) =>
+  Ord (ClassInfo t)
+
+-- ClassInstance
+deriving instance (Show t) =>
+  Show (ClassInstance t)
+
+deriving instance (Eq t) =>
+  Eq (ClassInstance t)
+
+deriving instance (Ord t) =>
+  Ord (ClassInstance t)

@@ -424,4 +424,4 @@ rawRow a = Map.foldrWithKey (flip . foldr . go) final m
 --------------------------------------------------------------------------------
 
 super :: ClassEnv t -> Name -> [Name]
-super env name = maybe [] (classInfoPredicates . fst) (Env.lookup name env)
+super env name = maybe [] (classInfoSuperClasses . fst) (Env.lookup name env)
