@@ -194,52 +194,6 @@ mapsTo :: Int -> MonoType -> Substitution
 mapsTo n = pack <<< Map.singleton n
 
 -------------------------------------------------------------------------------
--- Tagging
--------------------------------------------------------------------------------
-
-tagFst :: a -> TypeChecker (Int, a)
-tagFst a = do
-  t <- tag
-  pure (t, a)
-
-tagExpr :: SourceExpr -> TypeChecker TaggedExpr
-tagExpr =
-  cata
-    ( \case
-        EVar (_, name) ->
-          eVar <$> tagFst name
-        ECon (_, con) ->
-          eCon <$> tagFst con
-        ELit prim ->
-          pure (eLit prim)
-        EIf e1 e2 e3 ->
-          eIf <$> e1 <*> e2 <*> e3
-        ELet (_, name) e1 e2 ->
-          eLet <$> tagFst name <*> e1 <*> e2
-        EApp _ fun args ->
-          eApp <$> tag <*> fun <*> sequence args
-        ELam _ args expr ->
-          eLam () <$> traverse (tagFst . snd) args <*> expr
-        EOp1 (_, op) e1 ->
-          eOp1 <$> tagFst op <*> e1
-        EOp2 (_, op) e1 e2 ->
-          eOp2 <$> tagFst op <*> e1 <*> e2
-        EPat e1 cs ->
-          ePat
-            <$> e1
-            <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
-        ENil ->
-          pure eNil
-        EExt name e1 e2 ->
-          eExt name <$> e1 <*> e2
-        ERes f e1 e2 ->
-          eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
-    )
-
-tag :: MonadState (Int, a) m => m Int
-tag = fst <$> getAndModify (first succ)
-
--------------------------------------------------------------------------------
 -- Unification
 -------------------------------------------------------------------------------
 
@@ -337,6 +291,52 @@ bindType n ty
   | otherwise        = pure (n `mapsTo` ty)
 
 {- ORMOLU_ENABLE -}
+
+-------------------------------------------------------------------------------
+-- Tagging
+-------------------------------------------------------------------------------
+
+tagFst :: a -> TypeChecker (Int, a)
+tagFst a = do
+  t <- tag
+  pure (t, a)
+
+tagExpr :: SourceExpr -> TypeChecker TaggedExpr
+tagExpr =
+  cata
+    ( \case
+        EVar (_, name) ->
+          eVar <$> tagFst name
+        ECon (_, con) ->
+          eCon <$> tagFst con
+        ELit prim ->
+          pure (eLit prim)
+        EIf e1 e2 e3 ->
+          eIf <$> e1 <*> e2 <*> e3
+        ELet (_, name) e1 e2 ->
+          eLet <$> tagFst name <*> e1 <*> e2
+        EApp _ fun args ->
+          eApp <$> tag <*> fun <*> sequence args
+        ELam _ args expr ->
+          eLam () <$> traverse (tagFst . snd) args <*> expr
+        EOp1 (_, op) e1 ->
+          eOp1 <$> tagFst op <*> e1
+        EOp2 (_, op) e1 e2 ->
+          eOp2 <$> tagFst op <*> e1 <*> e2
+        EPat e1 cs ->
+          ePat
+            <$> e1
+            <*> traverse (firstM (traverse (tagFst . snd)) <=< sequence) cs
+        ENil ->
+          pure eNil
+        EExt name e1 e2 ->
+          eExt name <$> e1 <*> e2
+        ERes f e1 e2 ->
+          eRes <$> traverse (tagFst . snd) f <*> e1 <*> e2
+    )
+
+tag :: MonadState (Int, a) m => m Int
+tag = fst <$> getAndModify (first succ)
 
 -------------------------------------------------------------------------------
 -- Type inference

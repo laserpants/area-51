@@ -64,8 +64,14 @@ class Substitutable a where
 instance Substitutable MonoType where
   apply = substitute . unpack
 
+instance (Substitutable a) => Substitutable [a] where
+  apply = fmap . apply
+
 instance (Substitutable a) => Substitutable (Map k a) where
   apply = fmap . apply
+
+instance Substitutable Void where
+  apply = const id
 
 -------------------------------------------------------------------------------
 
