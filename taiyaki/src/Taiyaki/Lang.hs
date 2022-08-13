@@ -423,5 +423,61 @@ rawRow a = Map.foldrWithKey (flip . foldr . go) final m
 
 --------------------------------------------------------------------------------
 
+type TyVar = (Kind, MonoIndex)
+
+class Free f where
+  freeIn :: f -> [TyVar]
+
+instance (Free a) => Free [a] where
+  freeIn = concatMap freeIn
+
+instance (Free a) => Free (Either e a) where
+  freeIn = concatMap freeIn
+
+instance (Free a) => Free (Maybe a) where
+  freeIn = concatMap freeIn
+
+{- ORMOLU_DISABLE -}
+
+instance Free MonoType where
+  freeIn =
+    cata
+      ( \case
+          TVar k v     -> [(k, v)]
+          TApp _ t1 t2 -> t1 <> t2
+          TArr t1 t2   -> t1 <> t2
+          TRec t       -> t
+          TExt _ t1 t2 -> t1 <> t2
+          TList t      -> t
+          _            -> []
+      )
+
+{- ORMOLU_ENABLE -}
+
+{-# INLINE free #-}
+free :: (Free a) => a -> [TyVar]
+free = nub . freeIn
+
+--------------------------------------------------------------------------------
+
 super :: ClassEnv t -> Name -> [Name]
 super env name = maybe [] (classInfoSuperClasses . fst) (Env.lookup name env)
+
+superPlus :: ClassEnv t -> Name -> [Name]
+superPlus env name = name : super env name
+
+superClosure :: ClassEnv t -> Name -> [Name]
+superClosure env name =
+  case super env name of
+    [] -> [name]
+    ns -> name : (superClosure env =<< ns)
+
+instances :: ClassEnv t -> Name -> [ClassInstance t]
+instances env name = maybe [] snd (Env.lookup name env)
+
+bySuper :: ClassEnv t -> Predicate t -> [Predicate t]
+bySuper env self@(InClass name t) =
+  self : concat [bySuper env (InClass n t) | n <- super env name]
+
+entail :: (Eq t) => ClassEnv t -> [Predicate t] -> Predicate t -> Bool
+entail env ps p = any (p `elem`) (bySuper env <$> ps)

@@ -13,6 +13,7 @@ module Taiyaki.Util
   , module Data.Ord.Deriving
   , module Text.Show.Deriving
   , module Data.Tuple.Extra
+  , module Data.List
   , module Data.List.Extra
   , module Data.Void
   , module Data.Function
@@ -41,6 +42,7 @@ import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
 import Data.Function ((&))
 import Data.Functor.Foldable (Base, Corecursive, cata, embed, para, project)
+import Data.List (nub)
 import Data.List.Extra (singleton)
 import Data.Map.Strict (Map)
 import Data.Ord.Deriving (deriveOrd1)

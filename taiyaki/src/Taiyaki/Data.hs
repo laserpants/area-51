@@ -110,8 +110,8 @@ data Binding t
 
 -------------------------------------------------------------------------------
 
--- | A pattern clause choice is a (possibly empty) list of pattern guards, and
--- a target expression.
+-- | A pattern clause choice is a (possibly empty) list of guards, and a target
+-- expression.
 data Choice a
   = Choice [a] a
 
@@ -303,6 +303,17 @@ deriving instance Functor (TypeF v)
 deriving instance Foldable (TypeF v)
 
 deriving instance Traversable (TypeF v)
+
+-- MonoIndex
+deriving instance Show MonoIndex
+
+deriving instance Eq MonoIndex
+
+deriving instance Ord MonoIndex
+
+deriving instance Data MonoIndex
+
+deriving instance Typeable MonoIndex
 
 -- Predicate
 deriving instance (Show t) =>
