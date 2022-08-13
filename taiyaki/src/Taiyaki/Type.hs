@@ -78,27 +78,6 @@ instance Substitutable Void where
 
 instance
   (Substitutable t) =>
-  Substitutable (Pattern t)
-  where
-  apply sub =
-    cata
-      ( \case
-          PVar  t a1         -> pVar (apply sub t) a1
-          PLit  t a1         -> pLit (apply sub t) a1
-          PAs   t a1 a2      -> pAs (apply sub t) a1 a2
-          POr   t a1 a2      -> pOr (apply sub t) a1 a2
-          PAny  t            -> pAny (apply sub t)
-          PCon  t a1 a2      -> pCon (apply sub t) a1 a2
-          PTup  t a1         -> pTup (apply sub t) a1
-          PList t a1         -> pList (apply sub t) a1
-          PRec  t a1         -> pRec (apply sub t) a1
-          PNil  t            -> pNil (apply sub t)
-          PExt  t a1 a2 a3   -> pExt (apply sub t) a1 a2 a3
-          PAnn  t a1         -> pAnn (apply sub t) a1
-      )
-
-instance
-  (Substitutable t) =>
   Substitutable (Op1 t)
   where
   apply sub =
@@ -132,6 +111,27 @@ instance
       OBPip t  -> OBPip (apply sub t)
       ODot  t  -> ODot (apply sub t)
       OGet  t  -> OGet (apply sub t)
+
+instance
+  (Substitutable t) =>
+  Substitutable (Pattern t)
+  where
+  apply sub =
+    cata
+      ( \case
+          PVar  t a1          -> pVar (apply sub t) a1
+          PLit  t a1          -> pLit (apply sub t) a1
+          PAs   t a1 a2       -> pAs (apply sub t) a1 a2
+          POr   t a1 a2       -> pOr (apply sub t) a1 a2
+          PAny  t             -> pAny (apply sub t)
+          PCon  t a1 a2       -> pCon (apply sub t) a1 a2
+          PTup  t a1          -> pTup (apply sub t) a1
+          PList t a1          -> pList (apply sub t) a1
+          PRec  t a1          -> pRec (apply sub t) a1
+          PNil  t             -> pNil (apply sub t)
+          PExt  t a1 a2 a3    -> pExt (apply sub t) a1 a2 a3
+          PAnn  t a1          -> pAnn (apply sub t) a1
+      )
 
 instance
   ( Functor e2
