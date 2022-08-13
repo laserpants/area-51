@@ -171,6 +171,31 @@ instance
 
 {- ORMOLU_ENABLE -}
 
+instance (Substitutable t) => Substitutable (Predicate t) where
+  apply sub =
+    \case
+      InClass n t -> InClass n (apply sub t)
+
+instance (Substitutable t) => Substitutable (Binding t) where
+  apply sub =
+    \case
+      BPat t p ->
+        BPat (apply sub t) (apply sub p)
+      BFun t n ps ->
+        BFun (apply sub t) n (apply sub ps)
+
+instance (Substitutable a) => Substitutable (Choice a) where
+  apply sub =
+    undefined -- TODO
+
+instance (Substitutable a) => Substitutable (Clause t p a) where
+  apply sub =
+    undefined -- TODO
+
+instance (Substitutable t) => Substitutable (CaseClause t a) where
+  apply sub =
+    undefined -- TODO
+
 -------------------------------------------------------------------------------
 
 -- Substitution
