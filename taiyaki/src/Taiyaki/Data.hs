@@ -51,6 +51,7 @@ type Type v = Fix (TypeF v)
 
 -------------------------------------------------------------------------------
 
+-- | Monomorphic type
 type MonoType = Type MonoIndex
 
 -- newtype Generic = Generic (Type PolyIndex)
@@ -67,6 +68,7 @@ data Predicate a = InClass Name a
 
 {- ORMOLU_DISABLE -}
 
+-- | Built-in language primitives
 data Prim
   = IUnit
   | IBool    Bool
@@ -127,12 +129,14 @@ data CaseClause t a
 
 {- ORMOLU_DISABLE -}
 
+-- | Unary operators
 data Op1 t
   = ONot t
   | ONeg t
 
 -------------------------------------------------------------------------------
 
+-- | Binary operators
 data Op2 t
   = OEq   t
   | ONEq  t
