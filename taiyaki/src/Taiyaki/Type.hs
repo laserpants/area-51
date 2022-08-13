@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -8,6 +9,7 @@
 
 module Taiyaki.Type where
 
+import Control.Monad.Except
 import Control.Newtype.Generics (Newtype, over2, pack, unpack)
 import Data.Map ((!?))
 import qualified Data.Map.Strict as Map
@@ -15,6 +17,7 @@ import Data.Maybe (fromMaybe)
 import GHC.Generics (Generic)
 import Taiyaki.Data
 import Taiyaki.Data.Cons
+import Taiyaki.Lang
 import Taiyaki.Util
 
 type SubMap = Map MonoIndex MonoType
@@ -198,6 +201,23 @@ instance (Substitutable t) => Substitutable (CaseClause t a) where
 
 -------------------------------------------------------------------------------
 
+data TypeError
+  = InfiniteType
+  | KindMismatch
+
+{- ORMOLU_DISABLE -}
+
+bindType :: (MonadError TypeError m) => TyVar -> MonoType -> m Substitution
+bindType tv@(k, n) ty
+  | tVar k n == ty      = pure mempty
+  | tv `elem` free ty   = throwError InfiniteType
+  | k /= kindOf ty      = throwError KindMismatch
+  | otherwise           = pure (n `mapsTo` ty)
+
+{- ORMOLU_ENABLE -}
+
+-------------------------------------------------------------------------------
+
 -- Substitution
 instance Semigroup Substitution where
   (<>) = compose
@@ -213,3 +233,10 @@ deriving instance Ord Substitution
 deriving instance Generic Substitution
 
 instance Newtype Substitution
+
+-- TypeError
+deriving instance Show TypeError
+
+deriving instance Eq TypeError
+
+deriving instance Ord TypeError
