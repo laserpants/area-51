@@ -2718,7 +2718,10 @@ main =
                           ]
                       )
                   ]
-              , Clause tBool [pAny (tup () [tList tInt, tList tInt])] [Choice [] (eVar tBool "e3")]
+              , Clause
+                  tBool
+                  [pAny (tup () [tList tInt, tList tInt])]
+                  [Choice [] (eVar tBool "e3")]
               ]
          in (dropAsPatterns clauses == result)
 
