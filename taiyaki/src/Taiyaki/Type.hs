@@ -10,7 +10,9 @@
 module Taiyaki.Type where
 
 import Control.Monad.Except
+import Control.Monad.State
 import Control.Newtype.Generics (Newtype, over2, pack, unpack)
+import Data.Foldable (foldrM)
 import Data.Map ((!?))
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
@@ -202,8 +204,88 @@ instance (Substitutable t) => Substitutable (CaseClause t a) where
 -------------------------------------------------------------------------------
 
 data TypeError
-  = InfiniteType
+  = UnificationError
+  | InfiniteType
   | KindMismatch
+
+class HasIndex a where
+  getIndex :: a -> MonoIndex
+  updateIndex :: MonoIndex -> a -> a
+
+instance HasIndex MonoIndex where
+  getIndex = id
+  updateIndex = const
+
+unifyAndCombine ::
+  (HasIndex s, MonadState s m, MonadError TypeError m) =>
+  MonoType ->
+  MonoType ->
+  Substitution ->
+  m Substitution
+unifyAndCombine t1 t2 sub1 = do
+  sub2 <- unifyTypes (apply sub1 t1) (apply sub1 t2)
+  pure (sub2 <> sub1)
+
+unifyMany :: (HasIndex s, MonadState s m, MonadError TypeError m) => [MonoType] -> [MonoType] -> m Substitution
+unifyMany ts us = foldrM (uncurry unifyAndCombine) mempty (ts `zip` us)
+
+unifyRows :: (HasIndex s, MonadState s m, MonadError TypeError m) => MonoType -> MonoType -> m Substitution
+unifyRows ty1 ty2 =
+  case (unpackRow ty1, unpackRow ty2) of
+    ((m1, Fix (TVar w r)), (m2, k))
+      | Map.null m1 && not (Map.null m2) && k == tVar w r ->
+          throwError UnificationError
+      | Map.null m1 -> bindType (w, r) ty2
+    ((m1, j), (m2, Fix (TVar w r)))
+      | Map.null m2 && not (Map.null m1) && j == tVar w r ->
+          throwError UnificationError
+      | Map.null m2 -> bindType (w, r) ty1
+    ((m1, j), (m2, k))
+      | Map.null m1 -> unifyTypes ty1 ty2
+      | otherwise ->
+          case Map.lookup a m2 of
+            Just (u : us) -> do
+              let r1 = packRow (updateMap m1 ts, j)
+                  r2 = packRow (updateMap m2 us, k)
+              unifyMany [r1, t] [r2, u]
+            _
+              | k == j -> throwError UnificationError
+              | otherwise -> do
+                  p <- tVar kRow <$> index
+                  let r1 = packRow (updateMap m1 ts, j)
+                      r2 = packRow (m2, p)
+                  unifyMany [r1, k] [r2, rExt a t p]
+      where
+        (a, t : ts) = Map.elemAt 0 m1
+        updateMap m =
+          \case
+            [] -> Map.delete a m
+            us -> Map.insert a us m
+
+unifyTypes :: (HasIndex s, MonadState s m, MonadError TypeError m) => MonoType -> MonoType -> m Substitution
+unifyTypes ty1 ty2 =
+  case (project ty1, project ty2) of
+    (TExt{}, _) ->
+      unifyRows ty1 ty2
+    (_, TExt{}) ->
+      unifyRows ty1 ty2
+    (TVar k n, _) ->
+      bindType (k, n) ty2
+    (_, TVar k n) ->
+      bindType (k, n) ty1
+    (TCon k1 c1, TCon k2 c2)
+      | k1 /= k2 -> throwError KindMismatch
+      | c1 == c2 && k1 == k2 -> pure mempty
+    (TApp k1 t1 u1, TApp k2 t2 u2)
+      | k1 /= k2 -> throwError KindMismatch
+      | otherwise -> unifyMany [t1, u1] [t2, u2]
+    (TArr t1 t2, TArr u1 u2) ->
+      unifyMany [t1, u1] [t2, u2]
+    (TRec r1, TRec r2) ->
+      unifyTypes r1 r2
+    _
+      | ty1 == ty2 -> pure mempty
+      | otherwise -> throwError UnificationError
 
 {- ORMOLU_DISABLE -}
 
@@ -215,6 +297,15 @@ bindType tv@(k, n) ty
   | otherwise           = pure (n `mapsTo` ty)
 
 {- ORMOLU_ENABLE -}
+
+-------------------------------------------------------------------------------
+
+index :: (HasIndex s, MonadState s m) => m MonoIndex
+index = do
+  a <- get
+  let MonoIndex i = getIndex a
+  put (updateIndex (MonoIndex (succ i)) a)
+  pure (MonoIndex i)
 
 -------------------------------------------------------------------------------
 

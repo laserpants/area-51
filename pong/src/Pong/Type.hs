@@ -253,8 +253,8 @@ unifyTypes ty1 ty2 =
     (TCon c1 ts1, TCon c2 ts2)
       | c1 == c2 ->
           unifyMany ts1 ts2
-    (TArr t1 t2, TArr u1 u2) ->
-      unifyMany [t1, t2] [u1, u2]
+    (TArr t1 u1, TArr t2 u2) ->
+      unifyMany [t1, u1] [t2, u2]
     (TRec r1, TRec r2) ->
       unifyTypes r1 r2
     _

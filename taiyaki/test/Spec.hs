@@ -8,6 +8,7 @@ import Taiyaki.Data
 import Taiyaki.Data.Cons
 import Taiyaki.Lang
 import Taiyaki.Tree
+import Taiyaki.Type
 import Taiyaki.Util
 import qualified Taiyaki.Util.Env as Env
 import Test.Hspec
@@ -2725,7 +2726,27 @@ main =
               ]
          in (dropAsPatterns clauses == result)
 
+    ---------------------------------------------------------------------------
     describe "extractAsPatterns" $ do
+      -- TODO
+      pure ()
+
+    ---------------------------------------------------------------------------
+    describe "unifyRows" $ do
+      let r1 :: MonoType
+          -- { name : 0 | 1 }
+          r1 = tExt "name" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))
+
+          r2 :: MonoType
+          -- { id : int, name : string }
+          r2 = tExt "id" tInt (tExt "name" tString tNil)
+
+          Right sub = evalStateT (unifyRows r1 r2) (MonoIndex 1)
+
+      it "{ name : '0 | '1 }  ~  { id : int, name : string }" $
+        normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+    describe "unifyTypes" $ do
       -- TODO
       pure ()
 
