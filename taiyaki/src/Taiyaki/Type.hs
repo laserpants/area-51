@@ -37,24 +37,24 @@ substitute :: SubMap -> MonoType -> MonoType
 substitute sub =
   cata
     ( \case
-        TVar k n     -> fromMaybe (tVar k n) (sub !? n)
-        TUnit        -> tUnit
-        TBool        -> tBool
-        TInt         -> tInt
-        TBig         -> tBig
-        TNat         -> tNat
-        TFloat       -> tFloat
-        TDouble      -> tDouble
-        TChar        -> tChar
-        TString      -> tString
-        TVoid        -> tVoid
-        TList t      -> tList t
-        TCon k n     -> tCon k n
-        TApp k t1 t2 -> tApp k t1 t2
-        TArr t1 t2   -> tArr t1 t2
-        TRec t       -> tRec t
-        TNil         -> tNil
-        TExt n t1 t2 -> tExt n t1 t2
+        TVar k n         -> fromMaybe (tVar k n) (sub !? n)
+        TUnit            -> tUnit
+        TBool            -> tBool
+        TInt             -> tInt
+        TBig             -> tBig
+        TNat             -> tNat
+        TFloat           -> tFloat
+        TDouble          -> tDouble
+        TChar            -> tChar
+        TString          -> tString
+        TVoid            -> tVoid
+        TList t          -> tList t
+        TCon k n         -> tCon k n
+        TApp k t1 t2     -> tApp k t1 t2
+        TArr t1 t2       -> tArr t1 t2
+        TRec t           -> tRec t
+        TNil             -> tNil
+        TExt n t1 t2     -> tExt n t1 t2
     )
 
 {- ORMOLU_ENABLE -}
