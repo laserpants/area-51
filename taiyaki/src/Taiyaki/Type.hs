@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -20,6 +21,7 @@ import Taiyaki.Data
 import Taiyaki.Data.Cons
 import Taiyaki.Lang
 import Taiyaki.Util
+import qualified Taiyaki.Util.Env as Env
 
 type SubMap = Map MonoIndex MonoType
 
@@ -298,6 +300,52 @@ bindType tv@(k, n) ty
   | otherwise           = pure (n `mapsTo` ty)
 
 {- ORMOLU_ENABLE -}
+
+--------------------------------------------------------------------------------
+
+super :: ClassEnv t -> Name -> [Name]
+super env name = maybe [] (classInfoSuperClasses . fst) (Env.lookup name env)
+
+superPlus :: ClassEnv t -> Name -> [Name]
+superPlus env name = name : super env name
+
+superClosure :: ClassEnv t -> Name -> [Name]
+superClosure env name =
+  case super env name of
+    [] -> [name]
+    ns -> name : (superClosure env =<< ns)
+
+instances :: ClassEnv t -> Name -> [ClassInstance t]
+instances env name = maybe [] snd (Env.lookup name env)
+
+bySuper :: ClassEnv t -> Predicate t -> [Predicate t]
+bySuper env self@(InClass name t) =
+  self : concat [bySuper env (InClass n t) | n <- super env name]
+
+entail :: (Eq t) => ClassEnv t -> [Predicate t] -> Predicate t -> Bool
+entail env ps p = any (p `elem`) (bySuper env <$> ps)
+
+byInstance :: ClassEnv t -> Predicate t -> Maybe [Predicate t]
+byInstance env (InClass n _) = msum [tryInstance ins | ins <- instances env n]
+  where
+    tryInstance :: ClassInstance t -> Maybe [Predicate t]
+    tryInstance ClassInstance{..} = undefined -- apply <$> s <*> pure classInstancePredicates
+      where
+        -- s :: Maybe Substitution
+        s = undefined
+
+-- s = case fromJust (runExceptT (evalSupplyT (matchClass q p) [1..])) of
+--    Left{} -> Nothing
+--    Right s -> pure s
+
+isHeadNormalForm =
+  undefined
+
+toHeadNormalForm =
+  undefined
+
+simplify =
+  undefined
 
 -------------------------------------------------------------------------------
 
