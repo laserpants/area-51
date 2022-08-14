@@ -3140,6 +3140,18 @@ main =
            in it "✔ List int  ~  List '0" $
                 apply sub t1 == apply sub t2
 
+          let t1 :: MonoType
+              -- List (int -> int)
+              t1 = tList (tInt ~> tInt)
+
+              t2 :: MonoType
+              -- List ('0 -> '0)
+              t2 = tList (tVar kTyp (MonoIndex 0) ~> tVar kTyp (MonoIndex 0))
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ List (int -> int)  ~  List ('0 -> '0)" $
+                apply sub t1 == apply sub t2
+
         describe "TRec" $ do
           let t1 :: MonoType
               -- { name : string, id : int, shoeSize : float }
@@ -3176,6 +3188,18 @@ main =
 
               Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
            in it "✔ Maybe  ~  Maybe" $
+                apply sub t1 == apply sub t2
+
+          let t1 :: MonoType
+              --
+              t1 = tCon kFun1 "Maybe"
+
+              t2 :: MonoType
+              --
+              t2 = tVar kFun1 (MonoIndex 0)
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ Maybe  ~  '0" $
                 apply sub t1 == apply sub t2
 
         describe "TApp" $ do
