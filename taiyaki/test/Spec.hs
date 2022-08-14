@@ -5,6 +5,7 @@
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Maybe (isNothing)
 import Data.Either (isLeft)
 import Taiyaki.Data
 import Taiyaki.Data.Cons
@@ -12,8 +13,10 @@ import Taiyaki.Lang
 import Taiyaki.Tree
 import Taiyaki.Type
 import Taiyaki.Util
-import qualified Taiyaki.Util.Env as Env
+import Control.Newtype.Generics (pack)
 import Test.Hspec
+import qualified Data.Map.Strict as Map
+import qualified Taiyaki.Util.Env as Env
 
 main :: IO ()
 main =
@@ -3294,6 +3297,31 @@ main =
             result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
          in it "✗ Maybe : * -> *  ~  Maybe : *" $
               Left KindMismatch == result
+
+    ---------------------------------------------------------------------------
+    describe "merge" $ do
+      let
+        sub1 = pack (Map.fromList 
+          [ (MonoIndex 1, tInt)
+          ])
+        sub2 = pack (Map.fromList 
+          [ (MonoIndex 1, tBool)
+          ])
+       in
+         it "" $
+            isNothing (sub1 `merge` sub2)
+
+      let
+        sub1 = pack (Map.fromList 
+          [ (MonoIndex 1, tInt)
+          , (MonoIndex 2, tInt)
+          ])
+        sub2 = pack (Map.fromList 
+          [ (MonoIndex 1, tInt)
+          ])
+       in
+         it "" $
+           Just sub1 == (sub1 `merge` sub2)
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()

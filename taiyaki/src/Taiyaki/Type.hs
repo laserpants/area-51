@@ -14,8 +14,10 @@ import Control.Monad.Except
 import Control.Monad.State
 import Control.Newtype.Generics (pack, unpack)
 import Data.Foldable (foldrM)
+import Data.List (intersect)
 import Data.Map ((!?))
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Maybe (fromMaybe)
 import Taiyaki.Data
 import Taiyaki.Data.Cons
@@ -27,17 +29,24 @@ type SubMap = Map MonoIndex MonoType
 
 newtype Substitution = Substitution SubMap
 
+{-# INLINE domain #-}
+domain :: Substitution -> [MonoIndex]
+domain = Map.keys . unpack
+
 compose :: Substitution -> Substitution -> Substitution
-compose = over2 Substitution fun
-  where
-    fun s1 s2 = apply (Substitution s1) s2 `Map.union` s1
+compose (Substitution s1) (Substitution s2) =
+  Substitution (apply (Substitution s1) s2 `Map.union` s1)
 
 mapsTo :: MonoIndex -> MonoType -> Substitution
 mapsTo n = pack <<< Map.singleton n
 
 merge :: Substitution -> Substitution -> Maybe Substitution
-merge =
-  undefined
+merge s1 s2
+  | restr s1 == restr s2 = Just (over2 Substitution Map.union s1 s2)
+  | otherwise = Nothing
+  where
+    dom = Set.fromList (domain s1 `intersect` domain s2)
+    restr (Substitution s) = Map.restrictKeys s dom
 
 -------------------------------------------------------------------------------
 
