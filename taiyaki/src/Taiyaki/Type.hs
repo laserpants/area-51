@@ -35,6 +35,10 @@ compose = over2 Substitution fun
 mapsTo :: MonoIndex -> MonoType -> Substitution
 mapsTo n = pack <<< Map.singleton n
 
+merge :: Substitution -> Substitution -> Maybe Substitution
+merge =
+  undefined
+
 -------------------------------------------------------------------------------
 
 {- ORMOLU_DISABLE -}
@@ -289,6 +293,9 @@ unifyTypes ty1 ty2 =
     _
       | ty1 == ty2 -> pure mempty
       | otherwise -> throwError UnificationError
+
+matchTypes =
+  undefined
 
 {- ORMOLU_DISABLE -}
 
