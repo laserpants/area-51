@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -318,6 +319,22 @@ deriving instance Ord MonoIndex
 deriving instance Data MonoIndex
 
 deriving instance Typeable MonoIndex
+
+deriving instance Generic MonoIndex
+
+instance Newtype MonoIndex
+
+instance Num MonoIndex where
+  (+) = over2 MonoIndex (+)
+  (*) = over2 MonoIndex (*)
+  abs = over MonoIndex abs
+  signum = over MonoIndex signum
+  negate = over MonoIndex negate
+  fromInteger = MonoIndex . fromInteger
+
+instance Enum MonoIndex where
+  fromEnum = unpack
+  toEnum = MonoIndex
 
 -- Predicate
 deriving instance (Show t) =>

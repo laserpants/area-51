@@ -11,11 +11,13 @@ module Taiyaki.Util
   , module Data.Eq.Deriving
   , module Data.Functor.Foldable
   , module Data.Ord.Deriving
+  , module Control.Newtype.Generics
   , module Text.Show.Deriving
   , module Data.Tuple.Extra
   , module Data.List
   , module Data.List.Extra
   , module Data.Void
+  , module GHC.Generics
   , module Data.Function
   , module TextShow
   , (<$$>)
@@ -37,6 +39,7 @@ where
 
 import Control.Arrow ((<<<), (>>>))
 import Control.Monad.State
+import Control.Newtype.Generics (Newtype, over, over2, unpack)
 import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
@@ -51,6 +54,7 @@ import Data.Text (Text)
 import Data.Tuple.Extra (both, first, fst3, second, snd3, swap, thd3)
 import Data.Typeable (Typeable)
 import Data.Void (Void)
+import GHC.Generics (Generic)
 import Text.Show.Deriving (deriveShow1)
 import TextShow (showt)
 

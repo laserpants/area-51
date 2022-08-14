@@ -11,12 +11,11 @@ module Taiyaki.Type where
 
 import Control.Monad.Except
 import Control.Monad.State
-import Control.Newtype.Generics (Newtype, over2, pack, unpack)
+import Control.Newtype.Generics (pack, unpack)
 import Data.Foldable (foldrM)
 import Data.Map ((!?))
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
-import GHC.Generics (Generic)
 import Taiyaki.Data
 import Taiyaki.Data.Cons
 import Taiyaki.Lang

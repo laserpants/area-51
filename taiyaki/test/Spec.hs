@@ -1,9 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wall -fno-warn-unused-binds #-}
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Either (isLeft)
 import Taiyaki.Data
 import Taiyaki.Data.Cons
 import Taiyaki.Lang
@@ -2733,22 +2735,362 @@ main =
 
     ---------------------------------------------------------------------------
     describe "unifyRows" $ do
-      let r1 :: MonoType
-          -- { name : 0 | 1 }
-          r1 = tExt "name" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))
+      describe "Pass" $ do
+        let r1 :: MonoType
+            -- { name : '0 | '1 }
+            r1 = tExt "name" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))
 
-          r2 :: MonoType
-          -- { id : int, name : string }
-          r2 = tExt "id" tInt (tExt "name" tString tNil)
+            r2 :: MonoType
+            -- { id : int, name : string }
+            r2 = tExt "id" tInt (tExt "name" tString tNil)
 
-          Right sub = evalStateT (unifyRows r1 r2) (MonoIndex 1)
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : '0 | '1 }  ~  { id : int, name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
 
-      it "{ name : '0 | '1 }  ~  { id : int, name : string }" $
-        normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+        let r1 :: MonoType
+            -- { name : string, id : int }
+            r1 = rExt "name" tString (rExt "id" tInt rNil)
 
+            r2 :: MonoType
+            -- { id : int, name : string }
+            r2 = rExt "id" tInt (rExt "name" tString rNil)
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, id : int }  ~  { id : int, name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string | '0 }
+            r2 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string | '0 }  ~  { name : string | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string | '1 }
+            r2 = rExt "name" tString (tVar kRow (MonoIndex 1))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string | '0 }  ~  { name : string | '1 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { id : int, pw : string, name : string }
+            r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString rNil))
+
+            r2 :: MonoType
+            -- { id : int | '0 }
+            r2 = rExt "id" tInt (tVar kRow (MonoIndex 0))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { id : int, pw : string, name : string }  ~  { id : int | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int, name : string }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (rExt "name" tString rNil))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, id : int, shoeSize : float }  ~  { shoeSize : float, id : int, name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string }
+            r2 = rExt "name" tString rNil
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string | '0 }  ~  { name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string, shoeSize : float }
+            r1 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
+
+            r2 :: MonoType
+            -- { shoeSize : float | '0 }
+            r2 = rExt "shoeSize" tFloat (tVar kRow (MonoIndex 0))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, shoeSize : float }  ~  { shoeSize : float | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int | '0 }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (tVar kRow (MonoIndex 0)))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, id : int, shoeSize : float }  ~  { shoeSize : float, id : int | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : 1 }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" (tVar kTyp (MonoIndex 1)) rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int | '0 }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (tVar kRow (MonoIndex 0)))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, id : int, shoeSize : '1 }  ~  { shoeSize : float, id : int | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+            r2 :: MonoType
+            -- '0
+            r2 = tVar kRow (MonoIndex 0)
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, id : int, shoeSize : float }  ~  '0 : Row" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { shoeSize : float, name : string, id : int }
+            r1 = rExt "shoeSize" tFloat (rExt "name" tString (rExt "id" tInt rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int | '0 }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (tVar kRow (MonoIndex 0)))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { shoeSize : float, name : string, id : int }  ~  { shoeSize : float, id : int | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- {}
+            r1 = rNil
+
+            r2 :: MonoType
+            -- {}
+            r2 = rNil
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ {}  ~  {}" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- '0 : Row
+            r1 = tVar kRow (MonoIndex 0)
+
+            r2 :: MonoType
+            -- '1 : Row
+            r2 = tVar kRow (MonoIndex 1)
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ '0 : Row  ~  '1 : Row" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { a : int | '0 }
+            r1 = rExt "a" tInt (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { a : int | '0 }
+            r2 = rExt "a" tInt (tVar kRow (MonoIndex 0))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { a : int | '0 }  ~  { a : int | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { a : int | '0 }
+            r1 = rExt "a" tInt (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { a : int | '1 }
+            r2 = rExt "a" tInt (tVar kRow (MonoIndex 1))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { a : int | '0 }  ~  { a : int | '1 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { a : int }
+            r1 = rExt "a" tInt tNil
+
+            r2 :: MonoType
+            -- { a : int | '1 }
+            r2 = rExt "a" tInt (tVar kRow (MonoIndex 1))
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { a : int }  ~  { a : int | '1 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { a : int }
+            r1 = rExt "a" tInt tNil
+
+            r2 :: MonoType
+            -- { a : int }
+            r2 = rExt "a" tInt tNil
+
+            Right sub = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { a : int }  ~  { a : int }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+      -------------------------------------------------------------------------
+      describe "Fail" $ do
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string, extra : string | '0 }
+            r2 = rExt "name" tString (rExt "extra" tString (tVar kRow (MonoIndex 0)))
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string | '0 }  ~  { name : string, extra : string | '0 }" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+            r2 :: MonoType
+            -- '0
+            r2 = tVar kTyp (MonoIndex 0)
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, id : int, shoeSize : float }  ~  '0 : *" $
+              Left KindMismatch == result
+
+        let r1 :: MonoType
+            -- '0 : Row
+            r1 = tVar kRow (MonoIndex 0)
+
+            r2 :: MonoType
+            -- '0 : *
+            r2 = tVar kTyp (MonoIndex 0)
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ '0 : Row  ~  '0 : *" $
+              Left KindMismatch == result
+
+        let r1 :: MonoType
+            -- { a : int }
+            r1 = rExt "a" tInt tNil
+
+            r2 :: MonoType
+            -- { b : int }
+            r2 = rExt "b" tInt tNil
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { a : int }  ~  { b : int }" $
+              Left UnificationError == result
+
+        let r1 :: MonoType
+            -- { shoeSize : bool, name : string, id : int }
+            r1 = rExt "shoeSize" tBool (rExt "name" tString (rExt "id" tInt rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int | '0 }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (tVar kRow (MonoIndex 0)))
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { shoeSize : bool, name : string, id : int }  ~  { shoeSize : float, id : int | '0 }" $
+              Left UnificationError == result
+
+        let r1 :: MonoType
+            -- { id : int, pw : string, name : string | '0 }
+            r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString (tVar kRow (MonoIndex 0))))
+
+            r2 :: MonoType
+            -- { id : int | '0 }
+            r2 = rExt "id" tInt (tVar kRow (MonoIndex 0))
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { id : int, pw : string, name : string | '0 }  ~  { id : int | '0 }" $
+              Left UnificationError == result
+
+        let r1 :: MonoType
+            -- { pw : string, name : string | '0 }
+            r1 = rExt "pw" tString (rExt "name" tString (tVar kRow (MonoIndex 0)))
+
+            r2 :: MonoType
+            -- '0
+            r2 = tVar kRow (MonoIndex 0)
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { pw : string, name : string | '0 }  ~  '0" $
+              Left UnificationError == result
+
+        let r1 :: MonoType
+            -- { a : string | '0 }
+            r1 = rExt "a" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { b : string | '0 }
+            r2 = rExt "b" tString (tVar kRow (MonoIndex 0))
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { a : string | '0 }  ~  { b : string | '0 }" $
+              Left UnificationError == result
+
+        let r1 :: MonoType
+            -- { name : string, id : int }
+            r1 = rExt "name" tString (rExt "id" tInt rNil)
+
+            r2 :: MonoType
+            -- { id : string, name : int }
+            r2 = rExt "id" tString (rExt "name" tInt rNil)
+
+            result = evalStateT (unifyRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, id : int }  ~  { id : string, name : int }" $
+              Left UnificationError == result
+
+    ---------------------------------------------------------------------------
     describe "unifyTypes" $ do
-      -- TODO
-      pure ()
+      -------------------------------------------------------------------------
+      describe "Pass" $ do
+        let t1 :: MonoType
+            --
+            t1 = tUnit
+
+            t2 :: MonoType
+            --
+            t2 = tUnit
+
+            Right sub = evalStateT (unifyRows t1 t2) (freeIndex [t1, t2])
+         in it "✔ unit  ~  unit" $
+              apply sub t1 == apply sub t2
+
+      -------------------------------------------------------------------------
+      describe "Fail" $ do
+        let t1 :: MonoType
+            --
+            t1 = tUnit
+
+            t2 :: MonoType
+            --
+            t2 = tBool
+
+            result = evalStateT (unifyRows t1 t2) (freeIndex [t1, t2])
+         in it "✗ unit  ~  bool" $
+              Left UnificationError == result
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()

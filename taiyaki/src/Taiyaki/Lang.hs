@@ -458,6 +458,12 @@ instance Free MonoType where
 free :: (Free a) => a -> [TyVar]
 free = nub . freeIn
 
+freeIndex :: (Free t) => [t] -> MonoIndex
+freeIndex ts =
+  case snd <$> (free =<< ts) of
+    [] -> 0
+    vs -> succ (maximum vs)
+
 --------------------------------------------------------------------------------
 
 super :: ClassEnv t -> Name -> [Name]
