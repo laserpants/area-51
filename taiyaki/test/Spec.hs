@@ -3074,23 +3074,202 @@ main =
             --
             t2 = tUnit
 
-            Right sub = evalStateT (unifyRows t1 t2) (freeIndex [t1, t2])
+            Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
          in it "✔ unit  ~  unit" $
               apply sub t1 == apply sub t2
+
+        describe "TArr" $ do
+          let t1 :: MonoType
+              -- int -> unit
+              t1 = tInt ~> tUnit
+
+              t2 :: MonoType
+              -- int -> unit
+              t2 = tInt ~> tUnit
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ int -> unit  ~  int -> unit" $
+                apply sub t1 == apply sub t2
+
+          let t1 :: MonoType
+              -- '0 -> '1
+              t1 = tVar kTyp (MonoIndex 0) ~> tVar kTyp (MonoIndex 1)
+
+              t2 :: MonoType
+              -- int -> unit
+              t2 = tInt ~> tUnit
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ '0 -> '1  ~  int -> unit" $
+                apply sub t1 == apply sub t2
+
+          let t1 :: MonoType
+              -- '0 -> '1
+              t1 = tVar kTyp (MonoIndex 0) ~> tVar kTyp (MonoIndex 1)
+
+              t2 :: MonoType
+              -- int -> unit -> bool
+              t2 = tInt ~> tUnit ~> tBool
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ '0 -> '1  ~  int -> unit -> bool" $
+                apply sub t1 == apply sub t2
+
+          let t1 :: MonoType
+              -- '0 -> '0
+              t1 = tVar kTyp (MonoIndex 0) ~> tVar kTyp (MonoIndex 0)
+
+              t2 :: MonoType
+              -- int -> int
+              t2 = tInt ~> tInt
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ '0 -> '0  ~  int -> int" $
+                apply sub t1 == apply sub t2
+
+        describe "TList" $ do
+          let t1 :: MonoType
+              -- List int
+              t1 = tList tInt
+
+              t2 :: MonoType
+              -- List '0
+              t2 = tList (tVar kTyp (MonoIndex 0))
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ List int  ~  List '0" $
+                apply sub t1 == apply sub t2
+
+        describe "TRec" $ do
+          let t1 :: MonoType
+              -- { name : string, id : int, shoeSize : float }
+              t1 = tRec (rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil)))
+
+              t2 :: MonoType
+              -- { '0 }
+              t2 = tRec (tVar kRow (MonoIndex 0))
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ { name : string, id : int, shoeSize : float }  ~  { '0 }" $
+                apply sub t1 == apply sub t2
+
+          let t1 :: MonoType
+              -- {}
+              t1 = tRec rNil
+
+              t2 :: MonoType
+              -- {}
+              t2 = tRec rNil
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ {}  ~  {}" $
+                apply sub t1 == apply sub t2
+
+        describe "TCon" $ do
+          let t1 :: MonoType
+              --
+              t1 = tCon kFun1 "Maybe"
+
+              t2 :: MonoType
+              --
+              t2 = tCon kFun1 "Maybe"
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ Maybe  ~  Maybe" $
+                apply sub t1 == apply sub t2
+
+        describe "TApp" $ do
+          let t1 :: MonoType
+              -- Maybe '0
+              t1 = tApp kTyp (tCon kFun1 "Maybe") (tVar kTyp (MonoIndex 0))
+
+              t2 :: MonoType
+              -- Maybe int
+              t2 = tApp kTyp (tCon kFun1 "Maybe") tInt
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ Maybe '0  ~  Maybe int" $
+                apply sub t1 == apply sub t2
+
+          let t1 :: MonoType
+              -- '1 '0
+              t1 = tApp kTyp (tVar kFun1 (MonoIndex 1)) (tVar kTyp (MonoIndex 0))
+
+              t2 :: MonoType
+              -- Maybe int
+              t2 = tApp kTyp (tCon kFun1 "Maybe") tInt
+
+              Right sub = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+           in it "✔ '1 '0  ~  Maybe int" $
+                apply sub t1 == apply sub t2
 
       -------------------------------------------------------------------------
       describe "Fail" $ do
         let t1 :: MonoType
-            --
             t1 = tUnit
 
             t2 :: MonoType
-            --
             t2 = tBool
 
-            result = evalStateT (unifyRows t1 t2) (freeIndex [t1, t2])
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
          in it "✗ unit  ~  bool" $
               Left UnificationError == result
+
+        let t1 :: MonoType
+            -- unit -> int
+            t1 = tUnit ~> tInt
+
+            t2 :: MonoType
+            -- int -> unit
+            t2 = tInt ~> tUnit
+
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ unit -> int  ~  int -> unit" $
+              Left UnificationError == result
+
+        let t1 :: MonoType
+            -- '0 -> '0
+            t1 = tVar kTyp (MonoIndex 0) ~> tVar kTyp (MonoIndex 0)
+
+            t2 :: MonoType
+            -- int -> unit
+            t2 = tInt ~> tUnit
+
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ '0 -> '0  ~  int -> unit" $
+              Left UnificationError == result
+
+        let t1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            t1 = tRec (rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil)))
+
+            t2 :: MonoType
+            -- {}
+            t2 = tRec rNil
+
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ { name : string, id : int, shoeSize : float }  ~  {}" $
+              Left UnificationError == result
+
+        let t1 :: MonoType
+            t1 = tCon kFun1 "Maybe"
+
+            t2 :: MonoType
+            t2 = tCon kFun1 "Perhaps"
+
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ Maybe  ~  Perhaps" $
+              Left UnificationError == result
+
+        let t1 :: MonoType
+            t1 = tCon kFun1 "Maybe"
+
+            t2 :: MonoType
+            t2 = tCon kTyp "Maybe"
+
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ Maybe : * -> *  ~  Maybe : *" $
+              Left KindMismatch == result
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()

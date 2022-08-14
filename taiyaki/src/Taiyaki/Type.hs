@@ -278,8 +278,10 @@ unifyTypes ty1 ty2 =
     (TApp k1 t1 u1, TApp k2 t2 u2)
       | k1 /= k2 -> throwError KindMismatch
       | otherwise -> unifyMany [t1, u1] [t2, u2]
-    (TArr t1 t2, TArr u1 u2) ->
+    (TArr t1 u1, TArr t2 u2) ->
       unifyMany [t1, u1] [t2, u2]
+    (TList t1, TList t2) ->
+      unifyTypes t1 t2
     (TRec r1, TRec r2) ->
       unifyTypes r1 r2
     _
@@ -302,9 +304,9 @@ bindType tv@(k, n) ty
 index :: (HasIndex s, MonadState s m) => m MonoIndex
 index = do
   a <- get
-  let MonoIndex i = getIndex a
-  put (updateIndex (MonoIndex (succ i)) a)
-  pure (MonoIndex i)
+  let ix = getIndex a
+  put (updateIndex (succ ix) a)
+  pure ix
 
 -------------------------------------------------------------------------------
 

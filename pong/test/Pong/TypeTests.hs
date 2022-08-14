@@ -451,6 +451,24 @@ typeTests =
     describe "- unifyTypes" $ do
       -------------------------------------------------------------------------
       let t1 :: MonoType
+          -- int -> bool
+          t1 = tInt ~> tBool
+
+          t2 :: MonoType
+          -- int -> bool
+          t2 = tInt ~> tBool
+       in it "int -> bool  ~  int -> bool" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
+      -------------------------------------------------------------------------
+      let t1 :: MonoType
+          -- int -> bool
+          t1 = tInt ~> tBool
+
+          t2 :: MonoType
+          -- '0 -> '1
+          t2 = tVar 0 ~> tVar 1
+       in it "int -> bool  ~  '0 -> '1" (let Right sub = runUnify t1 t2 in apply sub t1 == apply sub t2)
+      -------------------------------------------------------------------------
+      let t1 :: MonoType
           -- T '0 '1
           t1 = tCon "T" [tVar 0, tVar 1]
 
