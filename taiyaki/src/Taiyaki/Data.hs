@@ -233,10 +233,10 @@ data ClassInfo t = ClassInfo
   , classInfoInterface    :: [(Name, t)]
   }
 
-data ClassInstance t = ClassInstance
-  { classInstancePredicates :: [Predicate t]
-  , classInstanceSignature  :: t
-  , classInstanceMethods    :: [(Name, ProgExpr t)]
+data ClassInstance = ClassInstance
+  { classInstancePredicates :: [Predicate MonoType]
+  , classInstanceSignature  :: MonoType
+  , classInstanceMethods    :: [(Name, ProgExpr MonoType)]
   }
 
 {- ORMOLU_ENABLE -}
@@ -247,7 +247,7 @@ type ConstructorEnv =
   Environment (Set Name, Int)
 
 type ClassEnv t =
-  Environment (ClassInfo t, [ClassInstance t])
+  Environment (ClassInfo t, [ClassInstance])
 
 -------------------------------------------------------------------------------
 
@@ -643,11 +643,8 @@ deriving instance (Ord t) =>
   Ord (ClassInfo t)
 
 -- ClassInstance
-deriving instance (Show t) =>
-  Show (ClassInstance t)
+deriving instance Show ClassInstance
 
-deriving instance (Eq t) =>
-  Eq (ClassInstance t)
+deriving instance Eq ClassInstance
 
-deriving instance (Ord t) =>
-  Ord (ClassInstance t)
+deriving instance Ord ClassInstance

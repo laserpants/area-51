@@ -6,7 +6,7 @@
 
 module Taiyaki.Lang where
 
-import Data.Foldable (foldl', msum)
+import Data.Foldable (foldl')
 import qualified Data.Map.Strict as Map
 import qualified Data.Set.Monad as Set
 import qualified Data.Text as Text
@@ -436,6 +436,9 @@ instance (Free a) => Free (Either e a) where
 
 instance (Free a) => Free (Maybe a) where
   freeIn = concatMap freeIn
+
+instance (Free a) => Free (Predicate a) where
+  freeIn (InClass _ t) = freeIn t
 
 {- ORMOLU_DISABLE -}
 

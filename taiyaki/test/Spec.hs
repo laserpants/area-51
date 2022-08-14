@@ -5,18 +5,18 @@
 
 import Control.Monad.Reader
 import Control.Monad.State
-import Data.Maybe (isNothing)
+import Control.Newtype.Generics (pack)
 import Data.Either (isLeft)
+import qualified Data.Map.Strict as Map
+import Data.Maybe (isNothing)
 import Taiyaki.Data
 import Taiyaki.Data.Cons
 import Taiyaki.Lang
 import Taiyaki.Tree
 import Taiyaki.Type
 import Taiyaki.Util
-import Control.Newtype.Generics (pack)
-import Test.Hspec
-import qualified Data.Map.Strict as Map
 import qualified Taiyaki.Util.Env as Env
+import Test.Hspec
 
 main :: IO ()
 main =
@@ -3300,28 +3300,52 @@ main =
 
     ---------------------------------------------------------------------------
     describe "merge" $ do
-      let
-        sub1 = pack (Map.fromList 
-          [ (MonoIndex 1, tInt)
-          ])
-        sub2 = pack (Map.fromList 
-          [ (MonoIndex 1, tBool)
-          ])
-       in
-         it "" $
+      let sub1 =
+            pack
+              ( Map.fromList
+                  [ (MonoIndex 1, tInt)
+                  ]
+              )
+          sub2 =
+            pack
+              ( Map.fromList
+                  [ (MonoIndex 1, tBool)
+                  ]
+              )
+       in it "" $
             isNothing (sub1 `merge` sub2)
 
-      let
-        sub1 = pack (Map.fromList 
-          [ (MonoIndex 1, tInt)
-          , (MonoIndex 2, tInt)
-          ])
-        sub2 = pack (Map.fromList 
-          [ (MonoIndex 1, tInt)
-          ])
-       in
-         it "" $
-           Just sub1 == (sub1 `merge` sub2)
+      let sub1 =
+            pack
+              ( Map.fromList
+                  [ (MonoIndex 1, tInt)
+                  , (MonoIndex 2, tInt)
+                  ]
+              )
+          sub2 =
+            pack
+              ( Map.fromList
+                  [ (MonoIndex 1, tInt)
+                  ]
+              )
+       in it "" $
+            Just sub1 == (sub1 `merge` sub2)
+
+    ---------------------------------------------------------------------------
+    describe "matchTypes" $ do
+      let t1 = tVar kTyp (MonoIndex 0)
+          t2 = tInt
+          Right sub =
+            evalStateT (matchTypes t1 t2) (MonoIndex 1)
+       in it "✔ TODO" $
+            apply sub t1 == apply sub t2
+
+      let t1 = tInt
+          t2 = tVar kTyp (MonoIndex 0)
+          result =
+            evalStateT (matchTypes t1 t2) (MonoIndex 1)
+       in it "✗ TODO" $
+            isLeft result
 
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
@@ -3367,11 +3391,19 @@ testClassEnv =
                 )
               ]
           , ClassInstance
-              [InClass "ToString" (tVar kTyp "a")]
-              (tList (tVar kTyp "a"))
+              [InClass "ToString" (tVar kTyp (MonoIndex 0))]
+              (tList (tVar kTyp (MonoIndex 0)))
               [
                 ( "toString"
-                , eVar (tList (tVar kTyp "a") ~> tString) "TODO"
+                , eVar (tList (tVar kTyp (MonoIndex 0)) ~> tString) "TODO"
+                )
+              ]
+          , ClassInstance
+              [InClass "ToString" (tVar kTyp (MonoIndex 0))]
+              (tRec (tExt "a" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))))
+              [
+                ( "toString"
+                , eVar (tRec (tExt "a" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))) ~> tString) "TODO"
                 )
               ]
           ]
