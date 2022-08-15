@@ -12,6 +12,7 @@ module Taiyaki.Type where
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Newtype.Generics (pack, unpack)
+import Data.Either (fromRight)
 import Data.Foldable (foldrM)
 import Data.List (intersect)
 import Data.Map ((!?))
@@ -32,12 +33,12 @@ newtype Substitution = Substitution SubMap
 domain :: Substitution -> [MonoIndex]
 domain = Map.keys . unpack
 
+mapsTo :: MonoIndex -> MonoType -> Substitution
+mapsTo n = Substitution <<< Map.singleton n
+
 compose :: Substitution -> Substitution -> Substitution
 compose (Substitution s1) (Substitution s2) =
   Substitution (apply (Substitution s1) s2 `Map.union` s1)
-
-mapsTo :: MonoIndex -> MonoType -> Substitution
-mapsTo n = pack <<< Map.singleton n
 
 merge :: Substitution -> Substitution -> Maybe Substitution
 merge s1 s2
@@ -187,20 +188,18 @@ instance
           EAnn  t a1          -> eAnn (apply sub t) a1
       )
 
-{- ORMOLU_ENABLE -}
-
 instance (Substitutable t) => Substitutable (Predicate t) where
   apply sub =
     \case
-      InClass n t -> InClass n (apply sub t)
+      InClass n t             -> InClass n (apply sub t)
 
 instance (Substitutable t) => Substitutable (Binding t) where
   apply sub =
     \case
-      BPat t p ->
-        BPat (apply sub t) (apply sub p)
-      BFun t n ps ->
-        BFun (apply sub t) n (apply sub ps)
+      BPat t p                -> BPat (apply sub t) (apply sub p)
+      BFun t n ps             -> BFun (apply sub t) n (apply sub ps)
+
+{- ORMOLU_ENABLE -}
 
 instance (Substitutable a) => Substitutable (Choice a) where
   apply sub =
@@ -396,24 +395,6 @@ bindType tv@(k, n) ty
 
 {- ORMOLU_ENABLE -}
 
--- unifyClass, matchClass
---  :: (HasIndex s, MonadState s m, MonadError TypeError m)
---  => Predicate MonoType
---  -> Predicate MonoType
---  -> m Substitution
--- unifyClass = lifted unifyTypes
--- matchClass = lifted matchTypes
---
--- lifted
---  :: (HasIndex s, MonadState s m, MonadError TypeError m)
---  => (MonoType -> MonoType -> m a)
---  -> Predicate MonoType
---  -> Predicate MonoType
---  -> m a
--- lifted f (InClass c1 t1) (InClass c2 t2)
---  | c1 == c2 = f t1 t2
---  | otherwise = throwError UnificationError
-
 --------------------------------------------------------------------------------
 
 super :: ClassEnv t -> Name -> [Name]
@@ -431,11 +412,11 @@ superClosure env name =
 instances :: ClassEnv t -> Name -> [ClassInstance]
 instances env name = maybe [] snd (Env.lookup name env)
 
-bySuper :: ClassEnv t -> Predicate t -> [Predicate t]
+-- bySuper :: ClassEnv t -> Predicate t -> [Predicate t]
 bySuper env self@(InClass name t) =
   self : concat [bySuper env (InClass n t) | n <- super env name]
 
-entail :: (Eq t) => ClassEnv t -> [Predicate t] -> Predicate t -> Bool
+-- entail :: (Eq t) => ClassEnv t -> [Predicate t] -> Predicate t -> Bool
 entail env ps p = any (p `elem`) (bySuper env <$> ps)
 
 byInstance :: ClassEnv t -> Predicate MonoType -> Maybe [Predicate MonoType]
@@ -448,8 +429,8 @@ byInstance env (InClass n s) = msum (tryInstance <$> instances env n)
 
 {- ORMOLU_DISABLE -}
 
-isHeadNormalForm :: Predicate (Type v) -> Bool
-isHeadNormalForm (InClass _ t) =
+isNormalForm :: Predicate (Type v) -> Bool
+isNormalForm (InClass _ t) =
   (`cata` t)
     ( \case
         TApp _ t1 _ -> t1
@@ -459,22 +440,34 @@ isHeadNormalForm (InClass _ t) =
 
 {- ORMOLU_ENABLE -}
 
-toHeadNormalForm ::
-  (MonadError TypeError m) => ClassEnv t -> [Predicate MonoType] -> m [Predicate MonoType]
-toHeadNormalForm env ps = fmap concat (mapM hnf ps)
+toNormalForms ::
+  (MonadError TypeError m) =>
+  ClassEnv t ->
+  [Predicate MonoType] ->
+  m [Predicate MonoType]
+toNormalForms env ps = fmap concat (mapM hnf ps)
   where
     hnf tycl
-      | isHeadNormalForm tycl = pure [tycl]
+      | isNormalForm tycl = pure [tycl]
       | otherwise =
           case byInstance env tycl of
             Nothing -> throwError ContextReductionFailed
-            Just qs -> toHeadNormalForm env qs
+            Just qs -> toNormalForms env qs
 
-simplify :: (Eq t) => ClassEnv t -> [Predicate t] -> [Predicate t]
+-- simplify :: (Eq t) => ClassEnv t -> [Predicate MonoType] -> [Predicate MonoType]
 simplify env = go []
   where
     go qs [] = qs
     go qs (p : ps) = go (if entail env (qs <> ps) p then qs else p : qs) ps
+
+reduce :: ClassEnv t -> [Predicate MonoType] -> Either TypeError [Predicate MonoType]
+reduce env ps = runExcept (simplify env <$> toNormalForms env ps)
+
+reduceSet :: ClassEnv t -> [Name] -> [Name]
+reduceSet env names =
+  reduce env [InClass name (tVar kTyp (MonoIndex 0)) | name <- names]
+    & fromRight (error "Implementation error")
+    <&> \(InClass n _) -> n
 
 -------------------------------------------------------------------------------
 

@@ -9,6 +9,7 @@ module Taiyaki.Util
   , module Data.Map.Strict
   , module Data.Set.Monad
   , module Data.Eq.Deriving
+  , module Data.Functor
   , module Data.Functor.Foldable
   , module Data.Ord.Deriving
   , module Control.Newtype.Generics
@@ -44,6 +45,7 @@ import Data.Data (Data)
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix (..))
 import Data.Function ((&))
+import Data.Functor ((<&>))
 import Data.Functor.Foldable (Base, Corecursive, cata, embed, para, project)
 import Data.List (nub)
 import Data.List.Extra (singleton)
