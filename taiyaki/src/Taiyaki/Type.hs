@@ -199,19 +199,32 @@ instance (Substitutable t) => Substitutable (Binding t) where
       BPat t p                -> BPat (apply sub t) (apply sub p)
       BFun t n ps             -> BFun (apply sub t) n (apply sub ps)
 
-{- ORMOLU_ENABLE -}
-
 instance (Substitutable a) => Substitutable (Choice a) where
   apply sub =
-    undefined -- TODO
+    \case
+      Choice es e             -> Choice (apply sub es) (apply sub e)
 
-instance (Substitutable a) => Substitutable (Clause t p a) where
+instance
+  ( Substitutable t
+  , Substitutable p
+  , Substitutable a
+  ) => Substitutable (Clause t p a)
+  where
   apply sub =
-    undefined -- TODO
+    \case
+      Clause t p cs ->
+        Clause (apply sub t) (apply sub p) (apply sub cs)
 
-instance (Substitutable t) => Substitutable (CaseClause t a) where
+instance
+  ( Substitutable t
+  , Substitutable a
+  ) => Substitutable (CaseClause t a)
+  where
   apply sub =
-    undefined -- TODO
+    \case
+      Case t n ns e           -> Case (apply sub t) n ns (apply sub e)
+
+{- ORMOLU_ENABLE -}
 
 -------------------------------------------------------------------------------
 
