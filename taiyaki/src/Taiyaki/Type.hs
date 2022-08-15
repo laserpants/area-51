@@ -206,17 +206,6 @@ instance (Substitutable a) => Substitutable (Choice a) where
 
 instance
   ( Substitutable t
-  , Substitutable p
-  , Substitutable a
-  ) => Substitutable (Clause t p a)
-  where
-  apply sub =
-    \case
-      Clause t p cs ->
-        Clause (apply sub t) (apply sub p) (apply sub cs)
-
-instance
-  ( Substitutable t
   , Substitutable a
   ) => Substitutable (CaseClause t a)
   where
@@ -225,6 +214,18 @@ instance
       Case t n ns e           -> Case (apply sub t) n ns (apply sub e)
 
 {- ORMOLU_ENABLE -}
+
+instance
+  ( Substitutable t
+  , Substitutable p
+  , Substitutable a
+  ) =>
+  Substitutable (Clause t p a)
+  where
+  apply sub =
+    \case
+      Clause t p cs ->
+        Clause (apply sub t) (apply sub p) (apply sub cs)
 
 -------------------------------------------------------------------------------
 
