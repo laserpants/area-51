@@ -8,6 +8,7 @@ import Pong.Eval
 import Pong.Lang
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
+import qualified Data.Map.Strict as Map
 import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ShirtMixUpAtTheLaundry
@@ -85,6 +86,12 @@ evalTests =
        in do
             v <- runIO $ evalModule program mainSig
             it "6" (Just (PrimValue (PInt 101)) == (fst <$> v))
+      -------------------------------------------------------------------------
+      let program :: Module MonoType Ast
+          program = compileSource program2zz
+       in do
+            v <- runIO $ evalModule program prog2zzSig
+            it "7" (Just (RecValue (Map.fromList [("b", [PrimValue (PInt 6)])])) == (fst <$> v))
 
 -------------------------------------------------------------------------
 ----      let program :: Module MonoType Ast
