@@ -2124,7 +2124,7 @@ main =
                     (eVar tUnit "e2")
              in (result == expr)
 
-    describe "dropOrPatterns" $ do
+    describe "translateOrPatterns" $ do
       it "| [x, _] or [x, _, _] => true       -->  | [x, _] => true | [x, _, _] => true" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
@@ -2141,7 +2141,7 @@ main =
               [ Clause () [pList () [pVar () "x", pAny ()]] [Choice [] (eLit () (IBool True))]
               , Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eLit () (IBool True))]
               ]
-         in (dropOrPatterns clause == clauses)
+         in (translateOrPatterns clause == clauses)
 
       it "| ([x, _] or [x, _, _], 1) => true  -->  | ([x, _], 1) => true | ([x, _, _], 1) => true" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
@@ -2163,9 +2163,9 @@ main =
               [ Clause () [pTup () [pList () [pVar () "x", pAny ()], pLit () (IInt 1)]] [Choice [] (eLit () (IBool True))]
               , Clause () [pTup () [pList () [pVar () "x", pAny (), pAny ()], pLit () (IInt 1)]] [Choice [] (eLit () (IBool True))]
               ]
-         in (dropOrPatterns clause == clauses)
+         in (translateOrPatterns clause == clauses)
 
-    describe "dropAnyPatterns" $ do
+    describe "translateAnyPatterns" $ do
       it "| [x, _] or [x, _, _] => true       -->  | [x, $_1] or [x, $_2, $_3] => true" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
@@ -2187,9 +2187,9 @@ main =
                     (pList () [pVar () "x", pVar () "$_2", pVar () "$_3"])
                 ]
                 [Choice [] (eLit () (IBool True))]
-         in (dropAnyPatterns clause == result)
+         in (translateAnyPatterns clause == result)
 
-    describe "dropLitPatterns" $ do
+    describe "translateLitPatterns" $ do
       it "| [5, _] => e                                         -->  | [$s1, _] when $s1 == 5 => e" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
             clause =
@@ -2213,7 +2213,7 @@ main =
                     ]
                 ]
                 [Choice [eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e")]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
       it "| [5, _] => e                                         -->  | [$s1, _] when $s1 == 5 => e" $
         let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
@@ -2238,7 +2238,7 @@ main =
                     ]
                 ]
                 [Choice [eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e")]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
       it "| [5, 1] => e                                         -->  | [$s1, $s2] when ($s1 == 5 && $s2 == 1) => e" $
         let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
@@ -2268,7 +2268,7 @@ main =
                     ]
                     (eVar tBool "e")
                 ]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
       it "| [5, _] when a => e1, otherwise => e2                -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 => e2" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
@@ -2289,7 +2289,7 @@ main =
                 [ Choice [eVar () "a", eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e1")
                 , Choice [eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e2")
                 ]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
       it "| [5, _] when a => e1, otherwise => e2                -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 => e2" $
         let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
@@ -2310,7 +2310,7 @@ main =
                 [ Choice [eVar tBool "a", eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e1")
                 , Choice [eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e2")
                 ]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
       it "| [5, _] when a => e1, when b => e2, otherwise => e3  -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 && b => e2, when $s1 == 5 => e3" $
         let clause :: Clause () [Pattern ()] (Expr () [Pattern ()] (Clause () [Pattern ()]) Void1 Void)
@@ -2333,7 +2333,7 @@ main =
                 , Choice [eVar () "b", eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e2")
                 , Choice [eOp2 () (OEq ()) (eVar () "$s1") (eLit () (IInt 5))] (eVar () "e3")
                 ]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
       it "| [5, _] when a => e1, when b => e2, otherwise => e3  -->  | [$s1, _] when $s1 == 5 && a => e1, when $s1 == 5 && b => e2, when $s1 == 5 => e3" $
         let clause :: Clause (Type ()) [Pattern (Type ())] (Expr (Type ()) [Pattern (Type ())] (Clause (Type ()) [Pattern (Type ())]) Void1 Void)
@@ -2356,9 +2356,9 @@ main =
                 , Choice [eVar tBool "b", eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e2")
                 , Choice [eOp2 tBool (OEq (tInt ~> tInt ~> tBool)) (eVar tInt "$s1") (eLit tInt (IInt 5))] (eVar tBool "e3")
                 ]
-         in (dropLitPatterns clause == result)
+         in (translateLitPatterns clause == result)
 
-    describe "dropAsPatterns" $ do
+    describe "translateAsPatterns" $ do
       it "| [x, _, _] => e1 | _ => e2" $
         --    | [x, _, _] => e1
         --    | _         => e2
@@ -2368,7 +2368,7 @@ main =
               [ Clause () [pList () [pVar () "x", pAny (), pAny ()]] [Choice [] (eVar () "e1")]
               , Clause () [pAny ()] [Choice [] (eVar () "e2")]
               ]
-         in (dropAsPatterns clauses == clauses)
+         in (translateAsPatterns clauses == clauses)
 
       it "| [x, _, _] as xs => e1 | _ => e2" $
         --    | [x, _, _] as xs => e1
@@ -2406,7 +2406,7 @@ main =
                   ]
               , Clause () [pAny ()] [Choice [] (eVar () "e2")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "| [x, _, _] as xs => e1 | _ => e2" $
         --    | [x, _, _] as xs => e1
@@ -2444,7 +2444,7 @@ main =
                   ]
               , Clause tBool [pAny (tList tInt)] [Choice [] (eVar tBool "e2")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "| ([x, _, _] as xs, []) => e1 | _ => e2" $
         --    | ([x, _, _] as xs, []) => e1
@@ -2482,7 +2482,7 @@ main =
                   ]
               , Clause () [pAny ()] [Choice [] (eVar () "e2")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "| ([x, _, _] as xs, []) => e1 | _ => e2" $
         --    | ([x, _, _] as xs, []) => e1
@@ -2520,7 +2520,7 @@ main =
                   ]
               , Clause tBool [pAny (tup () [tList tInt, tList tInt])] [Choice [] (eVar tBool "e2")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "| [(1 :: _) as xs, (2 :: _) as ys, (3 :: _) as zs] => e1 | _ => e2" $
         --    | [(1 :: _) as xs, (2 :: _) as ys, (3 :: _) as zs] => e1
@@ -2574,7 +2574,7 @@ main =
                   ]
               , Clause () [pAny ()] [Choice [] (eVar () "e2")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "| [(1 :: _) as xs, (2 :: _) as ys, (3 :: _) as zs] => e1 | _ => e2" $
         --    | [(1 :: _) as xs, (2 :: _) as ys, (3 :: _) as zs] => e1
@@ -2628,7 +2628,7 @@ main =
                   ]
               , Clause tBool [pAny (tList (tList tInt))] [Choice [] (eVar tBool "e2")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "([x, _, _] as xs, []) when a => e1, when b => e2 | _ => e3" $
         --    | ([x, _, _] as xs, [])
@@ -2677,7 +2677,7 @@ main =
                   ]
               , Clause () [pAny ()] [Choice [] (eVar () "e3")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
       it "([x, _, _] as xs, []) when a => e1, when b => e2 | _ => e3" $
         --    | ([x, _, _] as xs, [])
@@ -2729,7 +2729,7 @@ main =
                   [pAny (tup () [tList tInt, tList tInt])]
                   [Choice [] (eVar tBool "e3")]
               ]
-         in (dropAsPatterns clauses == result)
+         in (translateAsPatterns clauses == result)
 
     ---------------------------------------------------------------------------
     describe "extractAsPatterns" $ do

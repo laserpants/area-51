@@ -458,15 +458,15 @@ simplifyPatterns ::
   [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)] ->
   [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)]
 simplifyPatterns =
-  concatMap dropOrPatterns
-    >>> fmap dropAnyPatterns
-    >>> fmap dropLitPatterns
-    >>> dropAsPatterns
+  concatMap translateOrPatterns
+    >>> fmap translateAnyPatterns
+    >>> fmap translateLitPatterns
+    >>> translateAsPatterns
 
 {- ORMOLU_DISABLE -}
 
-dropOrPatterns :: Clause t [Pattern t] a -> [Clause t [Pattern t] a]
-dropOrPatterns =
+translateOrPatterns :: Clause t [Pattern t] a -> [Clause t [Pattern t] a]
+translateOrPatterns =
   \case
     Clause t [p] cs -> [Clause t [q] cs | q <- go p]
     _               -> error "Implementation error"
@@ -479,8 +479,8 @@ dropOrPatterns =
             p             -> embed <$> sequence p
         )
 
-dropAnyPatterns :: Clause t [Pattern t] a -> Clause t [Pattern t] a
-dropAnyPatterns =
+translateAnyPatterns :: Clause t [Pattern t] a -> Clause t [Pattern t] a
+translateAnyPatterns =
   \case
     Clause t [p] cs -> Clause t [evalState (go p) 1] cs
     _               -> error "Implementation error"
@@ -498,11 +498,11 @@ dropAnyPatterns =
 
 {- ORMOLU_ENABLE -}
 
-dropLitPatterns ::
+translateLitPatterns ::
   (TypeTag t, Functor e2, Functor e3) =>
   Clause t [Pattern t] (Expr t e1 e2 e3 e4) ->
   Clause t [Pattern t] (Expr t e1 e2 e3 e4)
-dropLitPatterns =
+translateLitPatterns =
   \case
     Clause t [p] cs -> do
       let (q, vs) = runWriter (evalStateT (go p) 1)
@@ -524,11 +524,11 @@ dropLitPatterns =
             p -> embed <$> sequence p
         )
 
-dropAsPatterns ::
+translateAsPatterns ::
   (TypeTag t, Tuple t (), Functor e3) =>
   [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)] ->
   [Clause t [Pattern t] (Expr t e1 (Clause t [Pattern t]) e3 e4)]
-dropAsPatterns =
+translateAsPatterns =
   cata
     ( \case
         Cons c cs ->
