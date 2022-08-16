@@ -3347,6 +3347,23 @@ main =
        in it "✗ TODO" $
             isLeft result
 
+    ---------------------------------------------------------------------------
+    describe "free" $ do
+      it "'0             -->  ['0]" $
+        free _0 == [(kTyp, MonoIndex 0)]
+
+      it "'0 -> '1       -->  ['0, '1]" $
+        free (_0 ~> _1) == [(kTyp, MonoIndex 0), (kTyp, MonoIndex 1)]
+
+      it "List '0 -> '1  -->  ['0, '1]" $
+        free (tList _0 ~> _1) == [(kTyp, MonoIndex 0), (kTyp, MonoIndex 1)]
+
+      it "int            -->  []" $
+        null (free (tInt :: MonoType))
+
+      it "'0 '1          -->  ['0, '1]" $
+        free (tApp kTyp (tVar kFun1 (MonoIndex 0)) _1) == [(kFun1, MonoIndex 0), (kTyp, MonoIndex 1)]
+
 runTestExhaustive ::
   (Row t, Tuple t ()) => String -> Bool -> PatternMatrix t -> SpecWith ()
 runTestExhaustive msg b px =
@@ -3364,6 +3381,15 @@ testConstructorEnv =
     ]
 
 {- ORMOLU_ENABLE -}
+
+_0 :: MonoType
+_0 = tVar kTyp (MonoIndex 0)
+
+_1 :: MonoType
+_1 = tVar kTyp (MonoIndex 1)
+
+_2 :: MonoType
+_2 = tVar kTyp (MonoIndex 2)
 
 testClassEnv :: ClassEnv (Type Name)
 testClassEnv =
