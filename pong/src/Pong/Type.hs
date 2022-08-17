@@ -12,7 +12,7 @@
 {- ORMOLU_DISABLE -}
 
 module Pong.Type
-#ifndef test
+#ifndef TEST_SUITE
   ( TypeError
   , TypeEnv
   , Substitutable

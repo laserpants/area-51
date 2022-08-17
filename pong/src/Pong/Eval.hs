@@ -10,7 +10,7 @@
 {- ORMOLU_DISABLE -}
 
 module Pong.Eval
-#ifndef test
+#ifndef TEST_SUITE
   ( Value
   , runEval
   , evalModule

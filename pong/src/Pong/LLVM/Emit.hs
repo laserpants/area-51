@@ -10,7 +10,7 @@
 {- ORMOLU_DISABLE -}
 
 module Pong.LLVM.Emit
-#ifndef test
+#ifndef TEST_SUITE
   ( compileModule
   , ppllModule
   )

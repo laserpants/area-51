@@ -61,4 +61,4 @@ tests:
     - directory
     - template-haskell
     cpp-options:
-    - -Dtest
+    - -DTEST_SUITE
