@@ -118,6 +118,20 @@ expr106 =
 
 -- "
 
+expr1062 :: Text
+expr1062 =
+  "let\
+  \  r =\
+  \    { a = 5 }\
+  \  in\
+  \    match r\
+  \      { a = y | q } =>\
+  \        y\
+  \"
+
+-- "
+
+
 -- program200 :: Text
 -- program200 =
 --  "def main(_ : unit) : int =\
