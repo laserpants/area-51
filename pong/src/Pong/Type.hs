@@ -386,18 +386,20 @@ inferExpr =
       as <- traverse (pure . first tVar) args
       e <- local (insertArgs (first Left <$> as)) expr
       pure (eLam () as e)
-    EOp1 (_, op) expr1 -> do
+    EOp1 (t, op) expr1 -> do
       e1 <- expr1
       t0 <- instantiate (unopType op)
       let [t1] = argTypes t0
+      t0 `unify` tVar t
       t1 `unify` typeOf e1
       ty <- applySubstitution t0
       pure (eOp1 (ty, op) e1)
-    EOp2 (_, op) expr1 expr2 -> do
+    EOp2 (t, op) expr1 expr2 -> do
       e1 <- expr1
       e2 <- expr2
       t0 <- instantiate (binopType op)
       let [t1, t2] = argTypes t0
+      t0 `unify` tVar t
       t1 `unify` typeOf e1
       t2 `unify` typeOf e2
       ty <- applySubstitution t0

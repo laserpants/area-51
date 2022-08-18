@@ -3,12 +3,13 @@
 module Pong.EvalTests where
 
 import Data.Either.Extra (fromRight)
-import Pong.Eval
 -- import Pong.LLVM.Emit
+
+import qualified Data.Map.Strict as Map
+import Pong.Eval
 import Pong.Lang
 import Pong.TestData.GoAwayDixieGillian
 import Pong.TestData.JackOfClubs
-import qualified Data.Map.Strict as Map
 import Pong.TestData.MysteriousSetOfBooks
 -- import Pong.TestData.MysteriousSetOfBooks
 import Pong.TestData.ShirtMixUpAtTheLaundry
