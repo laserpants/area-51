@@ -379,8 +379,8 @@ inferExpr =
     EApp t fun args -> do
       f <- fun
       as <- sequence args
+      typeOf f `unify` foldType (tVar t) (typeOf <$> as)
       t1 <- applySubstitution (tVar t)
-      typeOf f `unify` foldType t1 (typeOf <$> as)
       pure (eApp t1 f as)
     ELam _ args expr -> do
       as <- traverse (pure . first tVar) args
