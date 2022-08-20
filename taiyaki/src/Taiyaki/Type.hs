@@ -411,19 +411,19 @@ bindType tv@(k, n) ty
 
 --------------------------------------------------------------------------------
 
-super :: ClassEnv t -> Name -> [Name]
+super :: ClassEnv -> Name -> [Name]
 super env name = maybe [] (classInfoSuperClasses . fst) (Env.lookup name env)
 
-superPlus :: ClassEnv t -> Name -> [Name]
+superPlus :: ClassEnv -> Name -> [Name]
 superPlus env name = name : super env name
 
-superClosure :: ClassEnv t -> Name -> [Name]
+superClosure :: ClassEnv -> Name -> [Name]
 superClosure env name =
   case super env name of
     [] -> [name]
     ns -> name : (superClosure env =<< ns)
 
-instances :: ClassEnv t -> Name -> [ClassInstance]
+instances :: ClassEnv -> Name -> [ClassInstance]
 instances env name = maybe [] snd (Env.lookup name env)
 
 -- bySuper :: ClassEnv t -> Predicate t -> [Predicate t]
@@ -433,7 +433,7 @@ bySuper env self@(InClass name t) =
 -- entail :: (Eq t) => ClassEnv t -> [Predicate t] -> Predicate t -> Bool
 entail env ps p = any (p `elem`) (bySuper env <$> ps)
 
-byInstance :: ClassEnv t -> Predicate MonoType -> Maybe [Predicate MonoType]
+byInstance :: ClassEnv -> Predicate MonoType -> Maybe [Predicate MonoType]
 byInstance env (InClass n s) = msum (tryInstance <$> instances env n)
   where
     tryInstance (ClassInstance ps t _) =
@@ -456,7 +456,7 @@ isNormalForm (InClass _ t) =
 
 toNormalForms ::
   (MonadError TypeError m) =>
-  ClassEnv t ->
+  ClassEnv ->
   [Predicate MonoType] ->
   m [Predicate MonoType]
 toNormalForms env ps = fmap concat (mapM hnf ps)
@@ -474,10 +474,10 @@ simplify env = go []
     go qs [] = qs
     go qs (p : ps) = go (if entail env (qs <> ps) p then qs else p : qs) ps
 
-reduce :: ClassEnv t -> [Predicate MonoType] -> Either TypeError [Predicate MonoType]
+reduce :: ClassEnv -> [Predicate MonoType] -> Either TypeError [Predicate MonoType]
 reduce env ps = runExcept (simplify env <$> toNormalForms env ps)
 
-reduceSet :: ClassEnv t -> [Name] -> [Name]
+reduceSet :: ClassEnv -> [Name] -> [Name]
 reduceSet env names =
   reduce env [InClass name (tVar kTyp (MonoIndex 0)) | name <- names]
     & fromRight (error "Implementation error")

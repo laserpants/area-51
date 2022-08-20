@@ -3391,7 +3391,7 @@ _1 = tVar kTyp (MonoIndex 1)
 _2 :: MonoType
 _2 = tVar kTyp (MonoIndex 2)
 
-testClassEnv :: ClassEnv (Type Name)
+testClassEnv :: ClassEnv 
 testClassEnv =
   Env.fromList
     [
@@ -3400,7 +3400,7 @@ testClassEnv =
 
         ( ClassInfo
             []
-            (tVar kTyp "a")
+            (kTyp, "a")
             [
               ( "toString"
               , tVar kTyp "a" ~> tString
@@ -3441,7 +3441,7 @@ testClassEnv =
 
         ( ClassInfo
             ["Num"]
-            (tVar kTyp "a")
+            (kTyp, "a")
             [
               ( "toInt"
               , tVar kTyp "a" ~> tInt

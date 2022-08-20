@@ -227,10 +227,10 @@ data ConsGroup t a = ConsGroup
   , consGroupClauses  :: [Clause t [Pattern t] a]
   }
 
-data ClassInfo t = ClassInfo
+data ClassInfo = ClassInfo
   { classInfoSuperClasses :: [Name]
-  , classInfoParameter    :: t
-  , classInfoInterface    :: [(Name, t)]
+  , classInfoParameter    :: (Kind, Name)
+  , classInfoInterface    :: [(Name, Type Name)]
   }
 
 data ClassInstance = ClassInstance
@@ -246,8 +246,8 @@ data ClassInstance = ClassInstance
 type ConstructorEnv =
   Environment (Set Name, Int)
 
-type ClassEnv t =
-  Environment (ClassInfo t, [ClassInstance])
+type ClassEnv =
+  Environment (ClassInfo, [ClassInstance])
 
 -------------------------------------------------------------------------------
 
@@ -633,14 +633,11 @@ deriving instance Foldable (ConsGroup t)
 deriving instance Traversable (ConsGroup t)
 
 -- ClassInfo
-deriving instance (Show t) =>
-  Show (ClassInfo t)
+deriving instance Show ClassInfo
 
-deriving instance (Eq t) =>
-  Eq (ClassInfo t)
+deriving instance Eq ClassInfo
 
-deriving instance (Ord t) =>
-  Ord (ClassInfo t)
+deriving instance Ord ClassInfo
 
 -- ClassInstance
 deriving instance Show ClassInstance
