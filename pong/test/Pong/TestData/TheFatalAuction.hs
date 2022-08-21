@@ -8,38 +8,47 @@ module Pong.TestData.TheFatalAuction where
 -- import Pong.Lang
 import Pong.Util
 
--- program44 :: Text
--- program44 =
---  "def foo(x : a, y : a) : a=\
---  \  x\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  foo(4, 5)\
---  \"
---
----- "
---
--- program46 :: Text
--- program46 =
---  "def foo(f : a -> a, y : b) : b=\
---  \  y\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  foo(lam(x) => x, 5)\
---  \"
---
----- "
---
--- program48 :: Text
--- program48 =
---  "def foo(f : a -> b, y : a) : b=\
---  \  f(y)\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  foo(lam(x) => x, 5)\
---  \"
---
----- "
+program44 :: Text
+program44 =
+  "\
+  \module Main\
+  \\r\n\
+  \func foo(x : a, y : a) : a=\
+  \  x\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  foo(4, 5)\
+  \"
+
+-- "
+
+program46 :: Text
+program46 =
+  "\
+  \module Main\
+  \\r\n\
+  \func foo(f : a -> a, y : b) : b=\
+  \  y\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  foo(lam(x) => x, 5)\
+  \"
+
+-- "
+
+program48 :: Text
+program48 =
+  "\
+  \module Main\
+  \\r\n\
+  \func foo(f : a -> b, y : a) : b=\
+  \  f(y)\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  foo(lam(x) => x, 5)\
+  \"
+
+-- "
 
 program50 :: Text
 program50 =

@@ -73,60 +73,64 @@ program21 =
 
 -- "
 
--- program22 :: Text
--- program22 =
---  "const foo : int =\
---  \  5\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  let\
---  \    r =\
---  \      { a = 5, b = true }\
---  \    in\
---  \      let\
---  \        q =\
---  \          { c = 1 | r }\
---  \        in\
---  \          letr\
---  \            { a = x | s } =\
---  \              q\
---  \            in\
---  \              if\
---  \                x == foo\
---  \                then\
---  \                  102\
---  \                else\
---  \                  200\
---  \"
---
----- "
---
--- program23 :: Text
--- program23 =
---  "const foo : int =\
---  \  5\
---  \\r\n\
---  \def main(a : unit) : int =\
---  \  let\
---  \    r =\
---  \      { a = 5, b = true }\
---  \    in\
---  \      let\
---  \        q =\
---  \          { c = 1 | r }\
---  \        in\
---  \          letr\
---  \            { a = x | s } =\
---  \              q\
---  \            in\
---  \              letr\
---  \                { c = y | t } =\
---  \                  s\
---  \                in\
---  \                  y\
---  \"
---
----- "
+program22 :: Text
+program22 =
+  "module Main\
+  \\r\n\
+  \const foo : int =\
+  \  5\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          field\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              if\
+  \                x == foo\
+  \                then\
+  \                  102\
+  \                else\
+  \                  200\
+  \"
+
+-- "
+
+program23 :: Text
+program23 =
+  "module Main\
+  \\r\n\
+  \const foo : int =\
+  \  5\
+  \\r\n\
+  \func main(a : unit) : int =\
+  \  let\
+  \    r =\
+  \      { a = 5, b = true }\
+  \    in\
+  \      let\
+  \        q =\
+  \          { c = 1 | r }\
+  \        in\
+  \          field\
+  \            { a = x | s } =\
+  \              q\
+  \            in\
+  \              field\
+  \                { c = y | t } =\
+  \                  s\
+  \                in\
+  \                  y\
+  \"
+
+-- "
 
 program24 :: Text
 program24 =
@@ -341,9 +345,9 @@ program33 =
 
 -- "
 
--- program34 :: Program () SourceExpr
+-- program34 :: Module () SourceExpr
 -- program34 =
---  Program
+--  Module "Main"
 --    ( Map.fromList
 --        [
 --          (
@@ -358,11 +362,11 @@ program33 =
 --                  ( eLam
 --                      ()
 --                      [((), "r")]
---                      ( eRec
+--                      ( eRes
 --                          ( rExt
 --                              "x"
 --                              (eLit (PInt 111))
---                              ( rVar ((), "r")
+--                              ( eVar ((), "r")
 --                              )
 --                          )
 --                      )
@@ -372,7 +376,7 @@ program33 =
 --                      ( eApp
 --                          ()
 --                          (eVar ((), "f"))
---                          [ eRec
+--                          [ eRes
 --                              ( rExt
 --                                  "y"
 --                                  (eLit (PInt 2))
@@ -473,10 +477,10 @@ program33 =
 --          )
 --        ]
 --    )
---
--- program3412 :: Program MonoType TypedExpr
+
+-- program3412 :: Module MonoType TypedExpr
 -- program3412 =
---  Program
+--  Module "Main"
 --    ( Map.fromList
 --        [
 --          (
@@ -491,7 +495,7 @@ program33 =
 --                  ( eLam
 --                      ()
 --                      [(tVar 0, "r")]
---                      ( eRec
+--                      ( eRes
 --                          ( rExt
 --                              "x"
 --                              (eLit (PInt 1))
@@ -504,7 +508,7 @@ program33 =
 --          )
 --        ]
 --    )
---
+
 -- program342 :: Program () SourceExpr
 -- program342 =
 --  Program
