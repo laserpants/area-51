@@ -8,7 +8,7 @@ import Pong.Lang
 import Pong.Read
 import Pong.TestData.JackOfClubs
 -- import Pong.TestData.MysteriousSetOfBooks
--- import Pong.TestData.ThePanamaHat
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Test.Hspec
 import Text.Megaparsec
@@ -151,14 +151,14 @@ readTests =
     describe "- parseModule" $ do
       -------------------------------------------------------------------------
       it "1" (parseModule program4 == Right (Module "Main" program5))
+      -------------------------------------------------------------------------
+      it "2" (parseModule program200 == Right program201)
+      -------------------------------------------------------------------------
+      it "3" (parseModule program203 == Right program204)
+      -------------------------------------------------------------------------
+      it "4" (parseModule program208 == Right program209)
 
---     -------------------------------------------------------------------------
---     it "2" (parseModule program200 == Right program201)
---     -------------------------------------------------------------------------
---     it "3" (parseModule program203 == Right program204)
---     -------------------------------------------------------------------------
---     it "4" (parseModule program208 == Right program209)
---     -------------------------------------------------------------------------
---     it "5" (parseModule program33 == Right program34)
+-------------------------------------------------------------------------
+--      it "5" (parseModule program33 == Right program34)
 --     -------------------------------------------------------------------------
 --     it "6" (parseModule program38 == Right program382)

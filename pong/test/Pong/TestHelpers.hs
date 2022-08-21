@@ -2,8 +2,8 @@
 
 module Pong.TestHelpers where
 
--- import Control.Monad ((>=>))
--- import Data.Either.Extra (mapLeft)
+import Control.Monad ((>=>))
+import Data.Either.Extra (mapLeft)
 -- import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy as TextLazy
 import GHC.IO.Handle
@@ -42,26 +42,27 @@ runUnifyRows r1 r2 = evalTypeChecker (freeIndex [tRec r1, tRec r2]) mempty (unif
 -- lookupDef = undefined
 --
 ---- lookupDef defn (Module p) = Map.lookup defn p
---
--- runInferModuleWithEnv ::
---  TypeEnv ->
---  Module () SourceExpr ->
---  Either TypeError (Module MonoType TypedExpr)
--- runInferModuleWithEnv env = undefined -- runTypeChecker 1 env . inferModule <&> fst
 
--- parseAndAnnotateWithEnv ::
---  TypeEnv ->
---  Text ->
---  Either CompilerError (Module MonoType TypedExpr)
--- parseAndAnnotateWithEnv env =
---  mapLeft ParserError . parseModule
---    >=> mapLeft TypeError . runInferModuleWithEnv env
+runInferModuleWithEnv ::
+  TypeEnv ->
+  Module () SourceExpr ->
+  Either TypeError (Module MonoType TypedExpr)
+runInferModuleWithEnv env (Module name defs) =
+  Module name <$> fst (runTypeChecker 1 env (inferModuleDefs defs))
 
--- compileSourceWithEnv :: TypeEnv -> Text -> Module MonoType Ast
--- compileSourceWithEnv env input =
---  case parseAndAnnotateWithEnv env input of
---    Left e -> error (show e)
---    Right p -> transformModule p
+parseAndAnnotateWithEnv ::
+  TypeEnv ->
+  Text ->
+  Either CompilerError (Module MonoType TypedExpr)
+parseAndAnnotateWithEnv env =
+  mapLeft ParserError . parseModule
+    >=> mapLeft TypeError . runInferModuleWithEnv env
+
+compileSourceWithEnv :: TypeEnv -> Text -> Module MonoType Ast
+compileSourceWithEnv env input =
+  case parseAndAnnotateWithEnv env input of
+    Left e -> error (show e)
+    Right (Module n defs) -> Module n (transformDefs defs)
 
 testHoistModule :: Module MonoType TypedExpr -> Module MonoType TypedExpr
 testHoistModule (Module n p) =

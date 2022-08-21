@@ -3,17 +3,18 @@
 module Pong.TypeTests where
 
 -- import Pong.TestData.MysteriousSetOfBooks
--- import Pong.TestData.ThePanamaHat
+
 -- import qualified Data.Map.Strict as Map
 import Pong.Lang
 import Pong.TestData.AnEnvelopeForJohnStJohn
 import Pong.TestData.JackOfClubs
 import Pong.TestData.MysteriousSetOfBooks
+import Pong.TestData.ThePanamaHat
 import Pong.TestHelpers
 import Pong.Tree
 import Pong.Type
 import Pong.Util
--- import qualified Pong.Util.Env as Env
+import qualified Pong.Util.Env as Env
 -- import Pong.Util.Pretty ()
 -- import Prettyprinter
 import Test.Hspec
@@ -423,27 +424,27 @@ typeTests =
       it "1" ((runInferModuleDefs program5 <&> canonical) == Right program6)
       -------------------------------------------------------------------------
       it "2" ((runInferModuleDefs program446 <&> canonical) == Right program447)
+      -----------------------------------------------------------------------
+      let env =
+            Env.fromList
+              [
+                ( "Nil"
+                , Right (Scheme (tCon "List" [tVar "a"]))
+                )
+              ,
+                ( "Cons"
+                , Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]))
+                )
+              ]
+      -------------------------------------------------------------------------
+      it "2" ((runInferModuleWithEnv env program201 <&> canonical) == Right program202)
+      -------------------------------------------------------------------------
+      it "3" ((runInferModuleWithEnv env program204 <&> canonical) == Right (Module "Main" program205))
+      -------------------------------------------------------------------------
+      it "4" ((runInferModuleWithEnv env program209 <&> canonical) == Right (Module "Main" program210))
     -------------------------------------------------------------------------
-    --      let env =
-    --            Env.fromList
-    --              [
-    --                ( "Nil"
-    --                , Right (Scheme (tCon "List" [tVar "a"]))
-    --                )
-    --              ,
-    --                ( "Cons"
-    --                , Right (Scheme (tVar "a" ~> tCon "List" [tVar "a"] ~> tCon "List" [tVar "a"]))
-    --                )
-    --              ]
-    --      -------------------------------------------------------------------------
-    --      it "2" ((runInferModuleWithEnv env program201 <&> canonical) == Right program202)
-    --      -------------------------------------------------------------------------
-    --      it "3" ((runInferModuleWithEnv env program204 <&> canonical) == Right program205)
-    --      -------------------------------------------------------------------------
-    --      it "4" ((runInferModuleWithEnv env program209 <&> canonical) == Right program210)
-    --      -------------------------------------------------------------------------
-    --      it "5" ((runInferModule program341 <&> canonical) == Right program3412)
-    --      -------------------------------------------------------------------------
+    --  it "5" ((runInferModule program341 <&> canonical) == Right program3412)
+    --  -------------------------------------------------------------------------
     --      it "6" ((runInferModule program342 <&> canonical) == Right program3422)
     --    --      -------------------------------------------------------------------------
     --    --      it "7" ((runInferModule program343 <&> canonical) == Right program3432)

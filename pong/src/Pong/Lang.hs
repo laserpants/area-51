@@ -137,6 +137,9 @@ instance (Free a) => Free [a] where
 instance (Free a) => Free (Either e a) where
   freeIn = concatMap freeIn
 
+instance (Free t, Free a) => Free (Module t a) where
+  freeIn (Module _ defs) = freeIn defs
+
 {- ORMOLU_DISABLE -}
 
 instance Free MonoType where
