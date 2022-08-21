@@ -3391,7 +3391,7 @@ _1 = tVar kTyp (MonoIndex 1)
 _2 :: MonoType
 _2 = tVar kTyp (MonoIndex 2)
 
-testClassEnv :: ClassEnv 
+testClassEnv :: ClassEnv
 testClassEnv =
   Env.fromList
     [
@@ -3460,4 +3460,104 @@ testClassEnv =
           ]
         )
       )
+    ,
+      ( "Functor"
+      , -- Interface
+
+        ( ClassInfo
+            []
+            (kFun1, "f")
+            [
+              ( "map"
+              , (tVar kTyp "a" ~> tVar kTyp "b") ~> tApp kTyp (tVar kFun1 "f") (tVar kTyp "a") ~> tApp kTyp (tVar kFun1 "f") (tVar kTyp "b")
+              )
+            ]
+        , -- Instances
+
+          [ ClassInstance
+              []
+              (tCon kFun1 "List")
+              [
+                ( "map"
+                , eVar ((tVar kTyp (MonoIndex 1) ~> tVar kTyp (MonoIndex 2)) ~> tApp kTyp (tVar kFun1 (MonoIndex 0)) (tVar kTyp (MonoIndex 1)) ~> tApp kTyp (tVar kFun1 (MonoIndex 0)) (tVar kTyp (MonoIndex 2))) "TODO"
+                )
+              ]
+          ]
+        )
+      )
     ]
+
+--
+-- let
+--   xs =
+--     map((x) => plus(x, 1), [1, 2, 3])
+--   in
+--     xs
+--
+testExpr1 :: ProgExpr ()
+testExpr1 =
+  eLet
+    ()
+    (BPat () (pVar () "xs"))
+    ( eApp
+        ()
+        (eVar () "map")
+        [ eLam
+            ()
+            [ pVar () "x"
+            ]
+            ( eApp
+                ()
+                (eVar () "plus")
+                [ eVar () "x"
+                , eLit () (IInt 1)
+                ]
+            )
+        , eList
+            ()
+            [ eLit () (IInt 1)
+            , eLit () (IInt 2)
+            , eLit () (IInt 3)
+            ]
+        ]
+    )
+    (eVar () "xs")
+
+data TI = TI [Predicate MonoType] MonoType
+
+-- map : [Functor f] => (a -> b) -> f a  -> f b
+--
+-- let
+--   xs =
+--     map((x) => plus(x, 1), [1, 2, 3])
+--   in
+--     xs
+--
+testExpr2 :: (Functor e2, Functor e3) => Expr TI [Pattern TI] e2 e3 (Binding TI)
+testExpr2 =
+  eLet
+    (TI [] (tList tInt))
+    (BPat (TI [] (tList tInt)) (pVar (TI [] (tList tInt)) "xs"))
+    ( eApp
+        (TI [] (tList tInt))
+        (eVar (TI [InClass "Functor" tInt] ((tInt ~> tInt) ~> tList tInt ~> tList tInt)) "map")
+        [ eLam
+            (TI [] (tInt ~> tInt))
+            [ pVar (TI [] tInt) "x"
+            ]
+            ( eApp
+                (TI [] tInt)
+                (eVar (TI [] (tInt ~> tInt ~> tInt)) "plus")
+                [ eVar (TI [] tInt) "x"
+                , eLit (TI [] tInt) (IInt 1)
+                ]
+            )
+        , eList
+            (TI [] (tList tInt))
+            [ eLit (TI [] tInt) (IInt 1)
+            , eLit (TI [] tInt) (IInt 2)
+            , eLit (TI [] tInt) (IInt 3)
+            ]
+        ]
+    )
+    (eVar (TI [] (tList tInt)) "xs")
