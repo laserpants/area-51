@@ -2,7 +2,7 @@
 
 module Pong.UtilTests where
 
-import Control.Monad.State
+import Control.Monad.State (put, runState)
 import Pong.Util
 import Test.Hspec
 
@@ -25,8 +25,20 @@ utilTests =
 
     describe "- varSequence" $ do
       -------------------------------------------------------------------------
-      it "1" (varSequence "foo" [1 :: Int, 2, 3] == [(1, "foo0"), (2, "foo1"), (3, "foo2")])
+      it "1" $
+        let result =
+              [ (0, "foo0")
+              , (1, "foo1")
+              , (2, "foo2")
+              ]
+         in varSequence "foo" [0 :: Int, 1, 2] == result
 
     describe "- (<$$>)" $ do
       -------------------------------------------------------------------------
-      it "1" (((+ 1) <$$> [((), 1 :: Int), ((), 2), ((), 42)]) == [((), 2), ((), 3), ((), 43)])
+      it "1" $
+        let result =
+              [ ((), 2)
+              , ((), 3)
+              , ((), 43)
+              ]
+         in (((+ 1) <$$> [((), 1 :: Int), ((), 2), ((), 42)]) == result)
