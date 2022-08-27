@@ -70,6 +70,7 @@ test-suite taiyaki-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Data
       Paths_taiyaki
   hs-source-dirs:
       test

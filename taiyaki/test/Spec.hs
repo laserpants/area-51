@@ -6,6 +6,7 @@
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Newtype.Generics (pack)
+import Data
 import Data.Either (isLeft)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isNothing)
@@ -3267,6 +3268,18 @@ main =
               Left UnificationError == result
 
         let t1 :: MonoType
+            -- '0 
+            t1 = tVar kTyp (MonoIndex 0) 
+
+            t2 :: MonoType
+            -- List '0
+            t2 = tList (tVar kTyp (MonoIndex 0))
+
+            result = evalStateT (unifyTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ '0  ~  List '0" $
+              Left InfiniteType == result
+
+        let t1 :: MonoType
             -- { name : string, id : int, shoeSize : float }
             t1 = tRec (rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil)))
 
@@ -3333,19 +3346,241 @@ main =
 
     ---------------------------------------------------------------------------
     describe "matchTypes" $ do
-      let t1 = tVar kTyp (MonoIndex 0)
-          t2 = tInt
-          Right sub =
-            evalStateT (matchTypes t1 t2) (MonoIndex 1)
-       in it "✔ TODO" $
-            apply sub t1 == apply sub t2
+      describe "Pass" $ do
+        let t1 = tInt :: MonoType
+            t2 = tInt
+            Right sub =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✔ int  ~>  int" $
+              apply sub t1 == apply sub t2
 
-      let t1 = tInt
-          t2 = tVar kTyp (MonoIndex 0)
-          result =
-            evalStateT (matchTypes t1 t2) (MonoIndex 1)
-       in it "✗ TODO" $
-            isLeft result
+        let t1 = tVar kTyp (MonoIndex 0)
+            t2 = tInt
+            Right sub =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✔ '0  ~>  int" $
+              apply sub t1 == apply sub t2
+
+        let t1 = tList (tVar kTyp (MonoIndex 0))
+            t2 = tList tInt
+            Right sub =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✔ List '0  ~>  List int" $
+              apply sub t1 == apply sub t2
+
+        let t1 = tVar kTyp (MonoIndex 0)
+            t2 = tVar kTyp (MonoIndex 1)
+            Right sub =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✔ '0  ~>  '1" $
+              apply sub t1 == apply sub t2
+
+      describe "Fail" $ do
+        let t1 = tInt :: MonoType
+            t2 = tList tInt
+            result =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ int  ~>  List int" $
+              isLeft result
+
+        let t1 = tInt
+            t2 = tVar kTyp (MonoIndex 0)
+            result =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ int  ~>  '0" $
+              isLeft result
+
+        let t1 = tList tInt
+            t2 = tList (tVar kTyp (MonoIndex 0))
+            result =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ List int  ~>  List '0" $
+              isLeft result
+
+        let t1 = tApp kTyp (tCon kFun1 "A") _1
+            t2 = tApp kTyp (tVar kFun1 (MonoIndex 0)) _1
+            result =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ A '1  ~>  '0 '1" $
+              isLeft result
+
+        let t1 = tApp kTyp (tVar kFun1 (MonoIndex 0)) tInt
+            t2 = tApp kTyp (tVar kFun1 (MonoIndex 0)) _1
+            result =
+              evalStateT (matchTypes t1 t2) (freeIndex [t1, t2])
+         in it "✗ '0 int  ~>  '0 '1" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string }
+            r2 = rExt "name" tString rNil
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string | '0 }  ~>  { name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- {}
+            r1 = rNil
+
+            r2 :: MonoType
+            -- {}
+            r2 = rNil
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ {}  ~>  {}" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { a : int | '0 }
+            r1 = rExt "a" tInt (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { a : int | '0 }
+            r2 = rExt "a" tInt (tVar kRow (MonoIndex 0))
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { a : int | '0 }  ~>  { a : int | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+    describe "matchRows" $ do
+      describe "Pass" $ do
+        let r1 :: MonoType
+            -- { name : '0 | '1 }
+            r1 = tExt "name" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))
+
+            r2 :: MonoType
+            -- { id : int, name : string }
+            r2 = tExt "id" tInt (tExt "name" tString tNil)
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : '0 | '1 }  ~>  { id : int, name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string, id : int }
+            r1 = rExt "name" tString (rExt "id" tInt rNil)
+
+            r2 :: MonoType
+            -- { id : int, name : string }
+            r2 = rExt "id" tInt (rExt "name" tString rNil)
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string, id : int }  ~>  { id : int, name : string }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string | '0 }
+            r2 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string | '0 }  ~>  { name : string | '0 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+        let r1 :: MonoType
+            -- { name : string | '0 }
+            r1 = rExt "name" tString (tVar kRow (MonoIndex 0))
+
+            r2 :: MonoType
+            -- { name : string | '1 }
+            r2 = rExt "name" tString (tVar kRow (MonoIndex 1))
+
+            Right sub = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✔ { name : string | '0 }  ~>  { name : string | '1 }" $
+              normalizeRow (apply sub r1) == normalizeRow (apply sub r2)
+
+      describe "Fail" $ do
+        let r1 :: MonoType
+            -- { id : int, pw : string, name : string }
+            r1 = rExt "id" tInt (rExt "pw" tString (rExt "name" tString rNil))
+
+            r2 :: MonoType
+            -- { id : int | '0 }
+            r2 = rExt "id" tInt (tVar kRow (MonoIndex 0))
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { id : int, pw : string, name : string }  ~>  { id : int | '0 }" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string, shoeSize : float }
+            r1 = rExt "name" tString (rExt "shoeSize" tFloat rNil)
+
+            r2 :: MonoType
+            -- { shoeSize : float | '0 }
+            r2 = rExt "shoeSize" tFloat (tVar kRow (MonoIndex 0))
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, shoeSize : float }  ~>  { shoeSize : float | '0 }" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int | '0 }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (tVar kRow (MonoIndex 0)))
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, id : int, shoeSize : float }  ~>  { shoeSize : float, id : int | '0 }" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : 1 }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" (tVar kTyp (MonoIndex 1)) rNil))
+
+            r2 :: MonoType
+            -- { shoeSize : float, id : int | '0 }
+            r2 = rExt "shoeSize" tFloat (rExt "id" tInt (tVar kRow (MonoIndex 0)))
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, id : int, shoeSize : '1 }  ~>  { shoeSize : float, id : int | '0 }" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string, id : int, shoeSize : float }
+            r1 = rExt "name" tString (rExt "id" tInt (rExt "shoeSize" tFloat rNil))
+
+            r2 :: MonoType
+            -- '0
+            r2 = tVar kRow (MonoIndex 0)
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, id : int, shoeSize : float }  ~>  '0 : Row" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { name : string, id : int }
+            r1 = rExt "name" tString (rExt "id" tInt rNil)
+
+            r2 :: MonoType
+            -- { id : '0, name : string }
+            r2 = rExt "id" (tVar kTyp (MonoIndex 0)) (rExt "name" tString rNil)
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { name : string, id : int }  ~>  { id : '0, name : string }" $
+              isLeft result
+
+        let r1 :: MonoType
+            -- { id : int, name : string }
+            r1 = rExt "id" tInt (rExt "name" tString rNil)
+
+            r2 :: MonoType
+            -- { id : '0, name : string }
+            r2 = rExt "id" (tVar kTyp (MonoIndex 0)) (rExt "name" tString rNil)
+
+            result = evalStateT (matchRows r1 r2) (freeIndex [r1, r2])
+         in it "✗ { id : int, name : string }  ~>  { id : '0, name : string }" $
+              isLeft result
 
     ---------------------------------------------------------------------------
     describe "free" $ do
@@ -3486,78 +3721,3 @@ testClassEnv =
         )
       )
     ]
-
---
--- let
---   xs =
---     map((x) => plus(x, 1), [1, 2, 3])
---   in
---     xs
---
-testExpr1 :: ProgExpr ()
-testExpr1 =
-  eLet
-    ()
-    (BPat () (pVar () "xs"))
-    ( eApp
-        ()
-        (eVar () "map")
-        [ eLam
-            ()
-            [ pVar () "x"
-            ]
-            ( eApp
-                ()
-                (eVar () "plus")
-                [ eVar () "x"
-                , eLit () (IInt 1)
-                ]
-            )
-        , eList
-            ()
-            [ eLit () (IInt 1)
-            , eLit () (IInt 2)
-            , eLit () (IInt 3)
-            ]
-        ]
-    )
-    (eVar () "xs")
-
-data TI = TI [Predicate MonoType] MonoType
-
--- map : [Functor f] => (a -> b) -> f a  -> f b
---
--- let
---   xs =
---     map((x) => plus(x, 1), [1, 2, 3])
---   in
---     xs
---
-testExpr2 :: (Functor e2, Functor e3) => Expr TI [Pattern TI] e2 e3 (Binding TI)
-testExpr2 =
-  eLet
-    (TI [] (tList tInt))
-    (BPat (TI [] (tList tInt)) (pVar (TI [] (tList tInt)) "xs"))
-    ( eApp
-        (TI [] (tList tInt))
-        (eVar (TI [InClass "Functor" tInt] ((tInt ~> tInt) ~> tList tInt ~> tList tInt)) "map")
-        [ eLam
-            (TI [] (tInt ~> tInt))
-            [ pVar (TI [] tInt) "x"
-            ]
-            ( eApp
-                (TI [] tInt)
-                (eVar (TI [] (tInt ~> tInt ~> tInt)) "plus")
-                [ eVar (TI [] tInt) "x"
-                , eLit (TI [] tInt) (IInt 1)
-                ]
-            )
-        , eList
-            (TI [] (tList tInt))
-            [ eLit (TI [] tInt) (IInt 1)
-            , eLit (TI [] tInt) (IInt 2)
-            , eLit (TI [] tInt) (IInt 3)
-            ]
-        ]
-    )
-    (eVar (TI [] (tList tInt)) "xs")
