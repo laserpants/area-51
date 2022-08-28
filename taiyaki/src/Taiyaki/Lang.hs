@@ -356,7 +356,7 @@ instance Typed (Type v) v where
           TChar        -> tChar
           TString      -> tString
           TVoid        -> tVoid
-          TList t      -> tList t
+          TList        -> tList
           TVar k v     -> tVar k v
           TCon k n     -> tCon k n
           TApp k t1 t2 -> tApp k t1 t2
@@ -451,7 +451,6 @@ instance Free MonoType where
           TArr t1 t2   -> t1 <> t2
           TRec t       -> t
           TExt _ t1 t2 -> t1 <> t2
-          TList t      -> t
           _            -> []
       )
 

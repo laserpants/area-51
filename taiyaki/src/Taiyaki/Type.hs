@@ -67,7 +67,7 @@ substitute sub =
         TChar            -> tChar
         TString          -> tString
         TVoid            -> tVoid
-        TList t          -> tList t
+        TList            -> tList
         TCon k n         -> tCon k n
         TApp k t1 t2     -> tApp k t1 t2
         TArr t1 t2       -> tArr t1 t2
@@ -316,8 +316,6 @@ unifyTypes ty1 ty2 =
       | otherwise -> unifyPairs t1 u1 t2 u2
     (TArr t1 u1, TArr t2 u2) ->
       unifyPairs t1 u1 t2 u2
-    (TList t1, TList t2) ->
-      unifyTypes t1 t2
     (TRec r1, TRec r2) ->
       unifyTypes r1 r2
     _
@@ -343,10 +341,10 @@ matchRows ::
   m Substitution
 matchRows ty1 ty2 =
   case (unpackRow ty1, unpackRow ty2) of
-    ((m1, Fix (TVar k r)), (m2, i))
-      | Map.null m1 && not (Map.null m2) && i == tVar k r ->
-          throwError UnificationError
-      | Map.null m1 -> bindType (k, r) ty2
+    --    ((m1, Fix (TVar k r)), (m2, i))
+    --      | Map.null m1 && not (Map.null m2) && i == tVar k r ->
+    --          throwError UnificationError
+    --      | Map.null m1 -> bindType (k, r) ty2
     ((m1, j), (m2, i))
       | Map.null m1 -> matchTypes ty1 ty2
       | otherwise ->
@@ -376,10 +374,12 @@ matchTypes ::
   m Substitution
 matchTypes ty1 ty2 =
   case (project ty1, project ty2) of
-    (TExt{}, _) ->
+    (TExt{}, TExt{}) ->
       matchRows ty1 ty2
-    (_, TExt{}) ->
-      matchRows ty1 ty2
+    --    (TExt{}, _) ->
+    --      matchRows ty1 ty2
+    --    (_, TExt{}) ->
+    --      matchRows ty1 ty2
     (TVar k n, _) ->
       bindType (k, n) ty2
     (TCon k1 c1, TCon k2 c2)
@@ -390,8 +390,6 @@ matchTypes ty1 ty2 =
       | otherwise -> matchPairs t1 u1 t2 u2
     (TArr t1 u1, TArr t2 u2) ->
       matchPairs t1 u1 t2 u2
-    (TList t1, TList t2) ->
-      matchTypes t1 t2
     (TRec r1, TRec r2) ->
       matchTypes r1 r2
     _
@@ -410,6 +408,15 @@ bindType tv@(k, n) ty
 {- ORMOLU_ENABLE -}
 
 --------------------------------------------------------------------------------
+
+index :: (HasIndex s, MonadState s m) => m MonoIndex
+index = do
+  a <- get
+  let ix = getIndex a
+  put (updateIndex (succ ix) a)
+  pure ix
+
+-------------------------------------------------------------------------------
 
 super :: ClassEnv -> Name -> [Name]
 super env name = maybe [] (classInfoSuperClasses . fst) (Env.lookup name env)
@@ -482,15 +489,6 @@ reduceSet env names =
   reduce env [InClass name (tVar kTyp (MonoIndex 0)) | name <- names]
     & fromRight (error "Implementation error")
     <&> \(InClass n _) -> n
-
--------------------------------------------------------------------------------
-
-index :: (HasIndex s, MonadState s m) => m MonoIndex
-index = do
-  a <- get
-  let ix = getIndex a
-  put (updateIndex (succ ix) a)
-  pure ix
 
 -------------------------------------------------------------------------------
 

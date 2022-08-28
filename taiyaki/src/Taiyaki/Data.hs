@@ -39,7 +39,7 @@ data TypeF v a
   | TChar
   | TString
   | TVoid
-  | TList a
+  | TList
   | TVar Kind v
   | TCon Kind Name
   | TApp Kind a a

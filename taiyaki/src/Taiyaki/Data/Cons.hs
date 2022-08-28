@@ -77,8 +77,8 @@ tVoid :: Type v
 tVoid = embed TVoid
 
 {-# INLINE tList #-}
-tList :: Type v -> Type v
-tList = embed1 TList
+tList :: Type v
+tList = embed TList
 
 {-# INLINE tVar #-}
 tVar :: Kind -> v -> Type v
@@ -115,6 +115,10 @@ tNil = embed TNil
 {-# INLINE tExt #-}
 tExt :: Name -> Type v -> Type v -> Type v
 tExt = embed3 TExt
+
+{-# INLINE tListApp #-}
+tListApp :: Type v -> Type v
+tListApp = tApp kTyp tList
 
 {-# INLINE pVar #-}
 pVar :: t -> Name -> Pattern t
