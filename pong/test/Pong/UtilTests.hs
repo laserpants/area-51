@@ -50,13 +50,21 @@ utilTests =
               []
          in (input `without` [2, 4, 6] == result)
 
-    describe "- withoutLabels" $
+    describe "- withoutLabels" $ do
       it "withoutLabels [\"a\", \"b\"] [(1, \"a\"), (2, \"b\"), (3, \"c\")]" $
         let input, result :: [(Int, Text)]
             input =
               [(1, "a"), (2, "b"), (3, "c")]
             result =
               [(3, "c")]
+         in (withoutLabels ["a", "b"] input == result)
+
+      it "withoutLabels [\"a\", \"b\"] [(1, \"a\"), (2, \"a\"), (3, \"a\")]" $
+        let input, result :: [(Int, Text)]
+            input =
+              [(1, "a"), (2, "a"), (3, "a")]
+            result =
+              []
          in (withoutLabels ["a", "b"] input == result)
 
     describe "- getAndModify" $
