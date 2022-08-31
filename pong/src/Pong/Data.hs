@@ -54,8 +54,8 @@ newtype Scheme = Scheme (Type Name)
 data Prim
   = PBool Bool                     -- ^ Booleans
   | PInt Int                       -- ^ Integers (machine bounded)
-  | PFloat Float                   -- ^ Single-precision floating-point number
-  | PDouble Double                 -- ^ Double-precision floating-point number
+  | PFloat Float                   -- ^ Single-precision floating-point numbers
+  | PDouble Double                 -- ^ Double-precision floating-point numbers
   | PChar Char                     -- ^ Chars
   | PString Text                   -- ^ Strings
   | PUnit                          -- ^ Unit value
