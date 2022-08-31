@@ -17,6 +17,7 @@ utilTests =
             result =
               [1, 3, 5]
          in (input `without` [2, 4, 6] == result)
+
       it "[1, 2, 3, 4, 5] `without` []" $
         let input, result :: [Int]
             input =
@@ -24,6 +25,7 @@ utilTests =
             result =
               [1, 2, 3, 4, 5]
          in (input `without` [] == result)
+
       it "[1, 2, 3, 4, 5] `without` [1, 1, 1]" $
         let input, result :: [Int]
             input =
@@ -31,6 +33,7 @@ utilTests =
             result =
               [2, 3, 4, 5]
          in (input `without` [1, 1, 1] == result)
+
       it "[1, 1, 1, 1, 2, 4] `without` [1, 2, 3]" $
         let input, result :: [Int]
             input =
@@ -38,6 +41,7 @@ utilTests =
             result =
               [4]
          in (input `without` [1, 2, 3] == result)
+
       it "[] `without` [2, 4, 6]" $
         let input, result :: [Int]
             input =
@@ -45,6 +49,15 @@ utilTests =
             result =
               []
          in (input `without` [2, 4, 6] == result)
+
+    describe "- withoutLabels" $
+      it "withoutLabels [\"a\", \"b\"] [(1, \"a\"), (2, \"b\"), (3, \"c\")]" $
+        let input, result :: [(Int, Text)]
+            input =
+              [(1, "a"), (2, "b"), (3, "c")]
+            result =
+              [(3, "c")]
+         in (withoutLabels ["a", "b"] input == result)
 
     describe "- getAndModify" $
       it "put 1 >> getAndModify succ" $
