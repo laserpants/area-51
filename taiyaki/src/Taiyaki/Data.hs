@@ -65,6 +65,8 @@ data Predicate a = InClass Name a
 -- data Scheme
 --  = Forall [Kind] [Predicate Generic] Generic
 
+data Qualified t = Qty [Predicate t] t
+
 -------------------------------------------------------------------------------
 
 {- ORMOLU_DISABLE -}
@@ -236,7 +238,7 @@ data ClassInfo = ClassInfo
 data ClassInstance = ClassInstance
   { classInstancePredicates :: [Predicate MonoType]
   , classInstanceSignature  :: MonoType
-  , classInstanceMethods    :: [(Name, ProgExpr MonoType)]
+  , classInstanceMethods    :: [(Name, ProgExpr (Qualified MonoType))]
   }
 
 {- ORMOLU_ENABLE -}
@@ -631,6 +633,23 @@ deriving instance Functor (ConsGroup t)
 deriving instance Foldable (ConsGroup t)
 
 deriving instance Traversable (ConsGroup t)
+
+-- Qualified
+
+deriving instance (Show a) =>
+  Show (Qualified a)
+
+deriving instance (Eq a) =>
+  Eq (Qualified a)
+
+deriving instance (Ord a) =>
+  Ord (Qualified a)
+
+deriving instance (Data a) =>
+  Data (Qualified a)
+
+deriving instance (Typeable a) =>
+  Typeable (Qualified a)
 
 -- ClassInfo
 deriving instance Show ClassInfo

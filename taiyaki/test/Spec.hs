@@ -4252,7 +4252,7 @@ testClassEnv =
               tInt
               [
                 ( "toString"
-                , eVar (tInt ~> tString) "TODO"
+                , undefined -- eVar (tInt ~> tString) "TODO"
                 )
               ]
           , ClassInstance
@@ -4260,7 +4260,7 @@ testClassEnv =
               (tListApp (tVar kTyp (MonoIndex 0)))
               [
                 ( "toString"
-                , eVar (tListApp (tVar kTyp (MonoIndex 0)) ~> tString) "TODO"
+                , undefined -- eVar (tListApp (tVar kTyp (MonoIndex 0)) ~> tString) "TODO"
                 )
               ]
           , ClassInstance
@@ -4268,7 +4268,7 @@ testClassEnv =
               (tRec (tExt "a" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))))
               [
                 ( "toString"
-                , eVar (tRec (tExt "a" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))) ~> tString) "TODO"
+                , undefined -- eVar (tRec (tExt "a" (tVar kTyp (MonoIndex 0)) (tVar kRow (MonoIndex 1))) ~> tString) "TODO"
                 )
               ]
           ]
@@ -4293,7 +4293,7 @@ testClassEnv =
               tInt
               [
                 ( "toInt"
-                , eVar (tInt ~> tInt) "TODO"
+                , undefined -- eVar (tInt ~> tInt) "TODO"
                 )
               ]
           ]
@@ -4318,7 +4318,7 @@ testClassEnv =
               (tCon kFun1 "List")
               [
                 ( "map"
-                , eVar ((tVar kTyp (MonoIndex 1) ~> tVar kTyp (MonoIndex 2)) ~> tApp kTyp (tVar kFun1 (MonoIndex 0)) (tVar kTyp (MonoIndex 1)) ~> tApp kTyp (tVar kFun1 (MonoIndex 0)) (tVar kTyp (MonoIndex 2))) "TODO"
+                , undefined -- eVar ((tVar kTyp (MonoIndex 1) ~> tVar kTyp (MonoIndex 2)) ~> tApp kTyp (tVar kFun1 (MonoIndex 0)) (tVar kTyp (MonoIndex 1)) ~> tApp kTyp (tVar kFun1 (MonoIndex 0)) (tVar kTyp (MonoIndex 2))) "TODO"
                 )
               ]
           ]
@@ -4343,7 +4343,7 @@ testClassEnv =
               tInt
               [
                 ( "(==)"
-                , eVar (tInt ~> tInt ~> tBool) "TODO"
+                , undefined -- eVar (tInt ~> tInt ~> tBool) "TODO"
                 )
               ]
           , ClassInstance -- Eq a => Eq (List a)
@@ -4351,7 +4351,7 @@ testClassEnv =
               (tListApp (tVar kTyp (MonoIndex 0)))
               [
                 ( "(==)"
-                , eVar (tListApp (tVar kTyp (MonoIndex 0)) ~> tListApp (tVar kTyp (MonoIndex 0)) ~> tBool) "TODO"
+                , undefined -- eVar (tListApp (tVar kTyp (MonoIndex 0)) ~> tListApp (tVar kTyp (MonoIndex 0)) ~> tBool) "TODO"
                 )
               ]
           ]

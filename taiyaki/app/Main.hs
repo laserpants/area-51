@@ -4,6 +4,7 @@ import Control.Monad.Reader
 import Taiyaki.Data
 import Taiyaki.Lang
 import Taiyaki.Tree
+import Prelude hiding (print, showString)
 
 testConstructorEnv :: ConstructorEnv
 testConstructorEnv =
@@ -295,4 +296,70 @@ testConstructorEnv =
 -- test6x = con (tList tInt) "(::)" [eVar tInt "a", con (tList tInt) "[]" []] :: Expr (Type Int)
 
 main :: IO ()
-main = print ("X" :: String) -- print kTyp
+main = pure () -- print ("X" :: String) -- print kTyp
+
+-- data Show_ a = Show_ { show :: a -> String }
+
+-- show_ :: (a -> String) -> a -> String
+-- show_ f = f
+--
+-- f1 :: (a -> String) -> (b -> String) -> (a, b) -> String
+-- f1 f g (p, q) = "(" <> f p <> "," <> g q <> ")"
+--
+-- f2 :: Int -> String
+-- f2 = show
+--
+-- f3 :: String -> String
+-- f3 = id
+--
+-- abc :: (String, String)
+-- abc =
+--  let g h x = show_ (f1 h h) (x, x)
+--   in
+--     (g f2 5, g f3 "foo")
+--
+
+printPair0 :: (Print0 a, Print0 b) => (a, b) -> String
+printPair0 (x, y) = "(" <> print0 x <> "," <> print0 y <> ")"
+
+class Print0 a where
+  print0 :: a -> String
+
+instance Print0 Int where
+  print0 = show
+
+instance (Print0 a, Print0 b) => Print0 (a, b) where
+  print0 = printPair0
+
+--
+
+newtype Print a = Print
+  {print :: a -> String}
+
+-- instance Print Int where ...
+printInt :: Print Int
+printInt = Print{print = show}
+
+-- instance Print String where ...
+printString :: Print String
+printString = Print{print = id}
+
+-- instance (Print a, Print b) => Print (a, b) where ...
+printPair :: (Print a, Print b) -> Print (a, b)
+printPair (d1, d2) =
+  Print
+    { print = \(a, b) -> "(" <> print d1 a <> "," <> print d2 b <> ")"
+    }
+
+-- abc :: (String, String)
+-- abc =
+--  let
+--      g x = print (x, x)     -- print : Print (a, a) -> (a, a) -> string
+--   in
+--     (g 5, g "foo")          -- g : Print int -> int -> string , g : Print string -> string -> string
+
+abc :: (String, String)
+abc =
+  let g :: Print a -> a -> String
+      g h x = print (printPair (h, h)) (x, x)
+   in (g printInt 5, g printString "foo")

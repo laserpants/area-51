@@ -3,6 +3,7 @@ module Data where
 import Taiyaki.Data
 import Taiyaki.Data.Cons
 import Taiyaki.Lang
+import qualified Taiyaki.Util.Env as Env
 
 --
 -- let
@@ -39,8 +40,6 @@ testExpr1 =
         ]
     )
     (eVar () "xs")
-
-data Qualified t = Qty [Predicate t] t
 
 -- map : [Functor f] => (a -> b) -> f a  -> f b
 --
@@ -408,15 +407,16 @@ testExpr9 =
 testExpr10 :: (Functor e2, Functor e3) => Expr (Qualified MonoType) [Pattern (Qualified MonoType)] e2 e3 (Binding (Qualified MonoType))
 testExpr10 =
   eLet
-    undefined
+    (Qty [InClass "Show" (tVar kTyp (MonoIndex 0))] (tVar kTyp (MonoIndex 0) ~> tString))
     (BPat undefined (pVar undefined "g"))
     ( eLam
         undefined
-        [ pVar undefined "x"
+        [ pVar (Qty [] (tVar kTyp (MonoIndex 0))) "x"
         ]
         ( eApp
             undefined
-            (eVar undefined "print")
+            -- print : (Show ('0, '0)) => ('0, '0) -> string
+            (eVar (Qty [InClass "Show" (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)])] (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)] ~> tString)) "print")
             [ eTup
                 undefined
                 [ eVar undefined "x"
@@ -442,4 +442,157 @@ testExpr10 =
 
 --     (g(5), g("foo"))
 --
-    -- (eVar (Qty [InClass "Show" (tVar kTyp (MonoIndex 0))] (tVar kTyp (MonoIndex 0) ~> tString)) "print")
+-- (eVar (Qty [InClass "Show" (tVar kTyp (MonoIndex 0))] (tVar kTyp (MonoIndex 0) ~> tString)) "print")
+--
+
+testClassEnv20 :: ClassEnv
+testClassEnv20 =
+  Env.fromList
+    [
+      ( "Print"
+      , -- Interface
+
+        ( ClassInfo
+            []
+            (kTyp, "a")
+            [
+              ( "print"
+              , tVar kTyp "a" ~> tString
+              )
+            ]
+        , -- Instances
+
+          [ ClassInstance
+              []
+              tInt
+              [
+                ( "print"
+                , eVar (Qty [] (tInt ~> tString)) "printInt"
+                )
+              ]
+          , ClassInstance
+              []
+              tString
+              [
+                ( "print"
+                , eVar (Qty [] (tString ~> tString)) "id"
+                )
+              ]
+          , ClassInstance
+              [ InClass "Print" (tVar kTyp (MonoIndex 0))
+              , InClass "Print" (tVar kTyp (MonoIndex 1))
+              ]
+              (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 1)])
+              [
+                ( "print"
+                , eVar
+                    ( Qty
+                        [ InClass "Print" (tVar kTyp (MonoIndex 0))
+                        , InClass "Print" (tVar kTyp (MonoIndex 1))
+                        ]
+                        (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 1)] ~> tString)
+                    )
+                    "printPair"
+                )
+              ]
+          ]
+        )
+      )
+    ]
+
+--  let
+--    g =
+--      lam(x) =>
+--        print((x, x))
+--    in
+--      (g(5), g("foo"))
+
+testExpr20 :: (Functor e2, Functor e3) => Expr (Qualified MonoType) [Pattern (Qualified MonoType)] e2 e3 (Binding (Qualified MonoType))
+testExpr20 =
+  eLet
+    (Qty [] (tup () [tString, tString]))
+    ( BPat
+        ( Qty
+            [InClass "Print" (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)])]
+            (tVar kTyp (MonoIndex 0) ~> tString)
+        )
+        (pVar (Qty [] (tVar kTyp (MonoIndex 0) ~> tString)) "g")
+    )
+    ( eLam
+        (Qty [] (tVar kTyp (MonoIndex 0) ~> tString))
+        [pVar (Qty [] (tVar kTyp (MonoIndex 0))) "x"]
+        ( eApp
+            (Qty [] tString)
+            ( eVar
+                ( Qty
+                    [InClass "Print" (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)])]
+                    (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)] ~> tString)
+                )
+                "print"
+            )
+            [ eTup
+                (Qty [] (tup () [tVar kTyp (MonoIndex 1), tVar kTyp (MonoIndex 1)]))
+                [ eVar (Qty [] (tVar kTyp (MonoIndex 1))) "x"
+                , eVar (Qty [] (tVar kTyp (MonoIndex 1))) "x"
+                ]
+            ]
+        )
+    )
+    ( eTup
+        (Qty [] (tup () [tString, tString]))
+        [ eApp
+            (Qty [] tString)
+            (eVar (Qty [InClass "Print" (tup () [tInt, tInt])] (tInt ~> tString)) "g")
+            [eLit (Qty [] tInt) (IInt 5)]
+        , eApp
+            (Qty [] tString)
+            (eVar (Qty [InClass "Print" (tup () [tString, tString])] (tString ~> tString)) "g")
+            [eLit (Qty [] tString) (IString "foo")]
+        ]
+    )
+
+testExpr21 :: (Functor e2, Functor e3) => Expr MonoType [Pattern MonoType] e2 e3 (Binding MonoType)
+testExpr21 =
+  eLet
+    (tup () [tString, tString])
+    undefined
+    undefined
+    -- (BPat
+    --  (Qty [InClass "Print" (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)])] (tVar kTyp (MonoIndex 0) ~> tString))
+    --  (pVar (Qty [] (tVar kTyp (MonoIndex 0) ~> tString)) "g"))
+    -- ( eLam
+    --    (Qty [] (tVar kTyp (MonoIndex 0) ~> tString))
+    --    [pVar (Qty [] (tVar kTyp (MonoIndex 0))) "x"]
+    --    ( eApp
+    --        (Qty [] tString)
+    --        ( eVar
+    --            ( Qty
+    --                [InClass "Print" (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)])]
+    --                (tup () [tVar kTyp (MonoIndex 0), tVar kTyp (MonoIndex 0)] ~> tString)
+    --            )
+    --            "print"
+    --        )
+    --        [ eTup
+    --            (Qty [] (tup () [tVar kTyp (MonoIndex 1), tVar kTyp (MonoIndex 1)]))
+    --            [ eVar (Qty [] (tVar kTyp (MonoIndex 1))) "x"
+    --            , eVar (Qty [] (tVar kTyp (MonoIndex 1))) "x"
+    --            ]
+    --        ]
+    --    )
+    -- )
+    ( eTup
+        (tup () [tString, tString])
+        [ eApp
+            tString
+            (eVar (con kTyp "Print" [tup () [tInt, tInt]] ~> tInt ~> tString) "g")
+            [ undefined -- eVar (con kTyp "Print" [tInt]) "TODO"
+            , eLit tInt (IInt 5)
+            ]
+        , eApp
+            tString
+            (eVar (con kTyp "Print" [tup () [tString, tString]] ~> tString ~> tString) "g")
+            [ undefined -- eVar (con kTyp "Print" [tString]) "TODO"
+            , eLit tString (IString "foo")
+            ]
+        ]
+    )
