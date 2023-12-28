@@ -1,0 +1,10 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "pong:lib"
+
+    - path: "./app/Main.hs"
+      component: "pong:exe:pong-exe"
+
+    - path: "./test"
+      component: "pong:test:pong-test"
