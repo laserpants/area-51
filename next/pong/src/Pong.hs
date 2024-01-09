@@ -11,7 +11,6 @@
 {-# LANGUAGE TupleSections #-}
 module Pong where
 
---import Debug.Trace
 import Control.Arrow ((>>>))
 import Control.Monad.Except
 import Control.Monad.Identity
@@ -22,14 +21,16 @@ import Control.Monad.Writer
 import Data.Char (isUpper)
 import Data.Fix
 import Data.Foldable (foldMap', foldrM)
+import Data.Function (on)
 import Data.Int (Int32, Int64)
-import Data.List (foldl1')
+import Data.List (foldl1', sortBy, groupBy)
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty, (<|))
 import Data.Map.Strict (Map, (!))
 import Data.Maybe (fromMaybe)
 import Data.Set (Set, member)
 import Data.Text (Text)
 import Data.Tuple.Extra
+import Debug.Trace
 import Prelude hiding (map)
 import TextShow
 import qualified Data.List.NonEmpty as NonEmpty
@@ -44,6 +45,8 @@ type Name = Text
 data Type
   = TCon !Name ![Type]
   | TVar !Int
+  | RNil
+  | RExt !Name ![Type] !Type
   deriving (Show, Eq, Ord, Read)
 
 data Scheme = Forall !(Set Int) !Type
@@ -86,6 +89,9 @@ data Label t = Label !t !Name
 data Clause t = Clause !(List1 (Label t)) !(Expr t)
   deriving (Show, Eq, Ord, Read, Functor, Foldable, Traversable)
 
+data Focus t = Focus !(Label t) !(Label t) !(Label t)
+  deriving (Show, Eq, Ord, Read, Functor, Foldable, Traversable)
+
 data Expr t
   = EVar !(Label t)
   | ELit !Prim
@@ -96,6 +102,9 @@ data Expr t
   | EOp1 !(t, Op1) !(Expr t)
   | EOp2 !(t, Op2) !(Expr t) !(Expr t)
   | EPat !(Expr t) !(List1 (Clause t))
+  | ENil
+  | EExt !Name !(Expr t) !(Expr t)
+  | ERes !(Focus t) !(Expr t) !(Expr t)
   deriving (Show, Eq, Ord, Read, Functor, Foldable, Traversable)
 
 newtype Substitution = Sub { unSub :: Map Int Type }
@@ -148,6 +157,9 @@ instance (Typed t) => Typed (Expr t) where
       EOp1 (t, _) _   -> typeOf t
       EOp2 (t, _) _ _ -> typeOf t
       EPat _ (c:|_)   -> typeOf c
+      ENil            -> RNil
+      ERes _ _ e      -> typeOf e
+      EExt n e1 e2    -> normalizeRow (RExt n [typeOf e1] (typeOf e2))
 
 class Substitutable s where
   apply :: Substitution -> s -> s
@@ -188,10 +200,14 @@ instance Substitutable Type where
     \case
       TCon name ts -> TCon name (apply sub ts)
       TVar t       -> fromMaybe (TVar t) (Map.lookup t (unSub sub))
+      RNil         -> RNil
+      RExt n ts t  -> RExt n (apply sub ts) (apply sub t)
   tvars =
     \case
       TCon _ ts    -> tvars ts
       TVar t       -> Set.singleton t
+      RNil         -> mempty
+      RExt _ ts t  -> tvars ts <> tvars t
 
 instance Substitutable Scheme where
   apply sub (Forall vs t) =
@@ -237,6 +253,9 @@ instance Bound (Label t) where
 instance (Bound b) => Bound (b, Expr t) where
   bound (b, _) = bound b
 
+instance Bound (Focus b) where
+  bound (Focus _ ll1 ll2) = bound ll1 <> bound ll2
+
 class Free f t where
   free :: f -> Set (t, Name)
 
@@ -270,6 +289,9 @@ instance (Ord t) => Free (Expr t) t where
       EOp1 _ e1        -> free e1
       EOp2 _ e1 e2     -> free e1 <> free e2
       EPat e1 cs       -> free e1 <> free cs
+      ENil             -> mempty
+      EExt _ e1 e2     -> free e1 <> free e2
+      ERes f e1 e2     -> free e1 <> (free e2 `withoutVars` bound f)
 
 op1Type :: Op1 -> Scheme
 op1Type =
@@ -328,8 +350,34 @@ scheme = Forall . Set.fromList
 mono :: Type -> Scheme
 mono = Forall mempty
 
-foldType :: Type -> [Type] -> Type
+foldType :: (Foldable f) => Type -> f Type -> Type
 foldType = foldr tArr
+
+foldRow :: Type -> Map Name [Type] -> Type
+foldRow = Map.foldrWithKey RExt
+
+unfoldRow :: Type -> (Type, Map Name [Type])
+unfoldRow =
+  \case
+    RExt name ts t -> second (Map.insertWith (<>) name ts) (unfoldRow t)
+    t              -> (t, mempty)
+
+removeField :: Name -> Map Name [a] -> Map Name [a]
+removeField = Map.update $ \case
+  (_:a:as) -> Just (a:as)
+  (_:_)    -> Nothing
+  []       -> Nothing
+
+normalizeRow :: Type -> Type
+normalizeRow = uncurry foldRow . unfoldRow
+
+normalizeAllRows :: Type -> Type
+normalizeAllRows =
+  \case
+    TCon name ts   -> TCon name (normalizeAllRows <$> ts)
+    TVar var       -> TVar var
+    RNil           -> RNil
+    RExt name ts t -> normalizeRow (RExt name (normalizeAllRows <$> ts) t)
 
 unLabel :: Label t -> (Name, t)
 unLabel (Label t name) = (name, t)
@@ -343,8 +391,8 @@ unfoldType =
 arity :: Type -> Int
 arity t = NonEmpty.length (unfoldType t) - 1
 
-applyN :: Int -> Type -> Type
-applyN n = foldl1' tArr . NonEmpty.drop n . unfoldType
+-- applyN :: Int -> Type -> Type
+-- applyN n = foldl1' tArr . NonEmpty.drop n . unfoldType
 
 --
 
@@ -395,6 +443,12 @@ envElems = Map.elems . unEnv
 insertArgs :: (Functor f, Foldable f) => f (Label Type) -> TypeEnv -> TypeEnv
 insertArgs = envInserts . (unLabel <$>) . (mono <$$>)
 
+unfoldRec :: Expr t -> (Expr t, Map Name [Expr t])
+unfoldRec =
+  \case
+    EExt name es e -> second (Map.insertWith (<>) name [es]) (unfoldRec e)
+    e              -> (e, mempty)
+
 zeroIndexed :: Expr Type -> Expr Type
 zeroIndexed expr = apply (zipSub vs ts) expr
   where
@@ -404,8 +458,8 @@ zeroIndexed expr = apply (zipSub vs ts) expr
 data InferState = InferState { count :: !Int, substitution :: !Substitution }
   deriving (Show, Eq, Ord)
 
-initialInferState :: InferState
-initialInferState = InferState 0 mempty
+initialState :: InferState
+initialState = InferState 0 mempty
 
 overSubstitution :: (Substitution -> Substitution) -> InferState -> InferState
 overSubstitution f InferState{..} = InferState { substitution = f substitution, .. }
@@ -447,6 +501,23 @@ unifyTypes t1 (TVar t) = bindType t t1
 unifyTypes (TCon c1 ts1) (TCon c2 ts2)
   | c1 == c2  = unifyAll ts1 ts2
   | otherwise = throwError "Cannot unify"
+unifyTypes r1@RExt{} r2@RExt{} = unifyRows r1 r2
+unifyTypes RNil RNil = pure ()
+unifyTypes _ _       = throwError "Cannot unify"
+
+unifyRows :: Type -> Type -> Infer ()
+unifyRows (RExt n1 ts1 t1) r2@(RExt n2 ts2 t2)
+  | n1 == n2  = unifyAll (t1:ts1) (t2:ts2)
+  | t1 == t2  = throwError "Cannot unify"
+  | otherwise = do
+      let (s, m) = unfoldRow r2
+      case Map.lookup n1 m of
+        Nothing -> do
+          v <- fresh
+          unifyAll [s, t1] [RExt n1 ts1 v, foldRow v m]
+        Just us ->
+          unifyAll (t1:ts1) (foldRow s (removeField n1 m):us)
+unifyRows _ _ = error "Implementation error"
 
 unify :: (Typed a1, Typed a2) => a1 -> a2 -> Infer ()
 unify a1 a2 = do
@@ -496,14 +567,14 @@ inferExpr =
       a <- local (insertArgs as) (inferExpr e1)
       pure (ELam as a)
     ELet vs e1 -> do
-      let lbls = unLabel . fst <$> vs
-      let vars = second (mono . TVar) <$> lbls
+      let lls = unLabel . fst <$> vs
+      let vars = second (mono . TVar) <$> lls
       as <- traverse (local (envInserts vars) . inferExpr . snd) vs
-      forM_ (NonEmpty.zip lbls as) $ \((_, t), a) ->
+      forM_ (NonEmpty.zip lls as) $ \((_, t), a) ->
         TVar t `unify` a
       sub <- gets substitution
-      let ts = apply sub . TVar . snd <$> lbls
-      let names = fst <$> lbls
+      let ts = apply sub . TVar . snd <$> lls
+      let names = fst <$> lls
       ss <- traverse generalize ts
       a1 <- local (envInserts (NonEmpty.zip names ss)) (inferExpr e1)
       pure (ELet (NonEmpty.zip (NonEmpty.zipWith Label ts names) as) a1)
@@ -523,6 +594,21 @@ inferExpr =
       h :| tl <- traverse (inferClause (typeOf a1)) cs
       forM_ tl (unify h)
       pure (EPat a1 (h :| tl))
+    ENil -> pure ENil
+    EExt n e1 e2 ->
+      EExt n <$> inferExpr e1 <*> inferExpr e2
+    ERes (Focus (Label _ n1) (Label t2 n2) (Label t3 n3)) e1 e2 -> do
+      a1 <- inferExpr e1
+      case focusField n1 a1 of
+        Just (n, r) -> do
+          n `unify` TVar t2
+          r `unify` TVar t3
+          sub <- gets substitution
+          s2 <- generalize (apply sub (TVar t2))
+          a2 <- local (envInserts [(n2, s2), (n3, mono (apply sub (TVar t3)))]) (inferExpr e2)
+          pure (ERes (Focus (Label (TVar t2) n1) (Label (TVar t2) n2) (Label (TVar t3) n3)) a1 a2)
+        Nothing ->
+          throwError "Cannot unify"
   where
     inferName (Label t name) = do
       t1 <- lookupName name
@@ -536,6 +622,17 @@ inferExpr =
       a1 <- local (insertArgs as) (inferExpr e1)
       pure (Clause ((TVar <$> ll) :| as) a1)
 
+focusField :: Name -> Expr t -> Maybe (Expr t, Expr t)
+focusField name =
+  \case
+    r@EExt{} -> do
+      let (e, m) = unfoldRec r
+      case Map.lookup name m of
+        Just (e1:_) ->
+          Just (e1, Map.foldrWithKey (flip . foldr . EExt) e (removeField name m))
+        _ -> Nothing
+    _     -> Nothing
+
 instantiate :: Scheme -> Infer Type
 instantiate (Forall vs t) = do
   ts <- replicateM (Set.size vs) fresh
@@ -546,8 +643,11 @@ generalize t = do
   env <- ask
   pure (Forall (tvars t `Set.difference` tvars env) t)
 
+runInferCount :: Int -> TypeEnv -> Infer a -> Either String (a, InferState)
+runInferCount count env val = runExcept (runStateT (runReaderT (unInfer val) env) initialState{ count = count })
+
 runInfer :: TypeEnv -> Infer a -> Either String (a, InferState)
-runInfer env val = runExcept (runStateT (runReaderT (unInfer val) env) initialInferState)
+runInfer env val = runExcept (runStateT (runReaderT (unInfer val) env) initialState)
 
 typeExpr :: TypeEnv -> Expr () -> Either String (Expr Type)
 typeExpr env val = applySub <$> runInfer env (tagExpr val >>= inferExpr)
@@ -583,6 +683,9 @@ data ExprF t a
   | FOp1 !(t, Op1) !a
   | FOp2 !(t, Op2) !a !a
   | FPat !a !(List1 (ClauseF t a))
+  | FNil
+  | FRes !(Focus t) !a !a
+  | FExt !Name !a !a
   deriving (Show, Eq, Ord, Read, Functor, Foldable, Traversable)
 
 toExprF :: Expr t -> Fix (ExprF t)
@@ -597,6 +700,9 @@ toExprF =
     EOp1 op e1    -> FOp1 op e1
     EOp2 op e1 e2 -> FOp2 op e1 e2
     EPat e1 cs    -> FPat e1 ((\(Clause lls e) -> ClauseF lls e) <$> cs)
+    ENil          -> FNil
+    ERes f e1 e2  -> FRes f e1 e2
+    EExt n e1 e2  -> FExt n e1 e2
 
 fromExprF :: Fix (ExprF t) -> Expr t
 fromExprF =
@@ -610,57 +716,59 @@ fromExprF =
     FOp1 op e1    -> EOp1 op e1
     FOp2 op e1 e2 -> EOp2 op e1 e2
     FPat e1 cs    -> EPat e1 ((\(ClauseF lls e) -> Clause lls e) <$> cs)
+    FNil          -> ENil
+    FRes f e1 e2  -> ERes f e1 e2
+    FExt n e1 e2  -> EExt n e1 e2
 
-flat :: ExprF t (Expr t) -> Expr t
-flat = fromExprF . Fix . fmap toExprF
+foldExprF :: (ExprF t a -> a) -> Expr t -> a
+foldExprF e = toExprF >>> foldFix e
+
+go :: ExprF t (Expr t) -> Expr t
+go = fromExprF . Fix . fmap toExprF
 
 para :: Functor f => (f (Fix f, a) -> a) -> Fix f -> a
-para f = go where go = f . fmap ((,) <*> go) . unFix
+para f = rec where rec = f . fmap ((,) <*> rec) . unFix
 
 paraM :: (Monad m, Traversable t) => (t (Fix t, a) -> m a) -> Fix t -> m a
-paraM f = go where go = f <=< mapM ((\g x -> (x, ) <$> g x) go) . unFix
+paraM f = rec where rec = f <=< mapM ((\g z -> (z, ) <$> g z) rec) . unFix
 
 substVars :: (Foldable f) => f (Name, Name) -> Expr t -> Expr t
 substVars names expr = foldr (uncurry substVar) expr names
 
 substVar :: Name -> Name -> Expr t -> Expr t
-substVar var new = relabel var (\t -> EVar (Label t new))
+substVar var new = replaceVar var (\t -> EVar (Label t new))
 
-relabelM :: (Monad m) => Name -> (t -> m (Expr t)) -> Expr t -> m (Expr t)
-relabelM name f = modExpr . toExprF
+replaceVarM :: (Monad m) => Name -> (t -> m (Expr t)) -> Expr t -> m (Expr t)
+replaceVarM name f =
+  toExprF >>> paraM
+    (\case
+      FVar (Label t var)
+        | var == name -> f t
+        | otherwise   -> pure $ EVar (Label t var)
+
+      FLet vs e1
+        | name `matchesAnyLabel` (fst <$> vs) -> pure $ ELet (second (fromExprF . fst) <$> vs) (fromExprF (fst e1))
+        | otherwise                           -> pure $ ELet (second snd <$> vs) (snd e1)
+
+      FLam lls e1
+        | name `matchesAnyLabel` lls -> pure $ ELam lls (fromExprF (fst e1))
+        | otherwise                  -> pure $ ELam lls (snd e1)
+
+      FPat e1 cs ->
+        pure $ EPat (snd e1) (modClause <$> cs)
+
+      FRes s@(Focus _ ll1 ll2) e1 e2
+        | name `matchesAnyLabel` [ll1, ll2] -> pure $ ERes s (fromExprF (fst e1)) (fromExprF (fst e2))
+        | otherwise                         -> pure $ ERes s (snd e1) (snd e2)
+
+      e -> pure $ go (snd <$> e))
   where
-    modExpr =
-      paraM $ \case
-        FVar (Label t var)
-          | var == name -> f t
-          | otherwise   -> pure $ EVar (Label t var)
-
-        FLet vs e1
-          | name `matchesAnyLabel` (fst <$> vs) -> pure $ ELet (second (fromExprF . fst) <$> vs) (fromExprF (fst e1))
-          | otherwise                           -> pure $ ELet (second snd <$> vs) (snd e1)
-
-        FLam lls e1
-          | name `matchesAnyLabel` lls -> pure $ ELam lls (fromExprF (fst e1))
-          | otherwise                  -> pure $ ELam lls (snd e1)
-
-        FPat e1 cs ->
-          pure $ EPat (snd e1) (modClause <$> cs)
-
-        e ->
-          pure $ flat (snd <$> e)
-
---        FLit prim     -> pure $ ELit prim
---        FIf e1 e2 e3  -> pure $ EIf (snd e1) (snd e2) (snd e3)
---        FApp t e1 es  -> pure $ EApp t (snd e1) (snd <$> es)
---        FOp1 op e1    -> pure $ EOp1 op (snd e1)
---        FOp2 op e1 e2 -> pure $ EOp2 op (snd e1) (snd e2)
-
     modClause (ClauseF lls e)
       | name `matchesAnyLabel` lls = Clause lls (fromExprF (fst e))
       | otherwise                  = Clause lls (snd e)
 
-relabel :: Name -> (t -> Expr t) -> Expr t -> Expr t
-relabel name f = runIdentity . relabelM name (pure . f)
+replaceVar :: Name -> (t -> Expr t) -> Expr t -> Expr t
+replaceVar name f = runIdentity . replaceVarM name (pure . f)
 
 matchesLabel :: Name -> Label t -> Bool
 matchesLabel name (Label _ label) = name == label
@@ -683,34 +791,38 @@ suffixNames =
     FLet vs e1 -> do
       let (lls, es) = NonEmpty.unzip vs
       sub <- mapping lls
-      exprs <- sequence (substVars sub <$$> es)
-      ELet (NonEmpty.zip (relabeled sub lls) exprs) . substVars sub <$> e1
+      as <- sequence (substVars sub <$$> es)
+      ELet (NonEmpty.zip (relabeled sub lls) as) . substVars sub <$> e1
     FLam lls e1 -> do
       sub <- mapping lls
       ELam (relabeled sub lls) . substVars sub <$> e1
+    FRes f e1 e2 -> do
+      (f', sub) <- suffixFocus f
+      ERes f' <$> e1 <*> (substVars sub <$> e2)
     FPat e1 cs ->
       EPat <$> e1 <*> traverse suffixClause cs
     e ->
-      flat <$> sequence e
+      go <$> sequence e
   where
+    suffixFocus (Focus ll1 (Label t2 n2) (Label t3 n3)) = do
+      sub <- mapping [Label t2 n2, Label t3 n3]
+      case snd <$> sub of
+        [n2', n3'] -> pure (Focus ll1 (Label t2 n2') (Label t3 n3'), sub)
+        (_:_) -> error "Implementation error"
+        []    -> error "Implementation error"
+
     suffixClause (ClauseF lls e) = do
       sub <- mapping lls
       Clause (relabeled sub lls) . substVars sub <$> e
 
-    relabeled = NonEmpty.zipWith (\s (Label t _) -> Label t (snd s))
+    relabeled =
+      NonEmpty.zipWith (\s (Label t _) -> Label t (snd s))
 
     mapping lls =
       forM lls (\(Label _ name) -> do
         if isConstructor name
           then pure (name, name)
           else (name ,) <$> suffixed (name <> "."))
-
---    FVar var      -> pure $ EVar var
---    FLit prim     -> pure $ ELit prim
---    FIf  e1 e2 e3 -> EIf <$> e1 <*> e2 <*> e3
---    FApp t e1 es  -> EApp t <$> e1 <*> sequence es
---    FOp1 op e1    -> EOp1 op <$> e1
---    FOp2 op e1 e2 -> EOp2 op <$> e1 <*> e2
 
 isPolymorphic :: Type -> Bool
 isPolymorphic = not . Set.null . tvars
@@ -720,17 +832,15 @@ data BindGroup = Binds
   , bindExpr :: !(Expr Type)
   } deriving (Show, Eq, Ord, Read)
 
-bgFromExpr :: List1 (Label Type, Expr Type) -> Expr Type -> BindGroup
-bgFromExpr = Binds . foldr (\(Label t name, expr) -> Map.insert name (t, expr)) mempty
-
-bgToExpr :: BindGroup -> Expr Type
-bgToExpr (Binds vars expr) =
-  case nonEmpty (Map.toList vars) of
-    Just vs -> ELet ((\(name, (t, e)) -> (Label t name, e)) <$> vs) expr
-    Nothing -> error "Implementation error"
-
 updateBindGroup :: (BindGroup -> BindGroup) -> List1 (Label Type, Expr Type) -> Expr Type -> Expr Type
-updateBindGroup f = bgToExpr . f <$$> bgFromExpr
+updateBindGroup f = from . f <$$> to
+  where
+    to =
+      Binds . foldr (\(Label t name, expr) -> Map.insert name (t, expr)) mempty
+    from (Binds vars expr) =
+      case nonEmpty (Map.toList vars) of
+        Just vs -> ELet ((\(name, (t, e)) -> (Label t name, e)) <$> vs) expr
+        Nothing -> error "Implementation error"
 
 bgKeys :: BindGroup -> [Name]
 bgKeys (Binds vs _) = Map.keys vs
@@ -755,29 +865,13 @@ updateBindings key Binds{..}
     run a = evalState (runWriterT a) 0
 
 monomorphize :: Expr Type -> Expr Type
-monomorphize = toExprF >>>
-  foldFix (\case
+monomorphize = foldExprF $
+  \case
     FLet vs e1 -> updateBindGroup (\bg -> foldr updateBindings bg (bgKeys bg)) vs e1
-    e -> flat e)
-
---monomorphize :: Expr Type -> Expr Type
---monomorphize = toExprF >>>
---  foldFix (\case
---    FLet vs e1 ->
---      let compile bg = foldr updateBindings bg (bgKeys bg)
---       in bgToExpr (compile (bgFromExpr vs e1))
---
---    FVar var      -> EVar var
---    FLit prim     -> ELit prim
---    FIf  e1 e2 e3 -> EIf e1 e2 e3
---    FApp t e1 es  -> EApp t e1 es
---    FLam lls e1   -> ELam lls e1
---    FOp1 op e1    -> EOp1 op e1
---    FOp2 op e1 e2 -> EOp2 op e1 e2
---    FPat e1 cs    -> EPat e1 (fmap (\(ClauseF lls e) -> Clause lls e) cs))
+    e -> go e
 
 updateRefs :: (MonadState Int m, MonadWriter [(Name, t)] m) => Name -> Expr t -> m (Expr t)
-updateRefs name = relabelM name $ \t -> do
+updateRefs name = replaceVarM name $ \t -> do
   new <- suffixed (name <> ".")
   tell [(new, t)]
   pure (EVar (Label t new))
@@ -806,16 +900,7 @@ dictionary expr = Map.fromList (("$fun._", ([], main)) : defs)
           tell [(name, (labels, e1))]
           pure (EVar (Label (funType e1 labels) name))
         e ->
-          flat <$> sequence e
-
---        FVar var        -> pure (EVar var)
---        FLit prim       -> pure (ELit prim)
---        FIf e1 e2 e3    -> EIf <$> e1 <*> e2 <*> e3
---        FLet vs e1      -> ELet <$> traverse sequence vs <*> e1
---        FApp t e1 es    -> EApp t <$> e1 <*> sequence es
---        FOp1 op e1      -> EOp1 op <$> e1
---        FOp2 op e1 e2   -> EOp2 op <$> e1 <*> e2
---        FPat e1 cs      -> EPat <$> e1 <*> traverse (\(ClauseF lls e) -> Clause lls <$> e) cs
+          go <$> sequence e
 
 simplifyLets :: Dictionary t -> Dictionary t
 simplifyLets m = substVars vars <$$> m'
@@ -834,16 +919,7 @@ simplifyLets m = substVars vars <$$> m'
               pure ls
             fn l ls = pure (l:ls)
         e ->
-          pure (flat e)
-
---        FVar var      -> pure $ EVar var
---        FLam lls e1   -> pure $ ELam lls e1
---        FLit prim     -> pure $ ELit prim
---        FIf e1 e2 e3  -> pure $ EIf e1 e2 e3
---        FApp t e1 es  -> pure $ EApp t e1 es
---        FOp1 op e1    -> pure $ EOp1 op e1
---        FOp2 op e1 e2 -> pure $ EOp2 op e1 e2
---        FPat e1 cs    -> pure $ EPat e1 ((\(ClauseF lls e) -> Clause lls e) <$> cs)
+          pure (go e)
 
 freeIn :: (Ord t) => Name -> Dictionary t -> Set (t, Name)
 freeIn name m =
@@ -867,42 +943,23 @@ applyArgs :: Name -> [Label Type] -> Expr Type -> Expr Type
 applyArgs _ [] = id
 applyArgs name (a:as) = flattenApps . fn
   where
-    fn = toExprF >>> foldFix (\case
+    fn = foldExprF $ \case
       FVar (Label t var)
         | name == var ->
             let e1 = EVar (Label (foldType t (typeOf <$> (a:as))) var)
              in EApp t e1 (EVar <$> a:|as)
         | otherwise -> EVar (Label t var)
       e ->
-        flat e)
-
---      FApp t e1 es  -> EApp t e1 es
---      FLet vs e1    -> ELet vs e1
---      FLit prim     -> ELit prim
---      FIf  e1 e2 e3 -> EIf e1 e2 e3
---      FLam lls e1   -> ELam lls e1
---      FOp1 op e1    -> EOp1 op e1
---      FOp2 op e1 e2 -> EOp2 op e1 e2
---      FPat e1 cs    -> EPat e1 (fmap (\(ClauseF lls e) -> Clause lls e) cs))
+        go e
 
 flattenApps :: Expr t -> Expr t
-flattenApps = toExprF >>>
-  foldFix (\case
+flattenApps = foldExprF $
+  \case
     FApp t (EApp _ e1 es1) es2 -> EApp t e1 (es1 <> es2)
-    e -> flat e)
-
---    FApp t e1 es  -> EApp t e1 es
---    FVar var      -> EVar var
---    FLet vs e1    -> ELet vs e1
---    FLit prim     -> ELit prim
---    FIf  e1 e2 e3 -> EIf e1 e2 e3
---    FLam lls e1   -> ELam lls e1
---    FOp1 op e1    -> EOp1 op e1
---    FOp2 op e1 e2 -> EOp2 op e1 e2
---    FPat e1 cs    -> EPat e1 (fmap (\(ClauseF lls e) -> Clause lls e) cs))
+    e -> go e
 
 addImplicitArgs :: Dictionary Type -> Dictionary Type
-addImplicitArgs = (fn <$>)
+addImplicitArgs = fmap fn
   where
     fn (lls, expr)
       | n > 0 = ( lls <> NonEmpty.toList (NonEmpty.zipWith Label (unfoldType t) extra)
@@ -927,8 +984,11 @@ applyExtra args =
     EVar var     -> app (typeOf var) (EVar var) []
     EIf e1 e2 e3 -> EIf (applyExtra args e1) (applyExtra args e2) (applyExtra args e3)
     EPat e1 cs   -> EPat e1 (applyClause <$> cs)
+    ELet vs e1   -> ELet vs (applyExtra args e1)
+    ERes f e1 e2 -> ERes f e1 (applyExtra args e2)
+    ENil         -> error "Implementation error"
+    EExt{}       -> error "Implementation error"
     ELit{}       -> error "Implementation error"
-    ELet{}       -> error "Implementation error"
     EOp1{}       -> error "Implementation error"
     EOp2{}       -> error "Implementation error"
   where
@@ -961,6 +1021,8 @@ data Value
   = VPrim !Prim
   | VData !Name ![Value]
   | VCall !(Label Type) ![Expr Type]
+  | VNil
+  | VExt  !Name !Value !Value
   deriving (Show, Eq, Ord, Read)
 
 isConstructor :: Name -> Bool
@@ -1007,8 +1069,7 @@ eval =
           where
             args = as <> NonEmpty.toList es
 
-        VPrim{} ->
-          error "Runtime error"
+        _ -> error "Runtime error"
 
     ELet ((Label _ name, e1) :| []) e2 -> do
       val <- eval e1
@@ -1022,16 +1083,13 @@ eval =
       case val of
         VPrim (PBool True)  -> eval e2
         VPrim (PBool False) -> eval e3
-        VPrim{} -> error "Runtime error"
-        VData{} -> error "Runtime error"
-        VCall{} -> error "Runtime error"
+        _ -> error "Runtime error"
 
     EOp1 (_, op) e1 -> do
       a1 <- eval e1
       case a1 of
         VPrim p1 -> pure (VPrim (evalOp1 op p1))
-        VData{} -> error "Invalid operand"
-        VCall{} -> error "Invalid operand"
+        _ -> error "Invalid operand"
 
     EOp2 (_, op) e1 e2 -> do
       a1 <- eval e1
@@ -1046,6 +1104,18 @@ eval =
       a1 <- eval e1
       evalPat a1 (NonEmpty.toList cs)
 
+    ENil         -> pure VNil
+    EExt n e1 e2 -> VExt n <$> eval e1 <*> eval e2
+
+    ERes (Focus (Label _ name) (Label _ n) (Label _ r)) e1 e2 -> do
+      case focusField name e1 of
+        Just (a1, a2) -> do
+          v1 <- eval a1
+          v2 <- eval a2
+          local (envInserts [(n, Right v1), (r, Right v2)]) (eval e2)
+        Nothing ->
+          error "Runtime error"
+
 evalPat :: Value -> [Clause Type] -> Eval Value
 evalPat _ [] = error "No match"
 evalPat (VData con vs) ((Clause (Label _ name :| lls) expr) : cs)
@@ -1054,7 +1124,7 @@ evalPat (VData con vs) ((Clause (Label _ name :| lls) expr) : cs)
 evalPat (VPrim (PBool isTrue)) ((Clause (Label _ val :| []) expr) : cs)
   | (val == "True" && isTrue) || (val == "False" && not isTrue) = eval expr
   | otherwise = evalPat (VPrim (PBool isTrue)) cs
-evalPat _ _ = error "TODO"
+evalPat _ _ = error "Not implemented"
 
 evalOp1 :: Op1 -> Prim -> Prim
 evalOp1 ONot (PBool b)   = PBool (not b)
@@ -1121,3 +1191,116 @@ dictToEnv = Map.foldrWithKey (\k -> envInsert k . Left) envEmpty
 
 runDict :: Dictionary Type -> IO Value
 runDict dict = runEval (dictToEnv dict) (eval (snd (dict ! "$fun._")))
+
+--
+
+class Match a where
+  replace :: Name -> Name -> a -> a
+
+instance Match a => Match [a] where
+  replace = fmap <$$> replace
+
+instance Match a => Match (MClause a) where
+  replace var new (MClause con vs e) =
+    MClause con vs (replace var new e)
+
+instance Match a => Match (MExpr a) where
+  replace _ _ Fail = Fail
+  replace var new (Expr e)    = Expr (replace var new e)
+  replace var new (Case v cs) = Case v (replace var new cs)
+
+instance Match (Expr t) where
+  replace = substVar
+
+data MPattern
+  = MCon !Name ![MPattern]
+  | MVar !Name
+  deriving (Show, Eq)
+
+data MClause a = MClause !Name ![Name] !(MExpr a)
+  deriving (Show, Eq)
+
+data MExpr a
+  = Fail
+  | Expr !a
+  | Case !Name ![MClause a]
+  deriving (Show, Eq)
+
+type MatchEq a = ([MPattern], MExpr a)
+
+fstPat :: (MPattern -> a) -> MatchEq e -> a
+fstPat f (p:_, _) = f p
+fstPat _ ([], _)  = error "Empty list"
+
+conName :: MPattern -> Name
+conName (MCon name _) = name
+conName MVar{} = ""
+
+isCon :: MPattern -> Bool
+isCon MCon{} = True
+isCon MVar{} = False
+
+isVar :: MPattern -> Bool
+isVar MVar{} = True
+isVar MCon{} = False
+
+patPredicate :: MPattern -> MPattern -> Bool
+patPredicate MVar{} = isVar
+patPredicate MCon{} = isCon
+
+next :: State Int Int
+next = do
+  s <- get
+  modify (+1)
+  pure s
+
+match :: (Match a) => [Name] -> [MatchEq a] -> MExpr a -> MExpr a
+match us0 qs0 e0 = evalState (matchM us0 qs0 e0) 0 where
+  -- Empty rule
+  matchM [] [([], e)] _ = pure e
+  matchM [] _ _ = error "Implementation error"
+  matchM (u:us) qs e
+    -- Variable rule
+    | all (fstPat isVar) qs = matchM us (varRule <$> qs) e
+    -- Constructor rule
+    | all (fstPat isCon) qs = Case u <$> traverse conRule (groupByConstructor qs)
+    -- Mixed rule
+    | otherwise = matchM us qs2 e >>= matchM us qs1
+    where
+      (qs1, qs2) = partitionEqs qs
+
+      varRule (MVar var:ps, e1) = (ps, replace var u e1)
+      varRule (_, _) = error "Implementation error"
+
+      conRule gs@((MCon con ps:_, _):_) = do
+        vs <- (\f -> "$v." <> showt f) <$$> replicateM (length ps) next
+        MClause con vs <$> matchM (vs <> us) (ps' <$> gs) e
+      conRule _ = error "Implementation error"
+
+      ps' (MCon _ ps:ds, e1) = (ps <> ds, e1)
+      ps' (_, _)             = error "Implementation error"
+
+partitionEqs :: [MatchEq a] -> ([MatchEq a], [MatchEq a])
+partitionEqs [] = error "Implementation error"
+partitionEqs (eq:eqs) = span (fstPat (fstPat patPredicate eq)) (eq:eqs)
+
+groupByConstructor :: [MatchEq a] -> [[MatchEq a]]
+groupByConstructor = grouped . sorted
+  where
+    grouped = groupBy (on (==) (fstPat conName))
+    sorted  = sortBy (compare `on` fstPat conName)
+
+compileMExpr :: MExpr (Expr ()) -> Expr ()
+compileMExpr =
+  \case
+    Fail -> error "Pattern matching failure"
+    Expr expr -> expr
+    Case name cs ->
+      EPat (EVar (Label () name)) (clauseList cs)
+  where
+    compileMClause (MClause con vs e) =
+      Clause (Label () <$> (con:|vs)) (compileMExpr e)
+    clauseList cs =
+      case compileMClause <$> cs of
+        d:ds -> d:|ds
+        []   -> error "Empty list"

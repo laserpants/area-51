@@ -1,14 +1,23 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
 import Test.Hspec
 
+import Data.Fix
+import Control.Monad.State
 import Control.Arrow ((>>>))
 import Data.Foldable
 import Data.Functor
+import Data.Map.Strict (Map)
+import Data.Function (on)
+import Data.List (sortBy, groupBy)
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.Map.Strict ((!))
 import Data.Set (Set)
+import TextShow
 import Pong
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -38,7 +47,7 @@ eApp :: t -> Expr t -> [Expr t] -> Expr t
 eApp t e =
   \case
     a:as -> EApp t e (a:|as)
-    [] -> error "Empty list"
+    [] -> e
 
 eLam :: [Label t] -> Expr t -> Expr t
 eLam lls e =
@@ -207,7 +216,24 @@ testInferExpr :: SpecWith ()
 testInferExpr = do
   describe "inferExpr" $ do
     mapM_ (uncurry inferExprShouldEqual)
-      [ -- let id = lam(x) => x in if id(true) then id(1) else 2
+      [ -- field { name = n | r } = { id = 1 } in n
+        ( ERes 
+            (Focus (Label () "name") (Label () "n") (Label () "r"))
+            (EExt "id" (ELit (PInt32 1)) ENil)
+            (EVar (Label () "n"))
+        , Left "Cannot unify"
+        )
+      , -- field { name = n | r } = { name = "Bob", id = 1 } in n
+        ( ERes 
+            (Focus (Label () "name") (Label () "n") (Label () "r"))
+            (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
+            (EVar (Label () "n"))
+        , Right $ ERes 
+            (Focus (Label tString "name") (Label tString "n") (Label (RExt "id" [tInt32] RNil) "r"))
+            (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
+            (EVar (Label tString "n"))
+        )
+      , -- let id = lam(x) => x in if id(true) then id(1) else 2
         ( eLet
             [
               ( Label () "id"
@@ -985,7 +1011,18 @@ testQualifyNames :: SpecWith ()
 testQualifyNames = do
   describe "qualifyNames" $ do
     mapM_ (uncurry qualifyNamesShouldEqual)
-      [ -- let f = 1 ; g = 2 in let f  = 2 in f
+      [ --  field { name = n | r } = { name = "Bob", id = 1 } in n
+        ( ERes 
+            (Focus (Label () "name") (Label () "n") (Label () "r"))
+            (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
+            (EVar (Label () "n"))
+        -- field { name = n.0 | r.1 } = { name = "Bob", id = 1 } in n.0
+        , ERes 
+            (Focus (Label () "name") (Label () "n.0") (Label () "r.1"))
+            (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
+            (EVar (Label () "n.0"))
+        )
+      , -- let f = 1 ; g = 2 in let f  = 2 in f
         ( eLet [(Label () "f", ELit (PInt32 1)), (Label () "g", ELit (PInt32 2))] (eLet [(Label () "f", ELit (PInt32 2))] (EVar (Label () "f")))
         -- let f.0 = 1 ; g.1 = 2 in let f.2  = 2 in f.2
         , eLet
@@ -3064,6 +3101,64 @@ progK =
       )
     )
 
+-- 
+-- field 
+--   { name = n | r } = 
+--     { name = "Plissken", id = 1 } 
+--   in 
+--     n
+--
+progL :: Expr ()
+progL =
+  ERes
+    (Focus (Label () "name") (Label () "n") (Label () "r"))
+    (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
+    (EVar (Label () "n"))
+
+-- 
+-- field 
+--   { name = n | r } = 
+--     { name = "Plissken", id = 1 } 
+--   in 
+--     r
+--
+progM :: Expr ()
+progM =
+  ERes
+    (Focus (Label () "name") (Label () "n") (Label () "r"))
+    (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
+    (EVar (Label () "r"))
+
+-- 
+-- let 
+--   g =
+--     lam(y) => y + 1
+--   in
+--     field 
+--       { fun = f | r } = 
+--         { fun = lam(x) => x, id = 1 } 
+--       in 
+--         (f(g))(f(5))
+--
+progN :: Expr ()
+progN =
+  eLet
+    [
+      ( Label () "g"
+      , eLam [Label () "y"] 
+          (EOp2 ((), OAdd) (EVar (Label () "y")) (ELit (PInt32 1)))
+      )
+    ]
+    (ERes
+      (Focus (Label () "fun") (Label () "f") (Label () "r"))
+      (EExt "fun" (eLam [Label () "x"] (EVar (Label () "x"))) (EExt "id" (ELit (PInt32 1)) ENil))
+      (eApp ()
+        (eApp () (EVar (Label () "f")) [ EVar (Label () "g") ])
+        [ eApp () (EVar (Label () "f")) [ ELit (PInt32 5) ]
+        ]
+      )
+    )
+
 runDictShouldEqual :: Expr () -> Value -> SpecWith ()
 runDictShouldEqual prog result =
   case pipeline prog of
@@ -3081,8 +3176,145 @@ testPipeline =
     runDictShouldEqual progI (VPrim (PInt32 3628800))
     runDictShouldEqual progJ (VPrim (PInt32 2))
     runDictShouldEqual progK (VPrim (PInt32 101))
+    runDictShouldEqual progL (VPrim (PString "Plissken"))
+    runDictShouldEqual progM (VExt "id" (VPrim (PInt32 1)) VNil)
+    runDictShouldEqual progN (VPrim (PInt32 6))
 
 --
+
+runMExprShouldEqual :: Expr () -> Value -> SpecWith ()
+runMExprShouldEqual input result = do
+  val <- runIO $ mapM runDict (pipeline input)
+  it (trimStr is) (val == Right result)
+  where
+    is = "compileMExpr (" <> show input <> ") == " <> show result
+
+testMExpr :: MExpr (Expr ())
+testMExpr =
+  match
+    [ "u1", "u2", "u3" ]
+    [
+      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+        ]
+      , Expr (ELit (PInt32 1))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 2))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+        ]
+      , Expr (EVar (Label () "y"))
+      )
+    ]
+    Fail
+
+testCompileMExpr :: SpecWith ()
+testCompileMExpr =
+  describe "compileMExpr" $ do
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr))
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 1))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr))
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 2))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr))
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 200), EVar (Label () "Nil")]
+        ])
+      (VPrim (PInt32 200))
+
+--
+
+testUnifyRowsShouldEqual :: Type -> Type -> Either String Bool -> SpecWith ()
+testUnifyRowsShouldEqual r1 r2 result = it (trimStr is) (outcome == result)
+  where
+    is = "unifyRows " <> show (r1, r2) <> " == " <> show result
+    outcome = case substitution . snd <$> runInferCount (m + 1) mempty (unify r1 r2) of
+      Right sub ->
+        let update = normalizeRow . apply sub
+         in Right (update r1 == update r2)
+      Left err -> Left err
+    s = tvars r1 <> tvars r2
+    m | Set.null s = 0
+      | otherwise = maximum s
+
+testUnifyRows :: SpecWith ()
+testUnifyRows = do
+  describe "unifyRows" $ do
+    testUnifyRowsShouldEqual
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (Right True)
+    testUnifyRowsShouldEqual
+      (RExt "name" [tString] (RExt "id" [tInt32] (TVar 0)))
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (Right True)
+    testUnifyRowsShouldEqual
+      (RExt "id" [tInt32] (RExt "name" [tString] RNil))
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (Right True)
+    testUnifyRowsShouldEqual
+      (RExt "id" [tInt32] (RExt "name" [tString] (TVar 0)))
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (Right True)
+    testUnifyRowsShouldEqual
+      (RExt "id" [tInt32] (TVar 0))
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (Right True)
+    testUnifyRowsShouldEqual
+      (RExt "id" [tString] (TVar 0))
+      (RExt "name" [tString] (RExt "id" [tInt32] RNil))
+      (Left "Cannot unify")
+    testUnifyRowsShouldEqual
+      -- { name : string, admin : bool, id : int32 }
+      (RExt "name" [tString] (RExt "admin" [tBool] (RExt "id" [tInt32] RNil)))
+      -- { name : string, id : int32 | 0 }
+      (RExt "name" [tString] (RExt "id" [tInt32] (TVar 0)))
+      (Right True)
+    testUnifyRowsShouldEqual
+      -- { name : string, admin : bool, id : int32 }
+      (RExt "admin" [tBool] (RExt "id" [tInt32] RNil))
+      -- { name : string, id : int32 | 0 }
+      (RExt "id" [tInt32] (TVar 0))
+      (Right True)
+    testUnifyRowsShouldEqual
+      -- { name : string | 0 }
+      (RExt "name" [tString] (TVar 0))
+      -- { id : int | 1 }
+      (RExt "id" [tInt32] (TVar 1))
+      (Right True)
+    testUnifyRowsShouldEqual
+      -- { name : string | 0 }
+      (RExt "name" [tString] (TVar 0))
+      -- { id : int | 0 }
+      (RExt "id" [tInt32] (TVar 0))
+      (Left "Cannot unify")
+
 
 -- convertClosuresShouldEqual :: Expr () -> Expr () -> SpecWith ()
 -- convertClosuresShouldEqual input result =
@@ -3679,6 +3911,9 @@ main =
     testFlattenApps
     testAddImplicitArgs
     testPipeline
+    testCompileMExpr
+--    testUnify
+    testUnifyRows
 
 --    testFlattenLambdas
 --    testconvertClosures
@@ -3687,5 +3922,550 @@ main =
 --    testLiftLambdas
 --    testToLExpr
 --    testEval
+
+
+data Some
+data None
+
+data Option c a
+  = Some a
+  | None
+  deriving (Show)
+
+some :: a -> Option Some a
+some = Some
+
+none :: Option None a
+none = None
+
+instance Functor (Option c) where
+  fmap f None = None
+  fmap f (Some v) = Some (f v)
+
+withDefault :: a -> Option c a -> a
+withDefault d None = d
+withDefault _ (Some v) = v
+
+takeSome :: Option Some a -> a
+takeSome (Some a) = a
+--takeSome None = error "error"
+--
+
+--
+-- type Option(a : *)
+--   = Some a
+--   | None
+
+-- def foo(v : Int) : Int {
+--   v + 1
+-- }
+--
+-- match xs {
+--   Nil | Cons _ _ -> True ;
+-- }
+--
+--
+-- foo(v : int) : int {
+--   match xs
+--     | Cons(a, as) => a
+--     | Nil => 4
+-- }
+--
+data Ast
+  = AVar Name
+  | AAdd Ast Ast
+  | ASub Ast Ast
+  deriving (Show, Eq)
+
+instance Match Ast
+  where
+    replace old new =
+      \case
+        AVar var
+          | var == old -> AVar new
+          | otherwise -> AVar var
+        AAdd a b ->
+          AAdd (replace old new a) (replace old new b)
+        ASub a b ->
+          ASub (replace old new a) (replace old new b)
+
+-- --
+
+--class Match a where
+--  replace :: Name -> Name -> a -> a
+--
+--instance Match a => Match (MExpr a) where
+--  replace _ _ Fail = Fail
+--  replace old new (Expr e) = Expr (replace old new e)
+--
+--data MPattern
+--  = MCon Name [MPattern]
+--  | MVar Name
+--  deriving (Show, Eq)
+--
+--data MClause a = MClause Name [Name] (MExpr a)
+--  deriving (Show, Eq)
+--
+--data MExpr a
+--  = Fail
+--  | Expr a
+--  | Case Name [MClause a]
+--  deriving (Show, Eq)
+--
+--type MEquation a = ([MPattern], MExpr a)
+--
+--fstPat :: (MPattern -> a) -> MEquation e -> a
+--fstPat f (p:_, _) = f p
+--
+--conName :: MPattern -> Name
+--conName (MCon name _) = name
+--
+--isCon :: MPattern -> Bool
+--isCon MCon{} = True
+--isCon MVar{} = False
+--
+--isVar :: MPattern -> Bool
+--isVar MVar{} = True
+--isVar MCon{} = False
+--
+--patPredicate :: MPattern -> MPattern -> Bool
+--patPredicate MVar{} = isVar
+--patPredicate MCon{} = isCon
+--
+--next :: State Int Int
+--next = do
+--  s <- get
+--  modify (+1)
+--  pure s
+--
+--match :: (Match a) => [Name] -> [MEquation a] -> MExpr a -> MExpr a
+--match us qs e = evalState (matchM us qs e) 0 where
+--  -- Empty rule
+--  matchM [] [([], e)] _ = pure e
+--  matchM (u:us) qs e
+--    -- Variable rule
+--    | all (fstPat isVar) qs = matchM us (varRule <$> qs) e
+--    -- Constructor rule
+--    | all (fstPat isCon) qs = Case u <$> traverse conRule (groupByConstructor qs)
+--    -- Mixed rule
+--    | otherwise = matchM us qs2 e >>= matchM us qs1
+--    where
+--      (qs1, qs2) = partitionEqs qs
+--
+--      varRule (MVar var:ps, e) =
+--        (ps, replace var u e)
+--
+--      conRule qs@((MCon con ps:_, _):_) = do
+--        vs <- (\f -> "$v." <> showt f) <$$> replicateM (length ps) next
+--        MClause con vs <$> matchM (vs <> us) (ps' <$> qs) e
+--
+--      ps' (MCon _ ps:qs, e) = (ps <> qs, e)
+--
+--partitionEqs :: [MEquation a] -> ([MEquation a], [MEquation a])
+--partitionEqs (eq:eqs) = span (fstPat (fstPat patPredicate eq)) (eq:eqs)
+--
+--groupByConstructor :: [MEquation a] -> [[MEquation a]]
+--groupByConstructor = grouped . sorted
+--  where
+--    grouped = groupBy (on (==) (fstPat conName))
+--    sorted  = sortBy (compare `on` fstPat conName)
+--
+--match :: (Match a) => [Var] -> [MEquation a] -> MExpr a -> MExpr a
+--  -- Empty rule
+--match [] [([], e)] _ = e
+--match (u:us) qs e
+--  -- Variable rule
+--  | all (fstPat isVar) qs = match us (varRule u <$> qs) e
+--match (u:us) qs e
+--  -- Constructor rule
+--  | all (fstPat isCon) qs = Case u (conRule e us <$> groupByConstructor qs)
+--  -- Mixed rule
+--  | otherwise = let (qs1, qs2) = partitionEqs qs in match us qs1 (match us qs2 e)
+--
+--partitionEqs :: [MEquation a] -> ([MEquation a], [MEquation a])
+--partitionEqs (eq:eqs) = span (fstPat (fstPat patPredicate eq)) (eq:eqs)
+--
+--varRule :: (Match a) => Name -> MEquation a -> MEquation a
+--varRule u (MVar var:ps, e) = (ps, replace var u e)
+--
+--conRule :: (Match a) => MExpr a -> [Name] -> [MEquation a] -> MClause (MExpr a)
+--conRule e us qs@((MCon con ps:_, _):_) =
+--  MClause con vs (match (vs <> us) (ps' <$> qs) e)
+--  where
+--    vs = (\f -> "$v." <> showt f) <$> [0 .. length ps - 1]
+--    ps' (MCon _ ps:qs, e) = (ps <> qs, e)
+--
+--groupByConstructor :: [MEquation a] -> [[MEquation a]]
+--groupByConstructor eqs = groupBy (on (==) (fstPat conName)) sorted
+--  where
+--    sorted = sortBy (compare `on` fstPat conName) eqs
+
+--match us qs e
+--  | null us    = undefined  -- Empty rule
+--  | allVars qs = undefined  -- Variable rule
+--  | allCons qs = undefined  -- Constructor rule
+--  | otherwise  = undefined  -- Mixed rule
+
+testCall =
+  match
+    [ "u1", "u2", "u3" ]
+    [
+      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+        ]
+      , Expr (AVar "x")
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (AVar "y")
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+        ]
+      , Expr (AVar "z")
+      )
+    ]
+    Fail
+
+testCall2 =
+  match
+    [ "u1", "u2", "u3" ]
+    [
+      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+        ]
+      , Expr (AVar "x")
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (AVar "y")
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+        ]
+      , Expr (AAdd (AVar "x") (AVar "y"))
+      )
+    ]
+    Fail
+
+
+--ps1 =
+--  [
+--    ( [ MVar "f", MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ,
+--    ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ,
+--    ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ]
+--
+--ps2 =
+--  [
+--    ( [ MCon "Nil" [], MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  , ( [ MVar "f", MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ,
+--    ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ,
+--    ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ]
+--
+--ps3 :: [MEquation Ast]
+--ps3 =
+--  [
+--    ( [ MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  , ( [ MCon "Nil" [], MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  , ( [ MVar "f", MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ,
+--    ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ,
+--    ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ]
+--
+--ps4 :: [MEquation Ast]
+--ps4 =
+--  [
+--    ( [ MCon "Nil" [], MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  , ( [ MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  , ( [ MCon "Nil" [], MCon "Nil" [], MVar "ys"
+--      ]
+--    , Expr (AVar "x")
+--    )
+--  ]
+--
+--
+
+testCall3 :: MExpr (Expr ())
+testCall3 =
+  match
+    [ "u1", "u2", "u3" ]
+    [
+      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+        ]
+      , Expr (ELit (PInt32 1))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 2))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+        ]
+      , Expr (EVar (Label () "y"))
+      )
+    ]
+    Fail
+
+foo123 :: Expr ()
+foo123 =
+  eApp
+    ()
+    (eLam
+      [Label () "u1", Label () "u2", Label () "u3"]
+      (compileMExpr testCall3))
+    [ eApp () (EVar (Label () "Nil")) []
+    , eApp () (EVar (Label () "Nil")) []
+    , eApp () (EVar (Label () "Nil")) []
+    ]
+
+
+foo456 :: Expr ()
+foo456 =
+  eApp
+    ()
+    (eLam
+      [Label () "u1", Label () "u2", Label () "u3"]
+      (compileMExpr testCall3))
+    [ eApp () (EVar (Label () "Nil")) []
+    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+    , eApp () (EVar (Label () "Nil")) []
+    ]
+
+foo789 :: Expr ()
+foo789 =
+  eApp
+    ()
+    (eLam
+      [Label () "u1", Label () "u2", Label () "u3"]
+      (compileMExpr testCall3))
+    [ eApp () (EVar (Label () "Nil")) []
+    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 200), EVar (Label () "Nil")]
+    ]
+
+
+
+--data NatF a = Z | S a
+--  deriving (Functor, Foldable, Traversable)
+--
+--type Nat = Fix NatF
+--
+--xx2 :: Int -> Int
+--xx2 n = n + 1
+--
+----xx2 :: NatF Int -> Int
+----xx2 n =
+----  case foldFix n of
+----    Z ->
+----      undefined -- 0
+----    S m ->
+----      undefined -- 1 + m
+--
+--xxx :: Fix NatF -> Int
+--xxx = foldFix $ \case
+--  Z -> undefined
+--  S a -> undefined
+--
+--foo :: Nat -> Nat
+--foo =
+--  foldFix $ \case
+--    Z ->
+--      Fix Z-- Fix (S (Fix Zero))
+--    S m ->
+--      undefined -- (*) m (m - 1)
+--
+--three = Fix (S (Fix (S (Fix (S (Fix Z))))))
+--
+
+-- { id : int, name : string, age : int }
+myrec2 = (1, ("Plissken", (35, ())))
+
+-- { id : int, name : string, age : int }
+myrec3 = ("Plissken", (1, (35, ())))
+
+xxx :: (a, (b, c)) -> (b, (a, c))
+xxx (a, (b, c)) = (b, (a, c))
+
+-- { name : string, age : int }
+myrec1 = ("Bob", (45, ()))
+
+-- { name : string | a } -> string
+testf1 (name, a) = name
+
+-- { name : string | a } -> { name : string, isAdmin : bool }
+testf2 :: (String, a) -> (String, (Bool, a))
+testf2 (name, a) = (name, (True, a))
+
+----
+
+--ac = Map.fromList
+--  [
+--    ("id", 3 :: Int)
+--  , ("name", "Bob" :: String)
+--  ]
+
+
+
+data Obj = forall a. (Show a) => Obj a
+
+xs :: [Obj]
+xs = [Obj 1, Obj "foo", Obj 'c']
+
+doShow :: [Obj] -> String
+doShow [] = ""
+doShow ((Obj x):xs) = show x ++ doShow xs
+
+
+
+-- { id : int, name : string, age : int }
+data Foo_age_id_name a = Foo
+  a
+  (a -> Int)
+  (a -> Int)
+  (a -> String)
+
+p1 (a, _)                = a
+p2 (_, (a, _))           = a
+p3 (_, (_, (a, _)))      = a
+p4 (_, (_, (_, (a, _)))) = a
+
+getAge :: Foo_age_id_name a -> Int
+getAge  (Foo r f _ _) = f r
+
+getId :: Foo_age_id_name a -> Int
+getId   (Foo r _ f _) = f r
+
+getName :: Foo_age_id_name a -> String
+getName (Foo r _ _ f) = f r
+
+-- { age : int, id : int, name : string }
+--myrec9 = (1, ("Plissken", (35, ())))
+
+-- { 0.age : int, 1.id : int, 2.name : string }
+--myrec9 = (1, ("Plissken", (35, ())))
+
+myrec10 :: Foo_age_id_name (Int, (String, (Int, ())))
+myrec10 = Foo (1, ("Plissken", (35, ()))) p3 p1 p2
+
+myrec11 :: Foo_age_id_name (String, (Int, (Int, ())))
+myrec11 = Foo ("Plissken", (1, (35, ()))) p3 p2 p1
+
+
+--blooom a b = runInferCount (m + 1) mempty (unify a b)
+--  where
+--    s = tvars a <> tvars b
+--    m | Set.null s = 0
+--      | otherwise = maximum s
+--
+--
+--zoom a b = substitution . snd <$> runInferCount (m + 1) mempty (unify a b)
+--  where
+--    s = tvars a <> tvars b
+--    m | Set.null s = 0
+--      | otherwise = maximum s
+--
+--foam a b =
+--  case zoom a b of
+--    Right sub -> let foo = normalizeRow . apply sub
+--                  in Right (foo a == foo b)
+--    Left err -> Left err
+--
+--zoofoo1 = foam a b
+--  where
+--    a = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--    b = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--
+--zoofoo2 = foam a b
+--  where
+--    a = RExt "name" [tString] (RExt "id" [tInt32] (TVar 0))
+--    b = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--
+--zoofoo3 = foam a b
+--  where
+--    a = RExt "id" [tInt32] (RExt "name" [tString] RNil)
+--    b = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--
+--zoofoo4 = foam a b
+--  where
+--    a = RExt "id" [tInt32] (RExt "name" [tString] (TVar 0))
+--    b = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--
+--zoofoo5 = foam a b
+--  where
+--    a = RExt "id" [tInt32] (TVar 0)
+--    b = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--
+--zoofoo6 = foam a b
+--  where
+--    a = RExt "id" [tString] (TVar 0)
+--    b = RExt "name" [tString] (RExt "id" [tInt32] RNil)
+--
+--zoofoo7 = foam a b
+--  where
+--    -- { name : string, admin : bool, id : int32 }
+--    a = RExt "name" [tString] (RExt "admin" [tBool] (RExt "id" [tInt32] RNil))
+--    -- { name : string, id : int32 | 0 }
+--    b = RExt "name" [tString] (RExt "id" [tInt32] (TVar 0))
+--
+--zoofoo8 = foam a b
+--  where
+--    -- { name : string, admin : bool, id : int32 }
+--    a = RExt "admin" [tBool] (RExt "id" [tInt32] RNil)
+--    -- { name : string, id : int32 | 0 }
+--    b = RExt "id" [tInt32] (TVar 0)
+
+
+
 
 
