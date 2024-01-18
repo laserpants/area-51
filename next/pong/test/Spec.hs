@@ -25,7 +25,7 @@ import Data.Functor
 import Data.Map.Strict (Map)
 import Data.Int (Int32, Int64)
 import Data.Function (on)
-import Data.List (sortBy, groupBy, intersperse)
+import Data.List (sortBy, sortOn, groupBy, intersperse)
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.Map.Strict ((!))
 import Data.Set (Set)
@@ -4512,88 +4512,8 @@ llvmType123123 =
 
 
 
-(<+>) :: Text -> Text -> Text
-a <+> b = a <> " " <> b
-
-infixr 6 <+>
-
-data IRType
-  = TInt1
-  | TInt8
-  | TInt32
-  | TInt64
-  | TFloat
-  | TDouble
-  | TVoid
-  | TFun !IRType ![IRType]
-  | TPtr !IRType
-  | TStruct ![IRType]
-  | TName !Name !IRType
-  deriving (Show, Eq, Ord, Read)
-
-i1 :: IRType
-i1 = TInt1
-
-i8 :: IRType
-i8 = TInt8
-
-i32 :: IRType
-i32 = TInt32
-
-i64 :: IRType
-i64 = TInt64
-
-ptr :: IRType -> IRType
-ptr = TPtr
-
-fun :: IRType -> [IRType] -> IRType
-fun = TFun
-
-struct :: [IRType] -> IRType
-struct = TStruct
-
-data IRValue
-  = Local  !IRType !Name
-  | Global !IRType !Name
-  | I1     !Bool
-  | I32    !Int32
-  | I64    !Int64
-  | Float  !Float
-  | Double !Double
-  deriving (Show, Eq, Ord, Read)
-
-irTypeOf :: IRValue -> IRType
-irTypeOf =
-  \case
-    Local  t _ -> t
-    Global t _ -> t
-    I1     _   -> TInt1
-    I32    _   -> TInt32
-    I64    _   -> TInt64
-    Float  _   -> TFloat
-    Double _   -> TDouble
-
-data IRInstrF v t a
-  = IAdd   t v v   (v -> a)
-  | ISub   t v v   (v -> a)
-  | IMul   t v v   (v -> a)
-  | IRet   t v     (v -> a)
-  | ILoad  t v     (v -> a)
-  | IStore v v     (v -> a)
-  | IGep   t v v v (v -> a)
-  | IAlloc t       (v -> a)
-  | IBCast v t     (v -> a)
-  | ICall  t v [v] (v -> a)
-  deriving (Functor)
-
 --instance Show (IRCode IRValue) where
 --  show a = "X"
-
-data IRConstruct a
-  = CDefine  !IRType ![(IRType, Name)] a
-  | CDeclare !IRType ![(IRType, Name)]
-  | CType    !IRType
-  deriving (Functor)
 
 --instance Show (IRConstruct (IRState, [Text])) where
 --  show =
@@ -4614,17 +4534,7 @@ fofofo code = xxc
     xxb = snd (runCodegen xxa)
     xxa = runIRCode code
 
-data IRState = IRState 
-  { globalCount :: Int
-  , definitions :: Map Name (IRConstruct (IRCode IRState))
-  } 
   -- deriving (Show)
-
-initialIRState :: IRState
-initialIRState = IRState
-  { globalCount = 1
-  , definitions = mempty
-  }
 
 overGlobalCount :: (Int -> Int) -> IRState -> IRState
 overGlobalCount f IRState{..} = IRState { globalCount = f globalCount, .. }
@@ -4644,139 +4554,7 @@ insertDefinition = modifyDefinitions <$$> Map.insert
 --newtype IRInstr v t a = IRInstr { unIRInstr :: ReaderT (Environment IRValue) (StateT IRState (Free (IRInstrF v t))) a }
 --  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF v t))
 
-type IRInstr v t = Free (IRInstrF v t) 
 --  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF v t))
-
-add :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
-add t v w = wrap (IAdd t v w pure)
-
-sub :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
-sub t v w = wrap (ISub t v w pure)
-
-mul :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
-mul t v w = wrap (IMul t v w pure)
-
-alloca :: (MonadFree (IRInstrF v t) m) => t -> m v
-alloca t = wrap (IAlloc t pure)
-
-load :: (MonadFree (IRInstrF v t) m) => t -> v -> m v
-load t v = wrap (ILoad t v pure)
-
-ret :: (MonadFree (IRInstrF v t) m) => t -> v -> m v
-ret t v = wrap (IRet t v pure)
-
-store :: (MonadFree (IRInstrF v t) m) => v -> v -> m v
-store v w = wrap (IStore v w pure)
-
-getelementptr :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> v -> m v
-getelementptr t u v w = wrap (IGep t u v w pure)
-
-call :: (MonadFree (IRInstrF v t) m) => t -> v -> [v] -> m v
-call t v vs = wrap (ICall t v vs pure)
-
-bitcast :: (MonadFree (IRInstrF v t) m) => v -> t -> m v
-bitcast v t = wrap (IBCast v t pure)
-
-irPrim :: Prim -> IRValue
-irPrim =
-  \case
-    PBool b    -> I1 b
-    PInt32 i32 -> I32 i32
-    PInt64 i64 -> I64 i64
-    PFloat f   -> Float f
-    PDouble d  -> Double d
-
-class IR a where
-  encode :: a -> Text
-
-instance (IR a) => IR [a] where
-  encode = Text.concat . intersperse ", " . (encode <$>)
-
-instance IR IRValue where
-  encode =
-    \case
-      Local  _ name  -> "%" <> enquote name
-      Global _ name  -> "@" <> enquote name
-      I1     False   -> "0"
-      I1     True    -> "1"
-      I32    n -> showt n
-      I64    n -> showt n
-      Float  f -> showt f
-      Double d -> showt d
-
-instance IR IRType where
-  encode =
-    \case
-      TInt1     -> "i1"
-      TInt8     -> "i8"
-      TInt32    -> "i32"
-      TInt64    -> "i64"
-      TFloat    -> "float"
-      TDouble   -> "double"
-      TVoid     -> "void"
-      TFun t ts -> encode t <+> "(" <> encode ts <> ")" <> "*"
-      TPtr t    -> encode t <> "*"
-      TStruct t -> "{" <+> encode t <+> "}"
-      TName n _ -> "%" <> enquote n
-
-enquote :: Text -> Text
-enquote n
-  | Text.all isAlphaNum n = n
-  | otherwise = "\"" <> n <> "\""
-
-newtype IRTyped v = IRTyped v
-  deriving (Show, Eq, Ord, Read)
-
-instance IR (IRTyped IRValue) where
-  encode (IRTyped v) = encode (irTypeOf v) <+> encode v
-
-instance IR (IRCode IRState) where
-  encode code = Text.unlines (indent 2 <$> snd (runCodegen (runIRCode code)))
-
-indent :: Int -> Text -> Text
-indent level = (spaces <>) where spaces = Text.replicate level " "
-
-instance IR (IRType, Name) where
-  encode = encode . IRTyped . uncurry Local
-
-data IRNamed = IRNamed Name (IRConstruct (IRCode IRState))
-
-instance IR IRNamed where
-  encode (IRNamed name ir) =
-    case ir of
-      CDefine t as e ->
-        let signature = encode t <+> "@" <> enquote name <> "(" <> encode as <> ")"
-            body = "{\n" <> encode e <> "}\n"
-         in "define" <+> signature <+> body
-      CDeclare _ _ -> 
-        "TODO"
-      CType t -> do
-        let body = "{\n" <> encodeStruct t <> "\n}\n"
-        "%" <> enquote name <+> "=" <+> "type" <+> body
-        where
-          encodeStruct = \case
-            TStruct ts -> Text.intercalate ",\n" (indent 2 . encode <$> ts)
-            t -> encode t
-
-irFunType :: Type -> (IRType, [IRType])
-irFunType =
-  \case
-    TCon "->" [t1, t2] -> second (toIRType t1 :) (irFunType t2)
-    t                  -> (toIRType t, [])
-
-irFunTypeOf :: (Typed t) => t -> (IRType, [IRType])
-irFunTypeOf = irFunType . typeOf
-
-toIRType :: Type -> IRType
-toIRType =
-  \case
-    TCon "Bool"   [] -> i1
-    TCon "Int32"  [] -> i32
-    TCon "Int64"  [] -> i64
-    TCon "Float"  [] -> TFloat
-    TCon "Double" [] -> TDouble
-    TCon "Char"   [] -> i8
-    t@(TCon "->"  _) -> ptr i8
 
 -- TODO!!
 toIRType2 :: Type -> IRType
@@ -4785,61 +4563,11 @@ toIRType2 =
     t@(TCon "->" _) -> uncurry TFun (irFunTypeOf t)
     t               -> toIRType t
 
-type Codegen = WriterT [Text] (State Int)
- 
-runCodegen :: Codegen a -> (a, [Text])
-runCodegen a = evalState (runWriterT a) 1
-
-execCodegen :: Codegen a -> a
-execCodegen = fst . runCodegen
-
-instruction :: IRType -> Text -> (IRValue -> Codegen a) -> Codegen a
-instruction t s next = do
-  var <- gets (Local t . showt)
-  modify (+1)
-  tell [encode var <+> "=" <+> s]
-  next var
-
-interpreter :: IRInstrF IRValue IRType (Codegen a) -> Codegen a
-interpreter =
-  \case
-    IAdd t v w next ->
-      instruction t ("add" <+> encode t <+> encode v <> "," <+> encode w) next
-    ISub t v w next ->
-      instruction t ("sub" <+> encode t <+> encode v <> "," <+> encode w) next
-    IMul t v w next ->
-      instruction t ("mul" <+> encode t <+> encode v <> "," <+> encode w) next
-    IAlloc t next ->
-      instruction (TPtr t) ("alloca" <+> encode t) next
-    ILoad t v next ->
-      instruction t ("load" <+> encode t <> "," <+> encode (IRTyped v)) next
-    IBCast v t next ->
-      instruction t ("bitcast" <+> encode (IRTyped v) <+> "to" <+> encode t) next
-    IGep t u v w next ->
-      instruction (ptr (member t w)) ("getelementptr" <+> encode t <> "," <+> encode (IRTyped u) <> "," <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)) next
-    ICall t v vs next ->
-      instruction t ("call" <+> encode t <+> encode v <> "(" <> encode (IRTyped <$> vs) <> ")") next
-    IStore v w next -> do
-      tell ["store" <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)] 
-      next v
-    IRet t v next -> do
-      tell ["ret" <+> encode t <+> encode v]
-      next v
-    _ ->
-      error "Not implemented"
-  where
-    member (TName _ t) n        = member t n
-    member (TStruct ts) (I32 n) = ts !! fromIntegral n
-
 --runIRCode :: IRCode a -> ((a, [Text]), Int)
 --runIRCode code = runState (runWriterT (iterM interpreter code)) 1
 
 --interpreter :: IRInstrF IRValue IRType (Codegen a) -> Codegen a
 
-type IRCode = IRInstr IRValue IRType
-
-runIRCode :: IRCode a -> Codegen a
-runIRCode = iterM interpreter
 --
 --runX :: Free (IRInstrF IRValue IRType) a -> a
 --runX = undefined
@@ -4848,15 +4576,9 @@ runIRCode = iterM interpreter
 -- --runIRCode :: Set Name -> IRCode a -> [Text]
 --runIRCode env code = evalState (runWriterT (iterM interpreter zzz)) 1
 --  where
---    zzz = runStateT (runReaderT (unIRInstr code) env) initialIRState 
+--    zzz = runStateT (runReaderT (unIRInstr code) env) initialIRState
 
 -- --
-
-newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
-  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF IRValue IRType))
-
-runIREval :: Environment IRValue -> IREval a -> IRCode (a, IRState)
-runIREval env val = runStateT (runReaderT (unIREval val) env) initialIRState
 
 pasta :: Expr Type -> IREval IRValue
 pasta e = do
@@ -4872,7 +4594,7 @@ irEval =
         Just val -> val
         Nothing  -> Global (toIRType2 t) var
 
-    ELit prim -> 
+    ELit prim ->
       pure (irPrim prim)
 
     ELet vs e1 -> do
@@ -4949,7 +4671,7 @@ resume t1 ts tc vs = do
   ret t1 r4
 
 ixArgs :: [a] -> [(a, Text)]
-ixArgs ts = ts `zip` (("a" <>) . showt <$> [0 :: Int ..]) 
+ixArgs ts = ts `zip` (("a" <>) . showt <$> [0 :: Int ..])
 
 
 --resume :: IRType -> IRType -> [IRValue] -> IRCode IRValue
@@ -4964,10 +4686,10 @@ ixArgs ts = ts `zip` (("a" <>) . showt <$> [0 :: Int ..])
 --  ret t1 r4
 --  where
 --    fooz = uncurry Local <$> extra
---    extra = zip (drop (length vs) ts) (("a" <>) . showt <$> [0 :: Int ..]) 
+--    extra = zip (drop (length vs) ts) (("a" <>) . showt <$> [0 :: Int ..])
 
 -- --
--- 
+--
 bork :: Name -> IREval Name
 bork n = do
   count <- gets globalCount
@@ -4990,18 +4712,18 @@ topType n ty = do
   pure (TName name ty)
 
 testEnv :: Environment IRValue
-testEnv = envFromList 
-  [ 
+testEnv = envFromList
+  [
     ( "x.1"
     , Local i32 "x.1"
     )
-  , 
+  ,
     ( "y.2"
     , Local i32 "y.2"
     )
   , ( "g.5"
     , Local (ptr i8) "g.5"
-    ) 
+    )
   ]
 
 
@@ -5026,8 +4748,8 @@ testEnv = envFromList
 --
 --zooz3 = baz xx1
 --  where
---    xx1 = EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
---            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
+--    xx1 = EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []])
+--            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0"))
 --            (ELit (PInt32 1) :| [])
 --
 
@@ -5042,12 +4764,12 @@ testEnv = envFromList
 -- --  r2 <- getelementptr _Func r1 (I32 0) (I32 1)
 -- --  r3 <- load (fun i32 [i32, i32]) r2
 -- --  ret i32 r2
--- 
+--
 -- --zooz3 :: [Text]
 -- zooz3 = runIRCode testEnv xx1
 --   where
---     xx1 = irEval (EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
---             (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
+--     xx1 = irEval (EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []])
+--             (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0"))
 --             (ELit (PInt32 1) :| []))
 
 
@@ -5057,42 +4779,42 @@ testEnv = envFromList
 dict1 :: Dictionary Type
 dict1 =
   Map.fromList [
-    ( "$fun.0", 
+    ( "$fun.0",
         ( [Label (TCon "Int32" []) "x.1",Label (TCon "Int32" []) "y.2"]
         , EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2")))
         )
 
 
-  , ( "$fun.1", 
+  , ( "$fun.1",
         ( [Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"]
-        , EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) 
+        , EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"))
            (ELit (PInt32 100) :| [])
         )
     )
-  , ( "$fun._", 
+  , ( "$fun._",
         ( [],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3"
-        , EApp 
-            (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
-            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
-            (ELit (PInt32 1) :| [])) :| []) 
-            (EApp (TCon "Int32" []) 
-              (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) 
+        , EApp
+            (TCon "->" [TCon "Int32" [],TCon "Int32" []])
+            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0"))
+            (ELit (PInt32 1) :| [])) :| [])
+            (EApp (TCon "Int32" [])
+              (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1"))
               (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))
         )
     )
   ]
 
---crew4 :: Dictionary Type -> 
+--crew4 :: Dictionary Type ->
 --crew4 dict = undefined
 
-crew6 = crew5 "$fun._" 
+crew6 = crew5 "$fun._"
         ( [],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3"
-        , EApp 
-            (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
-            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
-            (ELit (PInt32 1) :| [])) :| []) 
-            (EApp (TCon "Int32" []) 
-              (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) 
+        , EApp
+            (TCon "->" [TCon "Int32" [],TCon "Int32" []])
+            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0"))
+            (ELit (PInt32 1) :| [])) :| [])
+            (EApp (TCon "Int32" [])
+              (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1"))
               (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))
         )
 
@@ -5110,22 +4832,23 @@ crew7 = runCodegen (runIRCode crew6)
 crew8 :: IRState
 crew8 = execCodegen (runIRCode crew6)
 
-crew9 :: Dictionary Type -> Map Name (IRConstruct (IRCode IRState))
-crew9 dict = Map.foldrWithKey foo mempty dict
+--fazo :: IRConstruct (IRCode IRState) -> IRConstruct (IRCode IRState) -> Ordering
+
+crew9 :: Dictionary Type -> [(Name, IRConstruct (IRCode IRState))]
+crew9 = sortBy (compare `on` weight . snd) . Map.toList . Map.unions . Map.mapWithKey foo
+  where
+    weight = \case
+      CType{}    -> 1
+      CDeclare{} -> 2
+      CDefine{}  -> 3
 
 --foo :: Name -> ([Label Type], Expr Type) -> Map Name (IRConstruct (IRCode IRState)) -> Map Name (IRConstruct (IRCode IRState))
-foo name as m = cc <> m
-  where
-    cc = definitions bb
-    bb :: IRState
-    bb = execCodegen (runIRCode aa)
-    aa = crew5 name as
+foo name as = definitions (execCodegen (runIRCode (crew5 name as)))
 
+play :: [(Name, IRConstruct (IRCode IRState))] -> [Text]
+play = fmap (uncurry goo)
 
-play :: Map Name (IRConstruct (IRCode IRState)) -> [Text]
-play m = Map.elems (Map.mapWithKey goo m)
-
-goo :: Name -> IRConstruct (IRCode IRState) -> Text 
+goo :: Name -> IRConstruct (IRCode IRState) -> Text
 goo = encode <$$> IRNamed
 
 moo dict = Text.putStrLn cake
@@ -5142,7 +4865,7 @@ moo dict = Text.putStrLn cake
 
 --faz :: IRCode (IRValue, IRState) -> Name -> IRState -> IRState
 faz :: Name -> IRType -> [(IRType, Name)] -> IRCode IRState -> IRState -> IRState
-faz name t args code IRState{..} = 
+faz name t args code IRState{..} =
   IRState{ definitions = Map.insert name (CDefine t args code) definitions , .. }
 
 -- = IRState { definitions = f definitions, .. }
