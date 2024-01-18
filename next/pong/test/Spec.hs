@@ -36,6 +36,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Control.Monad.Free as Free
 import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 
 testTypeEnv :: TypeEnv
 testTypeEnv = envFromList
@@ -4594,17 +4595,17 @@ data IRConstruct a
   | CType    !IRType
   deriving (Functor)
 
-instance Show (IRConstruct (IRState, [Text])) where
-  show =
-    \case
-      CDefine t as (y, xx) -> show y <> show xx
+--instance Show (IRConstruct (IRState, [Text])) where
+--  show =
+--    \case
+--      CDefine t as (y, xx) -> show y <> show xx
 
-instance Show (IRConstruct (IRCode IRState)) where
-  show =
-    \case
-      CDefine t as v -> "CDefine " <> show t <> " " <> show as <> " " <> Text.unpack (fofofo v)
-      CDeclare t as  -> "CDeclare " <> show t <> " " <> show as
-      CType t -> "CType " <> show t
+--instance Show (IRConstruct (IRCode IRState)) where
+--  show =
+--    \case
+--      CDefine t as v -> "CDefine " <> show t <> " " <> show as <> " " <> Text.unpack (fofofo v)
+--      CDeclare t as  -> "CDeclare " <> show t <> " " <> show as
+--      CType t -> "CType " <> show t
 
 --fofofo :: IRCode IRValue -> Text
 fofofo code = xxc
@@ -4616,7 +4617,8 @@ fofofo code = xxc
 data IRState = IRState 
   { globalCount :: Int
   , definitions :: Map Name (IRConstruct (IRCode IRState))
-  } deriving (Show)
+  } 
+  -- deriving (Show)
 
 initialIRState :: IRState
 initialIRState = IRState
@@ -4657,25 +4659,22 @@ mul t v w = wrap (IMul t v w pure)
 alloca :: (MonadFree (IRInstrF v t) m) => t -> m v
 alloca t = wrap (IAlloc t pure)
 
---load :: t -> v -> IRInstr v t v
+load :: (MonadFree (IRInstrF v t) m) => t -> v -> m v
 load t v = wrap (ILoad t v pure)
 
---ret :: t -> v -> IRInstr v t ()
---ret t v = wrap (IRet t v (const $ pure ()))
-
---ret :: t -> v -> IRInstr v t v
+ret :: (MonadFree (IRInstrF v t) m) => t -> v -> m v
 ret t v = wrap (IRet t v pure)
 
---store :: v -> v -> IRInstr v t v
+store :: (MonadFree (IRInstrF v t) m) => v -> v -> m v
 store v w = wrap (IStore v w pure)
 
---getelementptr :: t -> v -> v -> v -> IRInstr v t v
+getelementptr :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> v -> m v
 getelementptr t u v w = wrap (IGep t u v w pure)
 
---call :: t -> v -> [v] -> IRInstr v t v
+call :: (MonadFree (IRInstrF v t) m) => t -> v -> [v] -> m v
 call t v vs = wrap (ICall t v vs pure)
 
---bitcast :: v -> t -> IRInstr v t v
+bitcast :: (MonadFree (IRInstrF v t) m) => v -> t -> m v
 bitcast v t = wrap (IBCast v t pure)
 
 irPrim :: Prim -> IRValue
@@ -4731,11 +4730,33 @@ newtype IRTyped v = IRTyped v
 instance IR (IRTyped IRValue) where
   encode (IRTyped v) = encode (irTypeOf v) <+> encode v
 
---toIRFunType :: Type -> (IRType, [IRType])
---toIRFunType =
---  \case
---    TCon "->" [t1, t2] -> second (toIRType t1 :) (toIRFunType t2)
---    t                  -> (toIRType t, [])
+instance IR (IRCode IRState) where
+  encode code = Text.unlines (indent 2 <$> snd (runCodegen (runIRCode code)))
+
+indent :: Int -> Text -> Text
+indent level = (spaces <>) where spaces = Text.replicate level " "
+
+instance IR (IRType, Name) where
+  encode = encode . IRTyped . uncurry Local
+
+data IRNamed = IRNamed Name (IRConstruct (IRCode IRState))
+
+instance IR IRNamed where
+  encode (IRNamed name ir) =
+    case ir of
+      CDefine t as e ->
+        let signature = encode t <+> "@" <> enquote name <> "(" <> encode as <> ")"
+            body = "{\n" <> encode e <> "}\n"
+         in "define" <+> signature <+> body
+      CDeclare _ _ -> 
+        "TODO"
+      CType t -> do
+        let body = "{\n" <> encodeStruct t <> "\n}\n"
+        "%" <> enquote name <+> "=" <+> "type" <+> body
+        where
+          encodeStruct = \case
+            TStruct ts -> Text.intercalate ",\n" (indent 2 . encode <$> ts)
+            t -> encode t
 
 irFunType :: Type -> (IRType, [IRType])
 irFunType =
@@ -5099,6 +5120,20 @@ foo name as m = cc <> m
     bb :: IRState
     bb = execCodegen (runIRCode aa)
     aa = crew5 name as
+
+
+play :: Map Name (IRConstruct (IRCode IRState)) -> [Text]
+play m = Map.elems (Map.mapWithKey goo m)
+
+goo :: Name -> IRConstruct (IRCode IRState) -> Text 
+goo = encode <$$> IRNamed
+
+moo dict = Text.putStrLn cake
+  where
+    cake = Text.intercalate "\n" snake
+    snake = play (crew9 dict)
+
+
 
 --newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
 --  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF IRValue IRType))
