@@ -3,12 +3,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Pong where
 
 import Control.Arrow ((>>>))
@@ -254,30 +254,30 @@ instance (Bound b) => Bound (b, Expr t) where
   bound (b, _) = bound b
 
 instance Bound (Focus b) where
-  bound (Focus _ ll1 ll2) = bound ll1 <> bound ll2
+  bound (Focus _ l1 l2) = bound l1 <> bound l2
 
-class Free f t where
+class FreeIn f t where
   free :: f -> Set (t, Name)
 
-instance (Ord t, Free f t) => Free [f] t where
+instance (Ord t, FreeIn f t) => FreeIn [f] t where
   free = Set.unions . fmap free
 
-instance (Ord t, Free f t) => Free (List1 f) t where
+instance (Ord t, FreeIn f t) => FreeIn (List1 f) t where
   free = free . NonEmpty.toList
 
-instance (Ord t) => Free (Label t) t where
+instance (Ord t) => FreeIn (Label t) t where
   free _ = mempty
 
 withoutVars :: Set (t, Name) -> Set Name ->  Set (t, Name)
 withoutVars s1 s2 = Set.filter (\(_, name) -> name `notElem` s2) s1
 
-instance Free (Expr f) t => Free (Clause f) t where
+instance FreeIn (Expr f) t => FreeIn (Clause f) t where
   free (Clause lls e1) = free e1 `withoutVars` bound lls
 
-instance (Ord t, Free f t, Free e t) => Free (f, e) t where
+instance (Ord t, FreeIn f t, FreeIn e t) => FreeIn (f, e) t where
   free (a, b) = free a <> free b
 
-instance (Ord t) => Free (Expr t) t where
+instance (Ord t) => FreeIn (Expr t) t where
   free =
     \case
       EVar (Label t v) -> Set.singleton (t, v)
@@ -393,7 +393,6 @@ arity t = NonEmpty.length (unfoldType t) - 1
 
 -- applyN :: Int -> Type -> Type
 -- applyN n = foldl1' tArr . NonEmpty.drop n . unfoldType
-
 --
 
 (<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
@@ -842,8 +841,8 @@ updateBindGroup f = from . f <$$> to
         Just vs -> ELet ((\(name, (t, e)) -> (Label t name, e)) <$> vs) expr
         Nothing -> error "Implementation error"
 
-bgKeys :: BindGroup -> [Name]
-bgKeys (Binds vs _) = Map.keys vs
+bindNames :: BindGroup -> [Name]
+bindNames (Binds vs _) = Map.keys vs
 
 mapBindsM :: (Monad m) => (Expr Type -> m (Expr Type)) -> BindGroup -> m BindGroup
 mapBindsM f Binds{..} = Binds <$> traverse (secondM f) bindVars <*> f bindExpr
@@ -867,7 +866,7 @@ updateBindings key Binds{..}
 monomorphize :: Expr Type -> Expr Type
 monomorphize = foldExprF $
   \case
-    FLet vs e1 -> updateBindGroup (\bg -> foldr updateBindings bg (bgKeys bg)) vs e1
+    FLet vs e1 -> updateBindGroup (\bg -> foldr updateBindings bg (bindNames bg)) vs e1
     e -> go e
 
 updateRefs :: (MonadState Int m, MonadWriter [(Name, t)] m) => Name -> Expr t -> m (Expr t)

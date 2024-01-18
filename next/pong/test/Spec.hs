@@ -1,26 +1,41 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RecordWildCards #-}
 import Test.Hspec
 
+import Debug.Trace
+import Data.Tuple.Extra
+import Data.Char (isAlphaNum)
+import Control.Monad.Writer
 import Data.Fix
+import Control.Monad.Free
+import Control.Monad.Reader
 import Control.Monad.State
+import Data.Text (Text)
 import Control.Arrow ((>>>))
 import Data.Foldable
 import Data.Functor
 import Data.Map.Strict (Map)
+import Data.Int (Int32, Int64)
 import Data.Function (on)
-import Data.List (sortBy, groupBy)
+import Data.List (sortBy, groupBy, intersperse)
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.Map.Strict ((!))
 import Data.Set (Set)
 import TextShow
 import Pong
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
+import qualified Control.Monad.Free as Free
+import qualified Data.Text as Text
 
 testTypeEnv :: TypeEnv
 testTypeEnv = envFromList
@@ -217,18 +232,18 @@ testInferExpr = do
   describe "inferExpr" $ do
     mapM_ (uncurry inferExprShouldEqual)
       [ -- field { name = n | r } = { id = 1 } in n
-        ( ERes 
+        ( ERes
             (Focus (Label () "name") (Label () "n") (Label () "r"))
             (EExt "id" (ELit (PInt32 1)) ENil)
             (EVar (Label () "n"))
         , Left "Cannot unify"
         )
       , -- field { name = n | r } = { name = "Bob", id = 1 } in n
-        ( ERes 
+        ( ERes
             (Focus (Label () "name") (Label () "n") (Label () "r"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label () "n"))
-        , Right $ ERes 
+        , Right $ ERes
             (Focus (Label tString "name") (Label tString "n") (Label (RExt "id" [tInt32] RNil) "r"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label tString "n"))
@@ -1012,12 +1027,12 @@ testQualifyNames = do
   describe "qualifyNames" $ do
     mapM_ (uncurry qualifyNamesShouldEqual)
       [ --  field { name = n | r } = { name = "Bob", id = 1 } in n
-        ( ERes 
+        ( ERes
             (Focus (Label () "name") (Label () "n") (Label () "r"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label () "n"))
         -- field { name = n.0 | r.1 } = { name = "Bob", id = 1 } in n.0
-        , ERes 
+        , ERes
             (Focus (Label () "name") (Label () "n.0") (Label () "r.1"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label () "n.0"))
@@ -3101,11 +3116,11 @@ progK =
       )
     )
 
--- 
--- field 
---   { name = n | r } = 
---     { name = "Plissken", id = 1 } 
---   in 
+--
+-- field
+--   { name = n | r } =
+--     { name = "Plissken", id = 1 }
+--   in
 --     n
 --
 progL :: Expr ()
@@ -3115,11 +3130,11 @@ progL =
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EVar (Label () "n"))
 
--- 
--- field 
---   { name = n | r } = 
---     { name = "Plissken", id = 1 } 
---   in 
+--
+-- field
+--   { name = n | r } =
+--     { name = "Plissken", id = 1 }
+--   in
 --     r
 --
 progM :: Expr ()
@@ -3129,15 +3144,15 @@ progM =
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EVar (Label () "r"))
 
--- 
--- let 
+--
+-- let
 --   g =
 --     lam(y) => y + 1
 --   in
---     field 
---       { fun = f | r } = 
---         { fun = lam(x) => x, id = 1 } 
---       in 
+--     field
+--       { fun = f | r } =
+--         { fun = lam(x) => x, id = 1 }
+--       in
 --         (f(g))(f(5))
 --
 progN :: Expr ()
@@ -3145,7 +3160,7 @@ progN =
   eLet
     [
       ( Label () "g"
-      , eLam [Label () "y"] 
+      , eLam [Label () "y"]
           (EOp2 ((), OAdd) (EVar (Label () "y")) (ELit (PInt32 1)))
       )
     ]
@@ -4468,4 +4483,645 @@ myrec11 = Foo ("Plissken", (1, (35, ()))) p3 p2 p1
 
 
 
+--
+-- let
+--   add =
+--     lam(x, y) =>
+--       x + y
+--     in
+--       let
+--         succ =
+--           add(1)
+--         in
+--           let
+--             f =
+--               lam(g) =>
+--                 g(100)
+--             in
+--               f(succ)
+--
+llvmType123123 =
+  [
+    ( "$fun.0", ([Label (TCon "Int32" []) "x.1",Label (TCon "Int32" []) "y.2"],EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2"))))
+  , ( "$fun.1", ([Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"],EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| [])))
+  , ( "$fun._", ([],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3",EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) (ELit (PInt32 1) :| [])) :| []) (EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))))
+  ]
+
+--
+
+
+
+(<+>) :: Text -> Text -> Text
+a <+> b = a <> " " <> b
+
+infixr 6 <+>
+
+data IRType
+  = TInt1
+  | TInt8
+  | TInt32
+  | TInt64
+  | TFloat
+  | TDouble
+  | TVoid
+  | TFun !IRType ![IRType]
+  | TPtr !IRType
+  | TStruct ![IRType]
+  | TName !Name !IRType
+  deriving (Show, Eq, Ord, Read)
+
+i1 :: IRType
+i1 = TInt1
+
+i8 :: IRType
+i8 = TInt8
+
+i32 :: IRType
+i32 = TInt32
+
+i64 :: IRType
+i64 = TInt64
+
+ptr :: IRType -> IRType
+ptr = TPtr
+
+fun :: IRType -> [IRType] -> IRType
+fun = TFun
+
+struct :: [IRType] -> IRType
+struct = TStruct
+
+data IRValue
+  = Local  !IRType !Name
+  | Global !IRType !Name
+  | I1     !Bool
+  | I32    !Int32
+  | I64    !Int64
+  | Float  !Float
+  | Double !Double
+  deriving (Show, Eq, Ord, Read)
+
+irTypeOf :: IRValue -> IRType
+irTypeOf =
+  \case
+    Local  t _ -> t
+    Global t _ -> t
+    I1     _   -> TInt1
+    I32    _   -> TInt32
+    I64    _   -> TInt64
+    Float  _   -> TFloat
+    Double _   -> TDouble
+
+data IRInstrF v t a
+  = IAdd   t v v   (v -> a)
+  | ISub   t v v   (v -> a)
+  | IMul   t v v   (v -> a)
+  | IRet   t v     (v -> a)
+  | ILoad  t v     (v -> a)
+  | IStore v v     (v -> a)
+  | IGep   t v v v (v -> a)
+  | IAlloc t       (v -> a)
+  | IBCast v t     (v -> a)
+  | ICall  t v [v] (v -> a)
+  deriving (Functor)
+
+--instance Show (IRCode IRValue) where
+--  show a = "X"
+
+data IRConstruct a
+  = CDefine  !IRType ![(IRType, Name)] a
+  | CDeclare !IRType ![(IRType, Name)]
+  | CType    !IRType
+  deriving (Functor)
+
+instance Show (IRConstruct (IRState, [Text])) where
+  show =
+    \case
+      CDefine t as (y, xx) -> show y <> show xx
+
+instance Show (IRConstruct (IRCode IRState)) where
+  show =
+    \case
+      CDefine t as v -> "CDefine " <> show t <> " " <> show as <> " " <> Text.unpack (fofofo v)
+      CDeclare t as  -> "CDeclare " <> show t <> " " <> show as
+      CType t -> "CType " <> show t
+
+--fofofo :: IRCode IRValue -> Text
+fofofo code = xxc
+  where
+    xxc = Text.unlines xxb
+    xxb = snd (runCodegen xxa)
+    xxa = runIRCode code
+
+data IRState = IRState 
+  { globalCount :: Int
+  , definitions :: Map Name (IRConstruct (IRCode IRState))
+  } deriving (Show)
+
+initialIRState :: IRState
+initialIRState = IRState
+  { globalCount = 1
+  , definitions = mempty
+  }
+
+overGlobalCount :: (Int -> Int) -> IRState -> IRState
+overGlobalCount f IRState{..} = IRState { globalCount = f globalCount, .. }
+
+--overDefinitions :: (Map Name (IRConstruct (IRCode (IRValue, IRState))) -> Map Name (IRConstruct (IRCode (IRValue, IRState)))) -> IRState -> IRState
+overDefinitions f IRState{..} = IRState { definitions = f definitions, .. }
+
+modifyGlobalCount :: (MonadState IRState m) => (Int -> Int) -> m ()
+modifyGlobalCount = modify . overGlobalCount
+
+--modifyDefinitions :: (MonadState IRState m) => (Map Name IRConstruct -> Map Name IRConstruct) -> m ()
+modifyDefinitions = modify . overDefinitions
+
+--insertDefinition :: (MonadState IRState m) => Name -> IRConstruct -> m ()
+insertDefinition = modifyDefinitions <$$> Map.insert
+
+--newtype IRInstr v t a = IRInstr { unIRInstr :: ReaderT (Environment IRValue) (StateT IRState (Free (IRInstrF v t))) a }
+--  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF v t))
+
+type IRInstr v t = Free (IRInstrF v t) 
+--  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF v t))
+
+add :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
+add t v w = wrap (IAdd t v w pure)
+
+sub :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
+sub t v w = wrap (ISub t v w pure)
+
+mul :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
+mul t v w = wrap (IMul t v w pure)
+
+alloca :: (MonadFree (IRInstrF v t) m) => t -> m v
+alloca t = wrap (IAlloc t pure)
+
+--load :: t -> v -> IRInstr v t v
+load t v = wrap (ILoad t v pure)
+
+--ret :: t -> v -> IRInstr v t ()
+--ret t v = wrap (IRet t v (const $ pure ()))
+
+--ret :: t -> v -> IRInstr v t v
+ret t v = wrap (IRet t v pure)
+
+--store :: v -> v -> IRInstr v t v
+store v w = wrap (IStore v w pure)
+
+--getelementptr :: t -> v -> v -> v -> IRInstr v t v
+getelementptr t u v w = wrap (IGep t u v w pure)
+
+--call :: t -> v -> [v] -> IRInstr v t v
+call t v vs = wrap (ICall t v vs pure)
+
+--bitcast :: v -> t -> IRInstr v t v
+bitcast v t = wrap (IBCast v t pure)
+
+irPrim :: Prim -> IRValue
+irPrim =
+  \case
+    PBool b    -> I1 b
+    PInt32 i32 -> I32 i32
+    PInt64 i64 -> I64 i64
+    PFloat f   -> Float f
+    PDouble d  -> Double d
+
+class IR a where
+  encode :: a -> Text
+
+instance (IR a) => IR [a] where
+  encode = Text.concat . intersperse ", " . (encode <$>)
+
+instance IR IRValue where
+  encode =
+    \case
+      Local  _ name  -> "%" <> enquote name
+      Global _ name  -> "@" <> enquote name
+      I1     False   -> "0"
+      I1     True    -> "1"
+      I32    n -> showt n
+      I64    n -> showt n
+      Float  f -> showt f
+      Double d -> showt d
+
+instance IR IRType where
+  encode =
+    \case
+      TInt1     -> "i1"
+      TInt8     -> "i8"
+      TInt32    -> "i32"
+      TInt64    -> "i64"
+      TFloat    -> "float"
+      TDouble   -> "double"
+      TVoid     -> "void"
+      TFun t ts -> encode t <+> "(" <> encode ts <> ")" <> "*"
+      TPtr t    -> encode t <> "*"
+      TStruct t -> "{" <+> encode t <+> "}"
+      TName n _ -> "%" <> enquote n
+
+enquote :: Text -> Text
+enquote n
+  | Text.all isAlphaNum n = n
+  | otherwise = "\"" <> n <> "\""
+
+newtype IRTyped v = IRTyped v
+  deriving (Show, Eq, Ord, Read)
+
+instance IR (IRTyped IRValue) where
+  encode (IRTyped v) = encode (irTypeOf v) <+> encode v
+
+--toIRFunType :: Type -> (IRType, [IRType])
+--toIRFunType =
+--  \case
+--    TCon "->" [t1, t2] -> second (toIRType t1 :) (toIRFunType t2)
+--    t                  -> (toIRType t, [])
+
+irFunType :: Type -> (IRType, [IRType])
+irFunType =
+  \case
+    TCon "->" [t1, t2] -> second (toIRType t1 :) (irFunType t2)
+    t                  -> (toIRType t, [])
+
+irFunTypeOf :: (Typed t) => t -> (IRType, [IRType])
+irFunTypeOf = irFunType . typeOf
+
+toIRType :: Type -> IRType
+toIRType =
+  \case
+    TCon "Bool"   [] -> i1
+    TCon "Int32"  [] -> i32
+    TCon "Int64"  [] -> i64
+    TCon "Float"  [] -> TFloat
+    TCon "Double" [] -> TDouble
+    TCon "Char"   [] -> i8
+    t@(TCon "->"  _) -> ptr i8
+
+-- TODO!!
+toIRType2 :: Type -> IRType
+toIRType2 =
+  \case
+    t@(TCon "->" _) -> uncurry TFun (irFunTypeOf t)
+    t               -> toIRType t
+
+type Codegen = WriterT [Text] (State Int)
+ 
+runCodegen :: Codegen a -> (a, [Text])
+runCodegen a = evalState (runWriterT a) 1
+
+execCodegen :: Codegen a -> a
+execCodegen = fst . runCodegen
+
+instruction :: IRType -> Text -> (IRValue -> Codegen a) -> Codegen a
+instruction t s next = do
+  var <- gets (Local t . showt)
+  modify (+1)
+  tell [encode var <+> "=" <+> s]
+  next var
+
+interpreter :: IRInstrF IRValue IRType (Codegen a) -> Codegen a
+interpreter =
+  \case
+    IAdd t v w next ->
+      instruction t ("add" <+> encode t <+> encode v <> "," <+> encode w) next
+    ISub t v w next ->
+      instruction t ("sub" <+> encode t <+> encode v <> "," <+> encode w) next
+    IMul t v w next ->
+      instruction t ("mul" <+> encode t <+> encode v <> "," <+> encode w) next
+    IAlloc t next ->
+      instruction (TPtr t) ("alloca" <+> encode t) next
+    ILoad t v next ->
+      instruction t ("load" <+> encode t <> "," <+> encode (IRTyped v)) next
+    IBCast v t next ->
+      instruction t ("bitcast" <+> encode (IRTyped v) <+> "to" <+> encode t) next
+    IGep t u v w next ->
+      instruction (ptr (member t w)) ("getelementptr" <+> encode t <> "," <+> encode (IRTyped u) <> "," <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)) next
+    ICall t v vs next ->
+      instruction t ("call" <+> encode t <+> encode v <> "(" <> encode (IRTyped <$> vs) <> ")") next
+    IStore v w next -> do
+      tell ["store" <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)] 
+      next v
+    IRet t v next -> do
+      tell ["ret" <+> encode t <+> encode v]
+      next v
+    _ ->
+      error "Not implemented"
+  where
+    member (TName _ t) n        = member t n
+    member (TStruct ts) (I32 n) = ts !! fromIntegral n
+
+--runIRCode :: IRCode a -> ((a, [Text]), Int)
+--runIRCode code = runState (runWriterT (iterM interpreter code)) 1
+
+--interpreter :: IRInstrF IRValue IRType (Codegen a) -> Codegen a
+
+type IRCode = IRInstr IRValue IRType
+
+runIRCode :: IRCode a -> Codegen a
+runIRCode = iterM interpreter
+--
+--runX :: Free (IRInstrF IRValue IRType) a -> a
+--runX = undefined
+
+
+-- --runIRCode :: Set Name -> IRCode a -> [Text]
+--runIRCode env code = evalState (runWriterT (iterM interpreter zzz)) 1
+--  where
+--    zzz = runStateT (runReaderT (unIRInstr code) env) initialIRState 
+
+-- --
+
+newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
+  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF IRValue IRType))
+
+runIREval :: Environment IRValue -> IREval a -> IRCode (a, IRState)
+runIREval env val = runStateT (runReaderT (unIREval val) env) initialIRState
+
+pasta :: Expr Type -> IREval IRValue
+pasta e = do
+  a <- irEval e
+  ret (irTypeOf a) a
+
+irEval :: Expr Type -> IREval IRValue
+irEval =
+  \case
+    EVar (Label t var) -> do
+      env <- ask
+      pure $ case envLookup var env of
+        Just val -> val
+        Nothing  -> Global (toIRType2 t) var
+
+    ELit prim -> 
+      pure (irPrim prim)
+
+    ELet vs e1 -> do
+      vals <- forM vs $ \(Label t n, e) -> do
+        v <- irEval e
+        pure (n, v)
+      local (envInserts vals) (irEval e1)
+
+    EOp2 (t, OAdd) e1 e2 -> do
+      v1 <- irEval e1
+      v2 <- irEval e2
+      add (toIRType t) v1 v2
+
+    EOp2 (t, OSub) e1 e2 -> do
+      v1 <- irEval e1
+      v2 <- irEval e2
+      sub (toIRType t) v1 v2
+
+    EOp2 (t, OMul) e1 e2 -> do
+      v1 <- irEval e1
+      v2 <- irEval e2
+      mul (toIRType t) v1 v2
+
+    EApp t e1 es -> do
+      v1 <- irEval e1
+      vs <- NonEmpty.toList <$> traverse irEval es
+      if arity t > 0
+        then do
+          -- Partially applied function
+          let (t1, ts) = irFunTypeOf e1
+              ts' = drop (length vs) ts
+              s = [ TFun t1 (ptr i8 : ts'), TFun t1 ts ] <> (irTypeOf <$> vs)
+          t2 <- topType "Closure" (struct s)
+          v2 <- topDefine "resume" t1 ((ptr i8, "f") : ixArgs ts') (resume t1 ts t2 vs)
+          partiallyApply t2 v1 v2 vs
+        else case v1 of
+          v@Local{} -> uncurry (callPtr v vs) (irFunTypeOf e1)
+          Global{}  -> call (toIRType t) v1 vs
+
+    e -> error (show e)
+
+callPtr :: (MonadFree (IRInstrF IRValue IRType) m) => IRValue -> [IRValue] -> IRType -> [IRType] -> m IRValue
+callPtr v vs t ts = do
+  r1 <- bitcast v (ptr (struct [t1]))
+  r2 <- getelementptr (struct [t1]) r1 (I32 0) (I32 0)
+  r3 <- load t1 r2
+  call t r3 (v : vs)
+--  r4 <- call t r3 (v : vs)
+--  ret t r4
+  where
+    t1 = fun t (ptr i8 : ts)
+
+partiallyApply :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> IRValue -> IRValue -> [IRValue] -> m IRValue
+partiallyApply tc v1 td vs = do
+  r1 <- alloca tc
+  r2 <- getelementptr tc r1 (I32 0) (I32 0)
+  store td r2
+  r3 <- getelementptr tc r1 (I32 0) (I32 1)
+  store v1 r3
+  forM_ (zip vs [2 ..]) $ \(a, n) -> do
+    r <- getelementptr tc r1 (I32 0) (I32 n)
+    store a r
+  bitcast r1 (ptr i8)
+
+resume :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> [IRType] -> IRType -> [IRValue] -> m IRValue
+resume t1 ts tc vs = do
+  r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
+  r2 <- getelementptr tc r1 (I32 0) (I32 1)
+  r3 <- load (TFun t1 ts) r2
+  args <- forM (zip vs [2 ..]) $ \(a, n) -> do
+    r <- getelementptr tc r1 (I32 0) (I32 n)
+    load (irTypeOf a) r
+  r4 <- call t1 r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
+  ret t1 r4
+
+ixArgs :: [a] -> [(a, Text)]
+ixArgs ts = ts `zip` (("a" <>) . showt <$> [0 :: Int ..]) 
+
+
+--resume :: IRType -> IRType -> [IRValue] -> IRCode IRValue
+--resume tfun@(TFun t1 ts) tc vs = do
+--  r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
+--  r2 <- getelementptr tc r1 (I32 0) (I32 1)
+--  r3 <- load tfun r2
+--  args <- forM (zip vs [2 ..]) $ \(a, n) -> do
+--    r <- getelementptr tc r1 (I32 0) (I32 n)
+--    load (irTypeOf a) r
+--  r4 <- call t1 r3 (args <> fooz)
+--  ret t1 r4
+--  where
+--    fooz = uncurry Local <$> extra
+--    extra = zip (drop (length vs) ts) (("a" <>) . showt <$> [0 :: Int ..]) 
+
+-- --
+-- 
+bork :: Name -> IREval Name
+bork n = do
+  count <- gets globalCount
+  modifyGlobalCount (+1)
+  pure (n <> "." <> showt count)
+
+topDefine :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
+topDefine n t args code = do
+  name <- bork n
+  insertDefinition name (CDefine t args (initialIRState <$ code))
+  pure (Global (TFun t (fst <$> args)) name)
+
+topDeclare n = do
+  undefined
+
+topType :: Name -> IRType -> IREval IRType
+topType n ty = do
+  name <- bork n
+  insertDefinition name (CType ty)
+  pure (TName name ty)
+
+testEnv :: Environment IRValue
+testEnv = envFromList 
+  [ 
+    ( "x.1"
+    , Local i32 "x.1"
+    )
+  , 
+    ( "y.2"
+    , Local i32 "y.2"
+    )
+  , ( "g.5"
+    , Local (ptr i8) "g.5"
+    ) 
+  ]
+
+
+--baz :: Expr Type -> ((IRValue, IRState), [Text])
+--baz x = runCodegen xx2
+--  where
+--    xx2 = runIRCode (runStateT (runReaderT (unIREval xx1) testEnv) initialIRState)
+--    xx1 = irEval x
+--
+--
+--zooz = baz xx1
+--  where
+--    xx1 = EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2"))
+--
+--zooz5 = baz xx1
+--  where
+--    xx1 = EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "f")) (ELit (PInt32 100) :| [])
+--
+--zooz2 = baz xx1
+--  where
+--    xx1 = EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| [])
+--
+--zooz3 = baz xx1
+--  where
+--    xx1 = EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
+--            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
+--            (ELit (PInt32 1) :| [])
+--
+
+-- ---zooz2 :: [Text]
+--zooz2 = runIRCode xx1
+--  where
+--    xx1 = irEval (EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| []))
+
+-- --zzz :: IRCode ()
+-- --zzz = do
+-- --  r1 <- bitcast (ptr i8) "f" (ptr _Func)
+-- --  r2 <- getelementptr _Func r1 (I32 0) (I32 1)
+-- --  r3 <- load (fun i32 [i32, i32]) r2
+-- --  ret i32 r2
+-- 
+-- --zooz3 :: [Text]
+-- zooz3 = runIRCode testEnv xx1
+--   where
+--     xx1 = irEval (EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
+--             (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
+--             (ELit (PInt32 1) :| []))
+
+
+--newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
+--
+
+dict1 :: Dictionary Type
+dict1 =
+  Map.fromList [
+    ( "$fun.0", 
+        ( [Label (TCon "Int32" []) "x.1",Label (TCon "Int32" []) "y.2"]
+        , EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2")))
+        )
+
+
+  , ( "$fun.1", 
+        ( [Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"]
+        , EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) 
+           (ELit (PInt32 100) :| [])
+        )
+    )
+  , ( "$fun._", 
+        ( [],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3"
+        , EApp 
+            (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
+            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
+            (ELit (PInt32 1) :| [])) :| []) 
+            (EApp (TCon "Int32" []) 
+              (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) 
+              (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))
+        )
+    )
+  ]
+
+--crew4 :: Dictionary Type -> 
+--crew4 dict = undefined
+
+crew6 = crew5 "$fun._" 
+        ( [],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3"
+        , EApp 
+            (TCon "->" [TCon "Int32" [],TCon "Int32" []]) 
+            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) 
+            (ELit (PInt32 1) :| [])) :| []) 
+            (EApp (TCon "Int32" []) 
+              (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) 
+              (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))
+        )
+
+
+--crew8 = runCodegen . runIRCode <$> (definitions (fst crew7) ! "$fun._")
+
+--crew7 = runCodegen (runIRCode xx)
+--  where
+--    xx :: IRCode IRState
+--    xx = runIREval mempty crew6
+
+crew7 :: (IRState, [Text])
+crew7 = runCodegen (runIRCode crew6)
+
+crew8 :: IRState
+crew8 = execCodegen (runIRCode crew6)
+
+crew9 :: Dictionary Type -> Map Name (IRConstruct (IRCode IRState))
+crew9 dict = Map.foldrWithKey foo mempty dict
+
+--foo :: Name -> ([Label Type], Expr Type) -> Map Name (IRConstruct (IRCode IRState)) -> Map Name (IRConstruct (IRCode IRState))
+foo name as m = cc <> m
+  where
+    cc = definitions bb
+    bb :: IRState
+    bb = execCodegen (runIRCode aa)
+    aa = crew5 name as
+
+--newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
+--  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF IRValue IRType))
+
+--CDefine  !IRType ![(IRType, Name)] a
+
+--faz :: IRCode (IRValue, IRState) -> Name -> IRState -> IRState
+faz :: Name -> IRType -> [(IRType, Name)] -> IRCode IRState -> IRState -> IRState
+faz name t args code IRState{..} = 
+  IRState{ definitions = Map.insert name (CDefine t args code) definitions , .. }
+
+-- = IRState { definitions = f definitions, .. }
+
+crew5 :: Name -> ([Label Type], Expr Type) -> IRCode IRState
+crew5 name (lls, e) = do
+  fmap (faz name (toIRType (typeOf e)) args zz) zz
+  where
+    zz :: IRCode IRState
+    zz = fmap snd dd
+    dd :: IRCode (IRValue, IRState)
+    --dd = runIREval (envFromList foo) (irEval e)
+    dd = runIREval (envFromList foo) (pasta e)
+    foo = [(n, Local (toIRType t) n) | Label t n <- lls ]
+    args :: [(IRType, Name)]
+    args = swap <$> (toIRType <$$> unLabel <$> lls)
 
