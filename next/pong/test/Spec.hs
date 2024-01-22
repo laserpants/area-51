@@ -4528,28 +4528,8 @@ llvmType123123 =
 --      CType t -> "CType " <> show t
 
 --fofofo :: IRCode IRValue -> Text
-fofofo code = xxc
-  where
-    xxc = Text.unlines xxb
-    xxb = snd (runCodegen xxa)
-    xxa = runIRCode code
 
   -- deriving (Show)
-
-overGlobalCount :: (Int -> Int) -> IRState -> IRState
-overGlobalCount f IRState{..} = IRState { globalCount = f globalCount, .. }
-
---overDefinitions :: (Map Name (IRConstruct (IRCode (IRValue, IRState))) -> Map Name (IRConstruct (IRCode (IRValue, IRState)))) -> IRState -> IRState
-overDefinitions f IRState{..} = IRState { definitions = f definitions, .. }
-
-modifyGlobalCount :: (MonadState IRState m) => (Int -> Int) -> m ()
-modifyGlobalCount = modify . overGlobalCount
-
---modifyDefinitions :: (MonadState IRState m) => (Map Name IRConstruct -> Map Name IRConstruct) -> m ()
-modifyDefinitions = modify . overDefinitions
-
---insertDefinition :: (MonadState IRState m) => Name -> IRConstruct -> m ()
-insertDefinition = modifyDefinitions <$$> Map.insert
 
 --newtype IRInstr v t a = IRInstr { unIRInstr :: ReaderT (Environment IRValue) (StateT IRState (Free (IRInstrF v t))) a }
 --  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF v t))
@@ -4557,11 +4537,18 @@ insertDefinition = modifyDefinitions <$$> Map.insert
 --  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF v t))
 
 -- TODO!!
-toIRType2 :: Type -> IRType
-toIRType2 =
-  \case
-    t@(TCon "->" _) -> uncurry TFun (irFunTypeOf t)
-    t               -> toIRType t
+--toIRType2 :: Type -> IRType
+--toIRType2 =
+--  \case
+--    t@(TCon "->" _) -> uncurry TFun (irFunTypeOf t)
+--    t               -> toIRType t
+--
+--toIRType3 :: Type -> IRType
+--toIRType3 =
+--  \case
+--    t@(TCon "->" _) -> ptr i8
+--    t               -> toIRType t
+
 
 --runIRCode :: IRCode a -> ((a, [Text]), Int)
 --runIRCode code = runState (runWriterT (iterM interpreter code)) 1
@@ -4580,28 +4567,112 @@ toIRType2 =
 
 -- --
 
-pasta :: Expr Type -> IREval IRValue
-pasta e = do
-  a <- irEval e
-  ret (irTypeOf a) a
+--------------------------------
+-- saturated?  |  local?
+--
+-- FALSE          FALSE       create closure
+-- FALSE          TRUE        build new closure
+-- TRUE           FALSE       call function
+-- TRUE           TRUE        call completer
 
-irEval :: Expr Type -> IREval IRValue
-irEval =
+xyz :: Expr Type -> IREval IRValue
+xyz =
   \case
     EVar (Label t var) -> do
       env <- ask
       pure $ case envLookup var env of
         Just val -> val
-        Nothing  -> Global (toIRType2 t) var
+        Nothing  -> Global (toIRType t) var
+
+    expr -> irEval expr
+
+packClosure v vs t ts = do
+  tc <- topType "Closure" (struct s)
+  td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tc vs t ts)
+  r1 <- alloca tc
+  r2 <- getelementptr tc r1 (I32 0) (I32 0)
+  store td r2
+  r3 <- getelementptr tc r1 (I32 0) (I32 1)
+  store v r3
+  forM_ (zip vs [2 ..]) $ \(a, n) -> do
+    rn <- getelementptr tc r1 (I32 0) (I32 n)
+    store a rn
+  bitcast r1 (ptr i8)
+  where
+    ts' = drop (length vs) ts
+    s = [ TFun t (ptr i8 : ts'), TFun t ts ] <> (irTypeOf <$> vs)
+
+fnork f x y e = undefined -- uncurry (f x y) (irFunTypeOf e)
+
+irEval :: Expr Type -> IREval IRValue
+irEval =
+  \case
+    e@(EVar (Label t _)) -> do
+      x <- xyz e
+      if arity t == 0
+        then pure x
+        --else uncurry (packClosure x []) (irFunTypeOf e)
+        else do
+          case x of
+            v@Local{} -> do --error "TODO"
+              let (t, ts) = undefined -- irFunTypeOf e
+                  vs = []
+                  ts' = drop (length vs) ts
+                  s = [ TFun t (ptr i8 : ts'), TFun t (ptr i8 : ts') ] <> (ptr i8 : (irTypeOf <$> vs))
+
+              q1 <- bitcast v (struct [TFun t (ptr i8 : ts')])
+              q2 <- getelementptr (struct [TFun t (ptr i8 : ts')]) q1 (I32 0) (I32 0)
+              q3 <- load t q2
+
+              tc <- topType "Closure" (struct s)
+              td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tc (v : vs) t (ptr i8 : ts'))
+              r1 <- alloca tc
+              r2 <- getelementptr tc r1 (I32 0) (I32 0)
+              store td r2
+              r3 <- getelementptr tc r1 (I32 0) (I32 1)
+              r4 <- bitcast v (TFun t (ptr i8 : ts'))
+              store r4 r3
+              forM_ (zip vs [2 ..]) $ \(a, n) -> do
+                rn <- getelementptr tc r1 (I32 0) (I32 n)
+                store a rn
+              bitcast r1 (ptr i8)
+
+            Global{}  -> do
+              traceShowM "======"
+              traceShowM t
+              traceShowM e
+              traceShowM "======"
+              fnork packClosure x [] e
+
+--define i32 @"$fun.1"(i8* %"g.5") {
+--  %1 = bitcast i8* %"g.5" to { i32 (i8*, i32)* }*
+--  %2 = getelementptr { i32 (i8*, i32)* }, { i32 (i8*, i32)* }* %1, i32 0, i32 0
+--  %3 = load i32 (i8*, i32)*, i32 (i8*, i32)** %2
+--  %4 = call i32 %3(i8* %"g.5", i32 100)
+--  ret i32 %4
+--}
+
+    EApp t e1 es -> do
+      v1 <- xyz e1
+      vs <- NonEmpty.toList <$> traverse irEval es
+      if arity t == 0
+        -- Fully applied
+        then
+          case v1 of
+            v@Local{} -> undefined -- fnork callPtr v vs e1
+            Global{}  -> call (toIRType t) v1 vs
+        else do
+          case v1 of
+            v@Local{} -> error "TODO"
+            Global{}  -> do
+              traceShowM "******"
+              traceShowM t
+              traceShowM e1
+              traceShowM "******"
+              fnork packClosure v1 vs e1
 
     ELit prim ->
       pure (irPrim prim)
-
-    ELet vs e1 -> do
-      vals <- forM vs $ \(Label t n, e) -> do
-        v <- irEval e
-        pure (n, v)
-      local (envInserts vals) (irEval e1)
 
     EOp2 (t, OAdd) e1 e2 -> do
       v1 <- irEval e1
@@ -4618,23 +4689,102 @@ irEval =
       v2 <- irEval e2
       mul (toIRType t) v1 v2
 
-    EApp t e1 es -> do
+    EOp2 (t, OEq) e1 e2 -> do
       v1 <- irEval e1
-      vs <- NonEmpty.toList <$> traverse irEval es
-      if arity t > 0
-        then do
-          -- Partially applied function
-          let (t1, ts) = irFunTypeOf e1
-              ts' = drop (length vs) ts
-              s = [ TFun t1 (ptr i8 : ts'), TFun t1 ts ] <> (irTypeOf <$> vs)
-          t2 <- topType "Closure" (struct s)
-          v2 <- topDefine "resume" t1 ((ptr i8, "f") : ixArgs ts') (resume t1 ts t2 vs)
-          partiallyApply t2 v1 v2 vs
-        else case v1 of
-          v@Local{} -> uncurry (callPtr v vs) (irFunTypeOf e1)
-          Global{}  -> call (toIRType t) v1 vs
+      v2 <- irEval e2
+      icmpEq (toIRType t) v1 v2
+
+    ELet vs e1 -> do
+      vals <- forM vs $ \(Label t n, e) -> do
+        v <- irEval e
+        pure (n, v)
+      local (envInserts vals) (irEval e1)
 
     e -> error (show e)
+
+
+
+pasta :: Expr Type -> IREval IRValue
+pasta e = do
+  a <- irEval e
+  ret (irTypeOf a) a
+
+--irEval :: Expr Type -> IREval IRValue
+--irEval =
+--  \case
+--    EVar (Label t var) -> do
+--      env <- ask
+--      pure $ case envLookup var env of
+--        Just val -> val
+--        Nothing  -> Global (toIRType2 t) var
+--
+--    ELit prim ->
+--      pure (irPrim prim)
+--
+--    ELet vs e1 -> do
+--      vals <- forM vs $ \(Label t n, e) -> do
+--        v <- irEval e
+--        pure (n, v)
+--      local (envInserts vals) (irEval e1)
+--
+--    EOp2 (t, OAdd) e1 e2 -> do
+--      v1 <- irEval e1
+--      v2 <- irEval e2
+--      add (toIRType t) v1 v2
+--
+--    EOp2 (t, OSub) e1 e2 -> do
+--      v1 <- irEval e1
+--      v2 <- irEval e2
+--      sub (toIRType t) v1 v2
+--
+--    EOp2 (t, OMul) e1 e2 -> do
+--      v1 <- irEval e1
+--      v2 <- irEval e2
+--      mul (toIRType t) v1 v2
+--
+--    EOp2 (t, OEq) e1 e2 -> do
+--      v1 <- irEval e1
+--      v2 <- irEval e2
+--      icmpEq (toIRType t) v1 v2
+--
+--    EIf e1 e2 e3 -> do
+--      irEval e1
+--      block "true"
+--      pasta e2
+--      block "false"
+--      pasta e3
+--      --v1 <- irEval e1
+--      --v2 <- irEval e2
+--      --v3 <- irEval e3
+--      ---- TODO
+--      ----block "true" v2
+--      ----block "false" v3
+--      --pure v3
+--
+--    EApp t e1 es -> do
+--      v1 <- irEval e1
+--      vs <- NonEmpty.toList <$> traverse irEval es
+--      traceShowM e1
+--      traceShowM t
+--      traceShowM (arity t)
+--      traceShowM "-----------------"
+--      if arity t > 0
+--        then do
+--          -- Partially applied function
+--          let (t1, ts) = irFunTypeOf e1
+--              ts' = drop (length vs) ts
+--              s = [ TFun t1 (ptr i8 : ts'), TFun t1 ts ] <> (irTypeOf <$> vs)
+--          t2 <- topType "Closure" (struct s)
+--          v2 <- topDefine "resume" t1 ((ptr i8, "f") : ixArgs ts') (resume t1 ts t2 vs)
+--          partiallyApply t2 v1 v2 vs
+--        else case v1 of
+--          v@Local{} -> uncurry (callPtr v vs) (irFunTypeOf e1)
+--          Global{}  -> call (toIRType t) v1 vs
+--
+--    e -> error (show e)
+
+--zork (Local  _ v) = Local (ptr i8) v
+--zork (Global _ v) = Global (ptr i8) v
 
 callPtr :: (MonadFree (IRInstrF IRValue IRType) m) => IRValue -> [IRValue] -> IRType -> [IRType] -> m IRValue
 callPtr v vs t ts = do
@@ -4642,8 +4792,6 @@ callPtr v vs t ts = do
   r2 <- getelementptr (struct [t1]) r1 (I32 0) (I32 0)
   r3 <- load t1 r2
   call t r3 (v : vs)
---  r4 <- call t r3 (v : vs)
---  ret t r4
   where
     t1 = fun t (ptr i8 : ts)
 
@@ -4659,37 +4807,31 @@ partiallyApply tc v1 td vs = do
     store a r
   bitcast r1 (ptr i8)
 
-resume :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> [IRType] -> IRType -> [IRValue] -> m IRValue
-resume t1 ts tc vs = do
+--resume :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> [IRType] -> IRType -> [IRValue] -> m IRValue
+resume tc vs t ts = do
   r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
   r2 <- getelementptr tc r1 (I32 0) (I32 1)
-  r3 <- load (TFun t1 ts) r2
+  r3 <- load (TFun t ts) r2
   args <- forM (zip vs [2 ..]) $ \(a, n) -> do
     r <- getelementptr tc r1 (I32 0) (I32 n)
     load (irTypeOf a) r
-  r4 <- call t1 r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
-  ret t1 r4
+  r4 <- call t r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
+  ret t r4
+
+  --r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
+  --r2 <- getelementptr tc r1 (I32 0) (I32 1)
+  --r3 <- load (TFun t1 ts) r2
+  --args <- forM (zip vs [2 ..]) $ \(a, n) -> do
+  --  r <- getelementptr tc r1 (I32 0) (I32 n)
+  --  load (irTypeOf a) r
+  --r4 <- call t1 r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
+  --ret t1 r4
 
 ixArgs :: [a] -> [(a, Text)]
 ixArgs ts = ts `zip` (("a" <>) . showt <$> [0 :: Int ..])
 
-
---resume :: IRType -> IRType -> [IRValue] -> IRCode IRValue
---resume tfun@(TFun t1 ts) tc vs = do
---  r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
---  r2 <- getelementptr tc r1 (I32 0) (I32 1)
---  r3 <- load tfun r2
---  args <- forM (zip vs [2 ..]) $ \(a, n) -> do
---    r <- getelementptr tc r1 (I32 0) (I32 n)
---    load (irTypeOf a) r
---  r4 <- call t1 r3 (args <> fooz)
---  ret t1 r4
---  where
---    fooz = uncurry Local <$> extra
---    extra = zip (drop (length vs) ts) (("a" <>) . showt <$> [0 :: Int ..])
-
 -- --
---
+
 bork :: Name -> IREval Name
 bork n = do
   count <- gets globalCount
@@ -4710,6 +4852,7 @@ topType n ty = do
   name <- bork n
   insertDefinition name (CType ty)
   pure (TName name ty)
+  -- return a Local ??
 
 testEnv :: Environment IRValue
 testEnv = envFromList
@@ -4722,59 +4865,10 @@ testEnv = envFromList
     , Local i32 "y.2"
     )
   , ( "g.5"
-    , Local (ptr i8) "g.5"
+    , Local (fun i32 [i32]) "g.5"
+--    , Clsosure (TFun i32 [i32]) "g.5" []
     )
   ]
-
-
---baz :: Expr Type -> ((IRValue, IRState), [Text])
---baz x = runCodegen xx2
---  where
---    xx2 = runIRCode (runStateT (runReaderT (unIREval xx1) testEnv) initialIRState)
---    xx1 = irEval x
---
---
---zooz = baz xx1
---  where
---    xx1 = EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2"))
---
---zooz5 = baz xx1
---  where
---    xx1 = EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "f")) (ELit (PInt32 100) :| [])
---
---zooz2 = baz xx1
---  where
---    xx1 = EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| [])
---
---zooz3 = baz xx1
---  where
---    xx1 = EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []])
---            (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0"))
---            (ELit (PInt32 1) :| [])
---
-
--- ---zooz2 :: [Text]
---zooz2 = runIRCode xx1
---  where
---    xx1 = irEval (EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| []))
-
--- --zzz :: IRCode ()
--- --zzz = do
--- --  r1 <- bitcast (ptr i8) "f" (ptr _Func)
--- --  r2 <- getelementptr _Func r1 (I32 0) (I32 1)
--- --  r3 <- load (fun i32 [i32, i32]) r2
--- --  ret i32 r2
---
--- --zooz3 :: [Text]
--- zooz3 = runIRCode testEnv xx1
---   where
---     xx1 = irEval (EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []])
---             (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0"))
---             (ELit (PInt32 1) :| []))
-
-
---newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
---
 
 dict1 :: Dictionary Type
 dict1 =
@@ -4787,8 +4881,7 @@ dict1 =
 
   , ( "$fun.1",
         ( [Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"]
-        , EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"))
-           (ELit (PInt32 100) :| [])
+        , EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| [])
         )
     )
   , ( "$fun._",
@@ -4856,6 +4949,12 @@ moo dict = Text.putStrLn cake
     cake = Text.intercalate "\n" snake
     snake = play (crew9 dict)
 
+moo_ dict = do
+  Text.writeFile "tmp.ll" (intr <> cake)
+  where
+    intr = "declare void @print_int32(i32)\ndefine i32 @main() {\n %1 = call i32 @\"$fun._\"()\n call void @print_int32(i32 %1)\n ret i32 0\n}\n\n"
+    cake = Text.intercalate "\n" snake
+    snake = play (crew9 dict)
 
 
 --newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
@@ -4878,8 +4977,216 @@ crew5 name (lls, e) = do
     zz = fmap snd dd
     dd :: IRCode (IRValue, IRState)
     --dd = runIREval (envFromList foo) (irEval e)
-    dd = runIREval (envFromList foo) (pasta e)
-    foo = [(n, Local (toIRType t) n) | Label t n <- lls ]
+    dd = runIREval (envFromList foo) (pastaTmp e)
+    foo = [(n, Local (funPtrType t) n) | Label t n <- lls ]
     args :: [(IRType, Name)]
-    args = swap <$> (toIRType <$$> unLabel <$> lls)
+    args = swap <$> (funPtrType <$$> unLabel <$> lls)
+
+
+pastaTmp :: Expr Type -> IREval IRValue
+pastaTmp e = do
+  a <- xirEval e
+  ret (irTypeOf a) a
+
+
+progX :: Expr ()
+progX =
+  eLet
+    [
+      ( Label () "f"
+      , eLam [Label () "n"] (ELit (PInt32 7))
+      )
+    ]
+    (eLet
+      [
+        ( Label () "id"
+        , eLam [Label () "x"] (EVar (Label () "x"))
+        )
+      ]
+      (eApp
+        ()
+        (eApp
+          ()
+          (EVar (Label () "id"))
+          [ EVar (Label () "f") ]
+        )
+        [ ELit (PInt32 10) ]
+        )
+      )
+
+
+progY :: Expr ()
+progY =
+  eLet
+    [
+      ( Label () "f"
+      , eLam [Label () "n"] (ELit (PInt32 7))
+      )
+    ]
+    (eLet
+      [
+        ( Label () "g"
+        , eLam [Label () "n"] (ELit (PInt32 8))
+        )
+      ]
+      (eApp
+        ()
+        (EIf
+          (ELit (PBool True))
+          (EVar (Label () "f"))
+          (EVar (Label () "g"))
+        )
+        [ELit PUnit]
+      )
+    )
+
+
+--
+
+topType2 :: Name -> IRType -> IREval IRType
+topType2 n ty = do
+  name <- bork n
+  insertDefinition name (CType ty)
+  pure (TName name ty)
+
+topDefine2 :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
+topDefine2 n t args code = do
+  name <- bork n
+  insertDefinition name (CDefine t args (initialIRState <$ code))
+  pure (Global (fun t (fst <$> args)) name)
+
+resume2 :: IRType -> [IRValue] -> IRType -> IRType -> [IRType] -> IRCode IRValue
+resume2 ct vs xx t ts = do
+  r1 <- bitcast (Local (ptr i8) "f") (ptr ct)
+  r2 <- getelementptr ct r1 (I32 0) (I32 1)
+  r3 <- load xx r2
+  args <- forM (zip vs [2 ..]) $ \(a, n) -> do
+    r <- getelementptr ct r1 (I32 0) (I32 n)
+    load (irTypeOf a) r
+--  r4 <- call t r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
+  r4 <- call t r3 (args <> (uncurry Local <$> ixArgs ts))
+  ret t r4
+
+xix :: Type -> Name -> IREval IRValue
+xix t var = do
+  env <- ask
+  pure $ case envLookup var env of
+    Just val -> val
+    Nothing  -> Global (toIRType t) var
+
+xirEval :: Expr Type -> IREval IRValue
+xirEval =
+  \case
+    EVar (Label t var) -> do
+      v1 <- xix t var
+      if arity t == 0
+        then pure v1
+        else do
+          case v1 of
+            Local{} -> do
+              -- unpack closure
+              let TFun t1 ts = toIRType t
+                  funt = fun t1 (ptr i8 : ts)
+                  funt2 = funt -- fun t1 ts
+                  s = struct [funt]
+              q1 <- bitcast v1 (ptr s)
+              q2 <- getelementptr s q1 (I32 0) (I32 0)
+              q3 <- load funt q2
+              q4 <- bitcast q3 (ptr i8)
+
+              let s1 = struct [funt, funt, ptr i8]
+              ct <- topType2 (var <> "_closure") s1
+              td <- topDefine2 (var <> "_resume") t1 ((ptr i8, "f") : ixArgs ts) (resume2 ct [q4] funt2 t1 ts) -- (pure $ I32 99)
+              r1 <- alloca ct
+              r2 <- getelementptr ct r1 (I32 0) (I32 0)
+              store td r2
+              r3 <- getelementptr ct r1 (I32 0) (I32 1)
+              store q3 r3
+              r4 <- getelementptr ct r1 (I32 0) (I32 2)
+              store v1 r4
+              bitcast r1 (ptr i8)
+            Global{} -> do
+              let TFun t1 ts = toIRType t
+                  funt = fun t1 (ptr i8 : ts)
+                  funt2 = fun t1 ts
+                  s = struct [funt, toIRType t]
+              ct <- topType2 (var <> "_closure") s
+              td <- topDefine2 (var <> "_resume") t1 ((ptr i8, "f") : ixArgs ts) (resume2 ct [] funt2 t1 ts) -- (pure $ I32 99)
+              r1 <- alloca ct
+              r2 <- getelementptr ct r1 (I32 0) (I32 0)
+              store td r2
+              r3 <- getelementptr ct r1 (I32 0) (I32 1)
+              store v1 r3
+              bitcast r1 (ptr i8)
+
+    EApp t e1 es -> do
+      v1 <- case e1 of
+        EVar (Label t1 var) -> xix t1 var
+        _ -> xirEval e1
+      vs <- NonEmpty.toList <$> traverse xirEval es
+      if arity t == 0
+        -- Fully applied
+        then case v1 of
+          Local{} -> do
+            -- unpack closure
+            let TFun t1 ts = toIRType (typeOf e1)
+                funt = fun t1 (ptr i8 : ts)
+                s = struct [funt]
+            r1 <- bitcast v1 (ptr s)
+            r2 <- getelementptr s r1 (I32 0) (I32 0)
+            r3 <- load funt r2
+            call t1 r3 (v1 : vs)
+          Global{} ->
+            call (toIRType t) v1 vs
+        else case v1 of
+          Local{} ->
+            -- unpack closure
+            error "TODO"
+          (Global _ var) -> do
+            let TFun t1 ts = toIRType t
+                funt = fun t1 (ptr i8 : ts)
+                funt2 = toIRType (typeOf e1)
+                s = struct ([funt, funt2] <> (irTypeOf <$> vs))
+            ct <- topType2 (var <> "_closure") s
+            td <- topDefine2 (var <> "_resume") t1 ((ptr i8, "f") : ixArgs ts) (resume2 ct vs funt2 t1 ts) -- (pure $ I32 99)
+            r1 <- alloca ct
+            r2 <- getelementptr ct r1 (I32 0) (I32 0)
+            store td r2
+            r3 <- getelementptr ct r1 (I32 0) (I32 1)
+            store v1 r3
+            forM_ (zip vs [2 ..]) $ \(v, n) -> do
+              rn <- getelementptr ct r1 (I32 0) (I32 n)
+              store v rn
+            bitcast r1 (ptr i8)
+
+    ELit prim ->
+      pure (irPrim prim)
+
+    EOp2 (t, OAdd) e1 e2 -> do
+      v1 <- xirEval e1
+      v2 <- xirEval e2
+      add (toIRType t) v1 v2
+
+    EOp2 (t, OSub) e1 e2 -> do
+      v1 <- xirEval e1
+      v2 <- xirEval e2
+      sub (toIRType t) v1 v2
+
+    EOp2 (t, OMul) e1 e2 -> do
+      v1 <- xirEval e1
+      v2 <- xirEval e2
+      mul (toIRType t) v1 v2
+
+    EOp2 (t, OEq) e1 e2 -> do
+      v1 <- xirEval e1
+      v2 <- xirEval e2
+      icmpEq (toIRType t) v1 v2
+
+    ELet vs e1 -> do
+      vals <- forM vs $ \(Label t n, e) -> do
+        v <- xirEval e
+        pure (n, v)
+      local (envInserts vals) (xirEval e1)
+
+    e -> error (show e)
 

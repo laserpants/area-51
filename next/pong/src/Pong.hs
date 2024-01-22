@@ -1248,9 +1248,8 @@ patPredicate :: MPattern -> MPattern -> Bool
 patPredicate MVar{} = isVar
 patPredicate MCon{} = isCon
 
--- TODO: rename
-next :: State Int Int
-next = do
+nextIx :: State Int Int
+nextIx = do
   s <- get
   modify (+1)
   pure s
@@ -1274,7 +1273,7 @@ match us0 qs0 e0 = evalState (matchM us0 qs0 e0) 0 where
       varRule (_, _) = error "Implementation error"
 
       conRule gs@((MCon con ps:_, _):_) = do
-        vs <- (\f -> "$v." <> showt f) <$$> replicateM (length ps) next
+        vs <- (\f -> "$v." <> showt f) <$$> replicateM (length ps) nextIx
         MClause con vs <$> matchM (vs <> us) (ps' <$> gs) e
       conRule _ = error "Implementation error"
 
@@ -1351,25 +1350,25 @@ struct :: [IRType] -> IRType
 struct = TStruct
 
 data IRValue
-  = Local  !IRType !Name
-  | Global !IRType !Name
-  | I1     !Bool
-  | I32    !Int32
-  | I64    !Int64
-  | Float  !Float
-  | Double !Double
+  = Local   !IRType !Name
+  | Global  !IRType !Name
+  | I1      !Bool
+  | I32     !Int32
+  | I64     !Int64
+  | Float   !Float
+  | Double  !Double
   deriving (Show, Eq, Ord, Read)
 
 irTypeOf :: IRValue -> IRType
 irTypeOf =
   \case
-    Local  t _ -> t
-    Global t _ -> t
-    I1     _   -> TInt1
-    I32    _   -> TInt32
-    I64    _   -> TInt64
-    Float  _   -> TFloat
-    Double _   -> TDouble
+    Local   t _   -> t
+    Global  t _   -> t
+    I1      _     -> TInt1
+    I32     _     -> TInt32
+    I64     _     -> TInt64
+    Float   _     -> TFloat
+    Double  _     -> TDouble
 
 data IRInstrF v t a
   = IAdd   !t !v !v    !(v -> a)
@@ -1382,13 +1381,15 @@ data IRInstrF v t a
   | IAlloc !t          !(v -> a)
   | IBCast !v !t       !(v -> a)
   | ICall  !t !v ![v]  !(v -> a)
+  | ICmpEq !t !v !v    !(v -> a)
+  | IBlock !Name       !(v -> a)
   deriving (Functor)
 
 data IRConstruct a
-  = CDefine  !IRType ![(IRType, Name)] a
+  = CDefine  !IRType ![(IRType, Name)] !a
   | CDeclare !IRType ![IRType]
   | CType    !IRType
-  deriving (Functor)
+  deriving (Show, Functor, Foldable, Traversable)
 
 data IRState = IRState
   { globalCount :: !Int
@@ -1430,8 +1431,17 @@ getelementptr t u v w = wrap (IGep t u v w pure)
 call :: (MonadFree (IRInstrF v t) m) => t -> v -> [v] -> m v
 call t v vs = wrap (ICall t v vs pure)
 
+icmpEq :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
+icmpEq t v w = wrap (ICmpEq t v w pure)
+
 bitcast :: (MonadFree (IRInstrF v t) m) => v -> t -> m v
 bitcast v t = wrap (IBCast v t pure)
+
+--block :: (MonadFree (IRInstrF v t) m) => Name -> v -> m v
+block n = wrap (IBlock n pure)
+
+--zz :: Int
+--zz = undefined
 
 irPrim :: Prim -> IRValue
 irPrim =
@@ -1441,6 +1451,9 @@ irPrim =
     PInt64 i64 -> I64 i64
     PFloat f   -> Float f
     PDouble d  -> Double d
+    PChar _    -> error "TODO"
+    PString _  -> error "TODO"
+    PUnit      -> error "TODO"
 
 class IR a where
   encode :: a -> Text
@@ -1512,16 +1525,7 @@ instance IR IRNamed where
         where
           encodeStruct = \case
             TStruct ts -> Text.intercalate ",\n" (indent 2 . encode <$> ts)
-            t -> encode t
-
-irFunType :: Type -> (IRType, [IRType])
-irFunType =
-  \case
-    TCon "->" [t1, t2] -> second (toIRType t1 :) (irFunType t2)
-    t                  -> (toIRType t, [])
-
-irFunTypeOf :: (Typed t) => t -> (IRType, [IRType])
-irFunTypeOf = irFunType . typeOf
+            t1 -> encode t1
 
 toIRType :: Type -> IRType
 toIRType =
@@ -1532,12 +1536,22 @@ toIRType =
     TCon "Float"  [] -> TFloat
     TCon "Double" [] -> TDouble
     TCon "Char"   [] -> i8
-    TCon "->"     _  -> ptr i8
+    t@(TCon "->"  _) -> fun t' (funPtrType <$> NonEmpty.init ts)
+      where
+        t' = toIRType (NonEmpty.last ts)
+        ts = unfoldType t
+    _ -> error "TODO"
+
+funPtrType :: Type -> IRType
+funPtrType =
+  \case
+    TCon "->" _ -> ptr i8
+    t           -> toIRType t
 
 type Codegen = WriterT [Text] (State Int)
 
 runCodegen :: Codegen a -> (a, [Text])
-runCodegen a = evalState (runWriterT a) 1
+runCodegen code = evalState (runWriterT code) 1
 
 execCodegen :: Codegen a -> a
 execCodegen = fst . runCodegen
@@ -1576,18 +1590,49 @@ interpreter =
     IBCast v t next ->
       instruction t ("bitcast" <+> encode (IRTyped v) <+> "to" <+> encode t) next
     IGep t u v w next ->
-      instruction (ptr (member t w)) ("getelementptr" <+> encode t <> "," <+> encode (IRTyped u) <> "," <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)) next
+      instruction (ptr (typeOffs t w)) ("getelementptr" <+> encode t <> "," <+> encode (IRTyped u) <> "," <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)) next
     ICall t v vs next ->
       instruction t ("call" <+> encode t <+> encode v <> "(" <> encode (IRTyped <$> vs) <> ")") next
+    ICmpEq t v w next ->
+      instruction t ("icmp eq" <+> encode (irTypeOf v) <+> encode v <> "," <+> encode w) next
+    IBlock n next -> do
+      tell ["____"]
+      next (I32 1)
+
+      --var <- gets (Local (irTypeOf v) . showt)
+      --modify (+1)
+      ----x <- next var
+      --tell [encode var <+> "=" <+> encode var]
+      --next v
+
+      --tell ["foo:"]
+      --instruction (irTypeOf v) "baz:" next
+      --zzz <- v
+      --let xx1 = zzz :: Int
+      --next v
+      --instruction i32 ("foo : " <> "X") next
     IStore v w next -> do
       tell ["store" <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)]
       next v
     IRet t v next -> do
       tell ["ret" <+> encode t <+> encode v]
       next v
-    _ ->
-      error "Not implemented"
   where
-    member (TName _ t) n        = member t n
-    member (TStruct ts) (I32 n) = ts !! fromIntegral n
+    typeOffs (TName _ t) n        = typeOffs t n
+    typeOffs (TStruct ts) (I32 n) = ts !! fromIntegral n
+
+overGlobalCount :: (Int -> Int) -> IRState -> IRState
+overGlobalCount f IRState{..} = IRState { globalCount = f globalCount, .. }
+
+overDefinitions :: (Map Name (IRConstruct (IRCode IRState)) -> Map Name (IRConstruct (IRCode IRState))) -> IRState -> IRState
+overDefinitions f IRState{..} = IRState { definitions = f definitions, .. }
+
+modifyGlobalCount :: (MonadState IRState m) => (Int -> Int) -> m ()
+modifyGlobalCount = modify . overGlobalCount
+
+modifyDefinitions :: (MonadState IRState m) => (Map Name (IRConstruct (IRCode IRState)) -> Map Name (IRConstruct (IRCode IRState))) -> m ()
+modifyDefinitions = modify . overDefinitions
+
+insertDefinition :: (MonadState IRState m) => Name -> IRConstruct (IRCode IRState) -> m ()
+insertDefinition = modifyDefinitions <$$> Map.insert
 
