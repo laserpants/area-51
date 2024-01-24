@@ -930,7 +930,7 @@ closeDefs :: Dictionary Type -> Dictionary Type
 closeDefs defs = uncurry app (runWriter (Map.traverseWithKey fn defs))
   where
     fn key (lls, expr) = do
-      let extra = uncurry Label <$> Set.toList (freeIn key defs)
+      let extra = uncurry Label <$> Set.toList (Set.filter (not . isConstructor . snd) (freeIn key defs))
       tell [(key, extra)]
       pure (extra <> lls, expr)
 
@@ -1359,30 +1359,45 @@ data IRValue
   | Double  !Double
   deriving (Show, Eq, Ord, Read)
 
-irTypeOf :: IRValue -> IRType
-irTypeOf =
-  \case
-    Local   t _   -> t
-    Global  t _   -> t
-    I1      _     -> TInt1
-    I32     _     -> TInt32
-    I64     _     -> TInt64
-    Float   _     -> TFloat
-    Double  _     -> TDouble
+class IRTyped t where
+  irTypeOf :: t -> IRType
+
+instance IRTyped IRType where
+  irTypeOf = id
+
+instance IRTyped IRValue where
+  irTypeOf =
+    \case
+      Local   t _   -> t
+      Global  t _   -> t
+      I1      _     -> TInt1
+      I32     _     -> TInt32
+      I64     _     -> TInt64
+      Float   _     -> TFloat
+      Double  _     -> TDouble
+
+instance IRTyped Type where
+  irTypeOf = irTypeOf . toIRType
+
+instance (Typed t) => IRTyped (Expr t) where
+  irTypeOf = irTypeOf . typeOf
 
 data IRInstrF v t a
-  = IAdd   !t !v !v    !(v -> a)
-  | ISub   !t !v !v    !(v -> a)
-  | IMul   !t !v !v    !(v -> a)
-  | IRet   !t !v       !(v -> a)
-  | ILoad  !t !v       !(v -> a)
-  | IStore !v !v       !(v -> a)
-  | IGep   !t !v !v !v !(v -> a)
-  | IAlloc !t          !(v -> a)
-  | IBCast !v !t       !(v -> a)
-  | ICall  !t !v ![v]  !(v -> a)
-  | ICmpEq !t !v !v    !(v -> a)
-  | IBlock !Name       !(v -> a)
+  = IAdd    !t !v !v           !(v -> a)
+  | ISub    !t !v !v           !(v -> a)
+  | IMul    !t !v !v           !(v -> a)
+  | IRet    !t !v              !(v -> a)
+  | ILoad   !t !v              !(v -> a)
+  | IStore  !v !v              !(v -> a)
+  | IGep    !t !v !v !v        !(v -> a)
+  | IAlloc  !t                 !(v -> a)
+  | IBCast  !v !t              !(v -> a)
+  | ICall   !t !v ![v]         !(v -> a)
+  | ICmpEq  !t !v !v           !(v -> a)
+  | IBlock  !Name              !(v -> a)
+  | IBr     !(Maybe v) ![Name] !(v -> a)
+  | ISwitch !v !Name ![(v, Name)] !(v -> a)
+  | IPhi    !t ![(v, Name)]    !(v -> a)
   deriving (Functor)
 
 data IRConstruct a
@@ -1422,6 +1437,18 @@ load t v = wrap (ILoad t v pure)
 ret :: (MonadFree (IRInstrF v t) m) => t -> v -> m v
 ret t v = wrap (IRet t v pure)
 
+br :: (MonadFree (IRInstrF v t) m) => v -> [Name] -> m v
+br v lls = wrap (IBr (Just v) lls pure)
+
+br_ :: (MonadFree (IRInstrF v t) m) => [Name] -> m v
+br_ lls = wrap (IBr Nothing lls pure)
+
+phi :: (MonadFree (IRInstrF v t) m) => t -> [(v, Name)] -> m v
+phi t cs = wrap (IPhi t cs pure)
+
+switch :: (MonadFree (IRInstrF v t) m) => v -> Name -> [(v, Name)] -> m v
+switch v n cs = wrap (ISwitch v n cs pure)
+
 store :: (MonadFree (IRInstrF v t) m) => v -> v -> m v
 store v w = wrap (IStore v w pure)
 
@@ -1431,17 +1458,14 @@ getelementptr t u v w = wrap (IGep t u v w pure)
 call :: (MonadFree (IRInstrF v t) m) => t -> v -> [v] -> m v
 call t v vs = wrap (ICall t v vs pure)
 
-icmpEq :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
-icmpEq t v w = wrap (ICmpEq t v w pure)
+cmpEq :: (MonadFree (IRInstrF v t) m) => t -> v -> v -> m v
+cmpEq t v w = wrap (ICmpEq t v w pure)
 
 bitcast :: (MonadFree (IRInstrF v t) m) => v -> t -> m v
 bitcast v t = wrap (IBCast v t pure)
 
---block :: (MonadFree (IRInstrF v t) m) => Name -> v -> m v
+block :: (MonadFree (IRInstrF v t) m) => Name -> m v
 block n = wrap (IBlock n pure)
-
---zz :: Int
---zz = undefined
 
 irPrim :: Prim -> IRValue
 irPrim =
@@ -1451,9 +1475,9 @@ irPrim =
     PInt64 i64 -> I64 i64
     PFloat f   -> Float f
     PDouble d  -> Double d
+    PUnit      -> I1 True
     PChar _    -> error "TODO"
     PString _  -> error "TODO"
-    PUnit      -> error "TODO"
 
 class IR a where
   encode :: a -> Text
@@ -1493,20 +1517,22 @@ enquote n
   | Text.all isAlphaNum n = n
   | otherwise = "\"" <> n <> "\""
 
-newtype IRTyped v = IRTyped v
+newtype IRAnnotated v = IRAnnotated v
   deriving (Show, Eq, Ord, Read)
 
-instance IR (IRTyped IRValue) where
-  encode (IRTyped v) = encode (irTypeOf v) <+> encode v
+instance IR (IRAnnotated IRValue) where
+  encode (IRAnnotated v) = encode (irTypeOf v) <+> encode v
 
 instance IR (IRCode IRState) where
   encode code = Text.unlines (indent 2 <$> snd (runCodegen (runIRCode code)))
 
 indent :: Int -> Text -> Text
-indent level = (spaces <>) where spaces = Text.replicate level " "
+indent level line = if Text.last line == ':' then line else spaces <> line
+  where
+    spaces = Text.replicate level " "
 
 instance IR (IRType, Name) where
-  encode = encode . IRTyped . uncurry Local
+  encode = encode . IRAnnotated . uncurry Local
 
 data IRNamed = IRNamed !Name !(IRConstruct (IRCode IRState))
 
@@ -1530,6 +1556,7 @@ instance IR IRNamed where
 toIRType :: Type -> IRType
 toIRType =
   \case
+    TCon "()"     [] -> i1
     TCon "Bool"   [] -> i1
     TCon "Int32"  [] -> i32
     TCon "Int64"  [] -> i64
@@ -1540,7 +1567,8 @@ toIRType =
       where
         t' = toIRType (NonEmpty.last ts)
         ts = unfoldType t
-    _ -> error "TODO"
+--    t -> error ("TODO: " <> show t)
+    t -> ptr i8
 
 funPtrType :: Type -> IRType
 funPtrType =
@@ -1574,6 +1602,12 @@ instruction t s next = do
   tell [encode var <+> "=" <+> s]
   next var
 
+instruction_ :: IRType -> Text -> (IRValue -> Codegen a) -> Codegen a
+instruction_ t s next = do
+  var <- gets (Local t . showt)
+  tell [s]
+  next var
+
 interpreter :: IRInstrF IRValue IRType (Codegen a) -> Codegen a
 interpreter =
   \case
@@ -1586,40 +1620,37 @@ interpreter =
     IAlloc t next ->
       instruction (TPtr t) ("alloca" <+> encode t) next
     ILoad t v next ->
-      instruction t ("load" <+> encode t <> "," <+> encode (IRTyped v)) next
+      instruction t ("load" <+> encode t <> "," <+> encode (IRAnnotated v)) next
     IBCast v t next ->
-      instruction t ("bitcast" <+> encode (IRTyped v) <+> "to" <+> encode t) next
+      instruction t ("bitcast" <+> encode (IRAnnotated v) <+> "to" <+> encode t) next
     IGep t u v w next ->
-      instruction (ptr (typeOffs t w)) ("getelementptr" <+> encode t <> "," <+> encode (IRTyped u) <> "," <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)) next
+      instruction (ptr (typeOffs t w)) ("getelementptr" <+> encode t <> "," <+> encode (IRAnnotated u) <> "," <+> encode (IRAnnotated v) <> "," <+> encode (IRAnnotated w)) next
     ICall t v vs next ->
-      instruction t ("call" <+> encode t <+> encode v <> "(" <> encode (IRTyped <$> vs) <> ")") next
+      instruction t ("call" <+> encode t <+> encode v <> "(" <> encode (IRAnnotated <$> vs) <> ")") next
     ICmpEq t v w next ->
       instruction t ("icmp eq" <+> encode (irTypeOf v) <+> encode v <> "," <+> encode w) next
-    IBlock n next -> do
-      tell ["____"]
-      next (I32 1)
-
-      --var <- gets (Local (irTypeOf v) . showt)
-      --modify (+1)
-      ----x <- next var
-      --tell [encode var <+> "=" <+> encode var]
-      --next v
-
-      --tell ["foo:"]
-      --instruction (irTypeOf v) "baz:" next
-      --zzz <- v
-      --let xx1 = zzz :: Int
-      --next v
-      --instruction i32 ("foo : " <> "X") next
+    IPhi t cs next ->
+      instruction t ("phi" <+> encode t <+> Text.intercalate ", " (phiPair <$> cs)) next
     IStore v w next -> do
-      tell ["store" <+> encode (IRTyped v) <> "," <+> encode (IRTyped w)]
-      next v
-    IRet t v next -> do
-      tell ["ret" <+> encode t <+> encode v]
-      next v
+      instruction_ (irTypeOf v) ("store" <+> encode (IRAnnotated v) <> "," <+> encode (IRAnnotated w)) next
+    IRet t v next ->
+      instruction_ t ("ret" <+> encode t <+> encode v) next
+    IBr (Just v) lls next ->
+      instruction_ (irTypeOf v) ("br" <+> encode (IRAnnotated v) <> "," <+> Text.intercalate ", " (label <$> lls)) next
+    IBr Nothing lls next ->
+      -- TODO
+      instruction_ (irTypeOf (I32 1)) ("br" <+> Text.intercalate ", "  (label <$> lls)) next
+    IBlock n next -> do
+      -- TODO
+      instruction_ (irTypeOf (I32 1)) (enquote n <> ":") next
+    ISwitch v n cs next ->
+      instruction_ (irTypeOf v) ("switch" <+> encode (IRAnnotated v) <> "," <+> label n <+> "[" <+> Text.intercalate " " (switchPair <$> cs) <+> "]") next
   where
     typeOffs (TName _ t) n        = typeOffs t n
     typeOffs (TStruct ts) (I32 n) = ts !! fromIntegral n
+    label ll = "label" <+> "%" <> enquote ll
+    phiPair (v, ll) = "[" <> encode v <> "," <+> "%" <> enquote ll <> "]"
+    switchPair (v, ll) = encode (IRAnnotated v) <> "," <+> "label" <+> "%" <> enquote ll
 
 overGlobalCount :: (Int -> Int) -> IRState -> IRState
 overGlobalCount f IRState{..} = IRState { globalCount = f globalCount, .. }

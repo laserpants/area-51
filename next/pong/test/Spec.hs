@@ -12,7 +12,7 @@ import Test.Hspec
 
 import Debug.Trace
 import Data.Tuple.Extra
-import Data.Char (isAlphaNum)
+import Data.Char (isUpper)
 import Control.Monad.Writer
 import Data.Fix
 import Control.Monad.Free
@@ -37,11 +37,13 @@ import qualified Data.Set as Set
 import qualified Control.Monad.Free as Free
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
+import System.Process
 
 testTypeEnv :: TypeEnv
 testTypeEnv = envFromList
   [ ("Cons", scheme [0] (TVar 0 ~> TCon "List" [TVar 0] ~> TCon "List" [TVar 0]))
   , ("Nil", scheme [0] (TCon "List" [TVar 0]))
+--  , ("&Cons", scheme [0] (TVar 0))
   ]
 
 maxStrLen :: Int
@@ -3175,6 +3177,65 @@ progN =
       )
     )
 
+progP :: Expr ()
+progP =
+--  eLet
+--    [
+--      ( Label () "Nil"
+--      , eApp
+--          ()
+--          (EVar (Label () "Nil"))
+----          [ ELit (PInt32 2) ]
+--          [ ]
+--      )
+--    ]
+--    (eLet
+--      [
+--        ( Label () "Cons"
+--        , eLam
+--            [Label () "x", Label () "xs"]
+--            (eApp
+--              ()
+--              (EVar (Label () "Cons"))
+--              [ -- ELit (PInt32 1) 
+--                EVar (Label () "x")
+--              , EVar (Label () "xs")
+--              ])
+--        )
+--      ]
+      eLet
+        [
+          ( Label () "xs"
+          , eApp
+              ()
+              (EVar (Label () "Cons"))
+              [ ELit (PInt32 5)
+              , EVar (Label () "Nil")
+              ]
+          )
+        ]
+      (ELit (PInt32 9999))
+--    )
+
+progQ =
+  eLet
+    [
+      ( Label () "xs"
+      , eApp
+          ()
+          (EVar (Label () "Cons"))
+          [ ELit (PInt32 5)
+          , EVar (Label () "Nil")
+          ]
+      )
+    ]
+  (ePat
+    (EVar (Label () "xs"))
+    [ clause [Label () "Cons", Label () "y", Label () "ys"] (EVar (Label () "y"))
+    , clause [Label () "Nil"] (ELit (PInt32 0))
+    ]
+  )
+
 runDictShouldEqual :: Expr () -> Value -> SpecWith ()
 runDictShouldEqual prog result =
   case pipeline prog of
@@ -3939,33 +4000,33 @@ main =
 --    testToLExpr
 --    testEval
 
-
-data Some
-data None
-
-data Option c a
-  = Some a
-  | None
-  deriving (Show)
-
-some :: a -> Option Some a
-some = Some
-
-none :: Option None a
-none = None
-
-instance Functor (Option c) where
-  fmap f None = None
-  fmap f (Some v) = Some (f v)
-
-withDefault :: a -> Option c a -> a
-withDefault d None = d
-withDefault _ (Some v) = v
-
-takeSome :: Option Some a -> a
-takeSome (Some a) = a
---takeSome None = error "error"
 --
+--data Some
+--data None
+--
+--data Option c a
+--  = Some a
+--  | None
+--  deriving (Show)
+--
+--some :: a -> Option Some a
+--some = Some
+--
+--none :: Option None a
+--none = None
+--
+--instance Functor (Option c) where
+--  fmap f None = None
+--  fmap f (Some v) = Some (f v)
+--
+--withDefault :: a -> Option c a -> a
+--withDefault d None = d
+--withDefault _ (Some v) = v
+--
+--takeSome :: Option Some a -> a
+--takeSome (Some a) = a
+----takeSome None = error "error"
+----
 
 --
 -- type Option(a : *)
@@ -4251,117 +4312,117 @@ testCall2 =
 --
 --
 
-testCall3 :: MExpr (Expr ())
-testCall3 =
-  match
-    [ "u1", "u2", "u3" ]
-    [
-      ( [ MVar "f", MCon "Nil" [], MVar "ys"
-        ]
-      , Expr (ELit (PInt32 1))
-      )
-    ,
-      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
-        ]
-      , Expr (ELit (PInt32 2))
-      )
-    ,
-      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
-        ]
-      , Expr (EVar (Label () "y"))
-      )
-    ]
-    Fail
-
-foo123 :: Expr ()
-foo123 =
-  eApp
-    ()
-    (eLam
-      [Label () "u1", Label () "u2", Label () "u3"]
-      (compileMExpr testCall3))
-    [ eApp () (EVar (Label () "Nil")) []
-    , eApp () (EVar (Label () "Nil")) []
-    , eApp () (EVar (Label () "Nil")) []
-    ]
-
-
-foo456 :: Expr ()
-foo456 =
-  eApp
-    ()
-    (eLam
-      [Label () "u1", Label () "u2", Label () "u3"]
-      (compileMExpr testCall3))
-    [ eApp () (EVar (Label () "Nil")) []
-    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
-    , eApp () (EVar (Label () "Nil")) []
-    ]
-
-foo789 :: Expr ()
-foo789 =
-  eApp
-    ()
-    (eLam
-      [Label () "u1", Label () "u2", Label () "u3"]
-      (compileMExpr testCall3))
-    [ eApp () (EVar (Label () "Nil")) []
-    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
-    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 200), EVar (Label () "Nil")]
-    ]
-
-
-
---data NatF a = Z | S a
---  deriving (Functor, Foldable, Traversable)
+--testCall3 :: MExpr (Expr ())
+--testCall3 =
+--  match
+--    [ "u1", "u2", "u3" ]
+--    [
+--      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+--        ]
+--      , Expr (ELit (PInt32 1))
+--      )
+--    ,
+--      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+--        ]
+--      , Expr (ELit (PInt32 2))
+--      )
+--    ,
+--      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+--        ]
+--      , Expr (EVar (Label () "y"))
+--      )
+--    ]
+--    Fail
 --
---type Nat = Fix NatF
+--foo123 :: Expr ()
+--foo123 =
+--  eApp
+--    ()
+--    (eLam
+--      [Label () "u1", Label () "u2", Label () "u3"]
+--      (compileMExpr testCall3))
+--    [ eApp () (EVar (Label () "Nil")) []
+--    , eApp () (EVar (Label () "Nil")) []
+--    , eApp () (EVar (Label () "Nil")) []
+--    ]
 --
---xx2 :: Int -> Int
---xx2 n = n + 1
 --
-----xx2 :: NatF Int -> Int
-----xx2 n =
-----  case foldFix n of
+--foo456 :: Expr ()
+--foo456 =
+--  eApp
+--    ()
+--    (eLam
+--      [Label () "u1", Label () "u2", Label () "u3"]
+--      (compileMExpr testCall3))
+--    [ eApp () (EVar (Label () "Nil")) []
+--    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+--    , eApp () (EVar (Label () "Nil")) []
+--    ]
+--
+--foo789 :: Expr ()
+--foo789 =
+--  eApp
+--    ()
+--    (eLam
+--      [Label () "u1", Label () "u2", Label () "u3"]
+--      (compileMExpr testCall3))
+--    [ eApp () (EVar (Label () "Nil")) []
+--    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+--    , eApp () (EVar (Label () "Cons")) [ELit (PInt32 200), EVar (Label () "Nil")]
+--    ]
+--
+--
+--
+----data NatF a = Z | S a
+----  deriving (Functor, Foldable, Traversable)
+----
+----type Nat = Fix NatF
+----
+----xx2 :: Int -> Int
+----xx2 n = n + 1
+----
+------xx2 :: NatF Int -> Int
+------xx2 n =
+------  case foldFix n of
+------    Z ->
+------      undefined -- 0
+------    S m ->
+------      undefined -- 1 + m
+----
+----xxx :: Fix NatF -> Int
+----xxx = foldFix $ \case
+----  Z -> undefined
+----  S a -> undefined
+----
+----foo :: Nat -> Nat
+----foo =
+----  foldFix $ \case
 ----    Z ->
-----      undefined -- 0
+----      Fix Z-- Fix (S (Fix Zero))
 ----    S m ->
-----      undefined -- 1 + m
+----      undefined -- (*) m (m - 1)
+----
+----three = Fix (S (Fix (S (Fix (S (Fix Z))))))
+----
 --
---xxx :: Fix NatF -> Int
---xxx = foldFix $ \case
---  Z -> undefined
---  S a -> undefined
+---- { id : int, name : string, age : int }
+--myrec2 = (1, ("Plissken", (35, ())))
 --
---foo :: Nat -> Nat
---foo =
---  foldFix $ \case
---    Z ->
---      Fix Z-- Fix (S (Fix Zero))
---    S m ->
---      undefined -- (*) m (m - 1)
+---- { id : int, name : string, age : int }
+--myrec3 = ("Plissken", (1, (35, ())))
 --
---three = Fix (S (Fix (S (Fix (S (Fix Z))))))
+--xxx :: (a, (b, c)) -> (b, (a, c))
+--xxx (a, (b, c)) = (b, (a, c))
 --
-
--- { id : int, name : string, age : int }
-myrec2 = (1, ("Plissken", (35, ())))
-
--- { id : int, name : string, age : int }
-myrec3 = ("Plissken", (1, (35, ())))
-
-xxx :: (a, (b, c)) -> (b, (a, c))
-xxx (a, (b, c)) = (b, (a, c))
-
--- { name : string, age : int }
-myrec1 = ("Bob", (45, ()))
-
--- { name : string | a } -> string
-testf1 (name, a) = name
-
--- { name : string | a } -> { name : string, isAdmin : bool }
-testf2 :: (String, a) -> (String, (Bool, a))
-testf2 (name, a) = (name, (True, a))
+---- { name : string, age : int }
+--myrec1 = ("Bob", (45, ()))
+--
+---- { name : string | a } -> string
+--testf1 (name, a) = name
+--
+---- { name : string | a } -> { name : string, isAdmin : bool }
+--testf2 :: (String, a) -> (String, (Bool, a))
+--testf2 (name, a) = (name, (True, a))
 
 ----
 
@@ -4372,52 +4433,52 @@ testf2 (name, a) = (name, (True, a))
 --  ]
 
 
-
-data Obj = forall a. (Show a) => Obj a
-
-xs :: [Obj]
-xs = [Obj 1, Obj "foo", Obj 'c']
-
-doShow :: [Obj] -> String
-doShow [] = ""
-doShow ((Obj x):xs) = show x ++ doShow xs
-
-
-
--- { id : int, name : string, age : int }
-data Foo_age_id_name a = Foo
-  a
-  (a -> Int)
-  (a -> Int)
-  (a -> String)
-
-p1 (a, _)                = a
-p2 (_, (a, _))           = a
-p3 (_, (_, (a, _)))      = a
-p4 (_, (_, (_, (a, _)))) = a
-
-getAge :: Foo_age_id_name a -> Int
-getAge  (Foo r f _ _) = f r
-
-getId :: Foo_age_id_name a -> Int
-getId   (Foo r _ f _) = f r
-
-getName :: Foo_age_id_name a -> String
-getName (Foo r _ _ f) = f r
-
--- { age : int, id : int, name : string }
---myrec9 = (1, ("Plissken", (35, ())))
-
--- { 0.age : int, 1.id : int, 2.name : string }
---myrec9 = (1, ("Plissken", (35, ())))
-
-myrec10 :: Foo_age_id_name (Int, (String, (Int, ())))
-myrec10 = Foo (1, ("Plissken", (35, ()))) p3 p1 p2
-
-myrec11 :: Foo_age_id_name (String, (Int, (Int, ())))
-myrec11 = Foo ("Plissken", (1, (35, ()))) p3 p2 p1
-
-
+--
+--data Obj = forall a. (Show a) => Obj a
+--
+--xs :: [Obj]
+--xs = [Obj 1, Obj "foo", Obj 'c']
+--
+--doShow :: [Obj] -> String
+--doShow [] = ""
+--doShow ((Obj x):xs) = show x ++ doShow xs
+--
+--
+--
+---- { id : int, name : string, age : int }
+--data Foo_age_id_name a = Foo
+--  a
+--  (a -> Int)
+--  (a -> Int)
+--  (a -> String)
+--
+--p1 (a, _)                = a
+--p2 (_, (a, _))           = a
+--p3 (_, (_, (a, _)))      = a
+--p4 (_, (_, (_, (a, _)))) = a
+--
+--getAge :: Foo_age_id_name a -> Int
+--getAge  (Foo r f _ _) = f r
+--
+--getId :: Foo_age_id_name a -> Int
+--getId   (Foo r _ f _) = f r
+--
+--getName :: Foo_age_id_name a -> String
+--getName (Foo r _ _ f) = f r
+--
+---- { age : int, id : int, name : string }
+----myrec9 = (1, ("Plissken", (35, ())))
+--
+---- { 0.age : int, 1.id : int, 2.name : string }
+----myrec9 = (1, ("Plissken", (35, ())))
+--
+--myrec10 :: Foo_age_id_name (Int, (String, (Int, ())))
+--myrec10 = Foo (1, ("Plissken", (35, ()))) p3 p1 p2
+--
+--myrec11 :: Foo_age_id_name (String, (Int, (Int, ())))
+--myrec11 = Foo ("Plissken", (1, (35, ()))) p3 p2 p1
+--
+--
 --blooom a b = runInferCount (m + 1) mempty (unify a b)
 --  where
 --    s = tvars a <> tvars b
@@ -4501,12 +4562,12 @@ myrec11 = Foo ("Plissken", (1, (35, ()))) p3 p2 p1
 --             in
 --               f(succ)
 --
-llvmType123123 =
-  [
-    ( "$fun.0", ([Label (TCon "Int32" []) "x.1",Label (TCon "Int32" []) "y.2"],EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2"))))
-  , ( "$fun.1", ([Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"],EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| [])))
-  , ( "$fun._", ([],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3",EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) (ELit (PInt32 1) :| [])) :| []) (EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))))
-  ]
+--llvmType123123 =
+--  [
+--    ( "$fun.0", ([Label (TCon "Int32" []) "x.1",Label (TCon "Int32" []) "y.2"],EOp2 (TCon "Int32" [],OAdd) (EVar (Label (TCon "Int32" []) "x.1")) (EVar (Label (TCon "Int32" []) "y.2"))))
+--  , ( "$fun.1", ([Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5"],EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "g.5")) (ELit (PInt32 100) :| [])))
+--  , ( "$fun._", ([],ELet ((Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3",EApp (TCon "->" [TCon "Int32" [],TCon "Int32" []]) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "Int32" [],TCon "Int32" []]]) "$fun.0")) (ELit (PInt32 1) :| [])) :| []) (EApp (TCon "Int32" []) (EVar (Label (TCon "->" [TCon "->" [TCon "Int32" [],TCon "Int32" []],TCon "Int32" []]) "$fun.1")) (EVar (Label (TCon "->" [TCon "Int32" [],TCon "Int32" []]) "succ.3") :| []))))
+--  ]
 
 --
 
@@ -4575,157 +4636,105 @@ llvmType123123 =
 -- TRUE           FALSE       call function
 -- TRUE           TRUE        call completer
 
-xyz :: Expr Type -> IREval IRValue
-xyz =
-  \case
-    EVar (Label t var) -> do
-      env <- ask
-      pure $ case envLookup var env of
-        Just val -> val
-        Nothing  -> Global (toIRType t) var
-
-    expr -> irEval expr
-
-packClosure v vs t ts = do
-  tc <- topType "Closure" (struct s)
-  td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tc vs t ts)
-  r1 <- alloca tc
-  r2 <- getelementptr tc r1 (I32 0) (I32 0)
-  store td r2
-  r3 <- getelementptr tc r1 (I32 0) (I32 1)
-  store v r3
-  forM_ (zip vs [2 ..]) $ \(a, n) -> do
-    rn <- getelementptr tc r1 (I32 0) (I32 n)
-    store a rn
-  bitcast r1 (ptr i8)
-  where
-    ts' = drop (length vs) ts
-    s = [ TFun t (ptr i8 : ts'), TFun t ts ] <> (irTypeOf <$> vs)
-
-fnork f x y e = undefined -- uncurry (f x y) (irFunTypeOf e)
-
-irEval :: Expr Type -> IREval IRValue
-irEval =
-  \case
-    e@(EVar (Label t _)) -> do
-      x <- xyz e
-      if arity t == 0
-        then pure x
-        --else uncurry (packClosure x []) (irFunTypeOf e)
-        else do
-          case x of
-            v@Local{} -> do --error "TODO"
-              let (t, ts) = undefined -- irFunTypeOf e
-                  vs = []
-                  ts' = drop (length vs) ts
-                  s = [ TFun t (ptr i8 : ts'), TFun t (ptr i8 : ts') ] <> (ptr i8 : (irTypeOf <$> vs))
-
-              q1 <- bitcast v (struct [TFun t (ptr i8 : ts')])
-              q2 <- getelementptr (struct [TFun t (ptr i8 : ts')]) q1 (I32 0) (I32 0)
-              q3 <- load t q2
-
-              tc <- topType "Closure" (struct s)
-              td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tc (v : vs) t (ptr i8 : ts'))
-              r1 <- alloca tc
-              r2 <- getelementptr tc r1 (I32 0) (I32 0)
-              store td r2
-              r3 <- getelementptr tc r1 (I32 0) (I32 1)
-              r4 <- bitcast v (TFun t (ptr i8 : ts'))
-              store r4 r3
-              forM_ (zip vs [2 ..]) $ \(a, n) -> do
-                rn <- getelementptr tc r1 (I32 0) (I32 n)
-                store a rn
-              bitcast r1 (ptr i8)
-
-            Global{}  -> do
-              traceShowM "======"
-              traceShowM t
-              traceShowM e
-              traceShowM "======"
-              fnork packClosure x [] e
-
---define i32 @"$fun.1"(i8* %"g.5") {
---  %1 = bitcast i8* %"g.5" to { i32 (i8*, i32)* }*
---  %2 = getelementptr { i32 (i8*, i32)* }, { i32 (i8*, i32)* }* %1, i32 0, i32 0
---  %3 = load i32 (i8*, i32)*, i32 (i8*, i32)** %2
---  %4 = call i32 %3(i8* %"g.5", i32 100)
---  ret i32 %4
---}
-
-    EApp t e1 es -> do
-      v1 <- xyz e1
-      vs <- NonEmpty.toList <$> traverse irEval es
-      if arity t == 0
-        -- Fully applied
-        then
-          case v1 of
-            v@Local{} -> undefined -- fnork callPtr v vs e1
-            Global{}  -> call (toIRType t) v1 vs
-        else do
-          case v1 of
-            v@Local{} -> error "TODO"
-            Global{}  -> do
-              traceShowM "******"
-              traceShowM t
-              traceShowM e1
-              traceShowM "******"
-              fnork packClosure v1 vs e1
-
-    ELit prim ->
-      pure (irPrim prim)
-
-    EOp2 (t, OAdd) e1 e2 -> do
-      v1 <- irEval e1
-      v2 <- irEval e2
-      add (toIRType t) v1 v2
-
-    EOp2 (t, OSub) e1 e2 -> do
-      v1 <- irEval e1
-      v2 <- irEval e2
-      sub (toIRType t) v1 v2
-
-    EOp2 (t, OMul) e1 e2 -> do
-      v1 <- irEval e1
-      v2 <- irEval e2
-      mul (toIRType t) v1 v2
-
-    EOp2 (t, OEq) e1 e2 -> do
-      v1 <- irEval e1
-      v2 <- irEval e2
-      icmpEq (toIRType t) v1 v2
-
-    ELet vs e1 -> do
-      vals <- forM vs $ \(Label t n, e) -> do
-        v <- irEval e
-        pure (n, v)
-      local (envInserts vals) (irEval e1)
-
-    e -> error (show e)
-
-
-
-pasta :: Expr Type -> IREval IRValue
-pasta e = do
-  a <- irEval e
-  ret (irTypeOf a) a
-
---irEval :: Expr Type -> IREval IRValue
---irEval =
+--xyz :: Expr Type -> IREval IRValue
+--xyz =
 --  \case
 --    EVar (Label t var) -> do
 --      env <- ask
 --      pure $ case envLookup var env of
 --        Just val -> val
---        Nothing  -> Global (toIRType2 t) var
+--        Nothing  -> Global (toIRType t) var
+--
+--    expr -> irEval expr
+--
+--packClosure v vs t ts = do
+--  tc <- topType "Closure" (struct s)
+--  td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tc vs t ts)
+--  r1 <- alloca tc
+--  r2 <- getelementptr tc r1 (I32 0) (I32 0)
+--  store td r2
+--  r3 <- getelementptr tc r1 (I32 0) (I32 1)
+--  store v r3
+--  forM_ (zip vs [2 ..]) $ \(a, n) -> do
+--    rn <- getelementptr tc r1 (I32 0) (I32 n)
+--    store a rn
+--  bitcast r1 (ptr i8)
+--  where
+--    ts' = drop (length vs) ts
+--    s = [ TFun t (ptr i8 : ts'), TFun t ts ] <> (irTypeOf <$> vs)
+--
+--fnork f x y e = undefined -- uncurry (f x y) (irFunTypeOf e)
+--
+--irEval :: Expr Type -> IREval IRValue
+--irEval =
+--  undefined
+--  \case
+--    e@(EVar (Label t _)) -> do
+--      x <- xyz e
+--      if arity t == 0
+--        then pure x
+--        --else uncurry (packClosure x []) (irFunTypeOf e)
+--        else do
+--          case x of
+--            v@Local{} -> do --error "TODO"
+--              let (t, ts) = undefined -- irFunTypeOf e
+--                  vs = []
+--                  ts' = drop (length vs) ts
+--                  s = [ TFun t (ptr i8 : ts'), TFun t (ptr i8 : ts') ] <> (ptr i8 : (irTypeOf <$> vs))
+--
+--              q1 <- bitcast v (struct [TFun t (ptr i8 : ts')])
+--              q2 <- getelementptr (struct [TFun t (ptr i8 : ts')]) q1 (I32 0) (I32 0)
+--              q3 <- load t q2
+--
+--              tc <- topType "Closure" (struct s)
+--              td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tc (v : vs) t (ptr i8 : ts'))
+--              r1 <- alloca tc
+--              r2 <- getelementptr tc r1 (I32 0) (I32 0)
+--              store td r2
+--              r3 <- getelementptr tc r1 (I32 0) (I32 1)
+--              r4 <- bitcast v (TFun t (ptr i8 : ts'))
+--              store r4 r3
+--              forM_ (zip vs [2 ..]) $ \(a, n) -> do
+--                rn <- getelementptr tc r1 (I32 0) (I32 n)
+--                store a rn
+--              bitcast r1 (ptr i8)
+--
+--            Global{}  -> do
+--              traceShowM "======"
+--              traceShowM t
+--              traceShowM e
+--              traceShowM "======"
+--              fnork packClosure x [] e
+--
+----define i32 @"$fun.1"(i8* %"g.5") {
+----  %1 = bitcast i8* %"g.5" to { i32 (i8*, i32)* }*
+----  %2 = getelementptr { i32 (i8*, i32)* }, { i32 (i8*, i32)* }* %1, i32 0, i32 0
+----  %3 = load i32 (i8*, i32)*, i32 (i8*, i32)** %2
+----  %4 = call i32 %3(i8* %"g.5", i32 100)
+----  ret i32 %4
+----}
+--
+--    EApp t e1 es -> do
+--      v1 <- xyz e1
+--      vs <- NonEmpty.toList <$> traverse irEval es
+--      if arity t == 0
+--        -- Fully applied
+--        then
+--          case v1 of
+--            v@Local{} -> undefined -- fnork callPtr v vs e1
+--            Global{}  -> call (toIRType t) v1 vs
+--        else do
+--          case v1 of
+--            v@Local{} -> error "TODO"
+--            Global{}  -> do
+--              traceShowM "******"
+--              traceShowM t
+--              traceShowM e1
+--              traceShowM "******"
+--              fnork packClosure v1 vs e1
 --
 --    ELit prim ->
 --      pure (irPrim prim)
---
---    ELet vs e1 -> do
---      vals <- forM vs $ \(Label t n, e) -> do
---        v <- irEval e
---        pure (n, v)
---      local (envInserts vals) (irEval e1)
 --
 --    EOp2 (t, OAdd) e1 e2 -> do
 --      v1 <- irEval e1
@@ -4747,76 +4756,129 @@ pasta e = do
 --      v2 <- irEval e2
 --      icmpEq (toIRType t) v1 v2
 --
---    EIf e1 e2 e3 -> do
---      irEval e1
---      block "true"
---      pasta e2
---      block "false"
---      pasta e3
---      --v1 <- irEval e1
---      --v2 <- irEval e2
---      --v3 <- irEval e3
---      ---- TODO
---      ----block "true" v2
---      ----block "false" v3
---      --pure v3
---
---    EApp t e1 es -> do
---      v1 <- irEval e1
---      vs <- NonEmpty.toList <$> traverse irEval es
---      traceShowM e1
---      traceShowM t
---      traceShowM (arity t)
---      traceShowM "-----------------"
---      if arity t > 0
---        then do
---          -- Partially applied function
---          let (t1, ts) = irFunTypeOf e1
---              ts' = drop (length vs) ts
---              s = [ TFun t1 (ptr i8 : ts'), TFun t1 ts ] <> (irTypeOf <$> vs)
---          t2 <- topType "Closure" (struct s)
---          v2 <- topDefine "resume" t1 ((ptr i8, "f") : ixArgs ts') (resume t1 ts t2 vs)
---          partiallyApply t2 v1 v2 vs
---        else case v1 of
---          v@Local{} -> uncurry (callPtr v vs) (irFunTypeOf e1)
---          Global{}  -> call (toIRType t) v1 vs
+--    ELet vs e1 -> do
+--      vals <- forM vs $ \(Label t n, e) -> do
+--        v <- irEval e
+--        pure (n, v)
+--      local (envInserts vals) (irEval e1)
 --
 --    e -> error (show e)
 
---zork (Local  _ v) = Local (ptr i8) v
---zork (Global _ v) = Global (ptr i8) v
 
-callPtr :: (MonadFree (IRInstrF IRValue IRType) m) => IRValue -> [IRValue] -> IRType -> [IRType] -> m IRValue
-callPtr v vs t ts = do
-  r1 <- bitcast v (ptr (struct [t1]))
-  r2 <- getelementptr (struct [t1]) r1 (I32 0) (I32 0)
-  r3 <- load t1 r2
-  call t r3 (v : vs)
-  where
-    t1 = fun t (ptr i8 : ts)
 
-partiallyApply :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> IRValue -> IRValue -> [IRValue] -> m IRValue
-partiallyApply tc v1 td vs = do
-  r1 <- alloca tc
-  r2 <- getelementptr tc r1 (I32 0) (I32 0)
-  store td r2
-  r3 <- getelementptr tc r1 (I32 0) (I32 1)
-  store v1 r3
-  forM_ (zip vs [2 ..]) $ \(a, n) -> do
-    r <- getelementptr tc r1 (I32 0) (I32 n)
-    store a r
-  bitcast r1 (ptr i8)
-
---resume :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> [IRType] -> IRType -> [IRValue] -> m IRValue
-resume tc vs t ts = do
-  r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
-  r2 <- getelementptr tc r1 (I32 0) (I32 1)
-  r3 <- load (TFun t ts) r2
-  args <- forM (zip vs [2 ..]) $ \(a, n) -> do
-    r <- getelementptr tc r1 (I32 0) (I32 n)
-    load (irTypeOf a) r
-  r4 <- call t r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
-  ret t r4
+--pasta :: Expr Type -> IREval IRValue
+--pasta e = do
+--  a <- irEval e
+--  ret (irTypeOf a) a
+--
+----irEval :: Expr Type -> IREval IRValue
+----irEval =
+----  \case
+----    EVar (Label t var) -> do
+----      env <- ask
+----      pure $ case envLookup var env of
+----        Just val -> val
+----        Nothing  -> Global (toIRType2 t) var
+----
+----    ELit prim ->
+----      pure (irPrim prim)
+----
+----    ELet vs e1 -> do
+----      vals <- forM vs $ \(Label t n, e) -> do
+----        v <- irEval e
+----        pure (n, v)
+----      local (envInserts vals) (irEval e1)
+----
+----    EOp2 (t, OAdd) e1 e2 -> do
+----      v1 <- irEval e1
+----      v2 <- irEval e2
+----      add (toIRType t) v1 v2
+----
+----    EOp2 (t, OSub) e1 e2 -> do
+----      v1 <- irEval e1
+----      v2 <- irEval e2
+----      sub (toIRType t) v1 v2
+----
+----    EOp2 (t, OMul) e1 e2 -> do
+----      v1 <- irEval e1
+----      v2 <- irEval e2
+----      mul (toIRType t) v1 v2
+----
+----    EOp2 (t, OEq) e1 e2 -> do
+----      v1 <- irEval e1
+----      v2 <- irEval e2
+----      icmpEq (toIRType t) v1 v2
+----
+----    EIf e1 e2 e3 -> do
+----      irEval e1
+----      block "true"
+----      pasta e2
+----      block "false"
+----      pasta e3
+----      --v1 <- irEval e1
+----      --v2 <- irEval e2
+----      --v3 <- irEval e3
+----      ---- TODO
+----      ----block "true" v2
+----      ----block "false" v3
+----      --pure v3
+----
+----    EApp t e1 es -> do
+----      v1 <- irEval e1
+----      vs <- NonEmpty.toList <$> traverse irEval es
+----      traceShowM e1
+----      traceShowM t
+----      traceShowM (arity t)
+----      traceShowM "-----------------"
+----      if arity t > 0
+----        then do
+----          -- Partially applied function
+----          let (t1, ts) = irFunTypeOf e1
+----              ts' = drop (length vs) ts
+----              s = [ TFun t1 (ptr i8 : ts'), TFun t1 ts ] <> (irTypeOf <$> vs)
+----          t2 <- topType "Closure" (struct s)
+----          v2 <- topDefine "resume" t1 ((ptr i8, "f") : ixArgs ts') (resume t1 ts t2 vs)
+----          partiallyApply t2 v1 v2 vs
+----        else case v1 of
+----          v@Local{} -> uncurry (callPtr v vs) (irFunTypeOf e1)
+----          Global{}  -> call (toIRType t) v1 vs
+----
+----    e -> error (show e)
+--
+----unpackClosure (Local  _ v) = Local (ptr i8) v
+----unpackClosure (Global _ v) = Global (ptr i8) v
+--
+--callPtr :: (MonadFree (IRInstrF IRValue IRType) m) => IRValue -> [IRValue] -> IRType -> [IRType] -> m IRValue
+--callPtr v vs t ts = do
+--  r1 <- bitcast v (ptr (struct [t1]))
+--  r2 <- getelementptr (struct [t1]) r1 (I32 0) (I32 0)
+--  r3 <- load t1 r2
+--  call t r3 (v : vs)
+--  where
+--    t1 = fun t (ptr i8 : ts)
+--
+--partiallyApply :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> IRValue -> IRValue -> [IRValue] -> m IRValue
+--partiallyApply tc v1 td vs = do
+--  r1 <- alloca tc
+--  r2 <- getelementptr tc r1 (I32 0) (I32 0)
+--  store td r2
+--  r3 <- getelementptr tc r1 (I32 0) (I32 1)
+--  store v1 r3
+--  forM_ (zip vs [2 ..]) $ \(a, n) -> do
+--    r <- getelementptr tc r1 (I32 0) (I32 n)
+--    store a r
+--  bitcast r1 (ptr i8)
+--
+----resume :: (MonadFree (IRInstrF IRValue IRType) m) => IRType -> [IRType] -> IRType -> [IRValue] -> m IRValue
+--resume tc vs t ts = do
+--  r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
+--  r2 <- getelementptr tc r1 (I32 0) (I32 1)
+--  r3 <- load (TFun t ts) r2
+--  args <- forM (zip vs [2 ..]) $ \(a, n) -> do
+--    r <- getelementptr tc r1 (I32 0) (I32 n)
+--    load (irTypeOf a) r
+--  r4 <- call t r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
+--  ret t r4
 
   --r1 <- bitcast (Local (ptr i8) "f") (ptr tc)
   --r2 <- getelementptr tc r1 (I32 0) (I32 1)
@@ -4832,27 +4894,27 @@ ixArgs ts = ts `zip` (("a" <>) . showt <$> [0 :: Int ..])
 
 -- --
 
-bork :: Name -> IREval Name
-bork n = do
+irName :: Name -> IREval Name
+irName n = do
   count <- gets globalCount
   modifyGlobalCount (+1)
   pure (n <> "." <> showt count)
 
-topDefine :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
-topDefine n t args code = do
-  name <- bork n
-  insertDefinition name (CDefine t args (initialIRState <$ code))
-  pure (Global (TFun t (fst <$> args)) name)
-
-topDeclare n = do
-  undefined
-
-topType :: Name -> IRType -> IREval IRType
-topType n ty = do
-  name <- bork n
-  insertDefinition name (CType ty)
-  pure (TName name ty)
-  -- return a Local ??
+--topDefine :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
+--topDefine n t args code = do
+--  name <- irName n
+--  insertDefinition name (CDefine t args (initialIRState <$ code))
+--  pure (Global (TFun t (fst <$> args)) name)
+--
+--topDeclare n = do
+--  undefined
+--
+--topType :: Name -> IRType -> IREval IRType
+--topType n ty = do
+--  name <- irName n
+--  insertDefinition name (CType ty)
+--  pure (TName name ty)
+--  -- return a Local ??
 
 testEnv :: Environment IRValue
 testEnv = envFromList
@@ -4896,6 +4958,46 @@ dict1 =
         )
     )
   ]
+
+--  eLet
+--    [
+--      ( Label () "xs"
+--      , eApp
+--          ()
+--          (EVar (Label () "Cons"))
+--          [ ELit (PInt32 5)
+--          , EVar (Label () "Nil")
+--          ]
+--      )
+--    ]
+--  (ELit (PInt32 9999))
+dictX =
+  [
+    ( "Nil", 
+       ( [] 
+       , undefined
+       )
+    )
+  , ( "Cons", 
+       ( [] 
+       , undefined
+       )
+    )
+  , ( "$fun._", 
+       ( [] 
+       , ELet 
+           ( 
+             ( Label (TCon "List" [TCon "Int32" []]) "xs.0"
+             , EApp (TCon "List" [TCon "Int32" []]) 
+                 (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "List" [TCon "Int32" []],TCon "List" [TCon "Int32" []]]]) "Cons")) 
+                 (ELit (PInt32 5) :| [EVar (Label (TCon "List" [TCon "Int32" []]) "Nil")]
+                 )
+              ) :| []
+            ) 
+           (ELit (PInt32 9999))
+        )
+    )
+  ] 
 
 --crew4 :: Dictionary Type ->
 --crew4 dict = undefined
@@ -4952,7 +5054,7 @@ moo dict = Text.putStrLn cake
 moo_ dict = do
   Text.writeFile "tmp.ll" (intr <> cake)
   where
-    intr = "declare void @print_int32(i32)\ndefine i32 @main() {\n %1 = call i32 @\"$fun._\"()\n call void @print_int32(i32 %1)\n ret i32 0\n}\n\n"
+    intr = "declare void @print_int32(i32)\n\ndefine i32 @main() {\n  %1 = call i32 @\"$fun._\"()\n  call void @print_int32(i32 %1)\n  ret i32 0\n}\n\n"
     cake = Text.intercalate "\n" snake
     snake = play (crew9 dict)
 
@@ -4985,9 +5087,13 @@ crew5 name (lls, e) = do
 
 pastaTmp :: Expr Type -> IREval IRValue
 pastaTmp e = do
-  a <- xirEval e
+  a <- irEval e
   ret (irTypeOf a) a
 
+----pastaTmp2 :: Expr Type -> IREval IRValue
+--pastaTmp2 e l1 l2 = do
+--  a <- irEval e
+--  br a l1 l2
 
 progX :: Expr ()
 progX =
@@ -5041,152 +5147,287 @@ progY =
     )
 
 
+progY2 :: Expr ()
+progY2 =
+  EIf
+    (ELit (PBool True))
+    (ELit (PInt32 123))
+    (ELit (PInt32 456))
+
+progZ :: Expr ()
+progZ =
+  eLet
+    [ ( Label () "f"
+      , eLam [Label () "x", Label () "y", Label () "z"] 
+          (EOp2 ((), OAdd) (EVar (Label () "x")) (EOp2 ((), OAdd) (EVar (Label () "y")) (EVar (Label () "z"))))
+      )
+    ]
+    ( eLet
+        [ ( Label () "g"
+          , eApp () (EVar (Label () "f")) [ELit (PInt32 1)] )
+        ]
+        ( eLet
+            [ ( Label () "h"
+              , eApp () (EVar (Label () "g")) [ELit (PInt32 2)] )
+            ]
+            (eApp () (EVar (Label () "h")) [ELit (PInt32 3)])
+        )
+    )
+
+
+progZ2 :: Expr ()
+progZ2 =
+  eLet
+    [ ( Label () "f"
+      , eLam [Label () "x", Label () "y", Label () "z"] 
+          (EOp2 ((), OAdd) (EVar (Label () "x")) (EOp2 ((), OAdd) (EVar (Label () "y")) (EVar (Label () "z"))))
+      )
+    ]
+    ( eLet
+        [ ( Label () "g"
+          , eApp () (EVar (Label () "f")) [ELit (PInt32 1), ELit (PInt32 2)] )
+        ]
+        ( eApp () (EVar (Label () "g")) [ELit (PInt32 3)]
+        )
+    )
+
+
+
 --
 
-topType2 :: Name -> IRType -> IREval IRType
-topType2 n ty = do
-  name <- bork n
+topType :: Name -> IRType -> IREval IRType
+topType n ty = do
+  name <- irName n
   insertDefinition name (CType ty)
   pure (TName name ty)
 
-topDefine2 :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
-topDefine2 n t args code = do
-  name <- bork n
+topDefine :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
+topDefine n t args code = do
+  name <- irName n
   insertDefinition name (CDefine t args (initialIRState <$ code))
   pure (Global (fun t (fst <$> args)) name)
 
-resume2 :: IRType -> [IRValue] -> IRType -> IRType -> [IRType] -> IRCode IRValue
-resume2 ct vs xx t ts = do
+resume :: IRType -> [IRValue] -> IRType -> IRType -> [IRType] -> IRCode IRValue
+resume ct vs xx t ts = do
   r1 <- bitcast (Local (ptr i8) "f") (ptr ct)
   r2 <- getelementptr ct r1 (I32 0) (I32 1)
   r3 <- load xx r2
   args <- forM (zip vs [2 ..]) $ \(a, n) -> do
     r <- getelementptr ct r1 (I32 0) (I32 n)
     load (irTypeOf a) r
---  r4 <- call t r3 (args <> (uncurry Local <$> ixArgs (drop (length vs) ts)))
   r4 <- call t r3 (args <> (uncurry Local <$> ixArgs ts))
   ret t r4
 
-xix :: Type -> Name -> IREval IRValue
-xix t var = do
+irLookupValue :: Type -> Name -> IREval IRValue
+irLookupValue t var = do
   env <- ask
   pure $ case envLookup var env of
     Just val -> val
     Nothing  -> Global (toIRType t) var
 
-xirEval :: Expr Type -> IREval IRValue
-xirEval =
+unpackClosure :: IRType -> IRValue -> [IRValue] -> IREval IRValue
+unpackClosure (TFun t ts) v vs = do
+  r1 <- bitcast v (ptr s)
+  r2 <- getelementptr s r1 (I32 0) (I32 0)
+  load tfun r2
+  where 
+    tfun = fun t (ptr i8 : ts <> (irTypeOf <$> vs))
+    s = struct [tfun]
+unpackClosure _ _ _ = error "Implementation error"
+
+packClosure :: [IRValue] -> [IRValue] -> IREval IRValue
+packClosure us vs = do
+  tt <- topType "closure" s
+  td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tt us (TFun t ts) t ts') -- (pure $ I32 99)
+  r1 <- alloca tt
+  r2 <- getelementptr tt r1 (I32 0) (I32 0)
+  void $ store td r2
+  forM_ (zip vs [1 ..]) $ \(v, n) -> do
+    rn <- getelementptr tt r1 (I32 0) (I32 n)
+    store v rn
+  bitcast r1 (ptr i8)
+  where
+    TFun t ts = irTypeOf (head vs)
+    s = struct ([fun t (ptr i8 : ts'), TFun t ts] <> (irTypeOf <$> us))
+    ts' = drop (length us) ts
+packClosure _ _ = error "Implementation error"
+
+irEval :: Expr Type -> IREval IRValue
+irEval =
   \case
+    EVar (Label t var) | isUpper (Text.head var) -> do
+      name <- irName var
+      let s = struct [i32]
+      tt <- topType name s
+      r1 <- alloca tt
+      r2 <- getelementptr tt r1 (I32 0) (I32 0)
+      -- TODO: constructor index
+      store (I32 1) r2
+      bitcast r1 (ptr i8)
+
+    EApp t (EVar (Label t1 var)) es | isUpper (Text.head var) -> do
+      vs <- NonEmpty.toList <$> traverse irEval es
+      name <- irName var
+      let s = struct ([i32] <> (irTypeOf <$> vs))
+      tt <- topType name s
+      r1 <- alloca tt
+      r2 <- getelementptr tt r1 (I32 0) (I32 0)
+      -- TODO: constructor index
+      store (I32 0) r2
+      forM_ (zip vs [1 ..]) $ \(v, n) -> do
+        rn <- getelementptr tt r1 (I32 0) (I32 n)
+        store v rn
+      bitcast r1 (ptr i8)
+
     EVar (Label t var) -> do
-      v1 <- xix t var
+      v1 <- irLookupValue t var
       if arity t == 0
         then pure v1
         else do
           case v1 of
             Local{} -> do
-              -- unpack closure
-              let TFun t1 ts = toIRType t
-                  funt = fun t1 (ptr i8 : ts)
-                  funt2 = funt -- fun t1 ts
-                  s = struct [funt]
-              q1 <- bitcast v1 (ptr s)
-              q2 <- getelementptr s q1 (I32 0) (I32 0)
-              q3 <- load funt q2
-              q4 <- bitcast q3 (ptr i8)
-
-              let s1 = struct [funt, funt, ptr i8]
-              ct <- topType2 (var <> "_closure") s1
-              td <- topDefine2 (var <> "_resume") t1 ((ptr i8, "f") : ixArgs ts) (resume2 ct [q4] funt2 t1 ts) -- (pure $ I32 99)
-              r1 <- alloca ct
-              r2 <- getelementptr ct r1 (I32 0) (I32 0)
-              store td r2
-              r3 <- getelementptr ct r1 (I32 0) (I32 1)
-              store q3 r3
-              r4 <- getelementptr ct r1 (I32 0) (I32 2)
-              store v1 r4
-              bitcast r1 (ptr i8)
-            Global{} -> do
-              let TFun t1 ts = toIRType t
-                  funt = fun t1 (ptr i8 : ts)
-                  funt2 = fun t1 ts
-                  s = struct [funt, toIRType t]
-              ct <- topType2 (var <> "_closure") s
-              td <- topDefine2 (var <> "_resume") t1 ((ptr i8, "f") : ixArgs ts) (resume2 ct [] funt2 t1 ts) -- (pure $ I32 99)
-              r1 <- alloca ct
-              r2 <- getelementptr ct r1 (I32 0) (I32 0)
-              store td r2
-              r3 <- getelementptr ct r1 (I32 0) (I32 1)
-              store v1 r3
-              bitcast r1 (ptr i8)
+              r1 <- unpackClosure (irTypeOf t) v1 [] 
+              r2 <- bitcast r1 (ptr i8)
+              packClosure [r2] [r1, v1]
+            Global{} -> 
+              packClosure [] [v1]
+            _ ->
+              error "Implementation error"
 
     EApp t e1 es -> do
       v1 <- case e1 of
-        EVar (Label t1 var) -> xix t1 var
-        _ -> xirEval e1
-      vs <- NonEmpty.toList <$> traverse xirEval es
+        EVar (Label t1 var) -> irLookupValue t1 var
+        _ -> irEval e1
+      vs <- NonEmpty.toList <$> traverse irEval es
       if arity t == 0
         -- Fully applied
         then case v1 of
           Local{} -> do
-            -- unpack closure
-            let TFun t1 ts = toIRType (typeOf e1)
-                funt = fun t1 (ptr i8 : ts)
-                s = struct [funt]
-            r1 <- bitcast v1 (ptr s)
-            r2 <- getelementptr s r1 (I32 0) (I32 0)
-            r3 <- load funt r2
-            call t1 r3 (v1 : vs)
+            r1 <- unpackClosure (irTypeOf e1) v1 []
+            call (irTypeOf t) r1 (v1 : vs)
           Global{} ->
             call (toIRType t) v1 vs
+          _ ->
+            ret i32 (I32 90)
+      --      error "Implementation error"
+
         else case v1 of
-          Local{} ->
-            -- unpack closure
-            error "TODO"
-          (Global _ var) -> do
-            let TFun t1 ts = toIRType t
-                funt = fun t1 (ptr i8 : ts)
-                funt2 = toIRType (typeOf e1)
-                s = struct ([funt, funt2] <> (irTypeOf <$> vs))
-            ct <- topType2 (var <> "_closure") s
-            td <- topDefine2 (var <> "_resume") t1 ((ptr i8, "f") : ixArgs ts) (resume2 ct vs funt2 t1 ts) -- (pure $ I32 99)
-            r1 <- alloca ct
-            r2 <- getelementptr ct r1 (I32 0) (I32 0)
-            store td r2
-            r3 <- getelementptr ct r1 (I32 0) (I32 1)
-            store v1 r3
-            forM_ (zip vs [2 ..]) $ \(v, n) -> do
-              rn <- getelementptr ct r1 (I32 0) (I32 n)
-              store v rn
-            bitcast r1 (ptr i8)
+          Local{} -> do
+            r1 <- unpackClosure (irTypeOf e1) v1 vs
+            r2 <- bitcast r1 (ptr i8)
+            packClosure (r2 : vs) ([r1, v1] <> vs)
+          Global{} -> do
+            packClosure vs (v1 : vs)
+          _ ->
+            error "Implementation error"
+
+    EIf e1 e2 e3 -> do
+      r1 <- irEval e1
+      r2 <- cmpEq i1 r1 (I1 True)
+      lblTrue <- irName "true"
+      lblFalse <- irName "false"
+      lblEnd <- irName "end"
+      br r2 [lblTrue, lblFalse]
+      block lblTrue
+      r3 <- irEval e2
+      br_ [lblEnd]
+      block lblFalse
+      r4 <- irEval e3
+      br_ [lblEnd]
+      block lblEnd
+      phi (irTypeOf r3) [(r3, lblTrue), (r4, lblFalse)]
+
+    EPat e1 cs -> do
+      v1 <- irEval e1
+      r1 <- bitcast v1 (ptr (struct [i32]))
+      r2 <- getelementptr (struct [i32]) r1 (I32 0) (I32 0)
+      r3 <- load i32 r2
+      lblEnd <- irName "end"
+      labels <- forM cs $ \(Clause ((Label _ con):|_) _) -> irName con
+      switch r3 (NonEmpty.head labels) (zip (I32 <$> [0 ..]) (NonEmpty.toList labels))
+      b:|bs <- forM (NonEmpty.zip labels cs) $ \(ll, Clause (_:|lls) e) -> do
+        void $ block ll
+        let s = struct (i32 : (irTypeOf . snd . unLabel <$> lls))
+        r4 <- bitcast v1 (ptr s)
+        vals <- forM (zip lls [1 .. ]) $ \(Label ti n, i) -> do
+          ri <- getelementptr s r4 (I32 0) (I32 i)
+          rj <- load (irTypeOf ti) ri
+          pure (n, rj)
+        rn <- local (envInserts vals) (irEval e)
+        br_ [lblEnd]
+        pure (rn, ll)
+      block lblEnd
+      phi (irTypeOf (fst b)) (b:bs)
 
     ELit prim ->
       pure (irPrim prim)
 
     EOp2 (t, OAdd) e1 e2 -> do
-      v1 <- xirEval e1
-      v2 <- xirEval e2
+      v1 <- irEval e1
+      v2 <- irEval e2
       add (toIRType t) v1 v2
 
     EOp2 (t, OSub) e1 e2 -> do
-      v1 <- xirEval e1
-      v2 <- xirEval e2
+      v1 <- irEval e1
+      v2 <- irEval e2
       sub (toIRType t) v1 v2
 
     EOp2 (t, OMul) e1 e2 -> do
-      v1 <- xirEval e1
-      v2 <- xirEval e2
+      v1 <- irEval e1
+      v2 <- irEval e2
       mul (toIRType t) v1 v2
 
     EOp2 (t, OEq) e1 e2 -> do
-      v1 <- xirEval e1
-      v2 <- xirEval e2
-      icmpEq (toIRType t) v1 v2
+      v1 <- irEval e1
+      v2 <- irEval e2
+      cmpEq (toIRType t) v1 v2
 
     ELet vs e1 -> do
       vals <- forM vs $ \(Label t n, e) -> do
-        v <- xirEval e
+        v <- irEval e
         pure (n, v)
-      local (envInserts vals) (xirEval e1)
+      local (envInserts vals) (irEval e1)
 
     e -> error (show e)
 
+
+xtests = do
+  moo_ dict1
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 101)
+
+  moo_ (let Right r = pipeline progX in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 7)
+
+  moo_ (let Right r = pipeline progY in r)
+  readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 7)
+
+  moo_ (let Right r = pipeline progZ in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 6)
+
+  moo_ (let Right r = pipeline progZ2 in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 6)
+
+  moo_ (let Right r = pipeline progI in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 3628800)
+
+  moo_ (let Right r = pipeline progK in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 101)
+
+  moo_ (let Right r = pipeline progQ in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 5)
