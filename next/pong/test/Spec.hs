@@ -3011,9 +3011,6 @@ progJ =
           ( ePat
               (EVar (Label () "x"))
               [ clause
-                  [ Label () "Nil" ]
-                  (ELit (PInt32 0))
-              , clause
                   [ Label () "Cons"
                   , Label () "a"
                   , Label () "as" ]
@@ -3027,6 +3024,9 @@ progJ =
                       ]
                     )
                   )
+              , clause
+                  [ Label () "Nil" ]
+                  (ELit (PInt32 0))
               ]
           )
       )
@@ -3133,6 +3133,52 @@ progL =
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EVar (Label () "n"))
 
+
+--
+-- field
+--   { name = n | r } =
+--     { name = "Plissken", id = 1 }
+--   in
+--     { name = "Snake" | r }
+--
+progL2 :: Expr ()
+progL2 =
+  ERes
+    (Focus (Label () "name") (Label () "n") (Label () "r"))
+    (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
+    (EExt "name" (ELit (PString "Snake")) (EVar (Label () "r")))
+
+-- let
+--   z = 
+--     field
+--       { name = n | r } =
+--         { name = "Plissken", id = 1 }
+--       in
+--         { name = "Snake" | r }
+--   in
+--     field 
+--       { name = m | q } =
+--         z
+--       in
+--         m
+--
+progL3 :: Expr ()
+progL3 =
+  eLet 
+    [ 
+      ( Label () "z"
+      , ERes
+        (Focus (Label () "name") (Label () "n") (Label () "r"))
+        (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
+        (EExt "name" (ELit (PString "Snake")) (EVar (Label () "r")))
+      )
+    ]
+    (ERes
+      (Focus (Label () "name") (Label () "m") (Label () "q"))
+      (EVar (Label () "z"))
+      (EVar (Label () "m")))
+--      (ELit (PInt32 11111)))
+
 --
 -- field
 --   { name = n | r } =
@@ -3146,6 +3192,34 @@ progM =
     (Focus (Label () "name") (Label () "n") (Label () "r"))
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EVar (Label () "r"))
+
+
+--
+-- { id = 1 }
+--
+progM2 :: Expr ()
+progM2 = 
+  eLet
+    [
+      ( Label () "g"
+      , EExt "id" (ELit (PInt32 1)) ENil
+      )
+    ]
+    (ELit (PInt32 108))
+
+--
+-- field
+--   { id = a | r } =
+--     { id = 123 }
+--   in
+--     a
+--
+progM3 :: Expr ()
+progM3 = 
+  ERes
+    (Focus (Label () "id") (Label () "a") (Label () "r"))
+    (EExt "id" (ELit (PInt32 123)) ENil)
+    (EVar (Label () "a"))
 
 --
 -- let
@@ -3236,6 +3310,15 @@ progQ =
     ]
   )
 
+progO =
+  eLet
+  [
+    ( Label () "r"
+    , ENil
+    )
+  ]
+  (ELit (PInt32 1))
+
 runDictShouldEqual :: Expr () -> Value -> SpecWith ()
 runDictShouldEqual prog result =
   case pipeline prog of
@@ -3254,6 +3337,8 @@ testPipeline =
     runDictShouldEqual progJ (VPrim (PInt32 2))
     runDictShouldEqual progK (VPrim (PInt32 101))
     runDictShouldEqual progL (VPrim (PString "Plissken"))
+    runDictShouldEqual progL2 (VExt "name" (VPrim (PString "Snake")) (VExt "id" (VPrim (PInt32 1)) VNil))
+    runDictShouldEqual progL3 (VPrim (PString "Snake"))
     runDictShouldEqual progM (VExt "id" (VPrim (PInt32 1)) VNil)
     runDictShouldEqual progN (VPrim (PInt32 6))
 
@@ -5035,7 +5120,8 @@ crew9 = sortBy (compare `on` weight . snd) . Map.toList . Map.unions . Map.mapWi
     weight = \case
       CType{}    -> 1
       CDeclare{} -> 2
-      CDefine{}  -> 3
+      CString{}  -> 3
+      CDefine{}  -> 4
 
 --foo :: Name -> ([Label Type], Expr Type) -> Map Name (IRConstruct (IRCode IRState)) -> Map Name (IRConstruct (IRCode IRState))
 foo name as = definitions (execCodegen (runIRCode (crew5 name as)))
@@ -5054,7 +5140,8 @@ moo dict = Text.putStrLn cake
 moo_ dict = do
   Text.writeFile "tmp.ll" (intr <> cake)
   where
-    intr = "declare void @print_int32(i32)\n\ndefine i32 @main() {\n  %1 = call i32 @\"$fun._\"()\n  call void @print_int32(i32 %1)\n  ret i32 0\n}\n\n"
+--    intr = "declare i8* @hashmap_init()\n\ndeclare void @print_int32(i32)\n\ndefine i32 @main() {\n  %1 = call i32 @\"$fun._\"()\n  call void @print_int32(i32 %1)\n  ret i32 0\n}\n\n"
+    intr = "" -- "declare i8* @hashmap_init()\n\ndeclare void @print_int32(i32)\n\ndefine i32 @main() {\n  %1 = call i32 @\"$fun._\"()\n  call void @print_int32(i32 %1)\n  ret i32 0\n}\n\n"
     cake = Text.intercalate "\n" snake
     snake = play (crew9 dict)
 
@@ -5191,9 +5278,13 @@ progZ2 =
         )
     )
 
-
-
 --
+
+topLiteral :: Name -> Text -> IREval IRValue
+topLiteral n str = do
+  name <- irName n
+  insertDefinition name (CString name str)
+  pure (Global (ptr (literalType str)) name)
 
 topType :: Name -> IRType -> IREval IRType
 topType n ty = do
@@ -5208,10 +5299,10 @@ topDefine n t args code = do
   pure (Global (fun t (fst <$> args)) name)
 
 resume :: IRType -> [IRValue] -> IRType -> IRType -> [IRType] -> IRCode IRValue
-resume ct vs xx t ts = do
+resume ct vs t1 t ts = do
   r1 <- bitcast (Local (ptr i8) "f") (ptr ct)
   r2 <- getelementptr ct r1 (I32 0) (I32 1)
-  r3 <- load xx r2
+  r3 <- load t1 r2
   args <- forM (zip vs [2 ..]) $ \(a, n) -> do
     r <- getelementptr ct r1 (I32 0) (I32 n)
     load (irTypeOf a) r
@@ -5343,9 +5434,12 @@ irEval =
       r2 <- getelementptr (struct [i32]) r1 (I32 0) (I32 0)
       r3 <- load i32 r2
       lblEnd <- irName "end"
-      labels <- forM cs $ \(Clause ((Label _ con):|_) _) -> irName con
-      switch r3 (NonEmpty.head labels) (zip (I32 <$> [0 ..]) (NonEmpty.toList labels))
-      b:|bs <- forM (NonEmpty.zip labels cs) $ \(ll, Clause (_:|lls) e) -> do
+      ds <- forM cs $ \(Clause ((Label _ con):|lls) e) -> do
+        n <- irName con
+        pure (n, lls, e)
+      let ns = fst3 <$> ds
+      switch r3 (NonEmpty.head ns) (zip (I32 <$> [0 ..]) (NonEmpty.toList ns))
+      b:|bs <- forM ds $ \(ll, lls, e) -> do
         void $ block ll
         let s = struct (i32 : (irTypeOf . snd . unLabel <$> lls))
         r4 <- bitcast v1 (ptr s)
@@ -5358,6 +5452,10 @@ irEval =
         pure (rn, ll)
       block lblEnd
       phi (irTypeOf (fst b)) (b:bs)
+
+    ELit (PString str) -> do
+      error "TODO"
+      --topLiteral "lit" str
 
     ELit prim ->
       pure (irPrim prim)
@@ -5388,8 +5486,29 @@ irEval =
         pure (n, v)
       local (envInserts vals) (irEval e1)
 
-    e -> error (show e)
+    ENil ->
+      call (ptr i8) (Global (fun (ptr i8) [TVoid]) "hashmap_init") []
 
+    EExt ll e1 e2 -> do
+      t1 <- topLiteral ("label_" <> ll) ll
+      t2 <- getelementptr (literalType ll) t1 (I32 0) (I32 0)
+      v1 <- irEval e1
+      v2 <- irEval e2
+      r1 <- alloca (irTypeOf v1)
+      void $ store v1 r1
+      r2 <- bitcast r1 (ptr i8)
+      call (ptr i8) (Global (fun (ptr i8) [ptr i8, ptr i8]) "hashmap_insert") [v2, t2, r2]
+
+    ERes (Focus (Label _ ll) (Label t var) (Label _ r)) e1 e2 -> do
+      t1 <- topLiteral ("label_" <> ll) ll
+      t2 <- getelementptr (literalType ll) t1 (I32 0) (I32 0)
+      v1 <- irEval e1
+      v2 <- call (ptr i8) (Global (fun (ptr i8) [ptr i8]) "hashmap_lookup") [v1, t2]
+      r1 <- bitcast v2 (ptr (irTypeOf t))
+      r2 <- load (irTypeOf t) r1
+      local (envInserts [(var, r2), (r, v1)]) (irEval e2)
+
+    e -> error (show e)
 
 xtests = do
   moo_ dict1
@@ -5431,3 +5550,13 @@ xtests = do
   void $ readProcess "./build.sh" [] ""
   r <- readProcess "./tmp" [] ""
   print (read r :: Int, 5)
+
+  moo_ (let Right r = pipeline progJ in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 2)
+
+  moo_ (let Right r = pipeline progM3 in r)
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print (read r :: Int, 123)

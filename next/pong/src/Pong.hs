@@ -31,7 +31,7 @@ import Data.Maybe (fromMaybe)
 import Data.Set (Set, member)
 import Data.Text (Text)
 import Data.Tuple.Extra
--- import Debug.Trace
+import Debug.Trace
 import Prelude hiding (map)
 import TextShow
 import qualified Data.List.NonEmpty as NonEmpty
@@ -239,22 +239,22 @@ inSub f = Sub . f . unSub
 removeSub :: Int -> Substitution -> Substitution
 removeSub = inSub . Map.delete
 
-class Bound b where
+class BoundIn b where
   bound :: b -> Set Name
 
-instance Bound b => Bound [b] where
+instance BoundIn b => BoundIn [b] where
   bound = Set.unions . fmap bound
 
-instance Bound b => Bound (List1 b) where
+instance BoundIn b => BoundIn (List1 b) where
   bound = bound . NonEmpty.toList
 
-instance Bound (Label t) where
+instance BoundIn (Label t) where
   bound (Label _ var) = Set.singleton var
 
-instance (Bound b) => Bound (b, Expr t) where
+instance (BoundIn b) => BoundIn (b, Expr t) where
   bound (b, _) = bound b
 
-instance Bound (Focus b) where
+instance BoundIn (Focus b) where
   bound (Focus _ l1 l2) = bound l1 <> bound l2
 
 class FreeIn f t where
@@ -392,10 +392,6 @@ unfoldType =
 arity :: Type -> Int
 arity t = NonEmpty.length (unfoldType t) - 1
 
--- applyN :: Int -> Type -> Type
--- applyN n = foldl1' tArr . NonEmpty.drop n . unfoldType
---
-
 (<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
 {-# INLINE (<$$>) #-}
 (<$$>) = fmap . fmap
@@ -505,6 +501,9 @@ unifyTypes r1@RExt{} r2@RExt{} = unifyRows r1 r2
 unifyTypes RNil RNil = pure ()
 unifyTypes _ _       = throwError "Cannot unify"
 
+dupLabels :: Map Name [Type] -> Bool
+dupLabels = any (\v -> length v > 1)
+
 unifyRows :: Type -> Type -> Infer ()
 unifyRows (RExt n1 ts1 t1) r2@(RExt n2 ts2 t2)
   | n1 == n2  = unifyAll (t1:ts1) (t2:ts2)
@@ -595,11 +594,16 @@ inferExpr =
       forM_ tl (unify h)
       pure (EPat a1 (h :| tl))
     ENil -> pure ENil
-    EExt n e1 e2 ->
-      EExt n <$> inferExpr e1 <*> inferExpr e2
+    EExt n e1 e2 -> do
+      a1 <- EExt n <$> inferExpr e1 <*> inferExpr e2
+      let (_, m) = unfoldRow (typeOf a1)
+      if dupLabels m
+        then throwError "Duplicate label"
+        else pure a1
     ERes (Focus (Label _ n1) (Label t2 n2) (Label t3 n3)) e1 e2 -> do
       a1 <- inferExpr e1
-      case focusField n1 a1 of
+      case focusFieldType n1 (typeOf a1) of
+        Nothing -> throwError "Cannot unify"
         Just (n, r) -> do
           n `unify` TVar t2
           r `unify` TVar t3
@@ -607,13 +611,12 @@ inferExpr =
           s2 <- generalize (apply sub (TVar t2))
           a2 <- local (envInserts [(n2, s2), (n3, mono (apply sub (TVar t3)))]) (inferExpr e2)
           pure (ERes (Focus (Label (TVar t2) n1) (Label (TVar t2) n2) (Label (TVar t3) n3)) a1 a2)
-        Nothing ->
-          throwError "Cannot unify"
   where
     inferName (Label t name) = do
       t1 <- lookupName name
       t1 `unify` TVar t
-      pure (Label (TVar t) name)
+      sub <- gets substitution
+      pure (Label (apply sub (TVar t)) name)
 
     inferClause t (Clause (ll:|lls) e1) = do
       let as = TVar <$$> lls
@@ -622,16 +625,42 @@ inferExpr =
       a1 <- local (insertArgs as) (inferExpr e1)
       pure (Clause ((TVar <$> ll) :| as) a1)
 
-focusField :: Name -> Expr t -> Maybe (Expr t, Expr t)
-focusField name =
+focusFieldType :: Name -> Type -> Maybe (Type, Type)
+focusFieldType name r = do
+  let (t, m) = unfoldRow r
+  case Map.lookup name m of
+    Just (t1:_) ->
+      Just (t1, foldRow t (removeField name m))
+    _ -> Nothing
+
+focusFieldValue :: Name -> Value -> Maybe (Value, Value)
+focusFieldValue name v = do
+  let (f, m) = unfoldRecV v
+  case Map.lookup name m of
+    Just (v1:_) ->
+      Just (v1, foldRecV f (removeField name m))
+    _ -> Nothing
+
+-- TODO
+unfoldRecV :: Value -> (Value, Map Name [Value])
+unfoldRecV =
   \case
-    r@EExt{} -> do
-      let (e, m) = unfoldRec r
-      case Map.lookup name m of
-        Just (e1:_) ->
-          Just (e1, Map.foldrWithKey (flip . foldr . EExt) e (removeField name m))
-        _ -> Nothing
-    _     -> Nothing
+    VExt name vs v -> second (Map.insertWith (<>) name [vs]) (unfoldRecV v)
+    v              -> (v, mempty)
+
+foldRecV :: Value -> Map Name [Value] -> Value
+foldRecV = Map.foldrWithKey (flip . foldr . VExt)
+
+--focusField :: Name -> Expr t -> Maybe (Expr t, Expr t)
+--focusField name =
+--  \case
+--    r@EExt{} -> do
+--      let (e, m) = unfoldRec r
+--      case Map.lookup name m of
+--        Just (e1:_) ->
+--          Just (e1, Map.foldrWithKey (flip . foldr . EExt) e (removeField name m))
+--        _ -> Nothing
+--    _     -> Nothing
 
 instantiate :: Scheme -> Infer Type
 instantiate (Forall vs t) = do
@@ -1108,10 +1137,9 @@ eval =
     EExt n e1 e2 -> VExt n <$> eval e1 <*> eval e2
 
     ERes (Focus (Label _ name) (Label _ n) (Label _ r)) e1 e2 -> do
-      case focusField name e1 of
-        Just (a1, a2) -> do
-          v1 <- eval a1
-          v2 <- eval a2
+      v <- eval e1
+      case focusFieldValue name v of
+        Just (v1, v2) -> 
           local (envInserts [(n, Right v1), (r, Right v2)]) (eval e2)
         Nothing ->
           error "Runtime error"
@@ -1326,6 +1354,7 @@ data IRType
   | TPtr !IRType
   | TStruct ![IRType]
   | TName !Name !IRType
+  | TArray !Int !IRType
   deriving (Show, Eq, Ord, Read)
 
 i1 :: IRType
@@ -1348,6 +1377,9 @@ fun = TFun
 
 struct :: [IRType] -> IRType
 struct = TStruct
+
+literalType :: Text -> IRType
+literalType str = TArray (Text.length str + 1) i8
 
 data IRValue
   = Local   !IRType !Name
@@ -1382,28 +1414,31 @@ instance IRTyped Type where
 instance (Typed t) => IRTyped (Expr t) where
   irTypeOf = irTypeOf . typeOf
 
+type IRLLst v = [(v, Name)]
+
 data IRInstrF v t a
-  = IAdd    !t !v !v           !(v -> a)
-  | ISub    !t !v !v           !(v -> a)
-  | IMul    !t !v !v           !(v -> a)
-  | IRet    !t !v              !(v -> a)
-  | ILoad   !t !v              !(v -> a)
-  | IStore  !v !v              !(v -> a)
-  | IGep    !t !v !v !v        !(v -> a)
-  | IAlloc  !t                 !(v -> a)
-  | IBCast  !v !t              !(v -> a)
-  | ICall   !t !v ![v]         !(v -> a)
-  | ICmpEq  !t !v !v           !(v -> a)
-  | IBlock  !Name              !(v -> a)
-  | IBr     !(Maybe v) ![Name] !(v -> a)
-  | ISwitch !v !Name ![(v, Name)] !(v -> a)
-  | IPhi    !t ![(v, Name)]    !(v -> a)
+  = IAdd    !t !v !v             !(v -> a)
+  | ISub    !t !v !v             !(v -> a)
+  | IMul    !t !v !v             !(v -> a)
+  | IRet    !t !v                !(v -> a)
+  | ILoad   !t !v                !(v -> a)
+  | IStore  !v !v                !(v -> a)
+  | IGep    !t !v !v !v          !(v -> a)
+  | IAlloc  !t                   !(v -> a)
+  | IBCast  !v !t                !(v -> a)
+  | ICall   !t !v ![v]           !(v -> a)
+  | ICmpEq  !t !v !v             !(v -> a)
+  | IBlock  !Name                !(v -> a)
+  | IBr     !(Maybe v) ![Name]   !(v -> a)
+  | ISwitch !v !Name !(IRLLst v) !(v -> a)
+  | IPhi    !t !(IRLLst v)       !(v -> a)
   deriving (Functor)
 
 data IRConstruct a
   = CDefine  !IRType ![(IRType, Name)] !a
   | CDeclare !IRType ![IRType]
   | CType    !IRType
+  | CString  !Name !Text
   deriving (Show, Functor, Foldable, Traversable)
 
 data IRState = IRState
@@ -1470,14 +1505,14 @@ block n = wrap (IBlock n pure)
 irPrim :: Prim -> IRValue
 irPrim =
   \case
-    PBool b    -> I1 b
-    PInt32 i32 -> I32 i32
-    PInt64 i64 -> I64 i64
-    PFloat f   -> Float f
-    PDouble d  -> Double d
-    PUnit      -> I1 True
-    PChar _    -> error "TODO"
-    PString _  -> error "TODO"
+    PBool b   -> I1 b
+    PInt32 n  -> I32 n
+    PInt64 n  -> I64 n
+    PFloat f  -> Float f
+    PDouble d -> Double d
+    PUnit     -> I1 True
+    PChar _   -> error "TODO"
+    PString _ -> error "TODO"
 
 class IR a where
   encode :: a -> Text
@@ -1500,17 +1535,18 @@ instance IR IRValue where
 instance IR IRType where
   encode =
     \case
-      TInt1     -> "i1"
-      TInt8     -> "i8"
-      TInt32    -> "i32"
-      TInt64    -> "i64"
-      TFloat    -> "float"
-      TDouble   -> "double"
-      TVoid     -> "void"
-      TFun t ts -> encode t <+> "(" <> encode ts <> ")" <> "*"
-      TPtr t    -> encode t <> "*"
-      TStruct t -> "{" <+> encode t <+> "}"
-      TName n _ -> "%" <> enquote n
+      TInt1      -> "i1"
+      TInt8      -> "i8"
+      TInt32     -> "i32"
+      TInt64     -> "i64"
+      TFloat     -> "float"
+      TDouble    -> "double"
+      TVoid      -> "void"
+      TFun t ts  -> encode t <+> "(" <> encode ts <> ")" <> "*"
+      TPtr t     -> encode t <> "*"
+      TStruct t  -> "{" <+> encode t <+> "}"
+      TName n _  -> "%" <> enquote n
+      TArray n t -> "[" <> showt n <+> "x" <+> encode t <> "]"
 
 enquote :: Text -> Text
 enquote n
@@ -1527,7 +1563,7 @@ instance IR (IRCode IRState) where
   encode code = Text.unlines (indent 2 <$> snd (runCodegen (runIRCode code)))
 
 indent :: Int -> Text -> Text
-indent level line = if Text.last line == ':' then line else spaces <> line
+indent level line = if Text.last (Text.strip line) == ':' then line else spaces <> line
   where
     spaces = Text.replicate level " "
 
@@ -1545,13 +1581,16 @@ instance IR IRNamed where
          in "define" <+> signature <+> body
       CDeclare t ts ->
         "declare" <+> encode t <+> "@" <> enquote name <> "(" <> encode ts <> ")"
-      CType t -> do
+      CType t ->
         let body = "{\n" <> encodeStruct t <> "\n}\n"
-        "%" <> enquote name <+> "=" <+> "type" <+> body
+         in "%" <> enquote name <+> "=" <+> "type" <+> body
         where
-          encodeStruct = \case
-            TStruct ts -> Text.intercalate ",\n" (indent 2 . encode <$> ts)
-            t1 -> encode t1
+          encodeStruct = 
+            \case
+              TStruct ts -> Text.intercalate ",\n" (indent 2 . encode <$> ts)
+              t1 -> encode t1
+      CString n str ->
+        "@" <> enquote n <+> "=" <+> "constant" <+> encode (literalType str) <+> "c\"" <> str <> "\\00\"\n"
 
 toIRType :: Type -> IRType
 toIRType =
@@ -1567,8 +1606,7 @@ toIRType =
       where
         t' = toIRType (NonEmpty.last ts)
         ts = unfoldType t
---    t -> error ("TODO: " <> show t)
-    t -> ptr i8
+    _ -> ptr i8
 
 funPtrType :: Type -> IRType
 funPtrType =
@@ -1630,27 +1668,34 @@ interpreter =
     ICmpEq t v w next ->
       instruction t ("icmp eq" <+> encode (irTypeOf v) <+> encode v <> "," <+> encode w) next
     IPhi t cs next ->
-      instruction t ("phi" <+> encode t <+> Text.intercalate ", " (phiPair <$> cs)) next
+      instruction t ("phi" <+> encode t <+> commaSep phiPair cs) next
     IStore v w next -> do
       instruction_ (irTypeOf v) ("store" <+> encode (IRAnnotated v) <> "," <+> encode (IRAnnotated w)) next
     IRet t v next ->
       instruction_ t ("ret" <+> encode t <+> encode v) next
     IBr (Just v) lls next ->
-      instruction_ (irTypeOf v) ("br" <+> encode (IRAnnotated v) <> "," <+> Text.intercalate ", " (label <$> lls)) next
+      instruction_ (irTypeOf v) ("br" <+> encode (IRAnnotated v) <> "," <+> commaSep label lls) next
     IBr Nothing lls next ->
-      -- TODO
-      instruction_ (irTypeOf (I32 1)) ("br" <+> Text.intercalate ", "  (label <$> lls)) next
+      instruction_ i1 ("br" <+> commaSep label lls) next
     IBlock n next -> do
-      -- TODO
-      instruction_ (irTypeOf (I32 1)) (enquote n <> ":") next
+      instruction_ i1 (enquote n <> ":") next
     ISwitch v n cs next ->
-      instruction_ (irTypeOf v) ("switch" <+> encode (IRAnnotated v) <> "," <+> label n <+> "[" <+> Text.intercalate " " (switchPair <$> cs) <+> "]") next
+      instruction_ (irTypeOf v) ("switch" <+> encode (IRAnnotated v) <> "," <+> label n <+> "[" <+> sep " " switchPair cs <+> "]") next
   where
     typeOffs (TName _ t) n        = typeOffs t n
     typeOffs (TStruct ts) (I32 n) = ts !! fromIntegral n
+    typeOffs (TArray _ t) _       = t
+--    typeOffs a b = error (show (a, b))
+
     label ll = "label" <+> "%" <> enquote ll
     phiPair (v, ll) = "[" <> encode v <> "," <+> "%" <> enquote ll <> "]"
-    switchPair (v, ll) = encode (IRAnnotated v) <> "," <+> "label" <+> "%" <> enquote ll
+    switchPair (v, ll) = encode (IRAnnotated v) <> "," <+> label ll
+
+commaSep :: (a -> Text) -> [a] -> Text
+commaSep = sep ", "
+
+sep :: Text -> (a -> Text) -> [a] -> Text
+sep s f as = Text.intercalate s (f <$> as)
 
 overGlobalCount :: (Int -> Int) -> IRState -> IRState
 overGlobalCount f IRState{..} = IRState { globalCount = f globalCount, .. }
