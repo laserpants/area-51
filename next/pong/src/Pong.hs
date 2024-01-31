@@ -92,6 +92,9 @@ data Op2
   | OAnd
   deriving (Show, Eq, Ord, Read)
 
+-- | A label is a tagged identifier, where the tag is most commonly the type
+--   of the identifier in question, or an interim placeholder for this type.
+--
 data Label t = Label !t !Name
   deriving (Show, Eq, Ord, Read, Functor, Foldable, Traversable)
 
@@ -237,11 +240,11 @@ instance (Typed s, Substitutable s) => Substitutable (Expr s) where
 mapsTo :: Int -> Type -> Substitution
 mapsTo = Sub <$$> Map.singleton
 
-substitutions :: [(Int, Type)] -> Substitution
-substitutions = Sub . Map.fromList
+substs :: [(Int, Type)] -> Substitution
+substs = Sub . Map.fromList
 
 zipSub :: [Int] -> [Type] -> Substitution
-zipSub = substitutions <$$> zip
+zipSub = substs <$$> zip
 
 inSub :: (Map Int Type -> Map Int Type) -> Substitution -> Substitution
 inSub f = Sub . f . unSub
@@ -656,9 +659,9 @@ inferExpr =
       a1 <- inferExpr e
       as <- traverse inferExpr es
       a2 <- inferName ll
-      let TCon "->" [t1, _] = typeOf a1
-      let TCon "->" [_, t2] = typeOf a2
-      t1 `unify` t2
+      case (typeOf a1, typeOf a2) of
+        (TCon "->" [t1, _], TCon "->" [_, t2]) -> t1 `unify` t2
+        _ -> throwError "Cannot unify"
       pure (ECall a2 as a1)
   where
     inferName (Label t name) = do
@@ -1940,7 +1943,6 @@ operator =
   , fix2
   ]
 
-
 expr :: Parser (Expr ())
 expr = makeExprParser (parens expr <|> item) operator
 
@@ -2052,6 +2054,7 @@ focusExpr = do
       r <- symbol "|" *> identifier
       pure $ Focus (Label () n) (Label () e) (Label () r)
 
+-- $call print_int32(#5) (fn(_) => #1)
 runExpr :: Parser (Expr ())
 runExpr =
   ECall . Label ()
