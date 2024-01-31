@@ -50,6 +50,7 @@ testTypeEnv = envFromList
   , ("!print_int32", scheme [0] (tInt32 ~> TCon "Unit" []))
   , ("!print_int64", scheme [0] (tInt64 ~> TCon "Unit" []))
   , ("!print_string", scheme [0] (tString ~> TCon "Unit" []))
+  , ("!print_bool", scheme [0] (tBool ~> TCon "Unit" []))
   , ("!increment", scheme [0] (tInt32 ~> tInt32))
   ]
 
@@ -5170,6 +5171,7 @@ irName :: Name -> IREval Name
 irName n = do
   count <- gets globalCount
   modifyGlobalCount (+1)
+  --traceShowM ((n <> "." <> showt count))
   pure (n <> "." <> showt count)
 
 --topDefine :: Name -> IRType -> [(IRType, Name)] -> IRCode IRValue -> IREval IRValue
@@ -5304,23 +5306,101 @@ crew8 = execCodegen (runIRCode crew6)
 
 --fazo :: IRConstruct (IRCode IRState) -> IRConstruct (IRCode IRState) -> Ordering
 
+--type Dictionary t = Map Name ([Label t], Expr t)
+
 crew9 :: Dictionary Type -> [(Name, IRConstruct (IRCode IRState))]
-crew9 = sortBy (compare `on` weight . snd) . Map.toList . Map.unions . Map.mapWithKey foo
+--crew9 = sortBy (compare `on` weight . snd) . Map.toList . Map.unions . Map.mapWithKey foo
+crew9 d = foop --sortBy (compare `on` weight . snd) . Map.toList . Map.unions . Map.mapWithKey foo
   where
+    foop = sortBy (compare `on` weight . snd) (Map.toList boop)
+    boop = definitions zoop
+    zoop = Map.foldrWithKey ffoo initialIRState d
+
     weight = \case
       CType{}    -> 1
       CDeclare{} -> 2
       CString{}  -> 3
       CDefine{}  -> 4
 
+ffoo :: Name -> ([Label Type], Expr Type) -> IRState -> IRState
+ffoo name as xs = xx1
+--  traceShow name
+--    $ traceShow "&&&&&&&&&&&&&&&"
+--      $ traceShow "&&&&&&&&&&&&&&&"
+--        $ traceShow (globalCount xs)
+--          $ xx1
+  where
+    xx1 :: IRState
+    xx1 = execCodegen yy1
+
+    bb1 :: (IRState, [Text])
+    bb1 = runCodegen yy1
+
+    yy1 :: Codegen IRState
+    yy1 = runIRCode zz1 
+
+    zz1 :: IRCode IRState
+    zz1 = crew55 xs name as
+
+crew55 :: IRState -> Name -> ([Label Type], Expr Type) -> IRCode IRState
+crew55 ssst name (lls, e) = do
+  fmap (faz name (toIRType (typeOf e)) args zz) zz
+  where
+    zz :: IRCode IRState
+    zz = fmap snd dd
+    dd :: IRCode (IRValue, IRState)
+    dd = runIREvalX ssst (envFromList (foo <> foobaz)) testConsEnv (pastaTmp e)
+    foo = [(n, Local (funPtrType t) n) | Label t n <- lls ]
+    args :: [(IRType, Name)]
+    args = swap <$> (funPtrType <$$> unLabel <$> lls)
+
+
+--pastaTmp :: Expr Type -> IREval IRValue
+
+
+
+--crew5 :: Name -> ([Label Type], Expr Type) -> IRCode IRState
+--crew5 name (lls, e) = do
+--  fmap (faz name (toIRType (typeOf e)) args zz) zz
+--  where
+--    zz :: IRCode IRState
+--    zz = fmap snd dd
+--    dd :: IRCode (IRValue, IRState)
+--    dd = runIREval (envFromList (foo <> foobaz)) testConsEnv (pastaTmp e)
+--    foo = [(n, Local (funPtrType t) n) | Label t n <- lls ]
+--    args :: [(IRType, Name)]
+--    args = swap <$> (funPtrType <$$> unLabel <$> lls)
+
+
 --foo :: Name -> ([Label Type], Expr Type) -> Map Name (IRConstruct (IRCode IRState)) -> Map Name (IRConstruct (IRCode IRState))
+foo :: Name -> ([Label Type], Expr Type) -> Map Name (IRConstruct (IRCode IRState))
 foo name as = definitions (execCodegen (runIRCode (crew5 name as)))
+
+play2 :: [(Name, IRConstruct (IRCode IRState))] -> [Text]
+play2 aa = snd dd
+  where
+    dd :: ([IRState], [Text])
+    dd = runCodegen cc
+    cc :: Codegen [IRState]
+    cc = runIRCode bb
+    bb :: IRCode [IRState]
+    bb = sequence zz
+    zz :: [IRCode IRState]
+    zz = fmap yy aa
+    yy :: (Name, IRConstruct (IRCode IRState)) -> IRCode IRState -- IREval IRValue
+    yy (name, CDefine t as e) = e
+    yy _ = pure initialIRState
 
 play :: [(Name, IRConstruct (IRCode IRState))] -> [Text]
 play = fmap (uncurry goo)
 
 goo :: Name -> IRConstruct (IRCode IRState) -> Text
 goo = encode <$$> IRNamed
+
+--encode code = Text.unlines (indent 2 <$> snd (runCodegen (runIRCode code)))
+
+alt :: [IRCode IRState] -> [Codegen IRState] 
+alt = fmap (iterM interpreter)
 
 moo dict = Text.putStrLn cake
   where
@@ -5363,7 +5443,6 @@ crew5 name (lls, e) = do
     zz :: IRCode IRState
     zz = fmap snd dd
     dd :: IRCode (IRValue, IRState)
-    --dd = runIREval (envFromList foo) (irEval e)
     dd = runIREval (envFromList (foo <> foobaz)) testConsEnv (pastaTmp e)
     foo = [(n, Local (funPtrType t) n) | Label t n <- lls ]
     args :: [(IRType, Name)]
@@ -5373,6 +5452,8 @@ foobaz =
   [ ("print_int32", Global (fun TVoid [i32]) "print_int32")
   , ("print_int64", Global (fun TVoid [i64]) "print_int64")
   , ("print_string", Global (fun TVoid [ptr i8]) "print_string")
+--  , ("print_bool", Global (fun TVoid [ptr i8]) "print_bool")
+  , ("print_bool", Global (fun TVoid [i1]) "print_bool")
   , ("increment", Global (fun i32 [i32]) "increment")
   ]
 
@@ -5534,6 +5615,7 @@ unpackClosure _ _ _ = error "Implementation error"
 packClosure :: [IRValue] -> [IRValue] -> IREval IRValue
 packClosure us vs = do
   tt <- topType "closure" s
+  --traceShowM tt
   td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tt us (TFun t ts) t ts')
   r1 <- alloca tt
   r2 <- getelementptr tt r1 (I32 0) (I32 0)
@@ -5599,8 +5681,12 @@ irEval =
             Local{} -> do
               r1 <- unpackClosure (irTypeOf t) v1 []
               r2 <- bitcast r1 (ptr i8)
+              --traceShowM "(1)"
+              --traceShowM t
+              --traceShowM v1
               packClosure [r2] [r1, v1]
-            Global{} ->
+            Global{} -> do
+              --traceShowM "(2)"
               packClosure [] [v1]
             _ ->
               error "Implementation error"
@@ -5625,8 +5711,10 @@ irEval =
           Local{} -> do
             r1 <- unpackClosure (irTypeOf e1) v1 vs
             r2 <- bitcast r1 (ptr i8)
+            --traceShowM "(3)"
             packClosure (r2 : vs) ([r1, v1] <> vs)
           Global{} -> do
+            --traceShowM "(4)"
             packClosure vs (v1 : vs)
           _ ->
             error "Implementation error"
@@ -5892,6 +5980,16 @@ ytests = do
   r <- readProcess "./tmp" [] ""
   putStrLn r
 
+  mooz "let my_list = @Cons(#1, @Cons(#2, @Cons(#3, @Cons(#4, Nil)))) ; eq_f = fn(a, b) => a == b ; is_member = fn(eq, x, xs) => match xs { | Cons(y, ys) => if @eq(x, y) then true else @is_member(eq, x, ys) | Nil => false } in let result = @is_member(eq_f, #5, my_list) in $call print_bool(result) (fn(_) => #0)"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print ("false", r)
+
+  mooz "let my_list = @Cons(#1, @Cons(#2, @Cons(#3, @Cons(#4, @Cons(#5, Nil))))) ; eq_f = fn(a, b) => a == b ; is_member = fn(eq, x, xs) => match xs { | Cons(y, ys) => if @eq(x, y) then true else @is_member(eq, x, ys) | Nil => false } in let result = @is_member(eq_f, #5, my_list) in $call print_bool(result) (fn(_) => #0)"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  print ("true", r)
+
 
 --let
 --  r =
@@ -5905,6 +6003,79 @@ ytests = do
 --            in
 --              c
 --    }
+
+--
+--
+-- let
+--   my_list = 
+--     @Cons(#1, @Cons(#2, @Cons(#3, @Cons(#4, Nil)))) 
+--     ;
+--   eq_f =
+--     fn(a, b) =>
+--       a == b 
+--     ;
+--   is_member =
+--     fn(eq, x, xs) =>
+--       match xs {
+--         | Cons(y, ys) =>
+--             if @eq(x, y)
+--               then 
+--                 true
+--               else 
+--                 @is_member(eq, x, ys) 
+--         | Nil => false
+--       }
+--   in
+--     let
+--       result = 
+--         @is_member(eq_f, #5, my_list)
+--       in
+--         $call print_bool(result) (fn(_) => #0)
+--
+
+
+
+-- let my_list = @Cons(#1, @Cons(#2, @Cons(#3, @Cons(#4, Nil)))) ; eq_f = fn(a, b) => a == b ; is_member = fn(eq, x, xs) => match xs { | Cons(y, ys) => if @eq(x, y) then true else @is_member(eq, x, ys) | Nil => false } in let result = @is_member(eq_f, #5, my_list) in $call print_bool(result) (fn(_) => #0)
+
+-- let my_list = @Cons(#1, @Cons(#2, @Cons(#3, @Cons(#4, @Cons(#5, Nil))))) ; eq_f = fn(a, b) => a == b ; is_member = fn(eq, x, xs) => match xs { | Cons(y, ys) => if @eq(x, y) then true else @is_member(eq, x, ys) | Nil => false } in let result = @is_member(eq_f, #5, my_list) in $call print_bool(result) (fn(_) => #0)
+
+
+
+
+
+--
+-- let
+--   my_list = Nil
+--     ;
+--   eq_f =
+--     fn(a, b) =>
+--       a == b 
+--     ;
+--   is_member =
+--     fn(eq, x, xs) =>
+--       match xs {
+--         | Nil => false
+--         | Cons(y, ys) =>
+--             if @eq(x, y)
+--               then 
+--                 true
+--               else 
+--                 @is_member(eq, x, ys) 
+--       }
+--   in
+--     let
+--       result = 
+--         @is_member(eq_f, #5, my_list)
+--       in
+--         #2
+--
+
+
+
+
+
+
+
 
 endend input =
   case runParser expr "" input of

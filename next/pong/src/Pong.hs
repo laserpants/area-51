@@ -874,6 +874,7 @@ suffixNames =
 isPolymorphic :: Type -> Bool
 isPolymorphic = not . Set.null . tvars
 
+-- TODO: Rename ??
 data BindGroup = Binds
   { bindVars :: !(Map Name (Type, Expr Type))
   , bindExpr :: !(Expr Type)
@@ -1164,9 +1165,12 @@ eval =
           error "Runtime error"
 
     ECall ll es e -> do
+      vs <- traverse eval es
       -- TODO
-      liftIO $ print ll
-      liftIO $ print e
+      liftIO $ do
+        print ll
+        print vs
+        print e
       eval (EApp (returnTypeOf e) e (ELit PUnit :| []))
 
 evalPat :: Value -> [Clause Type] -> Eval Value
@@ -1694,6 +1698,10 @@ newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue, Environmen
 
 runIREval :: Environment IRValue -> Environment Int -> IREval a -> IRCode (a, IRState)
 runIREval env1 env2 val = runStateT (runReaderT (unIREval val) (env1, env2)) initialIRState
+
+-- TODO
+runIREvalX :: IRState -> Environment IRValue -> Environment Int -> IREval a -> IRCode (a, IRState)
+runIREvalX st env1 env2 val = runStateT (runReaderT (unIREval val) (env1, env2)) st
 
 instruction :: IRType -> Text -> (IRValue -> Codegen a) -> Codegen a
 instruction t s next = do
