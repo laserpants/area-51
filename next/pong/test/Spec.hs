@@ -8,42 +8,49 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RecordWildCards #-}
-import Test.Hspec
-
-import Debug.Trace
-import Data.Tuple.Extra
-import Data.Char (isUpper)
-import Control.Monad.Writer
-import Data.Fix
+import Control.Arrow ((>>>))
 import Control.Monad.Free
 import Control.Monad.Reader
 import Control.Monad.State
-import Data.Text (Text)
-import Control.Arrow ((>>>))
+import Control.Monad.Writer
+import Data.Char (isUpper)
+import Data.Fix
 import Data.Foldable
-import Data.Functor
-import Data.Map.Strict (Map)
-import Data.Int (Int32, Int64)
 import Data.Function (on)
+import Data.Functor
+import Data.Int (Int32, Int64)
 import Data.List (sortBy, sortOn, groupBy, intersperse)
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.Map.Strict ((!))
+import Data.Map.Strict (Map)
 import Data.Set (Set)
-import TextShow
+import Data.Text (Text)
+import Data.Tuple.Extra
+import Debug.Trace
 import Pong
+import System.Process
+import Test.Hspec
+import Text.Megaparsec (runParser)
+import TextShow
+import qualified Control.Monad.Free as Free
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import qualified Control.Monad.Free as Free
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import System.Process
 
 testTypeEnv :: TypeEnv
 testTypeEnv = envFromList
   [ ("Cons", scheme [0] (TVar 0 ~> TCon "List" [TVar 0] ~> TCon "List" [TVar 0]))
   , ("Nil", scheme [0] (TCon "List" [TVar 0]))
+
+  , ("Record#", scheme [0] (TVar 0 ~> TCon "Record#" [TVar 0]))
+
 --  , ("&Cons", scheme [0] (TVar 0))
+  , ("!print_int32", scheme [0] (tInt32 ~> TCon "Unit" []))
+  , ("!print_int64", scheme [0] (tInt64 ~> TCon "Unit" []))
+  , ("!print_string", scheme [0] (tString ~> TCon "Unit" []))
+  , ("!increment", scheme [0] (tInt32 ~> tInt32))
   ]
 
 maxStrLen :: Int
@@ -235,18 +242,18 @@ testInferExpr = do
   describe "inferExpr" $ do
     mapM_ (uncurry inferExprShouldEqual)
       [ -- field { name = n | r } = { id = 1 } in n
-        ( ERes
+        ( EFocus
             (Focus (Label () "name") (Label () "n") (Label () "r"))
             (EExt "id" (ELit (PInt32 1)) ENil)
             (EVar (Label () "n"))
         , Left "Cannot unify"
         )
       , -- field { name = n | r } = { name = "Bob", id = 1 } in n
-        ( ERes
+        ( EFocus
             (Focus (Label () "name") (Label () "n") (Label () "r"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label () "n"))
-        , Right $ ERes
+        , Right $ EFocus
             (Focus (Label tString "name") (Label tString "n") (Label (RExt "id" [tInt32] RNil) "r"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label tString "n"))
@@ -1030,12 +1037,12 @@ testQualifyNames = do
   describe "qualifyNames" $ do
     mapM_ (uncurry qualifyNamesShouldEqual)
       [ --  field { name = n | r } = { name = "Bob", id = 1 } in n
-        ( ERes
+        ( EFocus
             (Focus (Label () "name") (Label () "n") (Label () "r"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label () "n"))
         -- field { name = n.0 | r.1 } = { name = "Bob", id = 1 } in n.0
-        , ERes
+        , EFocus
             (Focus (Label () "name") (Label () "n.0") (Label () "r.1"))
             (EExt "name" (ELit (PString "Bob")) (EExt "id" (ELit (PInt32 1)) ENil))
             (EVar (Label () "n.0"))
@@ -3128,7 +3135,7 @@ progK =
 --
 progL :: Expr ()
 progL =
-  ERes
+  EFocus
     (Focus (Label () "name") (Label () "n") (Label () "r"))
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EVar (Label () "n"))
@@ -3143,20 +3150,20 @@ progL =
 --
 progL2 :: Expr ()
 progL2 =
-  ERes
+  EFocus
     (Focus (Label () "name") (Label () "n") (Label () "r"))
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EExt "name" (ELit (PString "Snake")) (EVar (Label () "r")))
 
 -- let
---   z = 
+--   z =
 --     field
 --       { name = n | r } =
 --         { name = "Plissken", id = 1 }
 --       in
 --         { name = "Snake" | r }
 --   in
---     field 
+--     field
 --       { name = m | q } =
 --         z
 --       in
@@ -3164,20 +3171,37 @@ progL2 =
 --
 progL3 :: Expr ()
 progL3 =
-  eLet 
-    [ 
+  eLet
+    [
       ( Label () "z"
-      , ERes
+      , EFocus
         (Focus (Label () "name") (Label () "n") (Label () "r"))
         (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
         (EExt "name" (ELit (PString "Snake")) (EVar (Label () "r")))
       )
     ]
-    (ERes
+    (EFocus
       (Focus (Label () "name") (Label () "m") (Label () "q"))
       (EVar (Label () "z"))
       (EVar (Label () "m")))
 --      (ELit (PInt32 11111)))
+
+
+--
+-- field
+--   { name = n | r } =
+--     { name = "Plissken", id = 1 }
+--   in
+--     run[print(n)] 0
+--
+progL4 :: Expr ()
+progL4 =
+  EFocus
+    (Focus (Label () "name") (Label () "n") (Label () "r"))
+    (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
+    --(EExt "name" (ELit (PString "Snake")) (EVar (Label () "r")))
+    (ECall (Label () "print_string") [EVar (Label () "n")] (ELit (PInt32 0)))
+
 
 --
 -- field
@@ -3188,7 +3212,7 @@ progL3 =
 --
 progM :: Expr ()
 progM =
-  ERes
+  EFocus
     (Focus (Label () "name") (Label () "n") (Label () "r"))
     (EExt "name" (ELit (PString "Plissken")) (EExt "id" (ELit (PInt32 1)) ENil))
     (EVar (Label () "r"))
@@ -3198,7 +3222,7 @@ progM =
 -- { id = 1 }
 --
 progM2 :: Expr ()
-progM2 = 
+progM2 =
   eLet
     [
       ( Label () "g"
@@ -3215,8 +3239,8 @@ progM2 =
 --     a
 --
 progM3 :: Expr ()
-progM3 = 
-  ERes
+progM3 =
+  EFocus
     (Focus (Label () "id") (Label () "a") (Label () "r"))
     (EExt "id" (ELit (PInt32 123)) ENil)
     (EVar (Label () "a"))
@@ -3241,7 +3265,7 @@ progN =
           (EOp2 ((), OAdd) (EVar (Label () "y")) (ELit (PInt32 1)))
       )
     ]
-    (ERes
+    (EFocus
       (Focus (Label () "fun") (Label () "f") (Label () "r"))
       (EExt "fun" (eLam [Label () "x"] (EVar (Label () "x"))) (EExt "id" (ELit (PInt32 1)) ENil))
       (eApp ()
@@ -3271,7 +3295,7 @@ progP =
 --            (eApp
 --              ()
 --              (EVar (Label () "Cons"))
---              [ -- ELit (PInt32 1) 
+--              [ -- ELit (PInt32 1)
 --                EVar (Label () "x")
 --              , EVar (Label () "xs")
 --              ])
@@ -3373,6 +3397,98 @@ testMExpr =
     ]
     Fail
 
+testMExpr2 :: MExpr (Expr ())
+testMExpr2 =
+  match
+    [ "u1", "u2", "u3" ]
+    [
+      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+        ]
+      , Expr (ELit (PInt32 1))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MLit (ELit (PInt32 3)), MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 2))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+        ]
+      , Expr (EVar (Label () "y"))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 789))
+      )
+    ]
+    Fail
+
+testMExpr6 :: MExpr (Expr ())
+testMExpr6 =
+  match
+    [ "u1", "u2", "u3" ]
+    [
+      ( [ MVar "f", MCon "Nil" [], MVar "ys"
+        ]
+      , Expr (ELit (PInt32 1))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MLit (ELit (PInt32 3)), MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 2))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MLit (ELit (PInt32 4)), MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 3))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Cons" [MVar "y", MVar "ys"]
+        ]
+      , Expr (EVar (Label () "y"))
+      )
+    ,
+      ( [ MVar "f", MCon "Cons" [MVar "x", MVar "xs"], MCon "Nil" []
+        ]
+      , Expr (ELit (PInt32 789))
+      )
+    ]
+    Fail
+
+testMExpr3 :: MExpr (Expr ())
+testMExpr3 =
+  match
+    [ "u1", "u2" ]
+    [
+      ( [ MLit (ELit (PInt32 3)), MVar "xs" ]
+      , Expr (ELit (PInt32 2))
+      )
+    ,
+      ( [ MVar "x", MVar "xs" ]
+      , Expr (EVar (Label () "y"))
+      )
+    ]
+    Fail
+
+testMExpr5 :: MExpr (Expr ())
+testMExpr5 =
+  match
+    [ "u1", "u2" ]
+    [
+      ( [ MLit (ELit (PInt32 3)), MVar "xs" ]
+      , Expr (ELit (PInt32 2))
+      )
+    ]
+    (match
+      [ "u1", "u2" ]
+      [
+        ( [ MVar "x", MVar "xs" ]
+        , Expr (EVar (Label () "y"))
+        )
+      ]
+      Fail)
+
 testCompileMExpr :: SpecWith ()
 testCompileMExpr =
   describe "compileMExpr" $ do
@@ -3409,6 +3525,77 @@ testCompileMExpr =
         , eApp () (EVar (Label () "Cons")) [ELit (PInt32 200), EVar (Label () "Nil")]
         ])
       (VPrim (PInt32 200))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr2))
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 1))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr2))
+        -- [] [100] []
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 789))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr2))
+        -- [] [3] []
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 3), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 2))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr2))
+        -- [] [100] [200]
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 100), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 200), EVar (Label () "Nil")]
+        ])
+      (VPrim (PInt32 200))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr6))
+        -- [] [3] []
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 3), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 2))
+    runMExprShouldEqual
+      (eApp
+        ()
+        (eLam
+          [Label () "u1", Label () "u2", Label () "u3"]
+          (compileMExpr testMExpr6))
+        -- [] [3] []
+        [ eApp () (EVar (Label () "Nil")) []
+        , eApp () (EVar (Label () "Cons")) [ELit (PInt32 4), EVar (Label () "Nil")]
+        , eApp () (EVar (Label () "Nil")) []
+        ])
+      (VPrim (PInt32 3))
 
 --
 
@@ -5015,6 +5202,9 @@ testEnv = envFromList
     , Local (fun i32 [i32]) "g.5"
 --    , Clsosure (TFun i32 [i32]) "g.5" []
     )
+--  , ( "print_int32"
+--    , Global (fun TVoid [i32]) "print_int32"
+--    )
   ]
 
 dict1 :: Dictionary Type
@@ -5058,31 +5248,31 @@ dict1 =
 --  (ELit (PInt32 9999))
 dictX =
   [
-    ( "Nil", 
-       ( [] 
+    ( "Nil",
+       ( []
        , undefined
        )
     )
-  , ( "Cons", 
-       ( [] 
+  , ( "Cons",
+       ( []
        , undefined
        )
     )
-  , ( "$fun._", 
-       ( [] 
-       , ELet 
-           ( 
+  , ( "$fun._",
+       ( []
+       , ELet
+           (
              ( Label (TCon "List" [TCon "Int32" []]) "xs.0"
-             , EApp (TCon "List" [TCon "Int32" []]) 
-                 (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "List" [TCon "Int32" []],TCon "List" [TCon "Int32" []]]]) "Cons")) 
+             , EApp (TCon "List" [TCon "Int32" []])
+                 (EVar (Label (TCon "->" [TCon "Int32" [],TCon "->" [TCon "List" [TCon "Int32" []],TCon "List" [TCon "Int32" []]]]) "Cons"))
                  (ELit (PInt32 5) :| [EVar (Label (TCon "List" [TCon "Int32" []]) "Nil")]
                  )
               ) :| []
-            ) 
+            )
            (ELit (PInt32 9999))
         )
     )
-  ] 
+  ]
 
 --crew4 :: Dictionary Type ->
 --crew4 dict = undefined
@@ -5146,6 +5336,8 @@ moo_ dict = do
     snake = play (crew9 dict)
 
 
+mooz input = moo_ (let Right q = pipeline ((let Right r = runParser expr "" input in r)) in q)
+
 --newtype IREval a = IREval { unIREval :: ReaderT (Environment IRValue) (StateT IRState IRCode) a }
 --  deriving (Functor, Applicative, Monad, MonadReader (Environment IRValue), MonadState IRState, MonadFree (IRInstrF IRValue IRType))
 
@@ -5158,6 +5350,12 @@ faz name t args code IRState{..} =
 
 -- = IRState { definitions = f definitions, .. }
 
+testConsEnv = envFromList
+  [ ( "Cons", 0 )
+  , ( "Nil", 1 )
+  , ( "Record#", 0 )
+  ]
+
 crew5 :: Name -> ([Label Type], Expr Type) -> IRCode IRState
 crew5 name (lls, e) = do
   fmap (faz name (toIRType (typeOf e)) args zz) zz
@@ -5166,10 +5364,17 @@ crew5 name (lls, e) = do
     zz = fmap snd dd
     dd :: IRCode (IRValue, IRState)
     --dd = runIREval (envFromList foo) (irEval e)
-    dd = runIREval (envFromList foo) (pastaTmp e)
+    dd = runIREval (envFromList (foo <> foobaz)) testConsEnv (pastaTmp e)
     foo = [(n, Local (funPtrType t) n) | Label t n <- lls ]
     args :: [(IRType, Name)]
     args = swap <$> (funPtrType <$$> unLabel <$> lls)
+
+foobaz =
+  [ ("print_int32", Global (fun TVoid [i32]) "print_int32")
+  , ("print_int64", Global (fun TVoid [i64]) "print_int64")
+  , ("print_string", Global (fun TVoid [ptr i8]) "print_string")
+  , ("increment", Global (fun i32 [i32]) "increment")
+  ]
 
 
 pastaTmp :: Expr Type -> IREval IRValue
@@ -5245,7 +5450,7 @@ progZ :: Expr ()
 progZ =
   eLet
     [ ( Label () "f"
-      , eLam [Label () "x", Label () "y", Label () "z"] 
+      , eLam [Label () "x", Label () "y", Label () "z"]
           (EOp2 ((), OAdd) (EVar (Label () "x")) (EOp2 ((), OAdd) (EVar (Label () "y")) (EVar (Label () "z"))))
       )
     ]
@@ -5266,7 +5471,7 @@ progZ2 :: Expr ()
 progZ2 =
   eLet
     [ ( Label () "f"
-      , eLam [Label () "x", Label () "y", Label () "z"] 
+      , eLam [Label () "x", Label () "y", Label () "z"]
           (EOp2 ((), OAdd) (EVar (Label () "x")) (EOp2 ((), OAdd) (EVar (Label () "y")) (EVar (Label () "z"))))
       )
     ]
@@ -5311,7 +5516,7 @@ resume ct vs t1 t ts = do
 
 irLookupValue :: Type -> Name -> IREval IRValue
 irLookupValue t var = do
-  env <- ask
+  (env, _) <- ask
   pure $ case envLookup var env of
     Just val -> val
     Nothing  -> Global (toIRType t) var
@@ -5321,7 +5526,7 @@ unpackClosure (TFun t ts) v vs = do
   r1 <- bitcast v (ptr s)
   r2 <- getelementptr s r1 (I32 0) (I32 0)
   load tfun r2
-  where 
+  where
     tfun = fun t (ptr i8 : ts <> (irTypeOf <$> vs))
     s = struct [tfun]
 unpackClosure _ _ _ = error "Implementation error"
@@ -5329,7 +5534,7 @@ unpackClosure _ _ _ = error "Implementation error"
 packClosure :: [IRValue] -> [IRValue] -> IREval IRValue
 packClosure us vs = do
   tt <- topType "closure" s
-  td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tt us (TFun t ts) t ts') -- (pure $ I32 99)
+  td <- topDefine "resume" t ((ptr i8, "f") : ixArgs ts') (resume tt us (TFun t ts) t ts')
   r1 <- alloca tt
   r2 <- getelementptr tt r1 (I32 0) (I32 0)
   void $ store td r2
@@ -5343,6 +5548,17 @@ packClosure us vs = do
     ts' = drop (length us) ts
 packClosure _ _ = error "Implementation error"
 
+irLabel :: Name -> IREval ()
+irLabel ll = block ll >> setLabel ll
+
+irBlock :: Name -> Name -> IREval IRValue -> IREval (IRValue, Name)
+irBlock ll brll code = do
+  irLabel ll
+  r <- code
+  l <- gets label
+  br_ [brll]
+  pure (r, l)
+
 irEval :: Expr Type -> IREval IRValue
 irEval =
   \case
@@ -5352,8 +5568,10 @@ irEval =
       tt <- topType name s
       r1 <- alloca tt
       r2 <- getelementptr tt r1 (I32 0) (I32 0)
-      -- TODO: constructor index
-      store (I32 1) r2
+      (_, env) <- ask
+      case envLookup var env of
+        Nothing -> error ("No constructor " <> Text.unpack var)
+        Just ix -> store (I32 (fromIntegral ix)) r2
       bitcast r1 (ptr i8)
 
     EApp t (EVar (Label t1 var)) es | isUpper (Text.head var) -> do
@@ -5363,8 +5581,10 @@ irEval =
       tt <- topType name s
       r1 <- alloca tt
       r2 <- getelementptr tt r1 (I32 0) (I32 0)
-      -- TODO: constructor index
-      store (I32 0) r2
+      (_, env) <- ask
+      case envLookup var env of
+        Nothing -> error ("No constructor " <> Text.unpack var)
+        Just ix -> store (I32 (fromIntegral ix)) r2
       forM_ (zip vs [1 ..]) $ \(v, n) -> do
         rn <- getelementptr tt r1 (I32 0) (I32 n)
         store v rn
@@ -5377,10 +5597,10 @@ irEval =
         else do
           case v1 of
             Local{} -> do
-              r1 <- unpackClosure (irTypeOf t) v1 [] 
+              r1 <- unpackClosure (irTypeOf t) v1 []
               r2 <- bitcast r1 (ptr i8)
               packClosure [r2] [r1, v1]
-            Global{} -> 
+            Global{} ->
               packClosure [] [v1]
             _ ->
               error "Implementation error"
@@ -5399,8 +5619,7 @@ irEval =
           Global{} ->
             call (toIRType t) v1 vs
           _ ->
-            ret i32 (I32 90)
-      --      error "Implementation error"
+            error "Implementation error"
 
         else case v1 of
           Local{} -> do
@@ -5419,14 +5638,10 @@ irEval =
       lblFalse <- irName "false"
       lblEnd <- irName "end"
       br r2 [lblTrue, lblFalse]
-      block lblTrue
-      r3 <- irEval e2
-      br_ [lblEnd]
-      block lblFalse
-      r4 <- irEval e3
-      br_ [lblEnd]
-      block lblEnd
-      phi (irTypeOf r3) [(r3, lblTrue), (r4, lblFalse)]
+      thenBlock <- irBlock lblTrue lblEnd (irEval e2)
+      elseBlock <- irBlock lblFalse lblEnd (irEval e3)
+      irLabel lblEnd
+      phi (irTypeOf (fst thenBlock)) [thenBlock, elseBlock]
 
     EPat e1 cs -> do
       v1 <- irEval e1
@@ -5440,22 +5655,19 @@ irEval =
       let ns = fst3 <$> ds
       switch r3 (NonEmpty.head ns) (zip (I32 <$> [0 ..]) (NonEmpty.toList ns))
       b:|bs <- forM ds $ \(ll, lls, e) -> do
-        void $ block ll
-        let s = struct (i32 : (irTypeOf . snd . unLabel <$> lls))
-        r4 <- bitcast v1 (ptr s)
-        vals <- forM (zip lls [1 .. ]) $ \(Label ti n, i) -> do
-          ri <- getelementptr s r4 (I32 0) (I32 i)
-          rj <- load (irTypeOf ti) ri
-          pure (n, rj)
-        rn <- local (envInserts vals) (irEval e)
-        br_ [lblEnd]
-        pure (rn, ll)
-      block lblEnd
+        irBlock ll lblEnd $ do
+          let s = struct (i32 : (irTypeOf . snd . unLabel <$> lls))
+          r4 <- bitcast v1 (ptr s)
+          vals <- forM (zip lls [1 .. ]) $ \(Label ti n, i) -> do
+            ri <- getelementptr s r4 (I32 0) (I32 i)
+            rj <- load (irTypeOf ti) ri
+            pure (n, rj)
+          local (first (envInserts vals)) (irEval e)
+      irLabel lblEnd
       phi (irTypeOf (fst b)) (b:bs)
 
-    ELit (PString str) -> do
-      error "TODO"
-      --topLiteral "lit" str
+    ELit (PString str) ->
+      topLiteral "lit" str
 
     ELit prim ->
       pure (irPrim prim)
@@ -5484,7 +5696,7 @@ irEval =
       vals <- forM vs $ \(Label t n, e) -> do
         v <- irEval e
         pure (n, v)
-      local (envInserts vals) (irEval e1)
+      local (first (envInserts vals)) (irEval e1)
 
     ENil ->
       call (ptr i8) (Global (fun (ptr i8) [TVoid]) "hashmap_init") []
@@ -5494,21 +5706,109 @@ irEval =
       t2 <- getelementptr (literalType ll) t1 (I32 0) (I32 0)
       v1 <- irEval e1
       v2 <- irEval e2
-      r1 <- alloca (irTypeOf v1)
-      void $ store v1 r1
-      r2 <- bitcast r1 (ptr i8)
-      call (ptr i8) (Global (fun (ptr i8) [ptr i8, ptr i8]) "hashmap_insert") [v2, t2, r2]
+      r1 <- irConceal v1
+      call (ptr i8) (Global (fun (ptr i8) [ptr i8, ptr i8]) "hashmap_insert") [v2, t2, r1]
 
-    ERes (Focus (Label _ ll) (Label t var) (Label _ r)) e1 e2 -> do
+    EFocus (Focus (Label _ ll) (Label t var) (Label _ r)) e1 e2 -> do
       t1 <- topLiteral ("label_" <> ll) ll
       t2 <- getelementptr (literalType ll) t1 (I32 0) (I32 0)
       v1 <- irEval e1
       v2 <- call (ptr i8) (Global (fun (ptr i8) [ptr i8]) "hashmap_lookup") [v1, t2]
-      r1 <- bitcast v2 (ptr (irTypeOf t))
-      r2 <- load (irTypeOf t) r1
-      local (envInserts [(var, r2), (r, v1)]) (irEval e2)
+      r2 <- irReveal v2 (irTypeOf t)
+      local (first (envInserts [(var, r2), (r, v1)])) (irEval e2)
+
+--    ECall TVar{} name es e -> do
+--      vs <- traverse irEval es
+--      call TVoid (Global (fun TVoid (irTypeOf <$> es)) name) vs
+--
+--      v1 <- irEval e
+--      v2 <- irEval (ELit PUnit)
+--      r1 <- irConceal v2
+--      let t2 = NonEmpty.last (unfoldType (typeOf e))
+--
+--      case v1 of
+--        Local{} -> do
+--          r2 <- unpackClosure (irTypeOf e) v1 []
+--          call (toIRType t2) r2 [v1, r1]
+--        Global{} ->
+--          call (toIRType t2) v1 [r1]
+--        _ ->
+--          error "Implementation error"
+
+    ECall (Label t ll) es e -> do
+      v1 <- irLookupValue t (Text.tail ll)
+      --vs <- traverse (irConceal <=< irEval) es
+      vs <- traverse irEval es                         --- ?
+      let TFun t1 _ = irTypeOf v1
+      r1 <- call t1 v1 vs
+      v2 <- irEval e
+      let t2 = toIRType (NonEmpty.last (unfoldType (typeOf e)))
+
+      rx <- case irTypeOf r1 of
+        TVoid -> irEval (ELit PUnit) >>= irConceal
+        _     -> pure r1
+
+      case v2 of
+        Local{} -> do
+          r2 <- unpackClosure (irTypeOf e) v2 []
+          call t2 r2 [v2, rx]
+        Global{} ->
+          call t2 v2 [rx]
+        _ ->
+          error "Implementation error"
+
+--      case irTypeOf r1 of
+--        TVoid -> do
+--          r2 <- irEval (ELit PUnit)
+--          call (toIRType (NonEmpty.last (unfoldType (typeOf e)))) v2 [r2]
+--        _ ->
+--          call (toIRType (NonEmpty.last (unfoldType (typeOf e)))) v2 [r1]
+
+      --pure (I32 134)
+      --v1 <- irEval e
+
+      --let t1 = TCon "Int32" []
+      --r1 <- call i32 (Global (fun i32 (irTypeOf <$> es)) name) vs
+
+      --ret i32 444
+
+      --r2 <- irConceal r1
+
+      --v1 <- irEval e
+
+      --case v1 of
+      --  Local{} -> do
+      --    r2 <- unpackClosure (irTypeOf e) v1 []
+      --    call (toIRType t2) r2 [v1, r1]
+      --  Global{} ->
+      --    call (toIRType t2) v1 [r1]
+      --  _ ->
+      --    error "Implementation error"
 
     e -> error (show e)
+
+irConceal :: IRValue -> IREval IRValue
+irConceal v =
+  case irTypeOf v of
+    TPtr TInt8 -> pure v
+    TPtr{}     -> bitcast v (ptr i8)          -- ???
+    TInt1      -> inttoptr v (ptr i8)
+    TInt8      -> inttoptr v (ptr i8)
+    TInt32     -> inttoptr v (ptr i8)
+    TInt64     -> inttoptr v (ptr i8)
+    t -> do
+      r <- alloca t >>= store v
+      bitcast r (ptr i8)
+
+irReveal :: IRValue -> IRType -> IREval IRValue
+irReveal v =
+  \case
+    TPtr TInt8 -> pure v
+    TInt1      -> ptrtoint v i1
+    TInt8      -> ptrtoint v i8
+    TInt32     -> ptrtoint v i32
+    TInt64     -> ptrtoint v i64
+    t          -> bitcast v (ptr t) >>= load t
 
 xtests = do
   moo_ dict1
@@ -5560,3 +5860,57 @@ xtests = do
   void $ readProcess "./build.sh" [] ""
   r <- readProcess "./tmp" [] ""
   print (read r :: Int, 123)
+
+ytests = do
+  mooz "let n = #1 ; f = fn(x) => if x == #0 then n else let m = x * @f(x - #1) in $call print_int32(m) (fn(_) => m) in @f(#15)"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  putStrLn r
+
+  mooz "let b = 1 ; f = fn(n) => if n == 0 then b else let m = n * @f(n - 1) in $call print_int64(m) fn(_) => m in let x = @f(15) in #1"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  putStrLn r
+
+  mooz "let xs = @Cons(#1, @Cons(#2, Nil)) in match xs { | Cons(x, xs) => match xs { | Cons(y, ys) => y | Nil => #102 } | Nil => #101 }"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  putStrLn r
+
+  mooz "if #1 == #2 then #3 else if #4 == #5 then #6 else #7"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  putStrLn r
+
+  mooz "let r = { count = #5 | {} } in focus { count = c | q } = r in c"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  putStrLn r
+
+  mooz "let r = @Record#({ count = #5 | {} }) in match r { | Record#(z) => focus { count = c | q } = z in c }"
+  void $ readProcess "./build.sh" [] ""
+  r <- readProcess "./tmp" [] ""
+  putStrLn r
+
+
+--let
+--  r =
+--    @Record#({ count = #5 | {} })
+--  in
+--    match r {
+--      | Record#(z) =>
+--          focus
+--            { count = c | q } =
+--              z
+--            in
+--              c
+--    }
+
+endend input =
+  case runParser expr "" input of
+    Left e -> error (show e)
+    Right r ->
+      case pipeline r of
+        Left e -> error (show e)
+        Right q ->
+          runDict q
